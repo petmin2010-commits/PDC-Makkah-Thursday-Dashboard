@@ -144,7 +144,7 @@ function bindWednesdayInfoPopups(){
      if(text)text.innerHTML=`
        <div class="meeting-method-list">
          <p><b>التنفيذ:</b> العمود R. يُعتبر الأمر منفذًا فقط إذا كانت القيمة «تم التنفيذ».</p>
-         <p><b>متأخر تنفيذ / ضمن المدة:</b> للأوامر غير المنفذة، من حالة التأخير.</p>
+         <p><b>شجرة لم يتم التنفيذ:</b> تُقسم تلقائيًا حسب الحالات الفعلية الموجودة في العمود BC.</p>
          <p><b>متأخر إغلاق:</b> الأمر منفذ + مرحلة التنفيذ تحتوي «الإغلاق» + حالة المرحلة ليست «تم الانتهاء».</p>
          <p><b>المقاول:</b> العمود G.</p>
          <p><b>نوع العمل:</b> العمود P.</p>
@@ -152,7 +152,7 @@ function bindWednesdayInfoPopups(){
          <p><b>جهة التنفيذ / المكتب:</b> العمود U.</p>
          <p><b>حالة التصاريح:</b> تعتمد كليًا على العمود AO (حالة التصريح من بلدي). جميع القيم المختلفة في AO تظهر تلقائيًا في الجدول والرسم، بما فيها «انتهاء التنسيق - رفض»، وأي حالة جديدة مستقبلًا تظهر تلقائيًا.</p>
          <p><b>شريحة أيام التأخير:</b> العمود BE مباشرة.</p>
-         <p><b>حالة المستندات:</b> العمود BF، ويُحتسب فقط لأوامر العمل التي تم تنفيذها (R = تم التنفيذ). وعند حالة "تم الاستلام من المقاول" يتم تقسيمها تلقائيًا حسب القيم الموجودة في العمود BG.</p>
+         <p><b>شجرة تم التنفيذ:</b> تبدأ من العمود AK إلى «مستلم 155 للمقاول» و«غير مستلم 155 للمقاول». فرع «غير مستلم 155 للمقاول» ينقسم حسب BF إلى «تم الاستلام من المقاول» و«لم يتم الاستلام من المقاول»، ثم «تم الاستلام من المقاول» ينقسم تلقائيًا حسب الحالات الموجودة في BG.</p>
        </div>`;
      if(modal){
        modal.classList.add('show');
@@ -196,7 +196,7 @@ function openPage(key){
    configureMasterFilters();applyMasterFilters();return;
  }
  if(isMeeting){
-   document.getElementById('pageTitle').textContent='اجتماع الخميس';
+   document.getElementById('pageTitle').textContent='اجتماع الـ PDC';
    openWednesdayMeeting();
    return;
  }
@@ -388,6 +388,25 @@ function renderWednesdayMeeting(){
    </div>
   </div>`;
 
+ // مؤشرات اجتماع الـ PDC المختصرة — بنفس كروت جدة.
+ const allMeetingRows=Array.isArray(S.meetingRows)?S.meetingRows:[];
+ const delayedExecutionByAB=allMeetingRows.filter(r=>String(r.delayStatus||'').includes('تأخير')).length;
+ const withinByAB=allMeetingRows.filter(r=>{const s=String(r.delayStatus||'').trim();return s==='ضمن المدة'||s==='أوشكت المدة على الانتهاء';}).length;
+ const docsNotReceivedByBG=allMeetingRows.filter(r=>statusNorm(r.executionRaw)==='تم التنفيذ'&&statusNorm(r.docsSubStatus)==='لم تُسلّم من المقاول').length;
+ const executedByR=rows.filter(r=>statusNorm(r.executionRaw)==='تم التنفيذ').length;
+ const completionPct=total?(executedByR/total*100):0;
+ const avgDelayZA=total?(rows.reduce((sum,r)=>sum+Number(r.delayDays||0),0)/total):0;
+ const summaryRoot=document.getElementById('meetingSummaryKpis');
+ if(summaryRoot)summaryRoot.innerHTML=`
+   <article class="meeting-summary-card tone-blue"><strong>${fmt(total)}</strong><span>إجمالي أوامر العمل</span></article>
+   <article class="meeting-summary-card tone-purple"><strong>${fmt(executedByR)}</strong><span>متأخر إغلاق</span></article>
+   <article class="meeting-summary-card tone-orange"><strong>${fmt(withinByAB)}</strong><span>قيد التنفيذ ضمن المدة</span></article>
+   <article class="meeting-summary-card tone-red"><strong>${fmt(delayedExecutionByAB)}</strong><span>متأخر تنفيذ</span></article>
+   <article class="meeting-summary-card tone-docs"><strong>${fmt(docsNotReceivedByBG)}</strong><span>مستندات لم تُسلّم من المقاول</span></article>
+   <article class="meeting-summary-card tone-green"><strong>${completionPct.toFixed(1)}%</strong><span>نسبة إنجاز التنفيذ</span></article>
+   <article class="meeting-summary-card tone-yellow"><strong>${avgDelayZA.toFixed(1)}</strong><span>متوسط أيام التأخير</span></article>
+   <article class="meeting-summary-card tone-green"><strong>${fmt(executedByR)}</strong><span>أُنجز التنفيذ</span></article>`;
+
  const execLabels=['أُنجز التنفيذ','متأخر تنفيذ','قيد التنفيذ ضمن المدة','أخرى'];
  const execValues=[
    completed,delayed,within,
@@ -453,7 +472,7 @@ function renderWednesdayMeeting(){
    borderWidth:2,borderColor:'#fff'
  }],{legend:true});
 
- const docsEntries=meetingCountBy(executedRows,'docsStatus');
+ const docsEntries=meetingCountBy(executedRows,'docsSubStatus');
  meetingDrawChart('wmDocsChart','doughnut',docsEntries.map(x=>x[0]),[{
    data:docsEntries.map(x=>x[1]),
    backgroundColor:['#2878e8','#e4505b','#18aa7d','#f0a126','#7657d7','#667ca8'],
@@ -3304,7 +3323,7 @@ function bindCalculationHelp(){
  };
 
  const decorate=()=>{
-   document.querySelectorAll('article.master-card,article.mini-kpi,.meeting-kpi,article.kpi-story-card,button.emergency-tree-card,.emergency-description-card,.permit-delay-card,.kpi-card,.stat-card,.summary-card,.metric-card').forEach(el=>{
+   document.querySelectorAll('article.master-card,article.mini-kpi,.meeting-kpi,article.kpi-story-card,article.meeting-summary-card,button.emergency-tree-card,.emergency-description-card,.permit-delay-card,.kpi-card,.stat-card,.summary-card,.metric-card').forEach(el=>{
      if(el.closest('#meetingInfoModal'))return;
      const label=getCardLabel(el);
      addButton(el,label,inferCardHelp(label,el),'card');

@@ -1351,3 +1351,14 @@ nav{gap:3px!important;padding-top:12px!important}.nav-item{padding:7px 8px!impor
 .target-tree .kpi-story-greatgrandchild span{font-size:6.5px!important}
 .target-tree .kpi-story-greatgrandchild strong{font-size:14px!important;color:var(--story-color)}
 .target-tree .kpi-story-greatgrandchild small{font-size:6px!important}
+
+
+/* PDC meeting summary KPI cards — matched to Jeddah */
+.meeting-summary-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));direction:ltr;margin:8px 0 22px;border-top:0;gap:14px 0}
+.meeting-summary-card{--k:#2477e8;direction:rtl;min-height:60px;background:#f3f3f3;border:2px solid var(--k);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:6px 10px;box-shadow:none}
+.meeting-summary-card strong{font-size:21px;line-height:1.05;color:var(--k);font-weight:800;font-variant-numeric:tabular-nums}
+.meeting-summary-card span{font-size:10px;line-height:1.35;color:#111827;font-weight:800;margin-top:6px}
+.meeting-summary-card.tone-blue{--k:#2477e8}.meeting-summary-card.tone-purple{--k:#8b35b5}.meeting-summary-card.tone-orange{--k:#ff7a16}.meeting-summary-card.tone-red{--k:#d71920}
+.meeting-summary-card.tone-docs{--k:#ff7a16}.meeting-summary-card.tone-green{--k:#00ad52}.meeting-summary-card.tone-yellow{--k:#d6a300}
+@media(max-width:900px){.meeting-summary-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.meeting-summary-card{min-height:64px}}
+@media(max-width:520px){.meeting-summary-kpis{grid-template-columns:1fr}}

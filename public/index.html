@@ -24,7 +24,7 @@
     </div>
     <nav id="nav">
       <button class="nav-item active" data-page="master">⌂ <span>الرئيسية</span></button>
-      <button class="nav-item meeting-nav-item" data-page="wednesdayMeeting">▥ <span>اجتماع الخميس</span></button>
+      <button class="nav-item meeting-nav-item" data-page="wednesdayMeeting">▥ <span>اجتماع الـ PDC</span></button>
       <button class="nav-item" data-page="workorders">▦ <span>أوامر العمل</span></button>
       <button class="nav-item" data-page="projects">⚡ <span>المشاريع</span></button>
       <button class="nav-item" data-page="connections">◉ <span>التوصيلات</span></button>
@@ -104,8 +104,8 @@
     <section id="meetingPage" class="page">
       <div class="meeting-hero">
         <div>
-          <span>THURSDAY MEETING</span>
-          <h2>اجتماع الخميس — لوحة متابعة أوامر العمل</h2>
+          <span>PDC MEETING</span>
+          <h2>اجتماع الـ PDC — لوحة متابعة أوامر العمل</h2>
           <p>قراءة آلية مباشرة من Google Sheet مع مؤشرات وشارتات وجداول مماثلة لتقرير Excel المرفق.</p>
         </div>
         <div class="meeting-update">آخر قراءة <b id="meetingUpdatedAt">—</b></div>
@@ -120,9 +120,11 @@
         <button id="wmReset" class="clear-btn">مسح</button>
       </div>
 
-      <div id="meetingKpis" class="meeting-kpis"></div><div id="meetingMethodologyNote" class="meeting-methodology-note">
-  <b>أساس احتساب مؤشرات اجتماع الخميس:</b>
-  التنفيذ من R، المقاول من G، نوع العمل من P، فئة العمل من T، جهة التنفيذ من U، حالة التصاريح من AO مباشرة، شريحة التأخير من BE، وحالة المستندات من BF للأوامر المنفذة فقط.
+      <div id="meetingKpis" class="meeting-kpis"></div>
+      <div id="meetingSummaryKpis" class="meeting-summary-kpis"></div>
+      <div id="meetingMethodologyNote" class="meeting-methodology-note">
+  <b>أساس احتساب مؤشرات اجتماع الـ PDC:</b>
+  التنفيذ من R، المقاول من G، نوع العمل من P، فئة العمل من T، جهة التنفيذ من U، حالة التصاريح من AO مباشرة، شريحة التأخير من BE، وحالة المستندات في الشارت والجدول من BG للأوامر المنفذة فقط.
   <button type="button" id="meetingMethodologyBtn" class="meeting-methodology-btn">عرض التفاصيل</button>
 </div>
 
@@ -186,11 +188,11 @@
 
         <section class="meeting-excel-row">
           <article class="panel meeting-excel-chart">
-            <div class="panel-title"><span>DOCUMENTS</span><h3>حالة المستندات — للأوامر المنفذة فقط</h3><button type="button" class="meeting-info-btn" data-note="المصدر: العمود BF (حالة المستندات)، ويطبق فقط على أوامر العمل المنفذة التي حالتها في العمود R = تم التنفيذ. الحالات الفارغة تظهر كغير محدد." aria-label="طريقة احتساب حالة المستندات">i</button></div>
+            <div class="panel-title"><span>DOCUMENTS</span><h3>حالة المستندات — للأوامر المنفذة فقط</h3><button type="button" class="meeting-info-btn" data-note="المصدر: العمود BG (حالة المستندات)، ويطبق فقط على أوامر العمل المنفذة التي حالتها في العمود R = تم التنفيذ. الحالات الفارغة تظهر كغير محدد." aria-label="طريقة احتساب حالة المستندات">i</button></div>
             <div class="meeting-canvas tall"><canvas id="wmDocsChart"></canvas></div>
           </article>
           <article class="panel meeting-excel-table">
-            <div class="panel-title"><span>DOCUMENTS</span><h3>حالة المستندات — للأوامر المنفذة فقط</h3><button type="button" class="meeting-info-btn" data-note="المصدر: العمود BF، ولكن فقط للأوامر المنفذة (R = تم التنفيذ). مستندات غير مكتملة تشمل الحالة الفارغة/غير محدد وأي حالة لا تدل على اكتمال أو استلام المستندات." aria-label="طريقة احتساب حسب حالة المستندات">i</button></div>
+            <div class="panel-title"><span>DOCUMENTS</span><h3>حالة المستندات — للأوامر المنفذة فقط</h3><button type="button" class="meeting-info-btn" data-note="المصدر: العمود BG، ولكن فقط للأوامر المنفذة (R = تم التنفيذ). مستندات غير مكتملة تشمل الحالة الفارغة/غير محدد وأي حالة لا تدل على اكتمال أو استلام المستندات." aria-label="طريقة احتساب حسب حالة المستندات">i</button></div>
             <div id="wmDocsTable" class="table-wrap meeting-table"></div>
           </article>
         </section>
@@ -219,7 +221,7 @@
 
         <section class="meeting-excel-row">
           <article class="panel meeting-excel-chart">
-            <div class="panel-title"><span>ACTION LIST</span><h3>متابعة أعلى أوامر العمل تأخيرًا</h3><button type="button" class="meeting-info-btn" data-note="يعرض أوامر العمل ذات أكبر عدد أيام تأخير لمناقشتها في اجتماع الخميس." aria-label="طريقة احتساب متابعة أعلى أوامر العمل تأخيرًا">i</button></div>
+            <div class="panel-title"><span>ACTION LIST</span><h3>متابعة أعلى أوامر العمل تأخيرًا</h3><button type="button" class="meeting-info-btn" data-note="يعرض أوامر العمل ذات أكبر عدد أيام تأخير لمناقشتها في اجتماع الـ PDC." aria-label="طريقة احتساب متابعة أعلى أوامر العمل تأخيرًا">i</button></div>
             <div class="meeting-action-note">الجدول المقابل يعرض أوامر العمل الأعلى تأخيرًا لمتابعتها في الاجتماع.</div>
           </article>
           <article class="panel meeting-excel-table">
