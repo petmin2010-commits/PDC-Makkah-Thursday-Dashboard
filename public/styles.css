@@ -1811,3 +1811,16 @@ button.emergency-tree-card:hover{transform:translateY(-1px);box-shadow:0 7px 17p
  #pageKpis.emergency-kpi-board .calc-help-btn{
    display:none!important;
  }
+/* Fix: remove extra vertical green arrows in Makkah emergency tree */
+#emergencyStatusTree .tree-doc-received::after,
+#emergencyStatusTree .tree-doc-consultant-review::after,
+#emergencyStatusTree .tree-doc-pdc-review::after{
+  content:none !important;
+  display:none !important;
+}
+/* Hide Emergency vertical green arrows only */
+#emergencyFlowConsultant,
+#emergencyFlowPdcReview,
+#emergencyFlowApproved {
+  display: none !important;
+}
