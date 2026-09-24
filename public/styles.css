@@ -1362,3 +1362,452 @@ nav{gap:3px!important;padding-top:12px!important}.nav-item{padding:7px 8px!impor
 .meeting-summary-card.tone-docs{--k:#ff7a16}.meeting-summary-card.tone-green{--k:#00ad52}.meeting-summary-card.tone-yellow{--k:#d6a300}
 @media(max-width:900px){.meeting-summary-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.meeting-summary-card{min-height:64px}}
 @media(max-width:520px){.meeting-summary-kpis{grid-template-columns:1fr}}
+
+/* =========================================================
+   EMERGENCY TREE — CONTENT RESPONSIVE CARD WIDTH
+   ========================================================= */
+
+#emergencyStatusTree .tree-status{
+  width:auto;
+  min-width:115px;
+  max-width:185px;
+  transform:translateX(-50%);
+}
+
+#emergencyStatusTree .tree-status > .emergency-tree-card{
+  width:max-content;
+  min-width:115px;
+  max-width:185px;
+  padding-left:12px;
+  padding-right:12px;
+}
+
+#emergencyStatusTree .emergency-tree-doc-card{
+  width:max-content;
+  min-width:150px;
+  max-width:220px;
+  padding-left:14px;
+  padding-right:14px;
+}
+
+#emergencyStatusTree .emergency-tree-card span,
+#emergencyStatusTree .emergency-tree-card small{
+  width:auto;
+  max-width:190px;
+  white-space:normal;
+  overflow-wrap:normal;
+  word-break:normal;
+}
+
+#emergencyStatusTree .emergency-tree-root{
+  width:max-content;
+  min-width:230px;
+  max-width:300px;
+  padding-left:18px;
+  padding-right:18px;
+}
+
+#emergencyStatusTree .emergency-tree-archive-warning{
+  width:max-content;
+  min-width:160px;
+  max-width:210px;
+}
+/* =========================================================
+   EMERGENCY TYPE TREE — FLEXIBLE / COMPACT
+   إجمالي الإشعارات → طارئ / مجدول → وصف العمل
+   ========================================================= */
+
+#emergencyTypeTree .emergency-type-tree-canvas{
+  min-width:900px;
+  padding:0 24px 20px;
+}
+
+/* الكرت الرئيسي */
+#emergencyTypeTree .emergency-type-root{
+  width:max-content;
+  min-width:220px;
+  max-width:300px;
+  height:58px;
+  padding:5px 16px;
+  margin:0 auto 52px;
+}
+
+#emergencyTypeTree .emergency-type-root span{
+  font-size:6.5px;
+}
+
+#emergencyTypeTree .emergency-type-root strong{
+  font-size:16px;
+  margin:2px 0;
+}
+
+#emergencyTypeTree .emergency-type-root small{
+  font-size:6px;
+}
+
+/* فرعا طارئ / مجدول */
+#emergencyTypeTree .emergency-type-branches{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:60px;
+}
+
+#emergencyTypeTree .emergency-type-card{
+  width:max-content;
+  min-width:115px;
+  max-width:190px;
+  height:58px;
+  padding:5px 12px;
+  margin:0 auto;
+}
+
+#emergencyTypeTree .emergency-type-card span{
+  font-size:6.5px;
+}
+
+#emergencyTypeTree .emergency-type-card strong{
+  font-size:15px;
+  margin:2px 0;
+}
+
+#emergencyTypeTree .emergency-type-card small{
+  font-size:6px;
+}
+
+/* المسافة من طارئ/مجدول إلى عنوان وصف العمل */
+#emergencyTypeTree .emergency-description-tree{
+  margin-top:38px;
+}
+
+#emergencyTypeTree .emergency-description-tree:before{
+  top:-38px;
+  height:38px;
+}
+
+/* عنوان وصف العمل */
+#emergencyTypeTree .emergency-description-title{
+  width:max-content;
+  min-width:145px;
+  max-width:220px;
+  height:30px;
+  padding:0 12px;
+  font-size:7px;
+}
+
+/* قائمة أوصاف العمل */
+#emergencyTypeTree .emergency-description-list{
+  width:max-content;
+  min-width:180px;
+  max-width:320px;
+  margin:16px auto 0;
+  padding-right:24px;
+  gap:9px;
+}
+
+/* الخط الرأسي يتبع ارتفاع القائمة تلقائياً */
+#emergencyTypeTree .emergency-description-list:before{
+  right:8px;
+  top:0;
+  bottom:0;
+}
+
+/* كل كرت وصف يتكيف مع محتواه */
+#emergencyTypeTree .emergency-description-card{
+  width:max-content;
+  min-width:160px;
+  max-width:290px;
+  min-height:58px;
+  height:auto;
+  padding:6px 12px;
+}
+
+#emergencyTypeTree .emergency-description-card:before{
+  right:-17px;
+  width:17px;
+}
+
+#emergencyTypeTree .emergency-description-card span{
+  max-width:260px;
+  font-size:7px;
+  line-height:1.4;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+
+#emergencyTypeTree .emergency-description-card strong{
+  font-size:15px;
+  line-height:1.1;
+  margin:2px 0;
+}
+
+#emergencyTypeTree .emergency-description-card small{
+  font-size:6px;
+}
+
+/* حالة غير مصنف */
+#emergencyTypeTree .emergency-type-quality-warning{
+  width:max-content;
+  max-width:220px;
+  min-height:44px;
+  padding:5px 8px;
+  font-size:7px;
+}
+
+#emergencyTypeTree .emergency-type-quality-warning b{
+  width:20px;
+  height:20px;
+  font-size:11px;
+}
+
+#emergencyTypeTree .emergency-type-quality-warning strong{
+  font-size:15px;
+}
+
+/* =========================================================
+   EMERGENCY UI — FINAL COMPACT SCALE MATCHING PDC MEETING
+   Visual sizing/geometry only — no data logic changes
+   ========================================================= */
+.emergency-kpi-group{border-radius:14px;padding:10px}
+.emergency-kpi-group-head{margin-bottom:8px;padding:0 2px}
+.emergency-kpi-group-head h3{font-size:10px;padding-right:7px}
+.emergency-kpi-group-head span{font-size:7px}
+.emergency-kpi-cards{gap:8px}
+.emergency-mini-kpi{min-width:0;min-height:0;height:auto;padding:9px 10px;border-radius:12px}
+.emergency-mini-kpi:before{width:3px}
+.emergency-mini-kpi span{display:block;min-height:0;font-size:7px;font-weight:700;line-height:1.4}
+.emergency-mini-kpi strong{display:block;margin:3px 0 2px;font-size:18px;line-height:1.15}
+.emergency-mini-kpi small{font-size:7px;line-height:1.35}
+
+.emergency-status-tree{padding:6px 4px 10px}
+.emergency-tree-canvas{height:710px}
+.emergency-tree-lines{height:710px}
+.emergency-tree-card{height:58px;padding:5px 8px;border-radius:10px;box-shadow:0 4px 10px rgba(42,61,92,.07)}
+.emergency-tree-card span{font-size:6.5px;font-weight:700;line-height:1.25}
+.emergency-tree-card strong{margin:2px 0;font-size:15px;line-height:1.05}
+.emergency-tree-card small{font-size:6px;line-height:1.25}
+.emergency-tree-root{top:0;border-left-width:3px}
+.emergency-tree-root strong{font-size:16px}
+.tree-status{top:110px}
+.emergency-tree-success,.emergency-tree-running,.emergency-tree-pending{border-left-width:3px}
+.emergency-tree-docs-title{top:205px;height:30px;border-radius:12px;font-size:7px}
+.emergency-tree-doc-card{border-left-width:3px}
+.emergency-tree-doc-card strong{font-size:15px}
+.tree-doc-not-received,.tree-doc-received{top:275px}
+.tree-doc-returned-contractor,.tree-doc-consultant-review{top:365px}
+.tree-doc-returned-consultant,.tree-doc-pdc-ready{top:455px}
+.tree-doc-pdc-review{top:455px}
+.tree-doc-pdc-approved{top:545px}
+.emergency-tree-archive-warning{top:635px;height:58px}
+.emergency-tree-warning{top:4px;min-height:48px;padding:5px 8px;border-radius:12px;font-size:7px}
+.emergency-tree-warning b{width:20px;height:20px;font-size:12px}
+.emergency-tree-warning strong{font-size:15px}
+.tree-status-line,.tree-doc-line{stroke-width:2}
+.tree-flow-green,.tree-flow-orange{stroke-width:2.3}
+.tree-return-flow{stroke-width:3}
+.tree-loop-label{font-size:10px}
+.tree-arrow-label,.tree-arrow-label-orange{font-size:7px}
+button.emergency-tree-card:hover{transform:translateY(-1px);box-shadow:0 7px 17px rgba(42,61,92,.11)}
+/* =========================================================
+   EMERGENCY TREE — CONTENT RESPONSIVE CARD WIDTH
+   ========================================================= */
+
+#emergencyStatusTree .tree-status{
+  width:auto;
+  min-width:115px;
+  max-width:185px;
+  transform:translateX(-50%);
+}
+
+#emergencyStatusTree .tree-status > .emergency-tree-card{
+  width:max-content;
+  min-width:115px;
+  max-width:185px;
+  padding-left:12px;
+  padding-right:12px;
+}
+
+#emergencyStatusTree .emergency-tree-doc-card{
+  width:max-content;
+  min-width:150px;
+  max-width:220px;
+  padding-left:14px;
+  padding-right:14px;
+}
+
+#emergencyStatusTree .emergency-tree-card span,
+#emergencyStatusTree .emergency-tree-card small{
+  width:auto;
+  max-width:190px;
+  white-space:normal;
+  overflow-wrap:normal;
+  word-break:normal;
+}
+
+#emergencyStatusTree .emergency-tree-root{
+  width:max-content;
+  min-width:230px;
+  max-width:300px;
+  padding-left:18px;
+  padding-right:18px;
+}
+
+#emergencyStatusTree .emergency-tree-archive-warning{
+  width:max-content;
+  min-width:160px;
+  max-width:210px;
+}
+/* =========================================================
+   EMERGENCY TYPE TREE — FLEXIBLE / COMPACT
+   إجمالي الإشعارات → طارئ / مجدول → وصف العمل
+   ========================================================= */
+
+#emergencyTypeTree .emergency-type-tree-canvas{
+  min-width:900px;
+  padding:0 24px 20px;
+}
+
+/* الكرت الرئيسي */
+#emergencyTypeTree .emergency-type-root{
+  width:max-content;
+  min-width:220px;
+  max-width:300px;
+  height:58px;
+  padding:5px 16px;
+  margin:0 auto 52px;
+}
+
+#emergencyTypeTree .emergency-type-root span{
+  font-size:6.5px;
+}
+
+#emergencyTypeTree .emergency-type-root strong{
+  font-size:16px;
+  margin:2px 0;
+}
+
+#emergencyTypeTree .emergency-type-root small{
+  font-size:6px;
+}
+
+/* فرعا طارئ / مجدول */
+#emergencyTypeTree .emergency-type-branches{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:60px;
+}
+
+#emergencyTypeTree .emergency-type-card{
+  width:max-content;
+  min-width:115px;
+  max-width:190px;
+  height:58px;
+  padding:5px 12px;
+  margin:0 auto;
+}
+
+#emergencyTypeTree .emergency-type-card span{
+  font-size:6.5px;
+}
+
+#emergencyTypeTree .emergency-type-card strong{
+  font-size:15px;
+  margin:2px 0;
+}
+
+#emergencyTypeTree .emergency-type-card small{
+  font-size:6px;
+}
+
+/* المسافة من طارئ/مجدول إلى عنوان وصف العمل */
+#emergencyTypeTree .emergency-description-tree{
+  margin-top:38px;
+}
+
+#emergencyTypeTree .emergency-description-tree:before{
+  top:-38px;
+  height:38px;
+}
+
+/* عنوان وصف العمل */
+#emergencyTypeTree .emergency-description-title{
+  width:max-content;
+  min-width:145px;
+  max-width:220px;
+  height:30px;
+  padding:0 12px;
+  font-size:7px;
+}
+
+/* قائمة أوصاف العمل */
+#emergencyTypeTree .emergency-description-list{
+  width:max-content;
+  min-width:180px;
+  max-width:320px;
+  margin:16px auto 0;
+  padding-right:24px;
+  gap:9px;
+}
+
+/* الخط الرأسي يتبع ارتفاع القائمة تلقائياً */
+#emergencyTypeTree .emergency-description-list:before{
+  right:8px;
+  top:0;
+  bottom:0;
+}
+
+/* كل كرت وصف يتكيف مع محتواه */
+#emergencyTypeTree .emergency-description-card{
+  width:max-content;
+  min-width:160px;
+  max-width:290px;
+  min-height:58px;
+  height:auto;
+  padding:6px 12px;
+}
+
+#emergencyTypeTree .emergency-description-card:before{
+  right:-17px;
+  width:17px;
+}
+
+#emergencyTypeTree .emergency-description-card span{
+  max-width:260px;
+  font-size:7px;
+  line-height:1.4;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+
+#emergencyTypeTree .emergency-description-card strong{
+  font-size:15px;
+  line-height:1.1;
+  margin:2px 0;
+}
+
+#emergencyTypeTree .emergency-description-card small{
+  font-size:6px;
+}
+
+/* حالة غير مصنف */
+#emergencyTypeTree .emergency-type-quality-warning{
+  width:max-content;
+  max-width:220px;
+  min-height:44px;
+  padding:5px 8px;
+  font-size:7px;
+}
+
+#emergencyTypeTree .emergency-type-quality-warning b{
+  width:20px;
+  height:20px;
+  font-size:11px;
+}
+
+#emergencyTypeTree .emergency-type-quality-warning strong{
+  font-size:15px;
+}
+
+ /* V2 emergency safety — prevent legacy generic help from overlapping Jeddah emergency help */
+ #dataPage #emergencyTreeSection .calc-help-btn,
+ #dataPage #emergencyAnalytics .calc-help-btn,
+ #pageKpis.emergency-kpi-board .calc-help-btn{
+   display:none!important;
+ }

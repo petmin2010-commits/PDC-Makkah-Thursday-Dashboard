@@ -47,7 +47,7 @@ function bind(){
  if(exportExecutionPdfBtn) exportExecutionPdfBtn.onclick=exportExecutionReportPdf;
 
  bindWednesdayInfoPopups();
- bindCalculationHelp();
+ bindMeetingCalculationHelp();
 
  const themeSelect=document.getElementById('themeSelect');
  if(themeSelect) themeSelect.onchange=()=>setDashboardTheme(themeSelect.value,true);
@@ -1717,7 +1717,16 @@ function renderEmergencyDashboard(baseRows){
     'circuit',10,'الدائرة',false
   );
 
-  renderEmergencyCategoricalChart(
+    renderEmergencyCategoricalChart('emergencyClassificationChart','doughnut',applyChartFilters(baseRows,'emergencyClassificationChart','emergency'),'classification',15,'تصنيف العمل',false);
+  renderEmergencyCategoricalChart('emergencyWorkTypeChart','bar',applyChartFilters(baseRows,'emergencyWorkTypeChart','emergency'),'type',20,'النوع',true);
+  renderEmergencyCategoricalChart('emergencyAdministrationChart','doughnut',applyChartFilters(baseRows,'emergencyAdministrationChart','emergency'),'administration',15,'الإدارة',false);
+  renderEmergencyCategoricalChart('emergencySectionChart','bar',applyChartFilters(baseRows,'emergencySectionChart','emergency'),'section',20,'القسم',true);
+  renderEmergencyCategoricalChart('emergencyScheduleTypeChart','doughnut',applyChartFilters(baseRows,'emergencyScheduleTypeChart','emergency'),'emergencyType',10,'مجدول / طارئ',false);
+  renderEmergencyCategoricalChart('emergencyConsultantChart','bar',applyChartFilters(baseRows,'emergencyConsultantChart','emergency'),'consultant',20,'الاستشاري',true);
+  renderEmergencyCategoricalChart('emergencyEngineerChart','bar',applyChartFilters(baseRows,'emergencyEngineerChart','emergency'),'engineer',30,'اسم الاستشاري',true);
+  renderEmergencyCategoricalChart('emergencyArchiveChart','bar',applyChartFilters(baseRows,'emergencyArchiveChart','emergency'),'archive',20,'حالة المستندات',true);
+
+renderEmergencyCategoricalChart(
     'emergencyFaultChart','bar',
     applyChartFilters(baseRows,'emergencyFaultChart','emergency'),
     'description',20,'وصف العمل',true
@@ -1742,6 +1751,415 @@ function renderEmergencyDashboard(baseRows){
     'contractor',
     'المقاول'
   );
+  installEmergencyHelpV2();
+}
+
+
+
+/* =========================================================
+   EMERGENCY HELP V2
+   Calculation/source explanations for emergency dashboard
+   ========================================================= */
+
+function installEmergencyHelpV2(){
+
+  if(S.current !== 'emergency') return;
+
+  const page = document.getElementById('dataPage');
+  if(!page) return;
+
+  /* ---------- CSS ---------- */
+
+  if(!document.getElementById('emergencyHelpV2Style')){
+
+    const style = document.createElement('style');
+
+    style.id = 'emergencyHelpV2Style';
+
+    style.textContent = [
+      '.em-help-host{position:relative!important}',
+
+      '.em-help-btn{',
+        'position:absolute;',
+        'top:8px;',
+        'left:8px;',
+        'z-index:50;',
+        'width:22px;',
+        'height:22px;',
+        'border-radius:50%;',
+        'border:1px solid #e9a126;',
+        'background:#fff;',
+        'color:#c77b00;',
+        'font:700 12px Arial,sans-serif;',
+        'display:flex;',
+        'align-items:center;',
+        'justify-content:center;',
+        'cursor:pointer;',
+        'box-shadow:0 2px 7px rgba(30,50,80,.13);',
+        'padding:0;',
+      '}',
+
+      '.em-help-btn:hover{',
+        'background:#fff6e6;',
+        'transform:scale(1.08);',
+      '}',
+
+      '.em-help-overlay{',
+        'position:fixed;',
+        'inset:0;',
+        'z-index:99998;',
+        'background:rgba(15,30,55,.28);',
+        'display:flex;',
+        'align-items:center;',
+        'justify-content:center;',
+        'padding:20px;',
+      '}',
+
+      '.em-help-box{',
+        'width:min(560px,94vw);',
+        'background:#fff;',
+        'border-radius:18px;',
+        'padding:24px;',
+        'box-shadow:0 18px 60px rgba(20,40,70,.25);',
+        'direction:rtl;',
+        'text-align:right;',
+        'font-family:Cairo,Arial,sans-serif;',
+        'position:relative;',
+      '}',
+
+      '.em-help-box h3{',
+        'margin:0 0 14px;',
+        'padding-left:32px;',
+        'font-size:18px;',
+        'color:#172542;',
+      '}',
+
+      '.em-help-box p{',
+        'margin:0;',
+        'white-space:pre-line;',
+        'line-height:1.9;',
+        'font-size:13px;',
+        'color:#52627d;',
+      '}',
+
+      '.em-help-close{',
+        'position:absolute;',
+        'top:13px;',
+        'left:13px;',
+        'width:30px;',
+        'height:30px;',
+        'border:0;',
+        'border-radius:50%;',
+        'background:#f2f5f9;',
+        'cursor:pointer;',
+        'font-size:18px;',
+        'color:#52627d;',
+      '}',
+
+      '@media print{.em-help-btn{display:none!important}}'
+
+    ].join('');
+
+    document.head.appendChild(style);
+  }
+
+
+  /* ---------- Popup ---------- */
+
+  function showHelp(title,text){
+
+    document.querySelector('.em-help-overlay')?.remove();
+
+    const overlay = document.createElement('div');
+
+    overlay.className = 'em-help-overlay';
+
+    const box = document.createElement('div');
+
+    box.className = 'em-help-box';
+
+    const close = document.createElement('button');
+
+    close.type = 'button';
+    close.className = 'em-help-close';
+    close.textContent = '×';
+
+    const h = document.createElement('h3');
+    h.textContent = title;
+
+    const p = document.createElement('p');
+    p.textContent = text;
+
+    close.onclick = () => overlay.remove();
+
+    overlay.onclick = e => {
+      if(e.target === overlay) overlay.remove();
+    };
+
+    box.append(close,h,p);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+  }
+
+
+  /* ---------- Generic button ---------- */
+
+  function addButton(host,title,text){
+
+    if(!host) return;
+
+    if(host.querySelector(':scope > .em-help-btn')) return;
+
+    host.classList.add('em-help-host');
+
+    const b = document.createElement('button');
+
+    b.type = 'button';
+    b.className = 'em-help-btn';
+    b.textContent = 'i';
+
+    b.title = 'شرح طريقة الاحتساب';
+
+    b.onclick = e => {
+      e.preventDefault();
+      e.stopPropagation();
+      showHelp(title,text);
+    };
+
+    host.appendChild(b);
+  }
+
+
+  /* =====================================================
+     KPI CARDS
+     ===================================================== */
+
+  const kpiRules = [
+
+    [
+      'مسند اليوم',
+      'المصدر: العمود D — تاريخ الإسناد.\nالحساب: عدد السجلات التي يطابق تاريخ إسنادها تاريخ اليوم.'
+    ],
+
+    [
+      'مسند هذا الشهر',
+      'المصدر: العمود D — تاريخ الإسناد.\nالحساب: عدد السجلات التي يقع تاريخ إسنادها في الشهر والسنة الحاليين.'
+    ],
+
+    [
+      'تمت مباشرة العمل',
+      'المصدر: العمود E — تاريخ مباشرة العمل.\nالحساب: عدد السجلات التي تحتوي على تاريخ مباشرة عمل.\nالنسبة: العدد ÷ إجمالي الإشعارات × 100.'
+    ],
+
+    [
+      'لم تبدأ بعد',
+      'المصدر: العمود E — تاريخ مباشرة العمل.\nالحساب: عدد السجلات التي لا تحتوي على تاريخ مباشرة عمل.'
+    ],
+
+    [
+      'لها تاريخ انتهاء',
+      'المصدر: العمود F — تاريخ انتهاء العمل.\nالحساب: عدد السجلات التي تحتوي على تاريخ انتهاء.\nالنسبة: العدد ÷ إجمالي الإشعارات × 100.'
+    ],
+
+    [
+      'إنجاز في نفس يوم الإسناد',
+      'المصدر: D تاريخ الإسناد + F تاريخ انتهاء العمل.\nالحساب: عدد السجلات التي يكون فيها التاريخان في نفس اليوم.\nالنسبة: العدد ÷ إجمالي الإشعارات × 100.'
+    ],
+
+    [
+      'متوسط زمن المباشرة',
+      'المصدر: D تاريخ الإسناد → E تاريخ مباشرة العمل.\nالحساب: متوسط الفرق بين التاريخين.\nيتم احتساب السجلات ذات التاريخين الصالحين فقط، مع استبعاد الفرق السالب.\n«سجل صالح» = عدد السجلات الداخلة فعليًا في المتوسط.'
+    ],
+
+    [
+      'متوسط مدة التنفيذ',
+      'المصدر: E تاريخ مباشرة العمل → F تاريخ انتهاء العمل.\nالحساب: متوسط الفرق بين التاريخين.\nيتم احتساب السجلات ذات التاريخين الصالحين فقط، مع استبعاد الفرق السالب.\n«سجل صالح» = عدد السجلات الداخلة فعليًا في المتوسط.'
+    ],
+
+    [
+      'متوسط الإسناد حتى الانتهاء',
+      'المصدر: D تاريخ الإسناد → F تاريخ انتهاء العمل.\nالحساب: متوسط المدة الكلية من الإسناد حتى الانتهاء.\nيتم احتساب السجلات ذات التاريخين الصالحين فقط، مع استبعاد الفرق السالب.'
+    ],
+
+    [
+      'إجمالي الإشعارات',
+      'الحساب: إجمالي سجلات إشعارات الطوارئ بعد تطبيق الفلاتر الحالية.'
+    ],
+
+    [
+      'منجز',
+      'المصدر: العمود U — حالة التنفيذ.\nالحساب: عدد السجلات التي حالتها «منجز».'
+    ],
+
+    [
+      'جاري التنفيذ',
+      'المصدر: العمود U — حالة التنفيذ.\nالحساب: عدد السجلات التي حالتها «جاري التنفيذ».'
+    ],
+
+    [
+      'لم يتم البدء',
+      'المصدر: العمود U — حالة التنفيذ.\nالحساب: عدد السجلات التي حالتها «لم يتم البدء».'
+    ],
+
+    [
+      'نسبة الإنجاز',
+      'المصدر: العمود U — حالة التنفيذ.\nالحساب: عدد السجلات المنجزة ÷ إجمالي الإشعارات × 100.'
+    ],
+
+    [
+      'طارئ',
+      'المصدر: العمود M — مجدول / طارئ.\nالحساب: عدد السجلات المصنفة «طارئ».'
+    ],
+
+    [
+      'مجدول',
+      'المصدر: العمود M — مجدول / طارئ.\nالحساب: عدد السجلات المصنفة «مجدول».'
+    ],
+
+    [
+      'نسبة الأرشفة',
+      'المصدر: العمود V — حالة المستندات.\nالحساب: عدد السجلات المصنفة كمؤرشفة ÷ إجمالي الإشعارات × 100.'
+    ]
+
+  ];
+
+
+  page.querySelectorAll('#pageKpis article').forEach(card => {
+
+    const text = String(card.innerText || '')
+      .replace(/\s+/g,' ')
+      .trim();
+
+    const rule = kpiRules.find(([name]) => text.includes(name));
+
+    if(rule){
+      addButton(card,rule[0],rule[1]);
+    }else{
+      addButton(
+        card,
+        'شرح المؤشر',
+        'يتم احتساب هذا المؤشر من بيانات إشعارات الطوارئ بعد تطبيق الفلاتر الحالية.'
+      );
+    }
+
+  });
+
+
+  /* =====================================================
+     TREE
+     ===================================================== */
+
+  addButton(
+    document.getElementById('emergencyStatusTree')?.closest('.panel'),
+    'مسار إشعارات الطوارئ ودورة المستندات',
+    'حالة التنفيذ الرئيسية مصدرها العمود U.\nيتم قراءة جميع الحالات غير الفارغة الموجودة في U تلقائيًا.\n\nفرع «منجز» ينتقل إلى دورة المستندات، ومصدر حالات المستندات هو العمود V.\n\nالنسب داخل حالات التنفيذ محسوبة من إجمالي الإشعارات، بينما نسب دورة المستندات محسوبة من إجمالي السجلات المنجزة.'
+  );
+
+
+  addButton(
+    document.getElementById('emergencyTypeTree')?.closest('.panel'),
+    'تصنيف الطوارئ ووصف العمل',
+    'المستوى الأول مصدره العمود M — مجدول / طارئ.\nالمستوى التالي مصدره العمود G — وصف العمل.\n\nالنسبة في كل فرع من أوصاف العمل محسوبة من إجمالي سجلات النوع نفسه.'
+  );
+
+
+  /* =====================================================
+     CHARTS
+     ===================================================== */
+
+  const chartRules = {
+
+    emergencyMonthlyChart:
+      ['الإشعارات شهريًا',
+       'المصدر: العمود D — تاريخ الإسناد.\nيتم تجميع الإشعارات حسب الشهر والسنة من تاريخ الإسناد.'],
+
+    emergencyStatusChart:
+      ['حالة التنفيذ',
+       'المصدر: العمود U — حالة التنفيذ.\nيعرض عدد السجلات لكل حالة موجودة في العمود.'],
+
+    emergencyCircuitChart:
+      ['الدائرة',
+       'المصدر: العمود K — الدائرة.\nيتم تجميع وعدّ الإشعارات حسب الدائرة.'],
+
+    emergencyClassificationChart:
+      ['تصنيف العمل',
+       'المصدر: العمود H — تصنيف العمل.\nيتم تجميع وعدّ الإشعارات حسب تصنيف العمل.'],
+
+    emergencyWorkTypeChart:
+      ['النوع',
+       'المصدر: العمود I — النوع.\nيتم تجميع وعدّ الإشعارات حسب النوع.'],
+
+    emergencyAdministrationChart:
+      ['الإدارة',
+       'المصدر: العمود J — الإدارة.\nيتم تجميع وعدّ الإشعارات حسب الإدارة.'],
+
+    emergencySectionChart:
+      ['القسم',
+       'المصدر: العمود L — القسم.\nيتم تجميع وعدّ الإشعارات حسب القسم.'],
+
+    emergencyScheduleTypeChart:
+      ['مجدول / طارئ',
+       'المصدر: العمود M.\nيتم تجميع وعدّ الإشعارات حسب قيمة مجدول / طارئ.'],
+
+    emergencyConsultantChart:
+      ['الاستشاري',
+       'المصدر: العمود O — الاستشاري.\nيتم تجميع وعدّ الإشعارات حسب الجهة الاستشارية.'],
+
+    emergencyEngineerChart:
+      ['اسم الاستشاري',
+       'المصدر: العمود P — اسم الاستشاري.\nيتم تجميع وعدّ الإشعارات حسب اسم الاستشاري.'],
+
+    emergencyArchiveChart:
+      ['حالة المستندات',
+       'المصدر: العمود V — حالة المستندات.\nيتم تجميع وعدّ السجلات حسب الحالة الموجودة في V.'],
+
+    emergencyFaultChart:
+      ['وصف العمل / الأعطال',
+       'المصدر: العمود G — وصف العمل.\nيتم تجميع الأوصاف وترتيبها تنازليًا حسب عدد الإشعارات.'],
+
+    emergencyContractorChart:
+      ['المقاول',
+       'المصدر: العمود Q — المقاول.\nيتم تجميع وعدّ الإشعارات حسب المقاول.']
+
+  };
+
+
+  Object.entries(chartRules).forEach(([id,rule]) => {
+
+    const canvas = document.getElementById(id);
+
+    if(!canvas) return;
+
+    const panel = canvas.closest('.panel');
+
+    addButton(panel,rule[0],rule[1]);
+
+  });
+
+
+  /* =====================================================
+     TABLES
+     ===================================================== */
+
+  const locationTable = document.getElementById('emergencyLocationTable');
+
+  addButton(
+    locationTable?.closest('.panel'),
+    'جدول الأعطال حسب الحي / الموقع',
+    'المصدر الأساسي: العمود N — الموقع / الحي.\nيتم تجميع جميع السجلات حسب الموقع.\n\nحالات التنفيذ مصدرها العمود U.\nنسبة الإنجاز لكل موقع = عدد حالة «منجز» ÷ إجمالي إشعارات الموقع × 100.'
+  );
+
+
+  const contractorTable = document.getElementById('emergencyContractorTable');
+
+  addButton(
+    contractorTable?.closest('.panel'),
+    'جدول الأعطال حسب المقاول',
+    'المصدر الأساسي: العمود Q — المقاول.\nيتم تجميع جميع السجلات حسب المقاول.\n\nحالات التنفيذ مصدرها العمود U.\nنسبة الإنجاز لكل مقاول = عدد حالة «منجز» ÷ إجمالي إشعارات المقاول × 100.'
+  );
+
+
+
 }
 
 function renderEmergencyStatusTree(rows){
@@ -1749,16 +2167,30 @@ function renderEmergencyStatusTree(rows){
   if(!root)return;
 
   const total=rows.length;
-  const countStatus=value=>rows.filter(r=>exactStatus(r.status,value)).length;
+
+  // المستوى الرئيسي يقرأ تلقائياً كل القيم غير الفارغة في حقل status.
+  const statusCounts=new Map();
+  rows.forEach(r=>{
+    const label=String(r.status||'').replace(/\s+/g,' ').trim();
+    if(label)statusCounts.set(label,(statusCounts.get(label)||0)+1);
+  });
+
+  // نحافظ على ترتيب الحالات الأساسية أولاً، ثم أي حالات إضافية تظهر تلقائياً.
+  const preferredStatusOrder=['لم يتم البدء','جاري التنفيذ','منجز'];
+  const statusEntries=[...statusCounts.entries()].sort((a,b)=>{
+    const ai=preferredStatusOrder.indexOf(a[0]);
+    const bi=preferredStatusOrder.indexOf(b[0]);
+    if(ai!==-1 || bi!==-1) return (ai===-1?999:ai)-(bi===-1?999:bi);
+    return String(a[0]).localeCompare(String(b[0]),'ar');
+  });
+
   const completedRows=rows.filter(r=>exactStatus(r.status,'منجز'));
   const completed=completedRows.length;
-  const running=countStatus('جاري التنفيذ');
-  const notStarted=countStatus('لم يتم البدء');
   const blankStatus=rows.filter(r=>!String(r.status||'').trim()).length;
   const rate=(count,base)=>base?(count/base*100):0;
   const statusActive=activeChartFilter('emergencyStatusTree','emergency');
 
-  // العمود V في ورقة «اشعارات الطوارئ» ممثل بالحقل archive.
+  // حقل archive يقرأ تلقائياً من رأس العمود «ارشفة المستندات».
   const archiveCount=label=>{
     const target=normalizeEmergencyStage(label);
     return completedRows.filter(r=>normalizeEmergencyStage(r.archive)===target).length;
@@ -1769,7 +2201,6 @@ function renderEmergencyStatusTree(rows){
   const returnedContractor=archiveCount('معاده للمقاول بملاحظات');
   const pdcReview=archiveCount('قيد مراجعة ال PDC');
   const approvedPdc=archiveCount('تم الاعتماد من PDC');
-  const readyPdc=archiveCount('جاهز للرفع لـPDC');
   const returnedConsultant=archiveCount('معاده للاستشاري بملاحظات');
   const blankArchive=completedRows.filter(r=>!normalizeEmergencyStage(r.archive)).length;
 
@@ -1791,36 +2222,53 @@ function renderEmergencyStatusTree(rows){
     </button>`;
   };
 
+  const statusTone=label=>{
+    if(exactStatus(label,'منجز'))return 'success';
+    if(exactStatus(label,'جاري التنفيذ'))return 'running';
+    if(exactStatus(label,'لم يتم البدء'))return 'pending';
+    return 'running';
+  };
+
+  const statusWidth=220;
+  const statusCenters=statusEntries.map((_,i)=>{
+    if(statusEntries.length<=1)return 580;
+    return 140+(880*i/(statusEntries.length-1));
+  });
+  const statusBranches=statusCenters.map(x=>`M${x} 82 V110`).join(' ');
+  const completedIndex=statusEntries.findIndex(([label])=>exactStatus(label,'منجز'));
+  const completedX=completedIndex>=0?statusCenters[completedIndex]:1020;
+  const statusHtml=statusEntries.map(([label,count],i)=>{
+    const left=Math.max(0,Math.min(940,statusCenters[i]-statusWidth/2));
+    return `<div class="tree-status" style="left:${left.toFixed(1)}px">${statusCard(label,count,statusTone(label))}</div>`;
+  }).join('');
+
   root.innerHTML=`
     <div class="emergency-tree-canvas">
-      <svg class="emergency-tree-lines" viewBox="0 0 1160 1040" aria-hidden="true" focusable="false">
+      <svg class="emergency-tree-lines" viewBox="0 0 1160 710" aria-hidden="true" focusable="false">
         <defs>
           <marker id="emergencyGreenArrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 L10 5 L0 10 Z" class="tree-arrow-green"/></marker>
           <marker id="emergencyOrangeArrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 L10 5 L0 10 Z" class="tree-arrow-orange"/></marker>
         </defs>
 
-        <path class="tree-status-line" d="M580 105 V135 M140 135 H1020 M140 135 V165 M580 135 V165 M1020 135 V165"/>
-        <path class="tree-doc-line" d="M1020 270 V300 H580 V325 M580 367 V390 M250 390 H910 M250 390 V410 M910 390 V410"/>
+        <path id="emergencyStatusLine" class="tree-status-line" d="M580 58 V82 M140 82 H1020 ${statusBranches}"/>
+        <path id="emergencyDocLine" class="tree-doc-line" d="M${completedX} 168 V190 H580 V205 M580 235 V250 M250 250 H910 M250 250 V270 M910 250 V270"/>
 
-        <rect class="tree-loop-box" x="60" y="392" width="1020" height="285" rx="30"/>
-        <rect class="tree-loop-box" x="60" y="527" width="1020" height="405" rx="30"/>
+        <rect id="emergencyContractorLoop" class="tree-loop-box" x="60" y="252" width="1020" height="233" rx="22"/>
+        <rect id="emergencyConsultantLoop" class="tree-loop-box" x="60" y="337" width="1020" height="273" rx="22"/>
 
-        <path class="tree-flow-green" marker-end="url(#emergencyGreenArrow)" d="M390 462 H770"/>
-        <path class="tree-flow-green" marker-end="url(#emergencyGreenArrow)" d="M910 515 V545"/>
-        <path class="tree-flow-orange" marker-end="url(#emergencyOrangeArrow)" d="M770 580 H390"/>
-        <path class="tree-flow-orange" marker-end="url(#emergencyOrangeArrow)" d="M250 545 V515"/>
+        <path id="emergencyFlowReceived" class="tree-flow-green" marker-end="url(#emergencyGreenArrow)" d="M370 299 H790"/>
+        <path id="emergencyFlowConsultant" class="tree-flow-green" marker-end="url(#emergencyGreenArrow)" d="M910 328 V355"/>
+        <path id="emergencyFlowReturnContractor" class="tree-flow-orange" marker-end="url(#emergencyOrangeArrow)" d="M790 384 H370"/>
+        <path id="emergencyFlowBackContractor" class="tree-flow-orange" marker-end="url(#emergencyOrangeArrow)" d="M250 355 V328"/>
+        <path id="emergencyFlowReturnConsultant" class="tree-flow-orange tree-return-flow" marker-end="url(#emergencyOrangeArrow)" d="M790 554 C650 554 560 500 370 469"/>
+        <path id="emergencyFlowPdcReview" class="tree-flow-green" marker-end="url(#emergencyGreenArrow)" d="M910 498 V525"/>
+        <path id="emergencyFlowApproved" class="tree-flow-green" marker-end="url(#emergencyGreenArrow)" d="M910 583 V610"/>
 
-        <path class="tree-flow-green" marker-end="url(#emergencyGreenArrow)" d="M910 650 V680"/>
-        <path class="tree-flow-orange" marker-end="url(#emergencyOrangeArrow)" d="M770 715 H390"/>
-        <path class="tree-flow-orange tree-return-flow" marker-end="url(#emergencyOrangeArrow)" d="M390 748 C545 730 620 625 770 625"/>
-        <path class="tree-flow-green" marker-end="url(#emergencyGreenArrow)" d="M910 785 V815"/>
-        <path class="tree-flow-green" marker-end="url(#emergencyGreenArrow)" d="M910 920 V950"/>
-
-        <path class="tree-quality-line" d="M210 982 C435 982 570 462 770 462"/>
-        <text class="tree-loop-label" x="78" y="420">دورة ملاحظات المقاول</text>
-        <text class="tree-loop-label" x="78" y="555">دورة ملاحظات الاستشاري</text>
-        <text class="tree-arrow-label" x="580" y="448">عند الاستلام</text>
-        <text class="tree-arrow-label tree-arrow-label-orange" x="590" y="716">إعادة للمراجعة</text>
+        <path class="tree-quality-line" d="M210 639 C435 639 570 299 790 299"/>
+        <text id="emergencyContractorLoopLabel" class="tree-loop-label" x="78" y="275">دورة ملاحظات المقاول</text>
+        <text id="emergencyConsultantLoopLabel" class="tree-loop-label" x="78" y="360">دورة ملاحظات الاستشاري</text>
+        <text class="tree-arrow-label" x="580" y="291">عند الاستلام</text>
+        <text class="tree-arrow-label tree-arrow-label-orange" x="590" y="492">إعادة للمراجعة</text>
       </svg>
 
       <article class="emergency-tree-card emergency-tree-root">
@@ -1831,11 +2279,9 @@ function renderEmergencyStatusTree(rows){
 
       <button type="button" class="emergency-tree-warning ${statusActive&&statusActive.mode==='blank'?'selected':''}" data-tree-field="status" data-tree-value="" data-tree-mode="blank" data-tree-label="حالة التنفيذ"><b>!</b><span>حالة التنفيذ فارغة</span><strong>${fmt(blankStatus)}</strong></button>
 
-      <div class="tree-status tree-status-pending">${statusCard('لم يتم البدء',notStarted,'pending')}</div>
-      <div class="tree-status tree-status-running">${statusCard('جاري التنفيذ',running,'running')}</div>
-      <div class="tree-status tree-status-completed">${statusCard('منجز',completed,'success')}</div>
+      ${statusHtml}
 
-      <div class="emergency-tree-docs-title">دورة المستندات — العمود V</div>
+      <div class="emergency-tree-docs-title">دورة المستندات — ارشفة المستندات</div>
       ${archiveCard('لم يستلم من المقاول',notReceived,'tree-doc-not-received')}
       ${archiveCard('مستلم من المقاول',received,'tree-doc-received','__received__')}
       ${archiveCard('معاده للمقاول بملاحظات',returnedContractor,'tree-doc-returned-contractor')}
@@ -1843,12 +2289,266 @@ function renderEmergencyStatusTree(rows){
       ${archiveCard('معاده للاستشاري بملاحظات',returnedConsultant,'tree-doc-returned-consultant')}
       ${archiveCard('قيد مراجعة ال PDC',pdcReview,'tree-doc-pdc-review')}
       ${archiveCard('تم الاعتماد من PDC',approvedPdc,'tree-doc-pdc-approved')}
-      ${archiveCard('جاهز للرفع لـPDC',readyPdc,'tree-doc-pdc-ready')}
-
       <button type="button" class="emergency-tree-card emergency-tree-archive-warning ${statusActive&&statusActive.value==='__blank__'?'selected':''}" data-tree-field="archive" data-tree-value="__blank__" data-tree-mode="emergency-archive-stage" data-tree-label="حالة المستندات">
         <span>الفراغات</span><strong>${fmt(blankArchive)}</strong><small>تنبيه جودة بيانات</small>
       </button>
     </div>`;
+
+
+  // Dynamic SVG connectors: follow the real edges of flexible-width cards.
+  const updateEmergencyTreeConnectors=()=>{
+    const canvas=root.querySelector('.emergency-tree-canvas');
+    if(!canvas)return;
+
+    const canvasRect=canvas.getBoundingClientRect();
+    if(!canvasRect.width||!canvasRect.height)return;
+
+    const sx=1160/canvasRect.width;
+    const sy=710/canvasRect.height;
+
+    const box=selector=>{
+      const el=root.querySelector(selector);
+      if(!el)return null;
+      const r=el.getBoundingClientRect();
+      const left=(r.left-canvasRect.left)*sx;
+      const right=(r.right-canvasRect.left)*sx;
+      const top=(r.top-canvasRect.top)*sy;
+      const bottom=(r.bottom-canvasRect.top)*sy;
+      return {
+        left,right,top,bottom,
+        cx:(left+right)/2,
+        cy:(top+bottom)/2
+      };
+    };
+
+    const setPath=(id,d)=>{
+      const el=root.querySelector('#'+id);
+      if(el&&d)el.setAttribute('d',d);
+    };
+
+    const rootCard=box('.emergency-tree-root');
+    const statuses=[...root.querySelectorAll('.tree-status > .emergency-tree-card')].map(el=>{
+      const r=el.getBoundingClientRect();
+      const left=(r.left-canvasRect.left)*sx;
+      const right=(r.right-canvasRect.left)*sx;
+      const top=(r.top-canvasRect.top)*sy;
+      const bottom=(r.bottom-canvasRect.top)*sy;
+      return {left,right,top,bottom,cx:(left+right)/2,cy:(top+bottom)/2};
+    });
+
+    if(rootCard&&statuses.length){
+      const branchY=Math.max(rootCard.bottom+15,Math.min(...statuses.map(x=>x.top))-15);
+      const minX=Math.min(...statuses.map(x=>x.cx));
+      const maxX=Math.max(...statuses.map(x=>x.cx));
+
+      let d='M'+rootCard.cx+' '+rootCard.bottom+' V'+branchY+
+            ' M'+minX+' '+branchY+' H'+maxX;
+
+      statuses.forEach(x=>{
+        d+=' M'+x.cx+' '+branchY+' V'+x.top;
+      });
+
+      setPath('emergencyStatusLine',d);
+    }
+
+    const completedCard=[...root.querySelectorAll('.tree-status > .emergency-tree-card')]
+      .find(el=>el.dataset.treeValue==='منجز');
+
+    const completed=completedCard ? (()=>{
+      const r=completedCard.getBoundingClientRect();
+      const left=(r.left-canvasRect.left)*sx;
+      const right=(r.right-canvasRect.left)*sx;
+      const top=(r.top-canvasRect.top)*sy;
+      const bottom=(r.bottom-canvasRect.top)*sy;
+      return {left,right,top,bottom,cx:(left+right)/2,cy:(top+bottom)/2};
+    })() : null;
+
+    const title=box('.emergency-tree-docs-title');
+    const notReceived=box('.tree-doc-not-received');
+    const received=box('.tree-doc-received');
+    const returnedContractor=box('.tree-doc-returned-contractor');
+    const consultant=box('.tree-doc-consultant-review');
+    const returnedConsultant=box('.tree-doc-returned-consultant');
+    const pdcReview=box('.tree-doc-pdc-review');
+    const approved=box('.tree-doc-pdc-approved');
+
+    if(completed&&title&&notReceived&&received){
+      const y1=(completed.bottom+title.top)/2;
+      const y2=(title.bottom+Math.min(notReceived.top,received.top))/2;
+
+      setPath(
+        'emergencyDocLine',
+        'M'+completed.cx+' '+completed.bottom+
+        ' V'+y1+
+        ' H'+title.cx+
+        ' V'+title.top+
+        ' M'+title.cx+' '+title.bottom+
+        ' V'+y2+
+        ' M'+notReceived.cx+' '+y2+
+        ' H'+received.cx+
+        ' M'+notReceived.cx+' '+y2+
+        ' V'+notReceived.top+
+        ' M'+received.cx+' '+y2+
+        ' V'+received.top
+      );
+    }
+
+    if(notReceived&&received){
+      setPath(
+        'emergencyFlowReceived',
+        'M'+notReceived.right+' '+notReceived.cy+
+        ' H'+received.left
+      );
+    }
+
+    if(received&&consultant){
+      setPath(
+        'emergencyFlowConsultant',
+        'M'+received.cx+' '+received.bottom+
+        ' V'+(consultant.top-Math.max(24,(consultant.top-received.bottom)*0.45))
+      );
+    }
+
+    if(consultant&&returnedContractor){
+      setPath(
+        'emergencyFlowReturnContractor',
+        'M'+consultant.left+' '+consultant.cy+
+        ' H'+returnedContractor.right
+      );
+    }
+
+    if(returnedContractor&&notReceived){
+      setPath(
+        'emergencyFlowBackContractor',
+        'M'+returnedContractor.cx+' '+returnedContractor.top+
+        ' V'+notReceived.bottom
+      );
+    }
+    if(consultant&&pdcReview){
+      setPath(
+        'emergencyFlowPdcReview',
+        'M'+consultant.cx+' '+consultant.bottom+
+        ' V'+(pdcReview.top-Math.max(24,(pdcReview.top-consultant.bottom)*0.45))
+      );
+    }
+
+    if(pdcReview&&approved){
+      setPath(
+        'emergencyFlowApproved',
+        'M'+pdcReview.cx+' '+pdcReview.bottom+
+        ' V'+(approved.top-Math.max(24,(approved.top-pdcReview.bottom)*0.45))
+      );
+    }
+
+
+    // Flexible orange loop boxes and their titles.
+    const contractorLoop=root.querySelector('#emergencyContractorLoop');
+    const consultantLoop=root.querySelector('#emergencyConsultantLoop');
+    const contractorLabel=root.querySelector('#emergencyContractorLoopLabel');
+    const consultantLabel=root.querySelector('#emergencyConsultantLoopLabel');
+
+    if(notReceived&&received&&returnedContractor&&consultant){
+      const padX=38;
+      const padTop=18;
+      const padBottom=18;
+
+      const left=Math.min(
+        notReceived.left,
+        received.left,
+        returnedContractor.left,
+        consultant.left
+      )-padX;
+
+      const right=Math.max(
+        notReceived.right,
+        received.right,
+        returnedContractor.right,
+        consultant.right
+      )+padX;
+
+      const top=Math.min(notReceived.top,received.top)-padTop;
+      const bottom=Math.max(returnedContractor.bottom,consultant.bottom)+padBottom;
+
+      if(contractorLoop){
+        contractorLoop.setAttribute('x',left);
+        contractorLoop.setAttribute('y',top);
+        contractorLoop.setAttribute('width',right-left);
+        contractorLoop.setAttribute('height',bottom-top);
+      }
+
+      if(contractorLabel){
+        contractorLabel.setAttribute('x',left+16);
+        contractorLabel.setAttribute('y',top+22);
+      }
+    }
+
+    if(returnedContractor&&consultant&&returnedConsultant&&pdcReview&&approved){
+      const padX=38;
+      const padTop=18;
+      const padBottom=18;
+
+      const left=Math.min(
+        returnedContractor.left,
+        consultant.left,
+        returnedConsultant.left,
+        pdcReview.left,
+        approved.left
+      )-padX;
+
+      const right=Math.max(
+        returnedContractor.right,
+        consultant.right,
+        returnedConsultant.right,
+        pdcReview.right,
+        approved.right
+      )+padX;
+
+      const top=Math.min(returnedContractor.top,consultant.top)-padTop;
+      const bottom=Math.max(
+        returnedConsultant.bottom,
+        pdcReview.bottom,
+        approved.bottom
+      )+padBottom;
+
+      if(consultantLoop){
+        consultantLoop.setAttribute('x',left);
+        consultantLoop.setAttribute('y',top);
+        consultantLoop.setAttribute('width',right-left);
+        consultantLoop.setAttribute('height',bottom-top);
+      }
+
+      if(consultantLabel){
+        consultantLabel.setAttribute('x',left+16);
+        consultantLabel.setAttribute('y',top+22);
+      }
+    }
+
+    if(returnedConsultant){
+      const pdcCardEl=root.querySelector('.tree-doc-pdc-review');
+
+      if(pdcCardEl){
+        const pdcRect=pdcCardEl.getBoundingClientRect();
+
+        const startX=
+          (pdcRect.left-canvasRect.left)*sx;
+
+        const startY=
+          ((pdcRect.top-canvasRect.top) +
+          (pdcRect.height/2))*sy;
+
+        const endX=returnedConsultant.right;
+        const endY=returnedConsultant.cy;
+
+        setPath(
+          'emergencyFlowReturnConsultant',
+          'M'+startX+' '+startY+
+          ' L'+endX+' '+endY
+        );
+      }
+    }
+  };
+
+  requestAnimationFrame(updateEmergencyTreeConnectors);
 
   root.querySelectorAll('[data-tree-field]').forEach(card=>{
     card.onclick=()=>toggleChartFilter(
@@ -1858,7 +2558,6 @@ function renderEmergencyStatusTree(rows){
     );
   });
 }
-
 function renderEmergencyTypeTree(rows){
   const root=document.getElementById('emergencyTypeTree');
   if(!root)return;
@@ -3236,75 +3935,34 @@ function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&l
 
 
 
-/* Universal calculation help for every KPI card and chart */
-function bindCalculationHelp(){
- // Keep the help UI self-contained so it works even if an older cached CSS file is served.
- if(!document.getElementById('calcHelpRuntimeStyle')){
+/* Calculation help for the PDC meeting tab — aligned with the Makkah help style */
+function bindMeetingCalculationHelp(){
+ const modal=document.getElementById('meetingInfoModal');
+ const modalTitle=document.getElementById('meetingInfoTitle');
+ const modalText=document.getElementById('meetingInfoText');
+ const page=document.getElementById('meetingPage');
+ if(!modal||!modalText||!page)return;
+
+ if(!document.getElementById('meetingCalcHelpRuntimeStyle')){
    const style=document.createElement('style');
-   style.id='calcHelpRuntimeStyle';
+   style.id='meetingCalcHelpRuntimeStyle';
    style.textContent=`
-     .has-calc-help{position:relative!important}
-     .calc-help-btn{position:absolute;top:6px;left:6px;z-index:9999;width:21px;height:21px;border-radius:50%;padding:0;border:1px solid rgba(47,111,178,.45);background:#fff;color:#2f6fb2;font:800 11px/1 Arial,sans-serif;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(26,73,120,.18);opacity:.95}
-     .calc-help-btn:hover,.calc-help-btn:focus{transform:scale(1.08);background:#eaf3ff;outline:none}
-     .calc-help-chart{top:8px;left:8px;width:23px;height:23px;font-size:12px}
-     @media print{.calc-help-btn{display:none!important}}
+     #meetingPage .has-calc-help{position:relative!important}
+     #meetingPage .calc-help-btn{position:absolute;top:6px;left:6px;z-index:9999;width:21px;height:21px;border-radius:50%;padding:0;border:1px solid rgba(47,111,178,.45);background:#fff;color:#2f6fb2;font:800 11px/1 Arial,sans-serif;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(26,73,120,.18);opacity:.95}
+     #meetingPage .calc-help-btn:hover,#meetingPage .calc-help-btn:focus{transform:scale(1.08);background:#eaf3ff;outline:none}
+     #meetingPage .calc-help-chart{top:8px;left:8px;width:23px;height:23px;font-size:12px}
+     @media print{#meetingPage .calc-help-btn{display:none!important}}
    `;
    document.head.appendChild(style);
  }
 
- const modal=document.getElementById('meetingInfoModal');
- const modalTitle=document.getElementById('meetingInfoTitle');
- const modalText=document.getElementById('meetingInfoText');
- if(!modal||!modalText){
-   setTimeout(bindCalculationHelp,250);
-   return;
- }
- if(document.body.dataset.calcHelpBound==='1')return;
- document.body.dataset.calcHelpBound='1';
-
  const cleanText=v=>String(v||'').replace(/\s+/g,' ').trim();
- const getCardLabel=el=>{
-   const explicit=el.dataset.calcLabel;
-   if(explicit)return cleanText(explicit);
-   const label=el.querySelector(':scope > span, :scope > .kpi-label, :scope .panel-title h3, :scope h3, :scope h4');
-   if(label)return cleanText(label.textContent);
-   const clone=el.cloneNode(true);
-   clone.querySelectorAll('.calc-help-btn,strong,small,b').forEach(x=>x.remove());
-   return cleanText(clone.textContent).slice(0,100)||'هذا المؤشر';
- };
-
- const inferCardHelp=(label,el)=>{
-   const l=cleanText(label);
-   const isStory=el.classList.contains('kpi-story-card')||el.classList.contains('emergency-tree-card')||el.classList.contains('emergency-description-card');
-   if(/نسبة|معدل|إنجاز/.test(l)){
-     return `«${l}» توضح النسبة التي حققت الحالة المطلوبة من إجمالي الحالات التي ينطبق عليها هذا المؤشر. مثال: إذا كانت النسبة 80% فهذا يعني أن 80 حالة من كل 100 حالة داخلة في الحساب حققت الشرط. تتغير النسبة تلقائيًا حسب الفلاتر المختارة في الصفحة.`;
-   }
-   if(/قيمة|تكلفة|غرام|مبلغ|مالي|ريال|ر\.س/.test(l)){
-     return `«${l}» تمثل إجمالي المبالغ المرتبطة بالحالات الظاهرة حاليًا. يتم جمع المبالغ للحالات التي تنطبق عليها الفلاتر فقط، ولا تدخل الحالات التي لا تحتوي على مبلغ صالح في الإجمالي.`;
-   }
-   if(/مقاولون|مهندسون|موظفون|أنواع|فئات|مكاتب|إدارات/.test(l) && !/أوامر|المخالفات/.test(l)){
-     return `«${l}» توضح عدد الجهات أو الأشخاص أو التصنيفات المختلفة الموجودة ضمن البيانات الظاهرة حاليًا. إذا تكرر نفس الاسم في أكثر من حالة فإنه يُحسب كعنصر واحد، وتتغير النتيجة حسب الفلاتر المختارة.`;
-   }
-   if(isStory){
-     return `«${l}» هو عدد الحالات التي وصلت إلى هذه المرحلة من الشجرة. كل مستوى في الشجرة يقسم حالات المستوى السابق حسب وضعها الفعلي؛ لذلك مجموع الفروع التابعة يجب أن يفسر عدد الكارت الأب عندما تكون الفروع شاملة لكل حالاته. النسبة الصغيرة - إن ظهرت - توضح حصة هذا الفرع من المجموعة المشار إليها أسفل الكارت. وتتغير الأرقام مع الفلاتر المختارة.`;
-   }
-   return `«${l}» هو عدد الحالات التي ينطبق عليها وصف هذا الكارت ضمن البيانات الظاهرة حاليًا. بمعنى أن النظام يفحص كل حالة، وإذا كانت حالتها مطابقة لاسم المؤشر تدخل في العدد. الفلاتر والبحث تقلل نطاق البيانات أولًا، ثم يعاد حساب الرقم تلقائيًا.`;
- };
- const getChartTitle=canvas=>{
-   const panel=canvas.closest('.panel,.meeting-chart-panel,.chart-card')||canvas.parentElement;
-   const title=panel?.querySelector('.panel-title h3,h3,.section-title h3');
-   return cleanText(title?.textContent)||cleanText(canvas.getAttribute('aria-label'))||'هذا الشارت';
- };
-
- const chartHelp=title=>`شارت «${title}» يقسم الحالات الظاهرة حاليًا إلى مجموعات حسب التصنيف المكتوب على الشارت، ثم يعرض حجم كل مجموعة حتى يمكن مقارنة الحالات بسهولة. إذا كان الشارت ماليًا فإنه يعرض مجموع المبالغ بدل عدد الحالات. أي فلتر تختاره في الصفحة يطبق أولًا، ثم يعاد تكوين الشارت من النتائج المتبقية تلقائيًا.`;
-
  const openHelp=(title,help)=>{
    if(modalTitle)modalTitle.textContent='ماذا يعني هذا الرقم؟ — '+title;
    modalText.textContent=help;
    modal.classList.add('show');
    modal.setAttribute('aria-hidden','false');
  };
-
  const addButton=(host,title,help,kind)=>{
    if(!host||host.querySelector(':scope > .calc-help-btn'))return;
    host.classList.add('has-calc-help');
@@ -3314,38 +3972,26 @@ function bindCalculationHelp(){
    btn.textContent='!';
    btn.title='ما معنى هذا الرقم وكيف تم حسابه؟';
    btn.setAttribute('aria-label','شرح معنى وحساب '+title);
-   btn.addEventListener('click',e=>{
-     e.preventDefault();
-     e.stopPropagation();
-     openHelp(title,help);
-   });
+   btn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();openHelp(title,help)});
    host.appendChild(btn);
  };
-
  const decorate=()=>{
-   document.querySelectorAll('article.master-card,article.mini-kpi,.meeting-kpi,article.kpi-story-card,article.meeting-summary-card,button.emergency-tree-card,.emergency-description-card,.permit-delay-card,.kpi-card,.stat-card,.summary-card,.metric-card').forEach(el=>{
-     if(el.closest('#meetingInfoModal'))return;
-     const label=getCardLabel(el);
-     addButton(el,label,inferCardHelp(label,el),'card');
+   page.querySelectorAll('article.kpi-story-card,article.meeting-summary-card').forEach(el=>{
+     const label=cleanText(el.querySelector(':scope > span')?.textContent)||'هذا المؤشر';
+     const help=el.classList.contains('kpi-story-card')
+       ? `«${label}» هو عدد الحالات التي وصلت إلى هذه المرحلة من الشجرة. النسبة الصغيرة توضح حصة هذا الفرع من إجمالي أوامر العمل وفق منهجية شجرة اجتماع الـ PDC، وتتغير الأرقام تلقائيًا مع الفلاتر.`
+       : `«${label}» مؤشر مختصر محسوب من بيانات اجتماع الـ PDC وفق الشرط الموضح في منهجية الاجتماع، ويتغير تلقائيًا مع البيانات والفلاتر ذات الصلة.`;
+     addButton(el,label,help,'card');
    });
-
-   document.querySelectorAll('canvas').forEach(canvas=>{
-     if(canvas.closest('#meetingInfoModal'))return;
-     const host=canvas.closest('.panel,.meeting-chart-panel,.chart-card')||canvas.parentElement;
-     if(!host)return;
-     const title=getChartTitle(canvas);
-     addButton(host,title,chartHelp(title),'chart');
+   page.querySelectorAll('canvas').forEach(canvas=>{
+     const host=canvas.closest('.panel')||canvas.parentElement;
+     const title=cleanText(host?.querySelector('.panel-title h3,h3')?.textContent)||'هذا الشارت';
+     addButton(host,title,`شارت «${title}» يجمع أوامر العمل الظاهرة حسب التصنيف الخاص به ويعرض توزيع الحالات. أي فلتر في اجتماع الـ PDC يطبق أولًا ثم يعاد حساب الشارت تلقائيًا.`,'chart');
    });
  };
-
  decorate();
- let queued=false;
- const observer=new MutationObserver(()=>{
-   if(queued)return;
-   queued=true;
-   requestAnimationFrame(()=>{queued=false;decorate()});
- });
- observer.observe(document.body,{childList:true,subtree:true});
+ const observer=new MutationObserver(()=>requestAnimationFrame(decorate));
+ observer.observe(page,{childList:true,subtree:true});
 }
 
 /* =========================
