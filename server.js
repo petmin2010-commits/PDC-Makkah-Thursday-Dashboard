@@ -248,7 +248,7 @@ async function getWorkOrderMasterEnrichment(){
 async function readConfiguredSheet_(cfg,cacheKey){
   const key='PDC_V3_'+cacheKey;
   if(cacheKey!=='workorders'){const hit=cacheGet(key);if(hit)return hit}
-  const endColumn=cacheKey==='workorders'?'BD':cacheKey==='emergency'?'Z':cacheKey==='connections'?'AO':'AZ';  const values=await valuesGet(`${qSheet(cfg.sheet)}!A:${endColumn}`);
+  const endColumn=cacheKey==='workorders'?'BD':cacheKey==='emergency'?'Z':cacheKey==='connections'?'AO':cacheKey==='permits'?'T':'AZ';  const values=await valuesGet(`${qSheet(cfg.sheet)}!A:${endColumn}`);
   const headerRow=cfg.headerRow||1;
   if(values.length<headerRow)return [];
   const headers=(values[headerRow-1]||[]).map(clean_);
@@ -256,7 +256,7 @@ async function readConfiguredSheet_(cfg,cacheKey){
   if(cacheKey==='workorders'){
     map.assignedDate=5;map.value=10;map.status=17;map.consultant155=31;map.contractor155=36;map.permitStatus=40;map.payment=43;map.stage=54;map.stageStatus=55;
   }
-  if(cacheKey==='permits')map.evaluation=19;
+  if(cacheKey==='permits')Object.assign(map,{workOrder:3,contractor:4,type:5,assignedDate:6,duration:7,location:8,category:9,section:10,sectionNote:11,permitStatus:13,permitStart:14,permitEnd:15,permitNotes:16,actionTaken:17,days:18,evaluation:19});
   if(cacheKey==='connections')Object.assign(map,{workOrder:2,type:4,description:5,contractor:6,section:7,location:8,assignedDate:9,days:10,contractorAction:11,category:12,duration:13,delay:14,permit:15,permitStart:16,permitEnd:17,engineer:21,stage:22,stageStatus:23,office:24,detail:25,advice:28,adviceDate:29,adviceAge:30});
   if(cacheKey==='connections')Object.assign(map,{consultant155CompletionDate:32,timeRatio:35,excavationProgress:36,extensionProgress:37,progress:38,spi:39,executionStatus:40});
   let body=values.slice(headerRow);
@@ -271,6 +271,7 @@ async function readConfiguredSheet_(cfg,cacheKey){
     cfg.fields.forEach(f=>{const absolute=map[f[0]];let v=absolute>=0?clean_(r[absolute]):'';if(f[0]==='workOrder')v=cleanWorkOrder_(v);obj[f[0]]=v;if(v){meaningful=true;search.push(v)}});
     if(cacheKey==='emergency'&&!clean_(obj.noticeNo))return;
     if(cacheKey==='connections'&&!clean_(obj.workOrder))return;
+    if(cacheKey==='permits'&&!clean_(obj.workOrder))return;
     if(meaningful){obj._search=search.join(' ').toLowerCase();rows.push(obj)}
   });
   if(cacheKey!=='workorders')cachePut(key,rows);
