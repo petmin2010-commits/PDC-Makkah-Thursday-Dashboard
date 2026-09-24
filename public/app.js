@@ -3645,13 +3645,24 @@ function renderEmergencyKpis(rows,root){
      ['المقاولون',uniq('contractor'),'قيم فريدة']
    ]},
    {title:'جودة واكتمال البيانات',tone:'quality',cards:[
-     ['بدون رقم إشعار',rows.filter(r=>!filled(r,'noticeNo')).length,'بيانات ناقصة'],
-     ['بدون محطة / مغذي',rows.filter(r=>!filled(r,'station')).length,'بيانات ناقصة'],
-     ['بدون تاريخ إسناد',rows.filter(r=>!filled(r,'assignedDate')).length,'بيانات ناقصة'],
-     ['بدون وصف عمل',rows.filter(r=>!filled(r,'description')).length,'بيانات ناقصة'],
-     ['بدون موقع',rows.filter(r=>!filled(r,'location')).length,'بيانات ناقصة'],
-     ['بدون اسم استشاري',rows.filter(r=>!filled(r,'engineer')).length,'بيانات ناقصة'],
-     ['بدون مقاول',rows.filter(r=>!filled(r,'contractor')).length,'بيانات ناقصة']
+     ['بدون رقم إشعار',rows.filter(r=>!filled(r,'noticeNo')).length,'العمود B — بيانات ناقصة'],
+     ['بدون محطة / مغذي',rows.filter(r=>!filled(r,'station')).length,'العمود C — بيانات ناقصة'],
+     ['بدون تاريخ إسناد',rows.filter(r=>!filled(r,'assignedDate')).length,'العمود D — بيانات ناقصة'],
+     ['بدون تاريخ مباشرة العمل',rows.filter(r=>exactStatus(r.status,'منجز')&&!filled(r,'startDate')).length,'بيانات ناقصة — العمود E — للحالة منجز فقط'],
+['بدون تاريخ انتهاء العمل',rows.filter(r=>exactStatus(r.status,'منجز')&&!filled(r,'endDate')).length,'بيانات ناقصة — العمود F — للحالة منجز فقط'],
+     ['بدون وصف عمل',rows.filter(r=>!filled(r,'description')).length,'العمود G — بيانات ناقصة'],
+     ['بدون تصنيف عمل',rows.filter(r=>!filled(r,'classification')).length,'العمود H — بيانات ناقصة'],
+     ['بدون نوع',rows.filter(r=>!filled(r,'type')).length,'العمود I — بيانات ناقصة'],
+     ['بدون إدارة',rows.filter(r=>!filled(r,'administration')).length,'العمود J — بيانات ناقصة'],
+     ['بدون دائرة',rows.filter(r=>!filled(r,'circuit')).length,'العمود K — بيانات ناقصة'],
+     ['بدون قسم',rows.filter(r=>!filled(r,'section')).length,'العمود L — بيانات ناقصة'],
+     ['بدون مجدول / طارئ',rows.filter(r=>!filled(r,'emergencyType')).length,'العمود M — بيانات ناقصة'],
+     ['بدون موقع',rows.filter(r=>!filled(r,'location')).length,'العمود N — بيانات ناقصة'],
+     ['بدون استشاري',rows.filter(r=>!filled(r,'consultant')).length,'العمود O — بيانات ناقصة'],
+     ['بدون اسم استشاري',rows.filter(r=>!filled(r,'engineer')).length,'العمود P — بيانات ناقصة'],
+     ['بدون مقاول',rows.filter(r=>!filled(r,'contractor')).length,'العمود Q — بيانات ناقصة'],
+     ['بدون حالة تنفيذ',rows.filter(r=>!filled(r,'status')).length,'العمود U — منجز / غير منجز'],
+     ['بدون أرشفة مستندات',rows.filter(r=>!filled(r,'archive')).length,'العمود V — أرشفة المستندات']
    ]}
  ];
 
