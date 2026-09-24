@@ -4031,3 +4031,197 @@ function showBoot(x){
 }
 function fail(e){showBoot(false);toast('خطأ: '+(e?.message||e))}
 function toast(t){const x=document.getElementById('toast');x.textContent=t;x.classList.add('show');setTimeout(()=>x.classList.remove('show'),3500)}
+
+/* =========================================================
+   DASHBOARD USER PROFILE
+   ========================================================= */
+
+async function initDashboardUserProfile(){
+
+  const profile =
+    document.getElementById(
+      'dashboardUserProfile'
+    );
+
+  const nameEl =
+    document.getElementById(
+      'dashboardUserName'
+    );
+
+  const roleEl =
+    document.getElementById(
+      'dashboardUserRole'
+    );
+
+  const initialEl =
+    document.getElementById(
+      'dashboardUserInitial'
+    );
+
+  const logoutButton =
+    document.getElementById(
+      'dashboardLogoutButton'
+    );
+
+
+  if(
+    !profile ||
+    !nameEl ||
+    !roleEl ||
+    !initialEl ||
+    !logoutButton
+  ){
+    return;
+  }
+
+
+  try{
+
+    const response =
+      await fetch(
+        '/api/auth/me',
+        {
+          credentials:'same-origin',
+          cache:'no-store'
+        }
+      );
+
+
+    if(response.status===401){
+
+      window.location.replace('/login');
+
+      return;
+    }
+
+
+    if(!response.ok){
+
+      throw new Error(
+        'Unable to load user session'
+      );
+
+    }
+
+
+    const data =
+      await response.json();
+
+
+    if(
+      !data ||
+      !data.authenticated ||
+      !data.user
+    ){
+
+      window.location.replace('/login');
+
+      return;
+    }
+
+
+    const user=data.user;
+
+
+    const displayName =
+      String(
+        user.name ||
+        user.email ||
+        ''
+      ).trim();
+
+
+    const displayRole =
+      String(
+        user.role || ''
+      ).trim();
+
+
+    nameEl.textContent =
+      displayName || 'المستخدم';
+
+
+    roleEl.textContent =
+      displayRole;
+
+
+    initialEl.textContent =
+      displayName
+        ? displayName.charAt(0)
+        : 'U';
+
+
+    profile.hidden=false;
+
+
+  }catch(error){
+
+    console.error(
+      'User profile error:',
+      error
+    );
+
+  }
+
+
+  logoutButton.addEventListener(
+    'click',
+    async()=>{
+
+      if(logoutButton.disabled){
+        return;
+      }
+
+      logoutButton.disabled=true;
+
+      try{
+
+        await fetch(
+          '/api/auth/logout',
+          {
+            method:'POST',
+            credentials:'same-origin',
+            headers:{
+              'Content-Type':
+                'application/json'
+            }
+          }
+        );
+
+      }catch(error){
+
+        console.error(
+          'Logout error:',
+          error
+        );
+
+      }finally{
+
+        window.location.replace(
+          '/login'
+        );
+
+      }
+
+    }
+  );
+
+}
+
+
+/*
+  Load authenticated user after DOM is ready.
+*/
+
+if(document.readyState==='loading'){
+
+  document.addEventListener(
+    'DOMContentLoaded',
+    initDashboardUserProfile
+  );
+
+}else{
+
+  initDashboardUserProfile();
+
+}

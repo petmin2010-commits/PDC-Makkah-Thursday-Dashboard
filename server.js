@@ -1,4 +1,5 @@
 const express = require('express');
+const session = require('express-session');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -21,6 +22,153 @@ loadEnvFile();
 const PORT = Number(process.env.PORT || 3000);
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID || '';
 const memoryCache = new Map();
+
+/* ==========================================
+   PDC Dashboard Authentication
+   ========================================== */
+
+const USERS_SHEET = 'dp users';
+
+const SESSION_SECRET =
+  process.env.SESSION_SECRET ||
+  'PDC-LOCAL-SESSION-CHANGE-BEFORE-PRODUCTION';
+
+const LOGIN_MAX_ATTEMPTS = 5;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_BLOCK_MS = 15 * 60 * 1000;
+
+const loginAttempts = new Map();
+
+function isValidEmail_(value){
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+    String(value || '').trim()
+  );
+}
+
+function loginKey_(req,email){
+  return String(req.ip || '') +
+    '|' +
+    String(email || '').trim().toLowerCase();
+}
+
+function loginState_(key){
+
+  const now=Date.now();
+
+  let x=loginAttempts.get(key);
+
+  if(!x){
+    x={
+      count:0,
+      first:now,
+      blockedUntil:0
+    };
+
+    loginAttempts.set(key,x);
+  }
+
+  if(x.blockedUntil && now>=x.blockedUntil){
+    x={
+      count:0,
+      first:now,
+      blockedUntil:0
+    };
+
+    loginAttempts.set(key,x);
+  }
+
+  if(now-x.first>LOGIN_WINDOW_MS){
+    x.count=0;
+    x.first=now;
+  }
+
+  return x;
+}
+
+function registerLoginFailure_(key){
+
+  const x=loginState_(key);
+
+  x.count++;
+
+  if(x.count>=LOGIN_MAX_ATTEMPTS){
+    x.blockedUntil=Date.now()+LOGIN_BLOCK_MS;
+  }
+
+  loginAttempts.set(key,x);
+
+  return x;
+}
+
+function clearLoginFailures_(key){
+  loginAttempts.delete(key);
+}
+
+async function readDashboardUsers_(){
+
+  /*
+    dp users:
+    A = Name
+    B = Role
+    C = Email
+    D = Password
+    E = Active / inactive
+  */
+
+  const values=await valuesGet(
+    qSheet(USERS_SHEET)+'!A:E'
+  );
+
+  if(!Array.isArray(values) || values.length<2){
+    return [];
+  }
+
+  return values
+    .slice(1)
+    .map(r=>({
+
+      name:clean_(r[0]),
+
+      role:clean_(r[1]),
+
+      email:clean_(r[2])
+        .toLowerCase(),
+
+      password:String(
+        r[3]==null ? '' : r[3]
+      ).trim(),
+
+      active:clean_(r[4])
+        .toLowerCase()
+
+    }))
+    .filter(u=>u.email);
+}
+
+function publicUser_(user){
+
+  return {
+    name:user.name,
+    role:user.role,
+    email:user.email
+  };
+
+}
+
+function requireAuth_(req,res,next){
+
+  if(req.session && req.session.user){
+    return next();
+  }
+
+  res.set('Cache-Control','no-store');
+
+  return res.status(401).json({
+    ok:false,
+    error:'AUTH_REQUIRED'
+  });
+}
+
 
 function credentialsFromEnv(){
   if(process.env.GOOGLE_SERVICE_ACCOUNT_JSON){
@@ -591,15 +739,280 @@ const app=express();
 const PUBLIC_DIR=path.join(__dirname,'public');
 const INDEX_FILE=path.join(PUBLIC_DIR,'index.html');
 
+
+app.set('trust proxy',1);
+
 app.use(express.json({limit:'1mb'}));
 
+app.use(session({
+
+  name:'pdc.sid',
+
+  secret:SESSION_SECRET,
+
+  resave:false,
+
+  saveUninitialized:false,
+
+  rolling:true,
+
+  cookie:{
+
+    httpOnly:true,
+
+    secure:process.env.NODE_ENV==='production',
+
+    sameSite:'lax',
+
+    maxAge:8 * 60 * 60 * 1000
+
+  }
+
+}));
+
+
 // الصفحة الرئيسية صراحةً
+
+/* ==========================================
+   Authentication API
+   ========================================== */
+
+app.get('/api/auth/me',(req,res)=>{
+
+  res.set('Cache-Control','no-store');
+
+  if(!req.session || !req.session.user){
+
+    return res.status(401).json({
+      ok:false,
+      authenticated:false
+    });
+
+  }
+
+  res.json({
+    ok:true,
+    authenticated:true,
+    user:req.session.user
+  });
+
+});
+
+
+app.post('/api/auth/login',async(req,res)=>{
+
+  try{
+
+    res.set('Cache-Control','no-store');
+
+    const email=String(
+      req.body?.email || ''
+    )
+    .trim()
+    .toLowerCase();
+
+    const password=String(
+      req.body?.password || ''
+    );
+
+    if(!isValidEmail_(email) || !password){
+
+      return res.status(400).json({
+        ok:false,
+        error:'INVALID_INPUT'
+      });
+
+    }
+
+
+    const key=loginKey_(req,email);
+
+    const state=loginState_(key);
+
+
+    if(state.blockedUntil>Date.now()){
+
+      return res.status(429).json({
+        ok:false,
+        error:'TOO_MANY_ATTEMPTS'
+      });
+
+    }
+
+
+    const users=await readDashboardUsers_();
+
+    const user=users.find(
+      u=>u.email===email
+    );
+
+
+    /*
+      Temporarily using plain-text passwords
+      as requested.
+    */
+
+    const passwordOK =
+      !!user &&
+      user.password===password;
+
+    const accountActive =
+      !!user &&
+      user.active==='active';
+
+
+    if(!passwordOK || !accountActive){
+
+      registerLoginFailure_(key);
+
+      return res.status(401).json({
+        ok:false,
+        error:'INVALID_CREDENTIALS'
+      });
+
+    }
+
+
+    clearLoginFailures_(key);
+
+
+    req.session.regenerate(err=>{
+
+      if(err){
+
+        console.error(
+          'Session regenerate error:',
+          err
+        );
+
+        return res.status(500).json({
+          ok:false,
+          error:'SESSION_ERROR'
+        });
+
+      }
+
+
+      req.session.user=
+        publicUser_(user);
+
+
+      req.session.save(saveErr=>{
+
+        if(saveErr){
+
+          console.error(
+            'Session save error:',
+            saveErr
+          );
+
+          return res.status(500).json({
+            ok:false,
+            error:'SESSION_ERROR'
+          });
+
+        }
+
+
+        res.json({
+
+          ok:true,
+
+          user:req.session.user
+
+        });
+
+      });
+
+    });
+
+
+  }catch(e){
+
+    console.error(
+      'Login error:',
+      e
+    );
+
+    res.status(500).json({
+      ok:false,
+      error:'LOGIN_ERROR'
+    });
+
+  }
+
+});
+
+
+app.post('/api/auth/logout',(req,res)=>{
+
+  res.set('Cache-Control','no-store');
+
+  if(!req.session){
+
+    res.clearCookie('pdc.sid');
+
+    return res.json({
+      ok:true
+    });
+
+  }
+
+
+  req.session.destroy(()=>{
+
+    res.clearCookie('pdc.sid');
+
+    res.json({
+      ok:true
+    });
+
+  });
+
+});
+
 app.get('/',(req,res)=>{
+
+  if(!req.session || !req.session.user){
+    return res.redirect('/login');
+  }
+
+  res.set('Cache-Control','no-store');
+
   res.sendFile(INDEX_FILE);
+
+});
+
+app.get('/login',(req,res)=>{
+
+  if(req.session && req.session.user){
+    return res.redirect('/');
+  }
+
+  res.set('Cache-Control','no-store');
+
+  res.sendFile(
+    path.join(PUBLIC_DIR,'login.html')
+  );
+
 });
 
 // الملفات الثابتة
-app.use(express.static(PUBLIC_DIR));
+app.get('/index.html',(req,res)=>{
+
+  if(!req.session || !req.session.user){
+    return res.redirect('/login');
+  }
+
+  res.set('Cache-Control','no-store');
+
+  res.sendFile(INDEX_FILE);
+
+});
+
+app.use(express.static(PUBLIC_DIR,{
+  index:false
+}));
 
 app.get('/api/health',(req,res)=>res.json({
   ok:true,
@@ -609,7 +1022,7 @@ app.get('/api/health',(req,res)=>res.json({
   indexExists:fs.existsSync(INDEX_FILE)
 }));
 
-app.get('/api/monitor/summary',async(req,res)=>{
+app.get('/api/monitor/summary',requireAuth_,async(req,res)=>{
   try{
     // Lightweight endpoint for scheduled checks: reuses aggregate KPIs only.
     const result=await getMonitorData();
@@ -627,7 +1040,7 @@ app.get('/api/monitor/summary',async(req,res)=>{
   }
 });
 
-app.get('/api/monitor/full',async(req,res)=>{
+app.get('/api/monitor/full',requireAuth_,async(req,res)=>{
   try{
     const result=await getFullMonitorData();
     res.set('Cache-Control','no-store');
@@ -638,7 +1051,7 @@ app.get('/api/monitor/full',async(req,res)=>{
   }
 });
 
-app.get('/api/monitor',async(req,res)=>{
+app.get('/api/monitor',requireAuth_,async(req,res)=>{
   try{
     const result=await getMonitorData();
     res.set('Cache-Control','no-store');
@@ -649,7 +1062,7 @@ app.get('/api/monitor',async(req,res)=>{
   }
 });
 
-app.post('/api/rpc',async(req,res)=>{
+app.post('/api/rpc',requireAuth_,async(req,res)=>{
   try{
     const {method,args=[]}=req.body||{};
     if(!METHODS[method])return res.status(404).json({ok:false,error:'Method not allowed'});
@@ -664,11 +1077,19 @@ app.post('/api/rpc',async(req,res)=>{
 
 // أي مسار خاص بالواجهة يرجع index.html
 app.use((req,res)=>{
+
+  if(!req.session || !req.session.user){
+    return res.redirect('/login');
+  }
+
+  res.set('Cache-Control','no-store');
+
   res.sendFile(INDEX_FILE);
+
 });
 
 app.listen(PORT,'0.0.0.0',()=>{
-  console.log(`PDC Jeddah website: http://0.0.0.0:${PORT}`);
+  console.log(`PDC Makkah website: http://0.0.0.0:${PORT}`);
   console.log(`Public directory: ${PUBLIC_DIR}`);
   console.log(`index.html exists: ${fs.existsSync(INDEX_FILE)}`);
 });

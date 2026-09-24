@@ -9,6 +9,30 @@
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
+<div id="dashboardUserProfile" class="dashboard-user-profile" hidden>
+
+  <div class="dashboard-user-avatar" aria-hidden="true">
+    <span id="dashboardUserInitial">U</span>
+  </div>
+
+  <div class="dashboard-user-info">
+    <strong id="dashboardUserName">المستخدم</strong>
+    <span id="dashboardUserRole"></span>
+  </div>
+
+  <button
+    id="dashboardLogoutButton"
+    class="dashboard-logout-button"
+    type="button"
+    title="تسجيل الخروج"
+    aria-label="تسجيل الخروج">
+    <span class="dashboard-logout-icon">↪</span>
+    <span>تسجيل الخروج</span>
+  </button>
+
+</div>
+
+
 <div id="boot" class="boot boot-soft"><div class="boot-card"><div class="spinner"></div><b>جاري جلب البيانات</b><span>ستظهر الواجهة فورًا بينما تكتمل البيانات</span></div></div>
 
 <div class="app">
