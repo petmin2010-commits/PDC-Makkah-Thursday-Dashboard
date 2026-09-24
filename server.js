@@ -248,7 +248,7 @@ async function getWorkOrderMasterEnrichment(){
 async function readConfiguredSheet_(cfg,cacheKey){
   const key='PDC_V3_'+cacheKey;
   if(cacheKey!=='workorders'){const hit=cacheGet(key);if(hit)return hit}
-  const endColumn=cacheKey==='workorders'?'BD':cacheKey==='emergency'?'Z':'AZ';  const values=await valuesGet(`${qSheet(cfg.sheet)}!A:${endColumn}`);
+  const endColumn=cacheKey==='workorders'?'BD':cacheKey==='emergency'?'Z':cacheKey==='connections'?'AO':'AZ';  const values=await valuesGet(`${qSheet(cfg.sheet)}!A:${endColumn}`);
   const headerRow=cfg.headerRow||1;
   if(values.length<headerRow)return [];
   const headers=(values[headerRow-1]||[]).map(clean_);
@@ -257,6 +257,8 @@ async function readConfiguredSheet_(cfg,cacheKey){
     map.assignedDate=5;map.value=10;map.status=17;map.consultant155=31;map.contractor155=36;map.permitStatus=40;map.payment=43;map.stage=54;map.stageStatus=55;
   }
   if(cacheKey==='permits')map.evaluation=19;
+  if(cacheKey==='connections')Object.assign(map,{workOrder:2,type:4,description:5,contractor:6,section:7,location:8,assignedDate:9,days:10,contractorAction:11,category:12,duration:13,delay:14,permit:15,permitStart:16,permitEnd:17,engineer:21,stage:22,stageStatus:23,office:24,detail:25,advice:28,adviceDate:29,adviceAge:30});
+  if(cacheKey==='connections')Object.assign(map,{consultant155CompletionDate:32,timeRatio:35,excavationProgress:36,extensionProgress:37,progress:38,spi:39,executionStatus:40});
   let body=values.slice(headerRow);
   if(cacheKey==='permits'){
     let last=-1; for(let i=body.length-1;i>=0;i--){if(clean_(body[i]?.[3])!==''){last=i;break}} body=last>=0?body.slice(0,last+1):[];
