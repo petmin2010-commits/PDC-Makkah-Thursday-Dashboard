@@ -262,12 +262,15 @@ async function readConfiguredSheet_(cfg,cacheKey){
   let body=values.slice(headerRow);
   if(cacheKey==='permits'){
     let last=-1; for(let i=body.length-1;i>=0;i--){if(clean_(body[i]?.[3])!==''){last=i;break}} body=last>=0?body.slice(0,last+1):[];
+  } else if(cacheKey==='connections'){
+    let last=-1; for(let i=body.length-1;i>=0;i--){if(clean_(body[i]?.[2])!==''){last=i;break}} body=last>=0?body.slice(0,last+1):[];
   } else if(cacheKey!=='emergency') body=body.slice(0,APP.MAX_ROWS);
   const rows=[];
   body.forEach((r,idx)=>{
     const obj={_row:headerRow+1+idx},search=[];let meaningful=false;
     cfg.fields.forEach(f=>{const absolute=map[f[0]];let v=absolute>=0?clean_(r[absolute]):'';if(f[0]==='workOrder')v=cleanWorkOrder_(v);obj[f[0]]=v;if(v){meaningful=true;search.push(v)}});
     if(cacheKey==='emergency'&&!clean_(obj.noticeNo))return;
+    if(cacheKey==='connections'&&!clean_(obj.workOrder))return;
     if(meaningful){obj._search=search.join(' ').toLowerCase();rows.push(obj)}
   });
   if(cacheKey!=='workorders')cachePut(key,rows);
