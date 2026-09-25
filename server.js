@@ -241,8 +241,33 @@ async function readWorkOrdersBoot_(){
 
 async function getWorkOrderMasterEnrichment(){
   const cfg=APP.PAGES.workorders;
-  const vals=await valuesGet(`${qSheet(cfg.sheet)}!AB2:AE`);
-  return vals.slice(0,APP.MAX_ROWS).map((r,i)=>({_row:i+2,delay:clean_(r[0]),consultantDays:clean_(r[3])}));
+  const keys=await valuesGet(`${qSheet(cfg.sheet)}!D2:D`);
+  let last=-1;
+  for(let i=keys.length-1;i>=0;i--){if(cleanWorkOrder_(keys[i]?.[0])){last=i;break}}
+  if(last<0)return [];
+  const vals=await valuesGet(`${qSheet(cfg.sheet)}!T2:BD${last+2}`);
+  return vals.map((r,i)=>({
+    _row:i+2,
+    category:clean_(r[0]),
+    executionEntity:clean_(r[1]),
+    office:clean_(r[2]),
+    duration:clean_(r[7]),
+    delay:clean_(r[8]),
+    consultantAction:clean_(r[9]),
+    consultantDays:clean_(r[11]),
+    consultant155:clean_(r[12]),
+    consultant155Date:clean_(r[13]),
+    contractorAction:clean_(r[14]),
+    contractorDays:clean_(r[16]),
+    contractor155:clean_(r[17]),
+    contractor155Date:clean_(r[18]),
+    contractorPosition:clean_(r[19]),
+    permit:clean_(r[21]),
+    payment:clean_(r[24]),
+    advice:clean_(r[34]),
+    stage:clean_(r[35]),
+    stageStatus:clean_(r[36])
+  }));
 }
 
 async function readConfiguredSheet_(cfg,cacheKey){

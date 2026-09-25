@@ -98,9 +98,12 @@ function loadMasterEnrichment(){
      S.masterRows.forEach(r=>{
        const e=byRow.get(Number(r._row));
        if(e){
-         r.delay=e.delay||'';
-         r.consultantDays=e.consultantDays||'';
-         r._search=(r._search+' '+r.delay+' '+r.consultantDays).toLowerCase();
+         ['category','executionEntity','office','duration','delay','consultantAction','consultantDays','consultant155','consultant155Date','contractorAction','contractorDays','contractor155','contractor155Date','contractorPosition','permit','payment','advice','stage','stageStatus'].forEach(k=>{r[k]=e[k]||''});
+         r._search=(r._search+' '+[
+           r.category,r.executionEntity,r.office,r.duration,r.delay,r.consultantAction,r.consultantDays,
+           r.consultant155,r.contractorAction,r.contractor155,r.contractorPosition,r.permit,r.payment,
+           r.advice,r.stage,r.stageStatus
+         ].join(' ')).toLowerCase();
        }
      });
 
