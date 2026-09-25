@@ -193,7 +193,7 @@ const APP = {
       filters: ['contractor','status','employee','section','contract']
     },
     safety: {
-      title: 'تقرير مخالفات السلامة — ماستر', sheet: '🚫مخالفات السلاممة', headerRow: 1,
+      title: 'تقرير مخالفات السلامة — ماستر', sheet: '🚫مخالفات السلامة', headerRow: 1,
       fields: [
         ['workOrder','أمر العمل',['أمر العمل']],
         ['type','نوع أمر العمل',['نوع امر العمل']],
