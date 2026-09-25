@@ -2228,7 +2228,11 @@ button.emergency-tree-card:hover{transform:translateY(-1px);box-shadow:0 7px 17p
 .closures-archive-note{padding:9px 14px;font-size:12px;color:#64748b;text-align:center;background:#f8fafc}
 @media(max-width:900px){.closures-archive-title{align-items:flex-start;flex-direction:column}.closures-archive-frame-wrap{height:68vh;min-height:520px}.closures-archive-open{width:100%}}
 
-/* Fix closures copied meeting tree root alignment */
-#closuresMeetingTree .target-tree{display:flex!important;flex-direction:column!important;align-items:center!important}
-#closuresMeetingTree .target-tree>.kpi-story-root{margin-left:auto!important;margin-right:auto!important;align-self:center!important}
-#closuresMeetingTree .target-tree>.kpi-story-level1{width:100%!important;box-sizing:border-box!important}
+/* Fix emergency tree main root position in Emergency + Closures tabs */
+#emergencyStatusTree .emergency-tree-root,
+#closuresEmergencyTree .emergency-tree-root{
+  left:50%!important;
+  right:auto!important;
+  transform:translateX(-50%)!important;
+  top:0!important;
+}
