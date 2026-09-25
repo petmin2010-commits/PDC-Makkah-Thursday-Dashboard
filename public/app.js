@@ -256,10 +256,26 @@ function configureWednesdayMeetingFilters(){
    reset.onclick=()=>{
      defs.forEach(([id])=>{const e=document.getElementById(id);if(e)e.value=''});
      if(search)search.value='';
+     S.meetingChartFilters={};
      renderWednesdayMeeting();
    };
    reset.dataset.bound='1';
  }
+}
+
+function meetingRowMatchesInteractiveFilter(row,filter){
+ if(!filter)return true;
+ const mode=filter.mode||'exact';
+ if(mode==='completed')return !!row.completed;
+ if(mode==='delayed')return !!row.delayedExecution;
+ if(mode==='within')return !!row.withinDuration;
+ if(mode==='closure')return !!row.delayedClosure;
+ if(mode==='other')return !row.completed&&!row.delayedExecution&&!row.withinDuration;
+ if(mode==='contains')return String(row[filter.field]||'').includes(String(filter.value||''));
+ if(mode==='notblank')return !!String(row[filter.field]||'').trim();
+ const a=String(row[filter.field]||'').replace(/\s+/g,' ').trim().replace(/\s*\/\s*/g,'/');
+ const b=String(filter.value||'').replace(/\s+/g,' ').trim().replace(/\s*\/\s*/g,'/');
+ return a===b;
 }
 
 function filteredWednesdayRows(){
@@ -276,6 +292,9 @@ function filteredWednesdayRows(){
    if(filters.category&&String(r.category||'')!==filters.category)return false;
    if(filters.executionStatus&&String(r.executionStatus||'')!==filters.executionStatus)return false;
    if(q&&!String(r._search||'').includes(q))return false;
+   for(const f of Object.values(S.meetingChartFilters||{})){
+     if(f&&!meetingRowMatchesInteractiveFilter(r,f))return false;
+   }
    return true;
  });
 }
@@ -839,6 +858,29 @@ function rowMatchesChartFilter(row,filter){
 
   if(filter.mode==='blank'){
     return !String(row[filter.field]??'').trim();
+  }
+
+  if(filter.mode==='notblank'){
+    return !!String(row[filter.field]??'').trim();
+  }
+
+  if(filter.mode==='contains'){
+    return String(row[filter.field]??'').trim().includes(String(filter.value??'').trim());
+  }
+
+  if(filter.mode==='number-range'){
+    const raw=String(row[filter.field]??'').trim();
+    const m=raw.replace(/,/g,'').match(/-?\d+(?:\.\d+)?/);
+    if(!m)return false;
+    let n=Number(m[0]);
+    if(raw.includes('%')||filter.scale==='ratio')n=raw.includes('%')?n/100:n;
+    if(Number.isFinite(filter.min)&&n<filter.min)return false;
+    if(Number.isFinite(filter.max)&&n>filter.max)return false;
+    if(filter.gt!=null&&!(n>filter.gt))return false;
+    if(filter.gte!=null&&!(n>=filter.gte))return false;
+    if(filter.lt!=null&&!(n<filter.lt))return false;
+    if(filter.lte!=null&&!(n<=filter.lte))return false;
+    return true;
   }
 
   if(filter.mode==='emergency-archive-stage'){

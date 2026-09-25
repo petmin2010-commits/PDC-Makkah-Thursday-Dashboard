@@ -386,7 +386,7 @@ async function getMasterExtras_(){
 
 async function getBootData(){
   const rows=await readWorkOrdersBoot_();
-  return {title:APP.TITLE,updatedAt:now_(),master:{rows,kpis:getFastMasterKpis_(rows)},pageMeta:Object.keys(APP.PAGES).reduce((o,k)=>{const p=APP.PAGES[k];o[k]={title:p.title,finance:k==='finance'};return o},{})};
+  return {title:APP.TITLE,updatedAt:now_(),master:{rows,kpis:getFastMasterKpis_(rows)},pageMeta:Object.keys(APP.PAGES).reduce((o,k)=>{const p=APP.PAGES[k];o[k]={title:p.title,finance:k==='finance',sheet:p.sheet||'',fields:(p.fields||[]).map(f=>({key:f[0],label:f[1]}))};return o},{})};
 }
 async function getSecondaryMasterKpis(){
   const x=await getMasterExtras_();
