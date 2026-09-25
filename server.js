@@ -767,7 +767,7 @@ async function getFullMonitorData(){
 async function getProjectNews(){
   const key='PDC_PROJECT_NEWS_V1';
   const hit=cacheGet(key);if(hit)return hit;
-  const vals=await valuesGet(`${qSheet('📰أخبار المشروع')}!A2:J1000`);
+  const vals=await valuesGet(`${qSheet('📰أخبار المشروع')}!A2:L1000`);
   const rows=vals.map((r,i)=>({
     _row:i+2,
     show:clean_(r[0]),
@@ -779,7 +779,9 @@ async function getProjectNews(){
     sender:clean_(r[6]),
     emailUrl:clean_(r[7]),
     messageId:clean_(r[8]),
-    syncedAt:clean_(r[9])
+    syncedAt:clean_(r[9]),
+    source:clean_(r[10])||'البريد',
+    eventKey:clean_(r[11])
   })).filter(r=>{
     const s=r.show.toLowerCase();
     return r.title && !['لا','no','false','0','اخفاء','إخفاء'].includes(s);

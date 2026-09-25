@@ -13,10 +13,17 @@ function cleanDate(v){
   const d=new Date(s);if(isNaN(d))return s;
   try{return new Intl.DateTimeFormat('ar-SA-u-ca-gregory',{day:'2-digit',month:'short'}).format(d)}catch{return s}
 }
+function sourceBadge(v){
+  const s=String(v||'').trim();
+  if(/شيت|sheet/i.test(s))return {cls:'sheet',label:'📊 الشيتات'};
+  return {cls:'email',label:'📧 البريد'};
+}
 function item(r){
   const href=r.emailUrl?esc(r.emailUrl):'#';
   const attrs=r.emailUrl?' target="_blank" rel="noopener noreferrer"':'';
+  const src=sourceBadge(r.source);
   return '<a class="news-item" href="'+href+'"'+attrs+'>'+
+    '<span class="news-source '+src.cls+'">'+src.label+'</span>'+
     '<span class="news-priority '+tone(r.priority)+'">'+esc(r.priority||'تحديث')+'</span>'+
     '<span class="news-category">'+esc(r.category||'عام')+'</span>'+
     '<span class="news-title">'+esc(r.title||'')+'</span>'+
@@ -29,7 +36,7 @@ function render(rows){
   if(!host||!track)return;
   if(!lastRows.length){
     host.classList.add('is-empty');
-    track.innerHTML='<span>لا توجد أخبار مهمة مختارة حاليًا — ضع Label المشروع على البريد الذي تريد دخوله في المتابعة.</span>';
+    track.innerHTML='<span>لا توجد أخبار مهمة حاليًا — الأخبار ستأتي من البريد المختار ومن التغييرات الجوهرية في شيتات المشروع.</span>';
     if(btn)btn.style.display='none';
     return;
   }
