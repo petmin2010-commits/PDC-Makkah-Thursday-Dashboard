@@ -98,7 +98,7 @@ function render(rows){
     card('إجمالي أوامر العمل',total,'','blue'),card('تم التنفيذ',done,pct(done,total),'green'),card('لم يتم التنفيذ',not,pct(not,total),'amber'),card('موقوف / محول',stopped,pct(stopped,total),'slate'),card('نسبة الإنجاز',pct(done,total),'','green')
   ])}
   ${groupBlock('توزيع نطاق العمل','انتقال مباشر إلى التابات التشغيلية',[
-    card('المشاريع',projects,pct(projects,total),'blue','projects'),card('التوصيلات',connections,pct(connections,total),'blue','connections'),card('العمليات',operations,pct(operations,total),'purple','operations'),card('المقاولون النشطون',contractors),card('المسؤولون',engineers)
+    card('المشاريع',projects,pct(projects,total),'blue','projects'),card('التوصيلات',connections,pct(connections,total),'blue','connections'),card('العمليات',operations,pct(operations,total),'purple'),card('المقاولون النشطون',contractors),card('المسؤولون',engineers)
   ])}
   ${groupBlock('التأخير التنفيذي','من إشعارات التأخير بأوامر العمل',[
     card('ضمن المدة',dc['ضمن المدة']||0,'','green'),card('أوشكت المدة',dc['أوشكت المدة']||0,'','amber'),card('تأخير بسيط',dc['تأخير بسيط']||0,'','amber'),card('تأخير متوسط',dc['تأخير متوسط']||0,'','orange'),card('تأخير شديد',dc['تأخير شديد']||0,'','red')
@@ -152,7 +152,7 @@ function currentRows(){
 }
 if(typeof openPage==='function'){
  const originalOpen=openPage;
- openPage=function(key){if(key==='workorders')key='master';return originalOpen(key)};
+ openPage=function(key){if(key==='workorders'||key==='operations')key='master';return originalOpen(key)};
 }
 if(typeof applyMasterFilters==='function'){
  const originalApply=applyMasterFilters;
