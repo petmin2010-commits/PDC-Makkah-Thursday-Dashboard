@@ -215,26 +215,36 @@ async function valuesGetFrom_(spreadsheetId,range){
 }
 
 async function getHrStaffData_(){
-  const cacheKey='HR_STAFF_UNIFIED_V1';
+  const cacheKey='HR_STAFF_UNIFIED_V2';
   const hit=cacheGet(cacheKey); if(hit)return hit;
-  const vals=await valuesGetFrom_(HR_SPREADSHEET_ID,qSheet(HR_SHEET)+'!A1:DF');
+  const vals=await valuesGetFrom_(HR_SPREADSHEET_ID,qSheet(HR_SHEET)+'!A1:EP');
   if(vals.length<3)return {updatedAt:now_(),courses:[],rows:[]};
   const h1=vals[0]||[];
-  const courses=[];
-  for(let c=25;c<h1.length;c+=8){
-    const title=clean_(h1[c]); if(!title)continue;
-    courses.push({title,start:c,status:c+7});
+  const courseCols=[];
+  for(let c=122;c<=133&&c<h1.length;c++){
+    const title=clean_(h1[c]);
+    if(title)courseCols.push({title,col:c});
   }
   const rows=[];
   vals.slice(2).forEach((r,i)=>{
     const code=clean_(r[1]), name=clean_(r[2]); if(!code&&!name)return;
     const project=clean_(r[4]);
     const city=project.includes('مكة')?'مكة':project.includes('جدة')?'جدة':'أخرى';
-    let required=0,completed=0; const missing=[];
-    courses.forEach(c=>{
-      const need=clean_(r[c.start]).toUpperCase()==='TRUE';
-      const status=clean_(r[c.status]);
-      if(need){required++; if(status==='نعم')completed++; else missing.push(c.title)}
+    const trainingRequired=num_(r[114]);
+    const trainingUnavailable=num_(r[115]);
+    const trainingBooked=num_(r[116]);
+    const trainingScheduled=num_(r[117]);
+    const trainingAvailableNotBooked=num_(r[118]);
+    const trainingPendingAcademy=num_(r[119]);
+    const trainingCompleted=num_(r[120]);
+    const pctRaw=Number(String(r[121]||'').replace('%','').replace(',','.'));
+    const trainingPct=Number.isFinite(pctRaw)?Math.round(pctRaw*10)/10:(trainingRequired?Math.round(trainingCompleted/trainingRequired*1000)/10:100);
+    const missingCourses=[];
+    const courseStatuses={};
+    courseCols.forEach(c=>{
+      const status=clean_(r[c.col]);
+      courseStatuses[c.title]=status;
+      if(status==='لا')missingCourses.push(c.title);
     });
     rows.push({
       row:i+3,code,name,nameEn:clean_(r[3]),project,city,role:clean_(r[6]),
@@ -242,12 +252,13 @@ async function getHrStaffData_(){
       id:clean_(r[14]),phone:clean_(r[15]),email:clean_(r[17]),
       cardNo:clean_(r[18]),cardExpiry:clean_(r[19]),cardStatus:clean_(r[20]),cardDays:clean_(r[21]),
       vehicle:clean_(r[22]),qualification:clean_(r[24]),
-      trainingRequired:required,trainingCompleted:completed,
-      trainingPct:required?Math.round(completed/required*100):100,
-      missingCourses:missing
+      electricityLeave:clean_(r[113]),
+      trainingRequired,trainingUnavailable,trainingBooked,trainingScheduled,
+      trainingAvailableNotBooked,trainingPendingAcademy,trainingCompleted,trainingPct,
+      missingCourses,courseStatuses
     });
   });
-  const out={updatedAt:now_(),courses:courses.map(x=>x.title),rows};
+  const out={updatedAt:now_(),courses:courseCols.map(x=>x.title),rows};
   cachePut(cacheKey,out,60); return out;
 }
 
