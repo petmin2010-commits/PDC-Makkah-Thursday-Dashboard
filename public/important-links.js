@@ -252,30 +252,91 @@ const CFG={
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const url=gid=>'https://docs.google.com/spreadsheets/d/'+CFG.spreadsheetId+'/edit#gid='+gid;
 const root=()=>document.getElementById('importantLinksRoot');
+
+function buildGroups(q=''){
+  const needle=String(q||'').trim().toLowerCase();
+  if(!needle)return CFG.groups;
+  return CFG.groups.map(g=>{
+    const own=[g.title,g.sub].join(' ').toLowerCase().includes(needle);
+    const links=g.links.filter(x=>own||[x.title,x.desc].join(' ').toLowerCase().includes(needle));
+    return links.length?{...g,links}:null;
+  }).filter(Boolean);
+}
+
+function drawQrs(){
+  document.querySelectorAll('.il-qr-box[data-url]').forEach(box=>{
+    if(box.dataset.ready==='1')return;
+    box.dataset.ready='1';
+    if(typeof QRCode==='undefined'){
+      box.innerHTML='<div class="il-qr-error">QR</div>';
+      return;
+    }
+    try{
+      new QRCode(box,{
+        text:box.dataset.url,
+        width:176,
+        height:176,
+        colorDark:'#173b5d',
+        colorLight:'#ffffff',
+        correctLevel:QRCode.CorrectLevel.M
+      });
+    }catch(e){
+      box.innerHTML='<div class="il-qr-error">QR</div>';
+    }
+  });
+}
+
 function render(q=''){
   const host=root();if(!host)return;
-  const needle=String(q||'').trim().toLowerCase();
-  const groups=CFG.groups.filter(g=>!needle||[g.title,g.sub,...g.links.flatMap(x=>[x.title,x.desc])].join(' ').toLowerCase().includes(needle));
+  const groups=buildGroups(q);
+  const total=groups.reduce((s,g)=>s+g.links.length,0);
   host.innerHTML=
     '<div class="il-root" style="display:block">'+
-      '<section class="il-hero"><div><span>IMPORTANT PROJECT LINKS</span><h2>الروابط المهمة</h2><p>روابط مباشرة لأهم أوراق Google Sheets المرتبطة بكل جزء من الداشبورد — '+esc(CFG.city)+'.</p></div><div class="il-contract"><span>رقم العقد</span><strong>'+esc(CFG.contract)+'</strong></div></section>'+
-      '<div class="il-tools"><label class="il-search"><span>⌕</span><input id="importantLinksSearch" type="search" placeholder="ابحث باسم التاب أو الشيت..."></label><div class="il-count">المجموع <b>'+CFG.groups.reduce((s,g)=>s+g.links.length,0)+'</b> رابط</div></div>'+
+      '<section class="il-hero">'+
+        '<div><span>IMPORTANT PROJECT LINKS</span><h2>الروابط المهمة</h2>'+
+        '<p>امسح رمز QR أو اضغط على «اضغط هنا» لفتح الشيت مباشرة — '+esc(CFG.city)+'.</p></div>'+
+        '<div class="il-contract"><span>رقم العقد</span><strong>'+esc(CFG.contract)+'</strong></div>'+
+      '</section>'+
+      '<div class="il-tools">'+
+        '<label class="il-search"><span>⌕</span><input id="importantLinksSearch" type="search" placeholder="ابحث باسم التاب أو الشيت..."></label>'+
+        '<div class="il-count">الروابط الظاهرة <b>'+total+'</b></div>'+
+      '</div>'+
       '<section class="il-grid">'+
-        (groups.length?groups.map(g=>
-          '<article class="il-group" data-search="'+esc([g.title,g.sub,...g.links.flatMap(x=>[x.title,x.desc])].join(' ').toLowerCase())+'">'+
-            '<div class="il-group-head"><div class="il-group-title"><span class="il-group-icon">'+esc(g.icon)+'</span><div><span>'+esc(g.sub)+'</span><h3>'+esc(g.title)+'</h3></div></div><span class="il-group-badge">3 شيتات</span></div>'+
-            '<div class="il-links">'+g.links.map(x=>
-              '<a class="il-link" href="'+url(x.gid)+'" target="_blank" rel="noopener noreferrer" title="'+esc(x.title)+'">'+
-                '<span class="il-sheet-icon">▦</span><span class="il-link-copy"><strong>'+esc(x.title)+'</strong><small>'+esc(x.desc)+'</small></span><span class="il-open">فتح الشيت ↗</span>'+
-              '</a>'
-            ).join('')+'</div>'+
+        (groups.length?groups.map((g,gi)=>
+          '<article class="il-group">'+
+            '<div class="il-group-head">'+
+              '<div class="il-group-title"><span class="il-group-icon">'+esc(g.icon)+'</span><div><span>'+esc(g.sub)+'</span><h3>'+esc(g.title)+'</h3></div></div>'+
+              '<span class="il-group-badge">'+g.links.length+' روابط</span>'+
+            '</div>'+
+            '<div class="il-qr-grid">'+
+              g.links.map((x,li)=>{
+                const href=url(x.gid),qid='ilqr-'+gi+'-'+li;
+                return '<article class="il-qr-card">'+
+                  '<div class="il-qr-title">'+esc(x.title)+'</div>'+
+                  '<a class="il-qr-frame" href="'+href+'" target="_blank" rel="noopener noreferrer" aria-label="فتح '+esc(x.title)+'">'+
+                    '<div id="'+qid+'" class="il-qr-box" data-url="'+esc(href)+'"></div>'+
+                  '</a>'+
+                  '<a class="il-click-here" href="'+href+'" target="_blank" rel="noopener noreferrer">اضغط هنا</a>'+
+                  '<small class="il-qr-desc">'+esc(x.desc)+'</small>'+
+                '</article>';
+              }).join('')+
+            '</div>'+
           '</article>'
         ).join(''):'<div class="il-empty">لا توجد روابط مطابقة لبحثك.</div>')+
       '</section>'+
     '</div>';
+  requestAnimationFrame(drawQrs);
   const input=document.getElementById('importantLinksSearch');
-  if(input){input.value=q;input.oninput=()=>{const v=input.value;render(v);const n=document.getElementById('importantLinksSearch');if(n){n.focus();try{n.setSelectionRange(v.length,v.length)}catch{}}}}
+  if(input){
+    input.value=q;
+    input.oninput=()=>{
+      const v=input.value;render(v);
+      const n=document.getElementById('importantLinksSearch');
+      if(n){n.focus();try{n.setSelectionRange(v.length,v.length)}catch{}}
+    };
+  }
 }
+
 function activate(){
   if(typeof S!=='undefined')S.current='importantLinks';
   document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.page==='importantLinks'));
