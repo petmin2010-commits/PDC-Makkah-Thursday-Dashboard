@@ -5,165 +5,100 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
   <title>تسجيل الدخول | PDC مكة</title>
-
-  <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap">
-
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="/login.css">
 </head>
-
 <body>
-
 <div class="login-page">
-
-  <div class="stars stars-a"></div>
-  <div class="stars stars-b"></div>
-
-  <header class="login-header">
-
-    <div class="header-brand">
-      <div class="logo-box">
-        <img src="/company-logo.png" alt="أبعاد الرؤية">
-      </div>
-
-      <div class="brand-text">
-        <strong>أبعاد الرؤية للاستشارات الهندسية</strong>
-        <span>Vision Dimensions Engineering Consultancy</span>
+  <section class="city-visual" aria-label="هوية المشروع">
+    <div class="city-photo" aria-hidden="true"></div>
+    <div class="city-shade" aria-hidden="true"></div>
+    <div class="electric-sweep electric-sweep-a" aria-hidden="true"></div>
+    <div class="electric-sweep electric-sweep-b" aria-hidden="true"></div>
+    <svg class="power-grid" viewBox="0 0 1200 900" preserveAspectRatio="none" aria-hidden="true">
+      <path class="power-line line-a" d="M-40 175 C180 105 300 245 505 174 S810 95 1240 190"/>
+      <path class="power-line line-b" d="M-60 665 C170 565 350 735 555 635 S865 560 1240 690"/>
+      <path class="power-line line-c" d="M120 0 C205 190 90 340 230 475 S480 620 420 900"/>
+      <circle class="power-node n1" cx="285" cy="191" r="7"/>
+      <circle class="power-node n2" cx="695" cy="143" r="7"/>
+      <circle class="power-node n3" cx="470" cy="672" r="7"/>
+      <circle class="power-node n4" cx="935" cy="612" r="7"/>
+    </svg>
+    <div class="city-project">
+      <div class="city-project-icon">⚡</div>
+      <div>
+        <span>SEC UNIFIED • PDC</span>
+        <strong>إدارة كهرباء مكة</strong>
+        <small>رقم العقد 4400023406</small>
       </div>
     </div>
+    <div class="photo-credit">واجهة بصرية للمشروع • Electrical Project Control</div>
+  </section>
 
-    <div class="system-badge">
-      PDC • MAKKAH
-    </div>
-
-  </header>
-
-
-  <main class="login-main">
-
-    <section class="login-intro">
-
-      <div class="project-tag">PROJECT CONTROL CENTER</div>
-
-      <h1>لوحة متابعة مشروع<br>PDC – مكة</h1>
-
-      <p>
-        منصة متابعة وإدارة بيانات المشروع
-        <br>
-        شركة أبعاد الرؤية للاستشارات الهندسية
-      </p>
-
-      <div class="secure-note">
-        <span class="secure-dot"></span>
-        دخول آمن للمستخدمين المصرح لهم فقط
-      </div>
-
-    </section>
-
-
+  <main class="login-side">
     <section class="login-card">
+      <div class="login-card-glow" aria-hidden="true"></div>
 
-      <div class="card-glow"></div>
-
-      <div class="login-card-content">
-
-        <div class="login-icon">⌁</div>
-
-        <h2>تسجيل الدخول</h2>
-
-        <p class="login-subtitle">
-          أدخل بيانات حسابك للوصول إلى لوحة التحكم
-        </p>
-
-
-        <form id="loginForm" autocomplete="on">
-
-          <label for="email">البريد الإلكتروني</label>
-
-          <div class="input-wrap">
-            <span class="input-icon">✉</span>
-
-            <input
-              id="email"
-              name="email"
-              type="email"
-              inputmode="email"
-              autocomplete="username"
-              placeholder="name@vd-2030.com"
-              required>
+      <div class="brand-row">
+        <div class="vision-brand">
+          <div class="logo-box"><img src="/company-logo.png" alt="أبعاد الرؤية"></div>
+          <div class="brand-copy">
+            <strong>أبعاد الرؤية</strong>
+            <span>للاستشارات الهندسية</span>
+            <em>VISION DIMENSIONS</em>
           </div>
+        </div>
+        <div class="brand-divider"></div>
+        <div class="pdc-brand" aria-label="PDC">
+          <span class="pdc-mark"><i></i></span>
+          <strong>PDC</strong>
+          <small>PROJECT CONTROL</small>
+        </div>
+      </div>
 
+      <div class="login-heading">
+        <span class="login-kicker">PROJECT CONTROL CENTER</span>
+        <h1>لوحة التحكم</h1>
+        <p>مشروع <b>SEC Unified</b> — إدارة كهرباء مكة</p>
+        <div class="contract-chip"><span>رقم العقد</span><strong>4400023406</strong></div>
+      </div>
 
-          <label for="password">كلمة المرور</label>
-
-          <div class="input-wrap">
-
-            <span class="input-icon">●</span>
-
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autocomplete="current-password"
-              placeholder="أدخل كلمة المرور"
-              required>
-
-            <button
-              type="button"
-              id="togglePassword"
-              class="password-toggle"
-              aria-label="إظهار كلمة المرور">
-              👁
-            </button>
-
-          </div>
-
-
-          <div id="loginMessage"
-               class="login-message"
-               aria-live="polite"></div>
-
-
-          <button id="loginButton"
-                  class="login-button"
-                  type="submit">
-
-            <span class="button-text">تسجيل الدخول</span>
-
-            <span class="button-loader"
-                  aria-hidden="true"></span>
-
-          </button>
-
-        </form>
-
-
-        <div class="login-footer-note">
-          يتم التحقق من صلاحية الحساب قبل السماح بالدخول
+      <form id="loginForm" autocomplete="on">
+        <label for="email">البريد الإلكتروني</label>
+        <div class="input-wrap">
+          <span class="input-icon">✉</span>
+          <input id="email" name="email" type="email" inputmode="email" autocomplete="username" placeholder="name@vd-2030.com" required>
         </div>
 
+        <label for="password">كلمة المرور</label>
+        <div class="input-wrap">
+          <span class="input-icon">●</span>
+          <input id="password" name="password" type="password" autocomplete="current-password" placeholder="أدخل كلمة المرور" required>
+          <button type="button" id="togglePassword" class="password-toggle" aria-label="إظهار كلمة المرور">👁</button>
+        </div>
+
+        <div id="loginMessage" class="login-message" aria-live="polite"></div>
+
+        <button id="loginButton" class="login-button" type="submit">
+          <span class="button-energy" aria-hidden="true"></span>
+          <span class="button-text">تسجيل الدخول <b>←</b></span>
+          <span class="button-loader" aria-hidden="true"></span>
+        </button>
+      </form>
+
+      <div class="secure-access">
+        <span class="secure-dot"></span>
+        <span>دخول آمن للمستخدمين المصرح لهم فقط</span>
       </div>
 
+      <footer class="login-footer-note">
+        <span>شركة أبعاد الرؤية للاستشارات الهندسية</span>
+        <b>PDC Dashboard</b>
+      </footer>
     </section>
-
   </main>
-
-
-  <footer class="login-footer">
-
-    <span>
-      © أبعاد الرؤية للاستشارات الهندسية
-    </span>
-
-    <span class="footer-security">
-      SECURE ACCESS
-    </span>
-
-  </footer>
-
 </div>
-
 <script src="/login.js"></script>
-
 </body>
 </html>

@@ -125,3 +125,26 @@ form.addEventListener('submit',async e=>{
 
 
 
+
+
+/* visual motion layer */
+requestAnimationFrame(()=>document.body.classList.add('is-ready'));
+
+const reduceMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+if(!reduceMotion && window.matchMedia?.('(pointer:fine)').matches){
+  let raf=0;
+  window.addEventListener('pointermove',event=>{
+    if(raf)return;
+    raf=requestAnimationFrame(()=>{
+      const x=(event.clientX/window.innerWidth-.5)*28;
+      const y=(event.clientY/window.innerHeight-.5)*20;
+      document.documentElement.style.setProperty('--mx',x+'px');
+      document.documentElement.style.setProperty('--my',y+'px');
+      raf=0;
+    });
+  },{passive:true});
+  window.addEventListener('pointerleave',()=>{
+    document.documentElement.style.setProperty('--mx','0px');
+    document.documentElement.style.setProperty('--my','0px');
+  });
+}
