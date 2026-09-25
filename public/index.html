@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="/master-executive.css">
   <link rel="stylesheet" href="/site-followup.css">
   <link rel="stylesheet" href="/important-links.css">
+  <link rel="stylesheet" href="/hr-dashboard.css">
   <link rel="stylesheet" href="/project-news.css">
 </head>
 <body>
@@ -63,6 +64,7 @@
       <button class="nav-item" data-page="tasks">✦ <span>متابعة أعمال المواقع</span></button>
       <button class="nav-item" data-page="emergency">⚠ <span>الطوارئ</span></button>
       <button class="nav-item" data-page="importantLinks">🔗 <span>الروابط المهمة</span></button>
+      <button class="nav-item" data-page="hrStaff">👥 <span>الموارد البشرية للكادر</span></button>
       <div class="nav-section-label">التقارير</div>
       <button class="nav-item meeting-nav-item" data-page="wednesdayMeeting">▥ <span>اجتماع الـ PDC</span></button>
       <button class="nav-item" data-page="safety">⚠ <span>مخالفات السلامة</span></button>
@@ -134,6 +136,8 @@
       </div>
       <article class="panel"><div class="panel-head"><div class="panel-title"><span>نظرة مباشرة</span><h3>أوامر العمل المطابقة للفلاتر</h3></div><b id="masterCount">0</b></div><div id="masterTable" class="table-wrap"></div></article>
     </section>
+
+    <section id="hrStaffPage" class="page"><div id="hrStaffRoot"></div></section>
 
     <section id="importantLinksPage" class="page">
       <div id="importantLinksRoot"></div>
@@ -469,6 +473,7 @@
 <script src="/closures-trees.js"></script>
 <script src="/site-followup.js"></script>
 <script src="/important-links.js"></script>
+<script src="/hr-dashboard.js"></script>
 <script src="/project-news.js"></script>
 
 <div id="meetingInfoModal" class="meeting-info-modal" aria-hidden="true">

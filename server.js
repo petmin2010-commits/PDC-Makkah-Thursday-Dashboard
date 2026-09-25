@@ -21,6 +21,8 @@ loadEnvFile();
 
 const PORT = Number(process.env.PORT || 3000);
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID || '';
+const HR_SPREADSHEET_ID = process.env.HR_SPREADSHEET_ID || '1a2K0fPOlwBPvwOHKFmm6pYlk4x7jPKGAjGF2kqjQrxw';
+const HR_SHEET = 'الكادر الفعلي والمعتمد حسب المصفوفة';
 const memoryCache = new Map();
 
 /* ==========================================
@@ -197,6 +199,55 @@ async function valuesGet(range){
   const sheets=await getSheets();
   const r=await sheets.spreadsheets.values.get({spreadsheetId:SPREADSHEET_ID, range, valueRenderOption:'FORMATTED_VALUE'});
   return r.data.values || [];
+}
+
+async function valuesGetFrom_(spreadsheetId,range){
+  const key=spreadsheetId+'|'+range;
+  if(valuesInFlight.has(key))return valuesInFlight.get(key);
+  const pending=(async()=>{
+    const sheets=await getSheets();
+    const r=await sheets.spreadsheets.values.get({spreadsheetId,range,valueRenderOption:'FORMATTED_VALUE'});
+    return r.data.values||[];
+  })();
+  valuesInFlight.set(key,pending);
+  try{return await pending}finally{valuesInFlight.delete(key)}
+}
+
+async function getHrStaffData_(){
+  const cacheKey='HR_STAFF_UNIFIED_V1';
+  const hit=cacheGet(cacheKey); if(hit)return hit;
+  const vals=await valuesGetFrom_(HR_SPREADSHEET_ID,qSheet(HR_SHEET)+'!A1:DF');
+  if(vals.length<3)return {updatedAt:now_(),courses:[],rows:[]};
+  const h1=vals[0]||[];
+  const courses=[];
+  for(let c=25;c<h1.length;c+=8){
+    const title=clean_(h1[c]); if(!title)continue;
+    courses.push({title,start:c,status:c+7});
+  }
+  const rows=[];
+  vals.slice(2).forEach((r,i)=>{
+    const code=clean_(r[1]), name=clean_(r[2]); if(!code&&!name)return;
+    const project=clean_(r[4]);
+    const city=project.includes('مكة')?'مكة':project.includes('جدة')?'جدة':'أخرى';
+    let required=0,completed=0; const missing=[];
+    courses.forEach(c=>{
+      const need=clean_(r[c.start]).toUpperCase()==='TRUE';
+      const status=clean_(r[c.status]);
+      if(need){required++; if(status==='نعم')completed++; else missing.push(c.title)}
+    });
+    rows.push({
+      row:i+3,code,name,nameEn:clean_(r[3]),project,city,role:clean_(r[6]),
+      scheduleGroup:clean_(r[7]),sponsorship:clean_(r[12]),nationality:clean_(r[13]),
+      id:clean_(r[14]),phone:clean_(r[15]),email:clean_(r[17]),
+      cardNo:clean_(r[18]),cardExpiry:clean_(r[19]),cardStatus:clean_(r[20]),cardDays:clean_(r[21]),
+      vehicle:clean_(r[22]),qualification:clean_(r[24]),
+      trainingRequired:required,trainingCompleted:completed,
+      trainingPct:required?Math.round(completed/required*100):100,
+      missingCourses:missing
+    });
+  });
+  const out={updatedAt:now_(),courses:courses.map(x=>x.title),rows};
+  cachePut(cacheKey,out,60); return out;
 }
 
 function cacheGet(key){
@@ -1084,6 +1135,17 @@ app.get('/api/health',(req,res)=>res.json({
   publicDirExists:fs.existsSync(PUBLIC_DIR),
   indexExists:fs.existsSync(INDEX_FILE)
 }));
+
+app.get('/api/hr/staff',requireAuth_,async(req,res)=>{
+  try{
+    const result=await getHrStaffData_();
+    res.set('Cache-Control','no-store');
+    res.json({ok:true,...result});
+  }catch(e){
+    console.error(e);
+    res.status(500).json({ok:false,error:e.message||String(e)});
+  }
+});
 
 app.get('/api/monitor/summary',requireAuth_,async(req,res)=>{
   try{
