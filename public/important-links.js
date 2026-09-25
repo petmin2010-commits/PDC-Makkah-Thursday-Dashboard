@@ -59,55 +59,19 @@ const CFG={
       ]
     },
 {
-  "title": "ط¯ظˆط±ط§طھ ط§ظ„طھط£ظ‡ظٹظ„",
+  "title": "\u062f\u0648\u0631\u0627\u062a \u0627\u0644\u062a\u0623\u0647\u064a\u0644",
   "sub": "QUALIFICATION COURSES",
-  "icon": "ًںژ“",
+  "icon": "\ud83c\udf93",
   "links": [
-    {
-      "title": "CSCC24 â€” ظ…ظƒط§ظپط­ط© ط§ظ„ط­ط±ظٹظ‚ ط§ظ„ط£ط³ط§ط³ظٹط©",
-      "href": "https://u.pcloud.link/publink/show?code=XZDK14JZIHhLkCGVGY5mx2BsYY8F4yQjovjy",
-      "desc": "ظپطھط­ ظ…ظˆط§ط¯ ط¯ظˆط±ط© CSCC24 â€“ ظ…ظƒط§ظپط­ط© ط§ظ„ط­ط±ظٹظ‚ ط§ظ„ط£ط³ط§ط³ظٹط©"
-    },
-    {
-      "title": "CSCC10 â€” ط³ظ„ط§ظ…ط© ط§ظ„ط¥ظ†ط´ط§ط،ط§طھ",
-      "href": "https://u.pcloud.link/publink/show?code=XZYl14JZLcPY4roVIbjNhyG1wtfNCfYSvY8V",
-      "desc": "ظپطھط­ ظ…ظˆط§ط¯ ط¯ظˆط±ط© CSCC10 â€“ ط³ظ„ط§ظ…ط© ط§ظ„ط¥ظ†ط´ط§ط،ط§طھ"
-    },
-    {
-      "title": "CSCC04 â€” ظ‚ظˆط§ط¹ط¯ ط³ظ„ط§ظ…ط© ط§ظ„طھظˆط²ظٹط¹ ظˆط§ظ„ط¹ط²ظ„ ظˆط§ظ„طھط´ط؛ظٹظ„",
-      "href": "https://u.pcloud.link/publink/show?code=XZWK14JZnFsGAaDr04H1XWxrTb28kubKV0aX",
-      "desc": "ظپطھط­ ظ…ظˆط§ط¯ ط¯ظˆط±ط© CSCC04 â€“ ظ‚ظˆط§ط¹ط¯ ط³ظ„ط§ظ…ط© ط§ظ„طھظˆط²ظٹط¹ ظˆط§ظ„ط¹ط²ظ„ ظˆط§ظ„طھط´ط؛ظٹظ„"
-    },
-    {
-      "title": "CSCC00 â€” ط§ظ„طھظ‡ظٹط¦ط© ط§ظ„ط¹ط§ظ…ط© ظ„ظ„ط³ظ„ط§ظ…ط©",
-      "href": "https://u.pcloud.link/publink/show?code=XZuK14JZODtpkpzfgiLgo8hPnp2FEXN7yjfV",
-      "desc": "ظپطھط­ ظ…ظˆط§ط¯ ط¯ظˆط±ط© CSCC00 â€“ ط§ظ„طھظ‡ظٹط¦ط© ط§ظ„ط¹ط§ظ…ط© ظ„ظ„ط³ظ„ط§ظ…ط©"
-    },
-    {
-      "title": "CTCC04 â€” ط§ط®طھط¨ط§ط±ط§طھ ظ…ط§ ظ‚ط¨ظ„ ط§ظ„طھط´ط؛ظٹظ„ ظ„ظ…ط¹ط¯ط§طھ ط§ظ„طھظˆط²ظٹط¹",
-      "href": "https://u.pcloud.link/publink/show?code=XZbl14JZMyGfnwMRHCQGT64kdxDn0HEcXs4V",
-      "desc": "ظپطھط­ ظ…ظˆط§ط¯ ط¯ظˆط±ط© CTCC04 â€“ ط§ط®طھط¨ط§ط±ط§طھ ظ…ط§ ظ‚ط¨ظ„ ط§ظ„طھط´ط؛ظٹظ„ ظ„ظ…ط¹ط¯ط§طھ ط§ظ„طھظˆط²ظٹط¹"
-    },
-    {
-      "title": "CTCC03 â€” ط¬ظˆط¯ط© طھظ†ظپظٹط° ظ…ط­ط·ط§طھ ط§ظ„طھظˆط²ظٹط¹",
-      "href": "https://u.pcloud.link/publink/show?code=XZcK14JZM2mxgleJha7Xt6vhCvrkMS0QP2G7",
-      "desc": "ظپطھط­ ظ…ظˆط§ط¯ ط¯ظˆط±ط© CTCC03 â€“ ط¬ظˆط¯ط© طھظ†ظپظٹط° ظ…ط­ط·ط§طھ ط§ظ„طھظˆط²ظٹط¹"
-    },
-    {
-      "title": "CTCC02 â€” ط¬ظˆط¯ط© طھظ†ظپظٹط° ط§ظ„ط´ط¨ظƒط§طھ ط§ظ„ط£ط±ط¶ظٹط©",
-      "href": "https://u.pcloud.link/publink/show?code=XZrK14JZmIClfSqbcm0NsyTWIvtbh0hepMTk",
-      "desc": "ظپطھط­ ظ…ظˆط§ط¯ ط¯ظˆط±ط© CTCC02 â€“ ط¬ظˆط¯ط© طھظ†ظپظٹط° ط§ظ„ط´ط¨ظƒط§طھ ط§ظ„ط£ط±ط¶ظٹط©"
-    },
-    {
-      "title": "CTCC01 â€” ط¬ظˆط¯ط© طھظ†ظپظٹط° ط§ظ„ط´ط¨ظƒط§طھ ط§ظ„ظ‡ظˆط§ط¦ظٹط©",
-      "href": "https://u.pcloud.link/publink/show?code=XZvK14JZPcUG6SrFhwRuUpik0LAfV4gC5Dgk",
-      "desc": "ظپطھط­ ظ…ظˆط§ط¯ ط¯ظˆط±ط© CTCC01 â€“ ط¬ظˆط¯ط© طھظ†ظپظٹط° ط§ظ„ط´ط¨ظƒط§طھ ط§ظ„ظ‡ظˆط§ط¦ظٹط©"
-    },
-    {
-      "title": "CSCC29 â€” ط³ظ„ط§ظ…ط© ط§ظ„ط­ظپط±ظٹط§طھ",
-      "href": "https://u.pcloud.link/publink/show?code=XZ9K14JZzFOHkuwTEpbsEXqU1HFCAkHVi6x7",
-      "desc": "ظپطھط­ ظ…ظˆط§ط¯ ط¯ظˆط±ط© CSCC29 â€“ ط³ظ„ط§ظ…ط© ط§ظ„ط­ظپط±ظٹط§طھ"
-    }
+    {"title": "CSCC24 - \u0645\u0643\u0627\u0641\u062d\u0629 \u0627\u0644\u062d\u0631\u064a\u0642 \u0627\u0644\u0623\u0633\u0627\u0633\u064a\u0629","href": "https://u.pcloud.link/publink/show?code=XZDK14JZIHhLkCGVGY5mx2BsYY8F4yQjovjy","desc": "\u0641\u062a\u062d \u0645\u0648\u0627\u062f \u062f\u0648\u0631\u0629 CSCC24 - \u0645\u0643\u0627\u0641\u062d\u0629 \u0627\u0644\u062d\u0631\u064a\u0642 \u0627\u0644\u0623\u0633\u0627\u0633\u064a\u0629"},
+    {"title": "CSCC10 - \u0633\u0644\u0627\u0645\u0629 \u0627\u0644\u0625\u0646\u0634\u0627\u0621\u0627\u062a","href": "https://u.pcloud.link/publink/show?code=XZYl14JZLcPY4roVIbjNhyG1wtfNCfYSvY8V","desc": "\u0641\u062a\u062d \u0645\u0648\u0627\u062f \u062f\u0648\u0631\u0629 CSCC10 - \u0633\u0644\u0627\u0645\u0629 \u0627\u0644\u0625\u0646\u0634\u0627\u0621\u0627\u062a"},
+    {"title": "CSCC04 - \u0642\u0648\u0627\u0639\u062f \u0633\u0644\u0627\u0645\u0629 \u0627\u0644\u062a\u0648\u0632\u064a\u0639 \u0648\u0627\u0644\u0639\u0632\u0644 \u0648\u0627\u0644\u062a\u0634\u063a\u064a\u0644","href": "https://u.pcloud.link/publink/show?code=XZWK14JZnFsGAaDr04H1XWxrTb28kubKV0aX","desc": "\u0641\u062a\u062d \u0645\u0648\u0627\u062f \u062f\u0648\u0631\u0629 CSCC04 - \u0642\u0648\u0627\u0639\u062f \u0633\u0644\u0627\u0645\u0629 \u0627\u0644\u062a\u0648\u0632\u064a\u0639 \u0648\u0627\u0644\u0639\u0632\u0644 \u0648\u0627\u0644\u062a\u0634\u063a\u064a\u0644"},
+    {"title": "CSCC00 - \u0627\u0644\u062a\u0647\u064a\u0626\u0629 \u0627\u0644\u0639\u0627\u0645\u0629 \u0644\u0644\u0633\u0644\u0627\u0645\u0629","href": "https://u.pcloud.link/publink/show?code=XZuK14JZODtpkpzfgiLgo8hPnp2FEXN7yjfV","desc": "\u0641\u062a\u062d \u0645\u0648\u0627\u062f \u062f\u0648\u0631\u0629 CSCC00 - \u0627\u0644\u062a\u0647\u064a\u0626\u0629 \u0627\u0644\u0639\u0627\u0645\u0629 \u0644\u0644\u0633\u0644\u0627\u0645\u0629"},
+    {"title": "CTCC04 - \u0627\u062e\u062a\u0628\u0627\u0631\u0627\u062a \u0645\u0627 \u0642\u0628\u0644 \u0627\u0644\u062a\u0634\u063a\u064a\u0644 \u0644\u0645\u0639\u062f\u0627\u062a \u0627\u0644\u062a\u0648\u0632\u064a\u0639","href": "https://u.pcloud.link/publink/show?code=XZbl14JZMyGfnwMRHCQGT64kdxDn0HEcXs4V","desc": "\u0641\u062a\u062d \u0645\u0648\u0627\u062f \u062f\u0648\u0631\u0629 CTCC04 - \u0627\u062e\u062a\u0628\u0627\u0631\u0627\u062a \u0645\u0627 \u0642\u0628\u0644 \u0627\u0644\u062a\u0634\u063a\u064a\u0644 \u0644\u0645\u0639\u062f\u0627\u062a \u0627\u0644\u062a\u0648\u0632\u064a\u0639"},
+    {"title": "CTCC03 - \u062c\u0648\u062f\u0629 \u062a\u0646\u0641\u064a\u0630 \u0645\u062d\u0637\u0627\u062a \u0627\u0644\u062a\u0648\u0632\u064a\u0639","href": "https://u.pcloud.link/publink/show?code=XZcK14JZM2mxgleJha7Xt6vhCvrkMS0QP2G7","desc": "\u0641\u062a\u062d \u0645\u0648\u0627\u062f \u062f\u0648\u0631\u0629 CTCC03 - \u062c\u0648\u062f\u0629 \u062a\u0646\u0641\u064a\u0630 \u0645\u062d\u0637\u0627\u062a \u0627\u0644\u062a\u0648\u0632\u064a\u0639"},
+    {"title": "CTCC02 - \u062c\u0648\u062f\u0629 \u062a\u0646\u0641\u064a\u0630 \u0627\u0644\u0634\u0628\u0643\u0627\u062a \u0627\u0644\u0623\u0631\u0636\u064a\u0629","href": "https://u.pcloud.link/publink/show?code=XZrK14JZmIClfSqbcm0NsyTWIvtbh0hepMTk","desc": "\u0641\u062a\u062d \u0645\u0648\u0627\u062f \u062f\u0648\u0631\u0629 CTCC02 - \u062c\u0648\u062f\u0629 \u062a\u0646\u0641\u064a\u0630 \u0627\u0644\u0634\u0628\u0643\u0627\u062a \u0627\u0644\u0623\u0631\u0636\u064a\u0629"},
+    {"title": "CTCC01 - \u062c\u0648\u062f\u0629 \u062a\u0646\u0641\u064a\u0630 \u0627\u0644\u0634\u0628\u0643\u0627\u062a \u0627\u0644\u0647\u0648\u0627\u0626\u064a\u0629","href": "https://u.pcloud.link/publink/show?code=XZvK14JZPcUG6SrFhwRuUpik0LAfV4gC5Dgk","desc": "\u0641\u062a\u062d \u0645\u0648\u0627\u062f \u062f\u0648\u0631\u0629 CTCC01 - \u062c\u0648\u062f\u0629 \u062a\u0646\u0641\u064a\u0630 \u0627\u0644\u0634\u0628\u0643\u0627\u062a \u0627\u0644\u0647\u0648\u0627\u0626\u064a\u0629"},
+    {"title": "CSCC29 - \u0633\u0644\u0627\u0645\u0629 \u0627\u0644\u062d\u0641\u0631\u064a\u0627\u062a","href": "https://u.pcloud.link/publink/show?code=XZ9K14JZzFOHkuwTEpbsEXqU1HFCAkHVi6x7","desc": "\u0641\u062a\u062d \u0645\u0648\u0627\u062f \u062f\u0648\u0631\u0629 CSCC29 - \u0633\u0644\u0627\u0645\u0629 \u0627\u0644\u062d\u0641\u0631\u064a\u0627\u062a"}
   ]
 }
   ]
