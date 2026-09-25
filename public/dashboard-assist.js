@@ -21,7 +21,8 @@ function source(){
  const p=page(),m=meta();
  if(p==='hrStaff')return 'ملف «ادارة فروع مكه و الطائف وجدة» — ورقة «الكادر الفعلي والمعتمد حسب المصفوفة»';
  if(p==='importantLinks')return 'لوحة الروابط الأصلية المعتمدة للمشروع';
- if(p==='violationsCombined')return 'مصدر مركب من أوراق مخالفات التنفيذ ومحاضر المخالفات';
+ if(p==='executionViolations')return 'Google Sheet — ورقة «🚫مخالفات التنفيذ»';
+ if(p==='minutes')return 'Google Sheet — ورقة «🚫محاضر مخالفة اثبات الحالة»';
  return m&&m.sheet?'Google Sheet — ورقة «'+m.sheet+'»':'مصدر بيانات التاب الحالي من Google Sheets';
 }
 function title(el){const q=el&&el.querySelector?el.querySelector(':scope > .panel-title h3,:scope > .panel-head .panel-title h3,:scope > span,:scope > h3,.panel-title h3'):null;return clean((q&&q.textContent)||(el&&el.getAttribute&&el.getAttribute('aria-label'))||'الكائن')}

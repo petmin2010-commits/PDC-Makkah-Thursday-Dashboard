@@ -390,7 +390,7 @@ async function getBootData(){
 }
 async function getSecondaryMasterKpis(){
   const x=await getMasterExtras_();
-  return [kpi_('مخالفات التنفيذ',num_(x.executionViolations)+num_(x.minutes),'violationsCombined','danger'),kpi_('إجمالي الغرامات على المقاول من مخالفات التنفيذ',x.penalties,'violationsCombined','danger','ر.س',false,true),kpi_('مرفقات مرفوعة',x.attachmentsUploaded,'attachments','success',pct_(x.attachmentsUploaded,x.attachmentsTotal)),kpi_('مرفقات غير مكتملة',Math.max(0,x.attachmentsTotal-x.attachmentsUploaded),'attachments','warning'),kpi_('حالات الطوارئ',x.emergencyTotal,'emergency','purple'),kpi_('طوارئ منتهية',x.emergencyDone,'emergency','success',pct_(x.emergencyDone,x.emergencyTotal)),kpi_('المهام والإفادات',x.tasksTotal,'tasks','primary'),kpi_('مهام معالجة',x.tasksResolved,'tasks','success',pct_(x.tasksResolved,x.tasksTotal))];
+  return [kpi_('مخالفات التنفيذ',num_(x.executionViolations),'executionViolations','danger'),kpi_('محاضر مخالفة اثبات الحالة',num_(x.minutes),'minutes','warning'),kpi_('إجمالي الغرامات',x.penalties,'minutes','danger','ر.س',false,true),kpi_('مرفقات مرفوعة',x.attachmentsUploaded,'attachments','success',pct_(x.attachmentsUploaded,x.attachmentsTotal)),kpi_('مرفقات غير مكتملة',Math.max(0,x.attachmentsTotal-x.attachmentsUploaded),'attachments','warning'),kpi_('حالات الطوارئ',x.emergencyTotal,'emergency','purple'),kpi_('طوارئ منتهية',x.emergencyDone,'emergency','success',pct_(x.emergencyDone,x.emergencyTotal)),kpi_('المهام والإفادات',x.tasksTotal,'tasks','primary'),kpi_('مهام معالجة',x.tasksResolved,'tasks','success',pct_(x.tasksResolved,x.tasksTotal))];
 }
 async function getSafetyReportPage_(){
   const cfg=APP.PAGES.safety;
@@ -432,6 +432,68 @@ async function getSafetyReportPage_(){
     r._search=[r.workOrder,r.type,r.workOrderCode,r.contractor,r.date,r.violation1,r.violation2,r.supervisor,r.editor,r.reason].join(' ').toLowerCase();
   });
   return {key:'safety',title:cfg.title,updatedAt:now_(),rows,columns:cfg.fields.map(f=>({key:f[0],label:f[1]})),filterKeys:cfg.filters||[]};
+}
+
+async function readSheetColumnLinks_(sheetName,columnLetter){
+  try{
+    assertConfig();
+    const sheets=await getSheets();
+    const meta=await sheets.spreadsheets.get({
+      spreadsheetId:SPREADSHEET_ID,
+      ranges:[`${qSheet(sheetName)}!${columnLetter}2:${columnLetter}${Math.max(2,Math.min(APP.MAX_ROWS+1,5001))}`],
+      includeGridData:true,
+      fields:'sheets.data.rowData.values(hyperlink,userEnteredValue,textFormatRuns)'
+    });
+    const rowData=meta.data.sheets?.[0]?.data?.[0]?.rowData||[];
+    const links=new Map();
+    rowData.forEach((rd,i)=>{
+      const cell=rd.values?.[0]||{};
+      let url=clean_(cell.hyperlink);
+      if(!url){
+        const formula=clean_(cell.userEnteredValue?.formulaValue);
+        const m=formula.match(/HYPERLINK\(\s*["']([^"']+)["']/i);
+        if(m)url=m[1];
+      }
+      if(!url){
+        const runs=cell.textFormatRuns||[];
+        url=clean_(runs.find(x=>x?.format?.link?.uri)?.format?.link?.uri);
+      }
+      if(url)links.set(i+2,url);
+    });
+    return links;
+  }catch(e){
+    console.warn('Sheet hyperlink enrichment skipped:',sheetName,columnLetter,e.message||e);
+    return new Map();
+  }
+}
+
+async function getExecutionViolationsPage_(){
+  const cfg=APP.PAGES.executionViolations;
+  const rows=await readConfiguredSheet_(cfg,'executionViolations');
+  const links=await readSheetColumnLinks_(cfg.sheet,'N');
+  rows.forEach(r=>{
+    const u=links.get(Number(r._row));
+    if(u)r.link=u;
+    else if(!/^https?:\/\//i.test(clean_(r.link)))r.link='';
+    r._search=[r.workOrder,r.type,r.workOrderCode,r.contractor,r.date,r.violation,r.violationSection,r.supervisor,r.editor,r.reason,r.emailStatus,r.emailTo].join(' ').toLowerCase();
+  });
+  return {key:'executionViolations',title:cfg.title,updatedAt:now_(),rows,columns:cfg.fields.map(f=>({key:f[0],label:f[1]})),filterKeys:cfg.filters||[]};
+}
+
+async function getMinutesPage_(){
+  const cfg=APP.PAGES.minutes;
+  const rows=await readConfiguredSheet_(cfg,'minutes');
+  const excelLinks=await readSheetColumnLinks_(cfg.sheet,'AJ');
+  const pdfLinks=await readSheetColumnLinks_(cfg.sheet,'AK');
+  const pcloudLinks=await readSheetColumnLinks_(cfg.sheet,'AL');
+  rows.forEach(r=>{
+    const n=Number(r._row);
+    r.excelLink=excelLinks.get(n)||(/^https?:\/\//i.test(clean_(r.excelLink))?r.excelLink:'');
+    r.pdfLink=pdfLinks.get(n)||(/^https?:\/\//i.test(clean_(r.pdfLink))?r.pdfLink:'');
+    r.pcloudLink=pcloudLinks.get(n)||(/^https?:\/\//i.test(clean_(r.pcloudLink))?r.pcloudLink:'');
+    r._search=[r.minuteType,r.workOrder,r.type,r.contractor,r.region,r.workLocation,r.date,r.location,r.statement,r.editor,r.consultantRep,r.uploadStatus,r.source,r.notes].join(' ').toLowerCase();
+  });
+  return {key:'minutes',title:cfg.title,updatedAt:now_(),rows,columns:cfg.fields.map(f=>({key:f[0],label:f[1]})),filterKeys:cfg.filters||[]};
 }
 
 async function getCombinedViolationsPage_(){
@@ -615,6 +677,8 @@ async function getWednesdayMeetingData(){
 
 async function getPageData(pageKey){
   const cfg=APP.PAGES[pageKey];if(!cfg)throw new Error('صفحة غير معرفة: '+pageKey);
+  if(pageKey==='executionViolations')return getExecutionViolationsPage_();
+  if(pageKey==='minutes')return getMinutesPage_();
   if(pageKey==='violationsCombined')return getCombinedViolationsPage_();
   if(pageKey==='safety')return getSafetyReportPage_();
   const rows=await readConfiguredSheet_(cfg,pageKey);

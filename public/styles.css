@@ -2251,3 +2251,36 @@ button.emergency-tree-card:hover{transform:translateY(-1px);box-shadow:0 7px 17p
   pointer-events:auto;
 }
 
+
+/* =========================================================
+   VIOLATIONS ANALYTICS — execution + proof-of-condition
+   ========================================================= */
+.vx-root,#vxExecutionExtra{margin:16px 0 20px}
+.vx-hero{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px;padding:18px 20px;border:1px solid var(--line);border-radius:20px;background:linear-gradient(135deg,color-mix(in srgb,var(--panel) 92%,#2878e8 8%),var(--panel));box-shadow:0 10px 26px rgba(20,43,78,.08)}
+.vx-hero span{display:block;font-size:9px;font-weight:900;letter-spacing:.11em;color:#2878e8}
+.vx-hero h3{margin:5px 0 3px;font-size:20px;color:var(--text)}
+.vx-hero p{margin:0;font-size:11px;color:var(--muted)}
+.vx-insights{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:12px 0 16px}
+.vx-insight{min-height:102px;padding:13px 14px;border:1px solid var(--line);border-radius:16px;background:var(--panel);box-shadow:0 8px 20px rgba(20,43,78,.07)}
+.vx-insight span{display:block;font-size:10px;font-weight:800;color:var(--muted)}
+.vx-insight strong{display:block;margin:7px 0 3px;font-size:18px;line-height:1.35;color:var(--text)}
+.vx-insight small{display:block;font-size:9px;line-height:1.5;color:var(--muted)}
+.vx-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.vx-grid .panel{min-width:0}
+.vx-grid .vx-wide{grid-column:span 1}
+.vx-chart{position:relative;height:270px;padding:6px 4px}
+.vx-ranks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}
+.vx-table{overflow:auto;max-height:460px}
+.vx-table table{width:100%;border-collapse:collapse;font-size:10px}
+.vx-table th,.vx-table td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}
+.vx-table th{position:sticky;top:0;z-index:2;background:var(--panel);font-weight:900;color:var(--muted)}
+.vx-table td:first-child,.vx-table th:first-child{text-align:center;width:38px}
+.vx-table td:last-child{font-weight:800}
+#vxExecutionExtra .vx-insights{grid-template-columns:repeat(4,minmax(0,1fr))}
+body.vd-report-dark .vx-hero,body.vd-report-dark .vx-insight{background:linear-gradient(145deg,#0b203a,#102945);border-color:rgba(117,177,235,.22);box-shadow:0 12px 28px rgba(0,0,0,.2)}
+body.vd-report-dark .vx-hero h3,body.vd-report-dark .vx-insight strong{color:#f5f9ff}
+body.vd-report-dark .vx-hero p,body.vd-report-dark .vx-insight span,body.vd-report-dark .vx-insight small{color:#b8c9df}
+body.vd-report-dark .vx-table th{background:#102945;color:#b8c9df}
+body.vd-report-dark .vx-table td{border-color:rgba(117,177,235,.16)}
+@media(max-width:1100px){.vx-insights,#vxExecutionExtra .vx-insights{grid-template-columns:repeat(2,minmax(0,1fr))}.vx-grid,.vx-ranks{grid-template-columns:1fr}}
+@media(max-width:650px){.vx-insights,#vxExecutionExtra .vx-insights{grid-template-columns:1fr}.vx-hero{padding:14px}.vx-chart{height:240px}}

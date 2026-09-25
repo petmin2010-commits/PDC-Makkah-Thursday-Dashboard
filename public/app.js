@@ -3188,19 +3188,19 @@ function renderDataPage(){
  const genericPageCharts=document.getElementById('genericPageCharts');
  const safetyAnalytics=document.getElementById('safetyMasterAnalytics');
  const executionAnalytics=document.getElementById('executionMasterAnalytics');
- const isCorporateViolationReport=key==='safety'||key==='violationsCombined';
+ const isCorporateViolationReport=key==='safety'||key==='executionViolations'||key==='minutes';
  document.body.classList.toggle('vd-report-dark',isCorporateViolationReport);
 
  if(emergencyTreeSection) emergencyTreeSection.style.display=key==='emergency'?'block':'none';
 
  if(safetyAnalytics) safetyAnalytics.style.display=key==='safety'?'block':'none';
- if(executionAnalytics) executionAnalytics.style.display=key==='violationsCombined'?'block':'none';
+ if(executionAnalytics) executionAnalytics.style.display=key==='executionViolations'?'block':'none';
 
  if(key==='safety'){
    if(emergencyAnalytics) emergencyAnalytics.style.display='none';
    if(genericPageCharts) genericPageCharts.style.display='none';
    renderSafetyMasterAnalytics(rows);
- }else if(key==='violationsCombined'){
+ }else if(key==='executionViolations'){
    if(emergencyAnalytics) emergencyAnalytics.style.display='none';
    if(genericPageCharts) genericPageCharts.style.display='none';
    renderExecutionMasterAnalytics(rows);
@@ -3338,7 +3338,7 @@ function renderExecutionMasterAnalytics(rows){
 }
 
 function exportExecutionReportPdf(){
- if(S.current!=='violationsCombined')return;
+ if(S.current!=='executionViolations')return;
  const rows=S.filtered||[];if(!rows.length){toast('لا توجد بيانات مطابقة للفلاتر لتصديرها');return;}
  const win=window.open('','_blank');if(!win){toast('اسمح بالنوافذ المنبثقة لتصدير PDF');return;}
  const filterParts=[];['f1','f2','f3','f4','f5'].forEach(id=>{const el=document.getElementById(id);if(!el||!el.value)return;const lab=document.getElementById('fl'+id.slice(1));filterParts.push(`${lab?.textContent||''}: ${el.value}`)});const q=document.getElementById('globalSearch')?.value?.trim();if(q)filterParts.push(`البحث: ${q}`);
@@ -3565,11 +3565,6 @@ function renderPageKpis(key,rows){
      add('أوامر عمل لا تتطلب تصريح',rows.filter(r=>has(r.permitStatus,'لا يتطلب')).length);
    }
    if(key==='attachments'){add('تم الرفع',rows.filter(r=>has(r.status,'تم رفع')).length);add('غير مكتمل',rows.filter(r=>!has(r.status,'تم رفع')).length)}
-   if(key==='violationsCombined'){
-     add('مخالفات التنفيذ',rows.length);
-     add('إجمالي الغرامات على المقاول من مخالفات التنفيذ',money(sum(rows,'penalty')));
-     add('مقاولون',unique(rows.map(r=>r.contractor)).length);
-   }
    if(key==='safety'){
      const uniqueWorkOrders=unique(rows.map(r=>r.workOrder)).length;
      const contractors=unique(rows.map(r=>r.contractor)).length;
@@ -3579,8 +3574,43 @@ function renderPageKpis(key,rows){
      const repeatedWorkOrders=Object.values(rows.reduce((o,r)=>{const k=String(r.workOrder||'').trim();if(k)o[k]=(o[k]||0)+1;return o},{})).filter(n=>n>1).length;
      const twoViolations=rows.filter(r=>String(r.violation1||'').trim()&&String(r.violation2||'').trim()).length;
      cards=[['إجمالي سجلات المخالفات',rows.length],['أوامر العمل الفريدة',uniqueWorkOrders],['المقاولون',contractors],['مشرفو المواقع',supervisors],['محررو المخالفات',editors],['أنواع أوامر العمل',workTypes],['أوامر عمل بمخالفات متكررة',repeatedWorkOrders],['سجلات تحتوي مخالفتين',twoViolations]];
-   }else if(key==='executionViolations'){add('لم يرسل إيميل',rows.filter(r=>has(r.emailStatus,'لم يتم')).length);add('مقاولون',unique(rows.map(r=>r.contractor)).length)}
-   if(key==='minutes'){add('إجمالي الغرامات',money(sum(rows,'penalty')));add('تم رفع PDF',rows.filter(r=>has(r.uploadStatus,'PDF')).length)}
+   }else if(key==='executionViolations'){
+     const wo=rows.reduce((o,r)=>{const k=String(r.workOrder||'').trim();if(k)o[k]=(o[k]||0)+1;return o},{});
+     const sent=rows.filter(r=>has(r.emailStatus,'تم الإرسال')).length;
+     const failed=rows.filter(r=>has(r.emailStatus,'فشل')||has(r.emailStatus,'لم يتم')).length;
+     cards=[
+       ['إجمالي مخالفات التنفيذ',rows.length],
+       ['أوامر العمل الفريدة',unique(rows.map(r=>r.workOrder)).length],
+       ['المقاولون',unique(rows.map(r=>r.contractor)).length],
+       ['أنواع المخالفات',unique(rows.map(r=>r.violation)).length],
+       ['مشرفو المواقع',unique(rows.map(r=>r.supervisor)).length],
+       ['محررو المخالفات',unique(rows.map(r=>r.editor)).length],
+       ['أوامر بمخالفات متكررة',Object.values(wo).filter(n=>n>1).length],
+       ['إيميلات تم إرسالها',sent],
+       ['إيميلات فشل/لم ترسل',failed],
+       ['نسبة نجاح الإرسال',rows.length?((sent/rows.length)*100).toFixed(1)+'%':'0.0%']
+     ];
+   }else if(key==='minutes'){
+     const vals=rows.map(r=>Number(String(r.penalty||'').replace(/,/g,'').replace(/[^\d.-]/g,''))||0);
+     const totalPenalty=vals.reduce((a,b)=>a+b,0);
+     const pdf=rows.filter(r=>has(r.uploadStatus,'PDF')||String(r.pdfLink||'').trim()).length;
+     const cloud=rows.filter(r=>String(r.pcloudLink||'').trim()).length;
+     const multi=rows.filter(r=>[r.penaltyItem2,r.penaltyItem3,r.penaltyItem4,r.penaltyItem5].some(v=>String(v||'').trim())).length;
+     cards=[
+       ['إجمالي محاضر إثبات الحالة',rows.length],
+       ['أوامر العمل الفريدة',unique(rows.map(r=>r.workOrder)).length],
+       ['المقاولون',unique(rows.map(r=>r.contractor)).length],
+       ['إجمالي الغرامات',money(totalPenalty)],
+       ['متوسط الغرامة',money(rows.length?totalPenalty/rows.length:0)],
+       ['أعلى غرامة',money(vals.length?Math.max(...vals):0)],
+       ['الإدارات',unique(rows.map(r=>r.region)).length],
+       ['مصادر أوامر العمل',unique(rows.map(r=>r.source)).length],
+       ['محررو المحاضر',unique(rows.map(r=>r.editor)).length],
+       ['محاضر بها PDF',pdf],
+       ['محاضر مرتبطة بـ pCloud',cloud],
+       ['محاضر متعددة البنود',multi]
+     ];
+   }
    if(key==='finance'){add('قيمة أوامر العمل',money(sum(rows,'workOrderValue')));add('القيمة النهائية',money(sum(rows,'netValue')));add('المستحق',money(sum(rows,'due')))}
    if(key==='emergency'){
      const done=rows.filter(r=>exactStatus(r.status,'منجز')).length;
@@ -3601,7 +3631,7 @@ function renderPageKpis(key,rows){
    if(key==='tasks'){add('تمت المعالجة',rows.filter(r=>has(r.attachments,'تم المعالجة')||has(r.resolved,'تم')).length);add('مهندسون',unique(rows.map(r=>r.engineer)).length)}
  }
 
- if(key==='violationsCombined'){
+ if(key==='executionViolations'||key==='minutes'){
    cards=cards.filter(c=>c[0]!=='إجمالي السجلات');
  }
  pageKpis.innerHTML=cards.slice(0,18).map(c=>`<article class="mini-kpi"><span>${esc(c[0])}</span><strong>${typeof c[1]==='string'?c[1]:fmt(c[1])}</strong></article>`).join('');
@@ -3956,7 +3986,7 @@ function tableHtml(rows,cols){
 }
 function cell(k,v){
  const s=String(v||'');
- if(k==='link'){const u=s.trim();return u?`<a class="table-link" href="${esc(u)}" target="_blank" rel="noopener">فتح المخالفة</a>`:'—'} if(['status','executionStatus','delay','permitStatus','paymentStatus','approval','attachments','resolved','uploadStatus'].includes(k)){let cl=(has(s,'تم')||has(s,'Pass'))?'done':(has(s,'تأخير')||has(s,'لم')||has(s,'Fail'))?'bad':'';return `<span class="pill ${cl}">${esc(s)}</span>`} return esc(s);
+ if(['link','excelLink','pdfLink','pcloudLink'].includes(k)){const u=s.trim();const label=k==='pdfLink'?'فتح PDF':k==='excelLink'?'فتح Excel':k==='pcloudLink'?'فتح pCloud':'فتح المخالفة';return u?`<a class="table-link" href="${esc(u)}" target="_blank" rel="noopener">${label}</a>`:'—'} if(['status','executionStatus','delay','permitStatus','paymentStatus','approval','attachments','resolved','uploadStatus','emailStatus'].includes(k)){let cl=(has(s,'تم')||has(s,'Pass'))?'done':(has(s,'تأخير')||has(s,'لم')||has(s,'Fail'))?'bad':'';return `<span class="pill ${cl}">${esc(s)}</span>`} return esc(s);
 }
 function kpiGroupClass(k){
  const l=String(k.label||''), p=String(k.page||'');
