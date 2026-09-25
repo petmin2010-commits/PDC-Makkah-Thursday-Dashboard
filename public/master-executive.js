@@ -46,9 +46,22 @@ function card(label,value,note='',tone='',page=''){
 }
 function groupBlock(title,sub,cards,cls=''){return `<section class="me-group ${cls}"><header><div><span>EXECUTIVE KPI</span><h3>${e(title)}</h3></div><small>${e(sub)}</small></header><div>${cards.join('')}</div></section>`}
 function chart(id,title,sub,wide=false){return `<article class="panel me-chart ${wide?'me-wide':''}"><div class="panel-title"><span>${e(sub)}</span><h3>${e(title)}</h3></div><div class="me-chart-box"><canvas id="${id}"></canvas></div></article>`}
-function draw(id,type,labels,datasets,extra={}){
+function draw(id,type,labels,datasets,extra={},plugins=[]){
  const el=document.getElementById(id);if(!el||typeof Chart==='undefined')return;
- M.charts[id]=new Chart(el,{type,data:{labels,datasets},options:Object.assign({responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{usePointStyle:true,font:{family:'Cairo',size:8}}}}},extra)});
+ M.charts[id]=new Chart(el,{type,data:{labels,datasets},options:Object.assign({responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{usePointStyle:true,font:{family:'Cairo',size:8}}}}},extra),plugins});
+}
+function monthlyAverageLabelPlugin(value){
+ return {id:'meMonthlyAverageLabel',afterDatasetsDraw(chart){
+   if(!Number.isFinite(value)||!chart.scales?.y)return;
+   const ctx=chart.ctx,area=chart.chartArea,py=chart.scales.y.getPixelForValue(value);
+   const text='متوسط الإسناد الشهري: '+value.toLocaleString('ar-SA',{maximumFractionDigits:2})+' ر.س';
+   const y=Math.max(area.top+16,Math.min(area.bottom-8,py-8)),x=area.right-10;
+   ctx.save();ctx.font='700 11px Cairo';ctx.textAlign='right';ctx.textBaseline='middle';ctx.direction='rtl';
+   const w=ctx.measureText(text).width,pad=7,h=20,left=x-w-pad*2,top=y-h/2;
+   ctx.fillStyle='rgba(255,255,255,.94)';ctx.fillRect(left,top,w+pad*2,h);
+   ctx.strokeStyle='#16a34a';ctx.lineWidth=1;ctx.strokeRect(left,top,w+pad*2,h);
+   ctx.fillStyle='#15803d';ctx.fillText(text,x-pad,y);ctx.restore();
+ }};
 }
 function stacked(id,rows,key,limit=10){
  const keys=group(rows,key).slice(0,limit).map(x=>x[0]),states=['تم التنفيذ','لم يتم التنفيذ','موقوف/محول'];
@@ -151,7 +164,7 @@ function renderCharts(rows){
  const eng=group(rows,'engineer').slice(0,15);draw('meEngineer','bar',eng.map(x=>x[0]),[{label:'عدد الأوامر',data:eng.map(x=>x[1]),backgroundColor:'#0891b2'}],{indexAxis:'y'});
  const months={};rows.forEach(z=>{let d=null;try{d=typeof parseSheetDate==='function'?parseSheetDate(z.assignedDate):new Date(z.assignedDate)}catch{}if(!d||isNaN(d))return;const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');if(!months[k])months[k]={count:0,value:0};months[k].count++;months[k].value+=n(z.value)});
  const keys=Object.keys(months).sort(),monthlyTotal=keys.reduce((s,k)=>s+months[k].value,0),monthlyAvg=keys.length?monthlyTotal/keys.length:0;
- draw('meMonthly','bar',keys,[{type:'bar',label:'قيمة الإسناد',data:keys.map(k=>months[k].value),backgroundColor:'rgba(37,99,235,.4)',yAxisID:'y'},{type:'line',label:'عدد أوامر العمل',data:keys.map(k=>months[k].count),borderColor:'#f59e0b',backgroundColor:'#f59e0b',tension:.25,yAxisID:'y1'},{type:'line',label:'متوسط الإسناد الشهري (ر.س)',data:keys.map(()=>monthlyAvg),borderColor:'#16a34a',backgroundColor:'#16a34a',borderDash:[7,5],pointRadius:0,pointHoverRadius:5,tension:0,fill:false,yAxisID:'y'}],{plugins:{legend:{position:'bottom',labels:{usePointStyle:true,font:{family:'Cairo',size:8}}},tooltip:{callbacks:{label:c=>{const v=Number(c.raw||0);return c.dataset.yAxisID==='y1'?c.dataset.label+': '+v.toLocaleString('ar-SA'):c.dataset.label+': '+v.toLocaleString('ar-SA',{maximumFractionDigits:2})+' ر.س'}}}},scales:{y:{beginAtZero:true,position:'right'},y1:{beginAtZero:true,position:'left',grid:{drawOnChartArea:false}}}});
+ draw('meMonthly','bar',keys,[{type:'bar',label:'قيمة الإسناد',data:keys.map(k=>months[k].value),backgroundColor:'rgba(37,99,235,.4)',yAxisID:'y'},{type:'line',label:'عدد أوامر العمل',data:keys.map(k=>months[k].count),borderColor:'#f59e0b',backgroundColor:'#f59e0b',tension:.25,yAxisID:'y1'},{type:'line',label:'متوسط الإسناد الشهري (ر.س)',data:keys.map(()=>monthlyAvg),borderColor:'#16a34a',backgroundColor:'#16a34a',borderDash:[7,5],pointRadius:0,pointHoverRadius:5,tension:0,fill:false,yAxisID:'y'}],{plugins:{legend:{position:'bottom',labels:{usePointStyle:true,font:{family:'Cairo',size:8}}},tooltip:{callbacks:{label:c=>{const v=Number(c.raw||0);return c.dataset.yAxisID==='y1'?c.dataset.label+': '+v.toLocaleString('ar-SA'):c.dataset.label+': '+v.toLocaleString('ar-SA',{maximumFractionDigits:2})+' ر.س'}}}},scales:{y:{beginAtZero:true,position:'right'},y1:{beginAtZero:true,position:'left',grid:{drawOnChartArea:false}}}},[monthlyAverageLabelPlugin(monthlyAvg)]);
 }
 function currentRows(){
  if(typeof S==='undefined')return[];
