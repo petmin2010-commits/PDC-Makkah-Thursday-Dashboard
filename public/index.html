@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="/permits-analytics.css">
   <link rel="stylesheet" href="/master-executive.css">
   <link rel="stylesheet" href="/site-followup.css">
+  <link rel="stylesheet" href="/important-links.css">
 </head>
 <body>
 <div id="dashboardUserProfile" class="dashboard-user-profile" hidden>
@@ -60,6 +61,7 @@
       <button class="nav-item" data-page="closures">✓ <span>الإغلاقات</span></button>
       <button class="nav-item" data-page="tasks">✦ <span>متابعة أعمال المواقع</span></button>
       <button class="nav-item" data-page="emergency">⚠ <span>الطوارئ</span></button>
+      <button class="nav-item" data-page="importantLinks">🔗 <span>الروابط المهمة</span></button>
       <div class="nav-section-label">التقارير</div>
       <button class="nav-item meeting-nav-item" data-page="wednesdayMeeting">▥ <span>اجتماع الـ PDC</span></button>
       <button class="nav-item" data-page="safety">⚠ <span>مخالفات السلامة</span></button>
@@ -126,6 +128,9 @@
       <article class="panel"><div class="panel-head"><div class="panel-title"><span>نظرة مباشرة</span><h3>أوامر العمل المطابقة للفلاتر</h3></div><b id="masterCount">0</b></div><div id="masterTable" class="table-wrap"></div></article>
     </section>
 
+    <section id="importantLinksPage" class="page">
+      <div id="importantLinksRoot"></div>
+    </section>
 
     <section id="meetingPage" class="page">
       <div class="meeting-hero">
@@ -456,6 +461,7 @@
 <script src="/master-executive.js"></script>
 <script src="/closures-trees.js"></script>
 <script src="/site-followup.js"></script>
+<script src="/important-links.js"></script>
 
 <div id="meetingInfoModal" class="meeting-info-modal" aria-hidden="true">
   <div class="meeting-info-dialog" role="dialog" aria-modal="true" aria-labelledby="meetingInfoTitle">
