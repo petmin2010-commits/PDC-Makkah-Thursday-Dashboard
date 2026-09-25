@@ -3,254 +3,65 @@
 const CFG={
   "city": "مكة",
   "contract": "4400023406",
-  "spreadsheetId": "1K_V0cvjBdD_5YLPygWjVgvPMzS1O88PCCOYUuoIH9uY",
   "groups": [
     {
-      "title": "الرئيسية",
-      "sub": "MASTER CONTROL",
-      "icon": "⌂",
+      "title": "الروابط الأساسية",
+      "sub": "PROJECT LINKS",
+      "icon": "🔗",
       "links": [
         {
-          "title": "🏗️اوامر العمل",
-          "gid": 1068069007,
-          "desc": "المصدر الرئيسي لأوامر العمل والقيم والحالات"
+          "title": "دليل الإشراف",
+          "href": "https://u.pcloud.link/publink/show?code=XZFpTU5ZRP6zfa55xhjrnCAbstX40ydpP2MV",
+          "desc": "دليل الإشراف لكل فريق المشروع"
         },
         {
-          "title": "Data Base",
-          "gid": 403020384,
-          "desc": "قاعدة البيانات المساندة للربط والتحقق"
+          "title": "بوت نظام الإشراف",
+          "href": "https://t.me/MacaelcBot",
+          "desc": "بوت نظام الإشراف لفريق المشروع"
         },
         {
-          "title": "info",
-          "gid": 284849862,
-          "desc": "بيانات مرجعية وإعدادات مساندة"
+          "title": "نظام شيت المشروع",
+          "href": "https://docs.google.com/spreadsheets/d/1K_V0cvjBdD_5YLPygWjVgvPMzS1O88PCCOYUuoIH9uY/edit?gid=1068069007#gid=1068069007",
+          "desc": "نظام شيت المشروع لفريق العمل بالكهرباء"
+        },
+        {
+          "title": "دليل البوت",
+          "href": "https://u.pcloud.link/publink/show?code=XZosKU5ZiVtnMpYUbQ0oJoGTAQuEl8q3s4AV",
+          "desc": "دليل استخدام البوت لكل فريق المشروع"
         }
       ]
     },
     {
-      "title": "المشاريع",
-      "sub": "PROJECTS",
-      "icon": "⚡",
+      "title": "السلامة والأرشفة",
+      "sub": "SAFETY & ARCHIVE",
+      "icon": "📎",
       "links": [
         {
-          "title": "⚡المشاريع العام",
-          "gid": 1457012854,
-          "desc": "المتابعة التنفيذية للمشاريع"
+          "title": "رابط فورم السلامة",
+          "href": "https://q.me-qr.com/QDJLYhfU",
+          "desc": "فورم السلامة لمهندسي الموقع"
         },
         {
-          "title": "🏗️اوامر العمل",
-          "gid": 1068069007,
-          "desc": "مرجع أمر العمل والإسناد والقيمة"
+          "title": "رابط نظام السلامة",
+          "href": "https://docs.google.com/spreadsheets/d/1bu5hfCL9kLtVpYdV50tlZCHyhWnSyeHvIEqU0ItM8u0/edit?gid=1679664111#gid=1679664111",
+          "desc": "نظام السلامة لمهندسي السلامة"
         },
         {
-          "title": "🧾التصاريح العام",
-          "gid": 1155296020,
-          "desc": "حالة التصاريح المرتبطة بالمشاريع"
-        }
-      ]
-    },
-    {
-      "title": "التوصيلات",
-      "sub": "CONNECTIONS",
-      "icon": "◉",
-      "links": [
-        {
-          "title": "🔌التوصيلات العام",
-          "gid": 65539543,
-          "desc": "المتابعة الرئيسية لأعمال التوصيلات"
+          "title": "رابط الأرشفة للمشروع",
+          "href": "https://u.pcloud.link/publink/show?code=kZEhzO5ZlLp6CDhas28W5xwOs8AYUBHAqI5y",
+          "desc": "أرشفة المشروع لفريق العمل بالكهرباء"
         },
         {
-          "title": "🏗️اوامر العمل",
-          "gid": 1068069007,
-          "desc": "بيانات أوامر العمل الأساسية"
-        },
-        {
-          "title": "🧾التصاريح العام",
-          "gid": 1155296020,
-          "desc": "التصاريح المرتبطة بأعمال التوصيلات"
-        }
-      ]
-    },
-    {
-      "title": "التصاريح",
-      "sub": "PERMITS",
-      "icon": "▤",
-      "links": [
-        {
-          "title": "🧾التصاريح العام",
-          "gid": 1155296020,
-          "desc": "المصدر الرئيسي لحالة التصاريح"
-        },
-        {
-          "title": "⚡المشاريع العام",
-          "gid": 1457012854,
-          "desc": "مرجع المشاريع وحالة التصريح"
-        },
-        {
-          "title": "🔌التوصيلات العام",
-          "gid": 65539543,
-          "desc": "مرجع التوصيلات وحالة التصريح"
-        }
-      ]
-    },
-    {
-      "title": "الأصول",
-      "sub": "ASSETS",
-      "icon": "⬡",
-      "links": [
-        {
-          "title": "🏭 الاصول",
-          "gid": 921433620,
-          "desc": "اختبارات واعتمادات واستلام الأصول"
-        },
-        {
-          "title": "🧩الاقفالات العام",
-          "gid": 244949191,
-          "desc": "مرجع الإغلاق والاستلام المرتبط"
-        },
-        {
-          "title": "🏗️اوامر العمل",
-          "gid": 1068069007,
-          "desc": "بيانات أمر العمل الأساسية"
-        }
-      ]
-    },
-    {
-      "title": "الإغلاقات",
-      "sub": "CLOSURES",
-      "icon": "✓",
-      "links": [
-        {
-          "title": "🧩الاقفالات العام",
-          "gid": 244949191,
-          "desc": "المصدر الرئيسي لمراحل الإغلاق"
-        },
-        {
-          "title": "ربط الاغلاقات",
-          "gid": 305544392,
-          "desc": "ربط ومطابقة بيانات الإغلاقات"
-        },
-        {
-          "title": "🏗️اوامر العمل",
-          "gid": 1068069007,
-          "desc": "مرجع أمر العمل وحالته التنفيذية"
-        }
-      ]
-    },
-    {
-      "title": "متابعة أعمال المواقع",
-      "sub": "SITE FOLLOW-UP",
-      "icon": "✦",
-      "links": [
-        {
-          "title": "📌المهام والافادات",
-          "gid": 496031151,
-          "desc": "المصدر الأساسي للمهام والإفادات الميدانية"
-        },
-        {
-          "title": "ربط حالة المستندات",
-          "gid": 1203497752,
-          "desc": "متابعة وربط موقف المستندات والمرفقات"
-        },
-        {
-          "title": "🏗️اوامر العمل",
-          "gid": 1068069007,
-          "desc": "مرجع أمر العمل ونوعه ومقاوله"
-        }
-      ]
-    },
-    {
-      "title": "الطوارئ",
-      "sub": "EMERGENCY",
-      "icon": "⚠",
-      "links": [
-        {
-          "title": "اشعارات الطوارئ",
-          "gid": 283924004,
-          "desc": "المصدر الرئيسي لإشعارات الطوارئ"
-        },
-        {
-          "title": "📌المهام والافادات",
-          "gid": 496031151,
-          "desc": "الإفادات الميدانية المرتبطة بالتنفيذ"
-        },
-        {
-          "title": "ربط حالة المستندات",
-          "gid": 1203497752,
-          "desc": "موقف المستندات المرتبطة"
-        }
-      ]
-    },
-    {
-      "title": "اجتماع الـ PDC",
-      "sub": "PDC MEETING",
-      "icon": "▥",
-      "links": [
-        {
-          "title": "🏗️اوامر العمل",
-          "gid": 1068069007,
-          "desc": "قاعدة الاجتماع وموقف أوامر العمل"
-        },
-        {
-          "title": "ربط حالة المستندات",
-          "gid": 1203497752,
-          "desc": "حالة تسليم ومراجعة المستندات"
-        },
-        {
-          "title": "ربط الاغلاقات",
-          "gid": 305544392,
-          "desc": "موقف الإغلاقات والربط"
-        }
-      ]
-    },
-    {
-      "title": "مخالفات السلامة",
-      "sub": "SAFETY",
-      "icon": "⚠",
-      "links": [
-        {
-          "title": "🚫مخالفات السلاممة",
-          "gid": 2129916751,
-          "desc": "سجل مخالفات السلامة"
-        },
-        {
-          "title": "📌المهام والافادات",
-          "gid": 496031151,
-          "desc": "ربط المخالفة بالمهمة والموقع"
-        },
-        {
-          "title": "📞أرشفة و تواصل",
-          "gid": 1050816614,
-          "desc": "الأرشفة والتواصل والمتابعة"
-        }
-      ]
-    },
-    {
-      "title": "مخالفات التنفيذ",
-      "sub": "EXECUTION VIOLATIONS",
-      "icon": "⚠",
-      "links": [
-        {
-          "title": "🚫مخالفات التنفيذ",
-          "gid": 1492002852,
-          "desc": "السجل الرئيسي لمخالفات التنفيذ"
-        },
-        {
-          "title": "📌المهام والافادات",
-          "gid": 496031151,
-          "desc": "مرجع المهمة والإفادة الميدانية"
-        },
-        {
-          "title": "📞أرشفة و تواصل",
-          "gid": 1050816614,
-          "desc": "أرشفة المخالفات والمراسلات"
+          "title": "PDC دليل الإشراف",
+          "href": "https://u.pcloud.link/publink/show?code=XZFpTU5ZRP6zfa55xhjrnCAbstX40ydpP2MV",
+          "desc": "دليل الإشراف PDC لكل فريق المشروع"
         }
       ]
     }
   ]
 };
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const url=gid=>'https://docs.google.com/spreadsheets/d/'+CFG.spreadsheetId+'/edit#gid='+gid;
+const url=x=>x.href;
 const root=()=>document.getElementById('importantLinksRoot');
 
 function buildGroups(q=''){
@@ -287,7 +98,7 @@ function render(q=''){
             '</div>'+
             '<div class="il-link-grid">'+
               g.links.map((x)=>{
-                const href=url(x.gid);
+                const href=url(x);
                 return '<article class="il-link-card">'+
                   '<div class="il-link-title">'+esc(x.title)+'</div>'+
                   '<small class="il-link-desc">'+esc(x.desc)+'</small>'+
