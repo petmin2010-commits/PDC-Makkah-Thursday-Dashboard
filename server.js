@@ -24,6 +24,7 @@ const SPREADSHEET_ID = process.env.SPREADSHEET_ID || '';
 const HR_SPREADSHEET_ID = process.env.HR_SPREADSHEET_ID || '1a2K0fPOlwBPvwOHKFmm6pYlk4x7jPKGAjGF2kqjQrxw';
 const HR_SHEET = 'الكادر الفعلي والمعتمد حسب المصفوفة';
 const memoryCache = new Map();
+const valuesInFlight = new Map();
 
 /* ==========================================
    PDC Dashboard Authentication
