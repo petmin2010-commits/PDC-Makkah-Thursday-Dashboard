@@ -764,7 +764,37 @@ async function getFullMonitorData(){
   };
 }
 
-const METHODS={getBootData,getSecondaryMasterKpis,getWorkOrderMasterEnrichment,getPageData,getWednesdayMeetingData,getMonitorData,getFullMonitorData,clearDashboardCache};
+async function getProjectNews(){
+  const key='PDC_PROJECT_NEWS_V1';
+  const hit=cacheGet(key);if(hit)return hit;
+  const vals=await valuesGet(`${qSheet('📰أخبار المشروع')}!A2:J1000`);
+  const rows=vals.map((r,i)=>({
+    _row:i+2,
+    show:clean_(r[0]),
+    date:clean_(r[1]),
+    priority:clean_(r[2]),
+    category:clean_(r[3]),
+    title:clean_(r[4]),
+    summary:clean_(r[5]),
+    sender:clean_(r[6]),
+    emailUrl:clean_(r[7]),
+    messageId:clean_(r[8]),
+    syncedAt:clean_(r[9])
+  })).filter(r=>{
+    const s=r.show.toLowerCase();
+    return r.title && !['لا','no','false','0','اخفاء','إخفاء'].includes(s);
+  });
+  rows.sort((a,b)=>{
+    const da=Date.parse(a.date)||0,db=Date.parse(b.date)||0;
+    if(db!==da)return db-da;
+    return b._row-a._row;
+  });
+  const result={updatedAt:now_(),rows:rows.slice(0,40)};
+  cachePut(key,result,60);
+  return result;
+}
+
+const METHODS={getBootData,getSecondaryMasterKpis,getWorkOrderMasterEnrichment,getPageData,getWednesdayMeetingData,getMonitorData,getFullMonitorData,getProjectNews,clearDashboardCache};
 
 const app=express();
 const PUBLIC_DIR=path.join(__dirname,'public');

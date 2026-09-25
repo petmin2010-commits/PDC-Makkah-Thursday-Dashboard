@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="/master-executive.css">
   <link rel="stylesheet" href="/site-followup.css">
   <link rel="stylesheet" href="/important-links.css">
+  <link rel="stylesheet" href="/project-news.css">
 </head>
 <body>
 <div id="dashboardUserProfile" class="dashboard-user-profile" hidden>
@@ -85,6 +86,12 @@
         <button id="refreshBtn" class="primary-btn">↻ تحديث</button>
       </div>
     </header>
+
+    <section id="projectNewsTicker" class="project-news is-empty" aria-label="أخبار المشروع">
+      <div class="news-label"><i></i><div><b>أخبار المشروع</b><small>LIVE NEWS</small></div></div>
+      <div class="news-viewport"><div id="projectNewsTrack" class="news-track"><span>جاري تحميل الأخبار المهمة...</span></div></div>
+      <button id="projectNewsPause" class="news-control" type="button" aria-label="إيقاف شريط الأخبار">❚❚</button>
+    </section>
 
     <section id="filterBar" class="filters">
       <div class="filter"><label id="fl1">فلتر 1</label><select id="f1"><option value="">الكل</option></select></div>
@@ -462,6 +469,7 @@
 <script src="/closures-trees.js"></script>
 <script src="/site-followup.js"></script>
 <script src="/important-links.js"></script>
+<script src="/project-news.js"></script>
 
 <div id="meetingInfoModal" class="meeting-info-modal" aria-hidden="true">
   <div class="meeting-info-dialog" role="dialog" aria-modal="true" aria-labelledby="meetingInfoTitle">
