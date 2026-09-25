@@ -2200,3 +2200,9 @@ button.emergency-tree-card:hover{transform:translateY(-1px);box-shadow:0 7px 17p
 #emergencyFlowApproved {
   display: none !important;
 }
+/* Closures — copied live trees from PDC meeting and emergency */
+.closures-copied-trees{margin-bottom:16px}
+.closures-tree-panel{margin-bottom:14px;overflow:hidden}
+.closures-tree-panel>.panel-title{margin-bottom:8px}
+.closures-meeting-tree{margin-top:4px!important}
+.closures-emergency-tree [data-tree-field]{cursor:default}

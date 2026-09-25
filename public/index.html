@@ -260,6 +260,23 @@
     </section>
 
     <section id="dataPage" class="page">
+      <section id="closuresCopiedTreesSection" class="closures-copied-trees" style="display:none">
+        <article class="panel closures-tree-panel">
+          <div class="panel-title">
+            <span>PDC MEETING TREE</span>
+            <h3>شجرة متابعة أوامر العمل — نسخة من اجتماع الـ PDC</h3>
+          </div>
+          <div id="closuresMeetingTree" class="meeting-kpis closures-meeting-tree"></div>
+        </article>
+        <article class="panel emergency-story-panel closures-tree-panel">
+          <div class="panel-title">
+            <span>EMERGENCY STATUS TREE</span>
+            <h3>مسار إشعارات الطوارئ ودورة مستندات الأعمال المنجزة</h3>
+          </div>
+          <div id="closuresEmergencyTree" class="emergency-status-tree closures-emergency-tree"></div>
+        </article>
+      </section>
+
       <section id="emergencyTreeSection" class="emergency-tree-section" style="display:none">
         <article class="panel emergency-story-panel">
           <div class="panel-title">
@@ -437,6 +454,7 @@
 <script src="/connections-analytics.js"></script>
 <script src="/permits-analytics.js"></script>
 <script src="/master-executive.js"></script>
+<script src="/closures-trees.js"></script>
 
 <div id="meetingInfoModal" class="meeting-info-modal" aria-hidden="true">
   <div class="meeting-info-dialog" role="dialog" aria-modal="true" aria-labelledby="meetingInfoTitle">
