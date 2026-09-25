@@ -2382,6 +2382,18 @@ function renderEmergencyStatusTree(rows,rootTarget='emergencyStatusTree',interac
       return {left,right,top,bottom,cx:(left+right)/2,cy:(top+bottom)/2};
     });
 
+    const rootEl=root.querySelector('.emergency-tree-root');
+    if(rootEl&&statuses.length){
+      const minX=Math.min(...statuses.map(x=>x.cx));
+      const maxX=Math.max(...statuses.map(x=>x.cx));
+      const desiredCx=(minX+maxX)/2;
+      const desiredCssCx=desiredCx/sx;
+      rootEl.style.setProperty('left',desiredCssCx+'px','important');
+      rootEl.style.setProperty('right','auto','important');
+      rootEl.style.setProperty('transform','translateX(-50%)','important');
+      rootEl.style.setProperty('top','0px','important');
+    }
+
     const rootCard=box('.emergency-tree-root');
 
     if(rootCard&&statuses.length){
