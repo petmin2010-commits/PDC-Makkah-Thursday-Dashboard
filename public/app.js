@@ -2373,7 +2373,7 @@ function renderEmergencyStatusTree(rows,rootTarget='emergencyStatusTree',interac
     };
 
     const statusEls=[...root.querySelectorAll('.tree-status > .emergency-tree-card')];
-    let statuses=statusEls.map(el=>{
+    const statuses=statusEls.map(el=>{
       const r=el.getBoundingClientRect();
       const left=(r.left-canvasRect.left)*sx;
       const right=(r.right-canvasRect.left)*sx;
@@ -2381,18 +2381,6 @@ function renderEmergencyStatusTree(rows,rootTarget='emergencyStatusTree',interac
       const bottom=(r.bottom-canvasRect.top)*sy;
       return {left,right,top,bottom,cx:(left+right)/2,cy:(top+bottom)/2};
     });
-
-    // Keep the main total card physically above the actual status branch.
-    // This compensates for RTL/scroll/flexible-width offsets in both Emergency and Closures copies.
-    const rootEl=root.querySelector('.emergency-tree-root');
-    if(rootEl&&statuses.length){
-      const desiredCx=(Math.min(...statuses.map(x=>x.cx))+Math.max(...statuses.map(x=>x.cx)))/2;
-      const desiredCssCx=desiredCx/sx;
-      rootEl.style.left=(desiredCssCx-rootEl.offsetWidth/2)+'px';
-      rootEl.style.right='auto';
-      rootEl.style.transform='none';
-      rootEl.style.top='0px';
-    }
 
     const rootCard=box('.emergency-tree-root');
 
