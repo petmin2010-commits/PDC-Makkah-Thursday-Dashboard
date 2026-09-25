@@ -2317,11 +2317,13 @@ function renderEmergencyStatusTree(rows,rootTarget='emergencyStatusTree',interac
         <text class="tree-arrow-label tree-arrow-label-orange" x="590" y="492">إعادة للمراجعة</text>
       </svg>
 
-      <article class="emergency-tree-card emergency-tree-root">
-        <span>إجمالي إشعارات الطوارئ</span>
-        <strong>${fmt(total)}</strong>
-        <small>100% من إجمالي الإشعارات</small>
-      </article>
+      <div class="emergency-tree-root-slot">
+        <article class="emergency-tree-card emergency-tree-root">
+          <span>&#1573;&#1580;&#1605;&#1575;&#1604;&#1610; &#1573;&#1588;&#1593;&#1575;&#1585;&#1575;&#1578; &#1575;&#1604;&#1591;&#1608;&#1575;&#1585;&#1574;</span>
+          <strong>${fmt(total)}</strong>
+          <small>100% &#1605;&#1606; &#1573;&#1580;&#1605;&#1575;&#1604;&#1610; &#1575;&#1604;&#1573;&#1588;&#1593;&#1575;&#1585;&#1575;&#1578;</small>
+        </article>
+      </div>
 
       <button type="button" class="emergency-tree-warning ${statusActive&&statusActive.mode==='blank'?'selected':''}" data-tree-field="status" data-tree-value="" data-tree-mode="blank" data-tree-label="حالة التنفيذ"><b>!</b><span>حالة التنفيذ فارغة</span><strong>${fmt(blankStatus)}</strong></button>
 
@@ -2381,18 +2383,6 @@ function renderEmergencyStatusTree(rows,rootTarget='emergencyStatusTree',interac
       const bottom=(r.bottom-canvasRect.top)*sy;
       return {left,right,top,bottom,cx:(left+right)/2,cy:(top+bottom)/2};
     });
-
-    const rootEl=root.querySelector('.emergency-tree-root');
-    if(rootEl&&statuses.length){
-      const minX=Math.min(...statuses.map(x=>x.cx));
-      const maxX=Math.max(...statuses.map(x=>x.cx));
-      const desiredCx=(minX+maxX)/2;
-      const desiredCssCx=desiredCx/sx;
-      rootEl.style.setProperty('left',desiredCssCx+'px','important');
-      rootEl.style.setProperty('right','auto','important');
-      rootEl.style.setProperty('transform','translateX(-50%)','important');
-      rootEl.style.setProperty('top','0px','important');
-    }
 
     const rootCard=box('.emergency-tree-root');
 
