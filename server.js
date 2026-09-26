@@ -343,6 +343,134 @@ async function saveSmartHistory(payload){
   };
 }
 
+const WO360_HEADER_SCAN_ROWS=40;
+const WO360_SYSTEM_SHEETS=['dp users','dashboard history'];
+
+function wo360Norm_(v){
+  return clean_(v).normalize('NFKC').replace(/[\u064B-\u065F\u0670]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').toLowerCase().replace(/\s+/g,' ').trim();
+}
+function wo360Key_(v){
+  const raw=wo360Norm_(v).replace(/[\s\-_/\\]+/g,'');
+  if(!raw)return '';
+  if(/^\d+(?:\.0+)?$/.test(raw))return raw.replace(/\.0+$/,'');
+  return raw;
+}
+function wo360HeaderIsWorkOrder_(v){
+  const s=wo360Norm_(v).replace(/\s+/g,' ');
+  if(!s)return false;
+  if(['امر العمل','رقم امر العمل','رقم امر العمل uds','work order','work order no','work order number','wo','wo no'].includes(s))return true;
+  if(s.includes('رقم امر العمل')&&!s.includes('نوع')&&!s.includes('قيم')&&!s.includes('رمز'))return true;
+  return false;
+}
+function wo360Col_(n){
+  let s='';n=Number(n)+1;
+  while(n>0){const r=(n-1)%26;s=String.fromCharCode(65+r)+s;n=Math.floor((n-1)/26)}
+  return s;
+}
+function wo360SafeSheet_(title){
+  const n=wo360Norm_(title);
+  if(WO360_SYSTEM_SHEETS.includes(n))return false;
+  if(n.includes('password')||n.includes('كلمه المرور')||n.includes('تسجيل الدخول')||n==='users'||n==='user')return false;
+  return true;
+}
+function wo360FieldLabel_(header,index){
+  const h=clean_(header);
+  return h||('عمود '+wo360Col_(index));
+}
+
+async function getWorkOrder360(workOrder){
+  const target=wo360Key_(workOrder);
+  if(!target)throw new Error('أدخل رقم أمر العمل أولاً');
+  assertConfig();
+  const sheets=await getSheets();
+  const meta=await sheets.spreadsheets.get({
+    spreadsheetId:SPREADSHEET_ID,
+    fields:'properties(title),sheets.properties(sheetId,title,index,hidden,gridProperties(rowCount,columnCount))'
+  });
+  const spreadsheetTitle=clean_(meta.data.properties?.title)||APP.TITLE;
+  const sheetDefs=(meta.data.sheets||[])
+    .map(x=>x.properties||{})
+    .filter(x=>x.title&&wo360SafeSheet_(x.title))
+    .sort((a,b)=>(a.index||0)-(b.index||0));
+
+  const scanRanges=sheetDefs.map(s=>`${qSheet(s.title)}!A1:ZZ${WO360_HEADER_SCAN_ROWS}`);
+  const scanResp=scanRanges.length?await sheets.spreadsheets.values.batchGet({
+    spreadsheetId:SPREADSHEET_ID,ranges:scanRanges,valueRenderOption:'FORMATTED_VALUE'
+  }):{data:{valueRanges:[]}};
+  const scans=scanResp.data.valueRanges||[];
+  const candidates=[];
+
+  sheetDefs.forEach((def,si)=>{
+    const values=scans[si]?.values||[];
+    let best=null;
+    for(let r=0;r<Math.min(values.length,WO360_HEADER_SCAN_ROWS);r++){
+      const row=values[r]||[];
+      const cols=[];
+      row.forEach((v,c)=>{if(wo360HeaderIsWorkOrder_(v))cols.push(c)});
+      if(cols.length){best={headerRow:r+1,headers:row,columns:cols};break}
+    }
+    if(best)candidates.push({def,...best});
+  });
+
+  const colRanges=[];
+  const colRefs=[];
+  candidates.forEach(c=>{
+    c.columns.forEach(col=>{
+      colRanges.push(`${qSheet(c.def.title)}!${wo360Col_(col)}:${wo360Col_(col)}`);
+      colRefs.push({candidate:c,col});
+    });
+  });
+  const colResp=colRanges.length?await sheets.spreadsheets.values.batchGet({
+    spreadsheetId:SPREADSHEET_ID,ranges:colRanges,valueRenderOption:'FORMATTED_VALUE'
+  }):{data:{valueRanges:[]}};
+  const colVals=colResp.data.valueRanges||[];
+  const matches=[];
+
+  colRefs.forEach((ref,i)=>{
+    const vals=colVals[i]?.values||[];
+    for(let r=ref.candidate.headerRow;r<vals.length;r++){
+      const cell=vals[r]?.[0];
+      if(wo360Key_(cell)===target){
+        const rowNumber=r+1;
+        const key=ref.candidate.def.title+'|'+rowNumber;
+        if(!matches.some(m=>m.key===key)){
+          matches.push({key,sheet:ref.candidate.def.title,rowNumber,headerRow:ref.candidate.headerRow,headers:ref.candidate.headers});
+        }
+      }
+    }
+  });
+
+  const rowRanges=matches.map(m=>`${qSheet(m.sheet)}!A${m.rowNumber}:ZZ${m.rowNumber}`);
+  const rowResp=rowRanges.length?await sheets.spreadsheets.values.batchGet({
+    spreadsheetId:SPREADSHEET_ID,ranges:rowRanges,valueRenderOption:'FORMATTED_VALUE'
+  }):{data:{valueRanges:[]}};
+  const rowVals=rowResp.data.valueRanges||[];
+
+  const records=matches.map((m,i)=>{
+    const row=rowVals[i]?.values?.[0]||[];
+    const fields=[];
+    const width=Math.max(m.headers.length,row.length);
+    for(let c=0;c<width;c++){
+      const value=row[c];
+      if(clean_(value)==='')continue;
+      fields.push({column:wo360Col_(c),label:wo360FieldLabel_(m.headers[c],c),value:String(value)});
+    }
+    return {sheet:m.sheet,rowNumber:m.rowNumber,headerRow:m.headerRow,fields};
+  });
+
+  const bySheet=new Map();
+  records.forEach(r=>{
+    if(!bySheet.has(r.sheet))bySheet.set(r.sheet,[]);
+    bySheet.get(r.sheet).push(r);
+  });
+  const sources=[...bySheet.entries()].map(([sheet,rows])=>{const def=sheetDefs.find(x=>x.title===sheet)||{};return {sheet,sheetId:def.sheetId,count:rows.length,records:rows}});
+  return {
+    ok:true,workOrder:clean_(workOrder),normalized:target,spreadsheetTitle,spreadsheetUrl:'https://docs.google.com/spreadsheets/d/'+SPREADSHEET_ID+'/edit',
+    scannedSheets:sheetDefs.length,searchableSheets:candidates.length,
+    matchedSheets:sources.length,totalRecords:records.length,sources,updatedAt:now_()
+  };
+}
+
 async function getHrStaffData_(){
   const cacheKey='HR_STAFF_UNIFIED_V2';
   const hit=cacheGet(cacheKey); if(hit)return hit;
@@ -1372,7 +1500,7 @@ async function getProjectNews(){
 }
 
 
-const METHODS={getBootData,getSecondaryMasterKpis,getWorkOrderMasterEnrichment,getPageData,getWednesdayMeetingData,getMonitorData,getFullMonitorData,getProjectNews,saveSmartHistory,clearDashboardCache};
+const METHODS={getBootData,getSecondaryMasterKpis,getWorkOrderMasterEnrichment,getPageData,getWednesdayMeetingData,getMonitorData,getFullMonitorData,getProjectNews,saveSmartHistory,getWorkOrder360,clearDashboardCache};
 
 const app=express();
 const PUBLIC_DIR=path.join(__dirname,'public');
