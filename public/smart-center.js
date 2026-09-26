@@ -144,7 +144,13 @@ function renderAll(){
 }
 function contentMarkup(){return `
 <div class="sc-kpis" id="scKpis"></div>
-<div class="sc-grid"><article class="sc-panel"><div class="sc-panel-head"><div><span>WHAT CHANGED</span><h3>ماذا تغير منذ آخر يوم مسجل؟</h3></div><b class="sc-badge" id="scPreviousTime">—</b></div><div id="scChanges" class="sc-changes"></div><div class="sc-method">المقارنة مركزية ومشتركة بين جميع المستخدمين، ويتم حفظ Snapshot يومي داخل ورقة Dashboard History في Google Sheet.</div></article><article class="sc-panel"><div class="sc-panel-head"><div><span>PRIORITY RADAR</span><h3>أعلى نقاط التدخل الآن</h3></div><b class="sc-badge">حسب عدد الاستثناءات</b></div><div id="scPriorities" class="sc-priority-list"></div></article></div>
+<article class="sc-what-banner">
+ <div class="sc-what-head"><div><span>WHAT CHANGED</span><h3>ماذا تغير منذ أمس؟</h3><p>ملخص تنفيذي تلقائي لأهم التغيّرات منذ آخر يوم مسجل.</p></div><b class="sc-what-date" id="scPreviousTime">—</b></div>
+ <div id="scChangeSummary" class="sc-what-summary">جاري بناء المقارنة...</div>
+ <div id="scChanges" class="sc-change-strip"></div>
+ <div class="sc-method">المقارنة مركزية ومشتركة بين جميع المستخدمين، ويتم حفظ Snapshot يومي داخل ورقة Dashboard History في Google Sheet.</div>
+</article>
+<article class="sc-panel sc-priority-wide"><div class="sc-panel-head"><div><span>PRIORITY RADAR</span><h3>أعلى نقاط التدخل الآن</h3></div><b class="sc-badge">حسب عدد الاستثناءات</b></div><div id="scPriorities" class="sc-priority-list"></div></article>
 <div class="sc-grid"><article class="sc-panel"><div class="sc-panel-head"><div><span>SMART ANALYST</span><h3>اسأل المحلل المجاني</h3></div><b class="sc-badge">Rule Engine</b></div><div class="sc-analyst"><div class="sc-question-row"><button class="sc-chip" data-q="ما الحالات الحرجة؟">الحالات الحرجة</button><button class="sc-chip" data-q="من أكثر المقاولين لديهم مشاكل؟">المقاولون</button><button class="sc-chip" data-q="أين مشاكل جودة البيانات؟">جودة البيانات</button><button class="sc-chip" data-q="ما مشاكل المستندات؟">المستندات</button><button class="sc-chip" data-q="ما مشاكل التصاريح؟">التصاريح</button></div><div class="sc-ask-box"><input id="scQuestion" placeholder="اكتب: أكثر المقاولين تأخيرًا، مشاكل الأصول، الحالات الحرجة..."><button id="scAsk">تحليل</button></div><div id="scAnswer" class="sc-answer">اختر سؤالًا جاهزًا أو اكتب سؤالك. الإجابات ناتجة من قواعد وأرقام الداشبورد مباشرة.</div></div></article><article class="sc-panel"><div class="sc-panel-head"><div><span>DATA COMPLETENESS</span><h3>نسبة اكتمال البيانات حسب التاب</h3></div><b class="sc-badge">حقول أساسية</b></div><div class="sc-chart compact"><canvas id="scQualityChart"></canvas></div></article></div>
 <div class="sc-grid"><article class="sc-panel"><div class="sc-panel-head"><div><span>ISSUE PROFILE</span><h3>توزيع الاستثناءات حسب النوع</h3></div></div><div class="sc-chart"><canvas id="scIssueChart"></canvas></div></article><article class="sc-panel"><div class="sc-panel-head"><div><span>CONTRACTOR EXPOSURE</span><h3>أعلى المقاولين في عدد الاستثناءات</h3></div></div><div class="sc-chart"><canvas id="scContractorChart"></canvas></div></article></div>
 <article class="sc-panel sc-exception-wrap"><div class="sc-panel-head"><div><span>EXCEPTION CENTER</span><h3>مركز الاستثناءات — الحالات التي تحتاج مراجعة</h3></div><b class="sc-badge" id="scIssueCount">0</b></div><div class="sc-toolbar"><select id="scSeverity"><option value="">كل درجات الأهمية</option><option value="critical">حرجة</option><option value="high">مرتفعة</option><option value="medium">متوسطة</option></select><select id="scCategory"><option value="">كل الأنواع</option></select><input id="scIssueSearch" placeholder="بحث بأمر العمل، الإشعار، المقاول، المهندس أو الوصف..."></div><div id="scExceptionTable" class="sc-table-wrap"></div></article>`}
@@ -179,45 +185,62 @@ async function syncCentralHistory(){
  catch(e){SC.centralHistory={ok:false,error:e.message||String(e)}}
 }
 function deltaText(now,old){const d=Math.round((Number(now||0)-Number(old||0))*10)/10;return {d,text:(d>0?'+':'')+d,cls:d>0?'up':d<0?'down':'same'}}
+function changeCard(label,value,direction,suffix=''){
+ const d=Math.round(Number(value||0)*10)/10;
+ const positive=d===0?null:(direction==='good'?d>0:d<0);
+ const cls=d===0?'neutral':positive?'positive':'negative';
+ const arrow=d===0?'→':d>0?'↑':'↓';
+ return `<div class="sc-change-card ${cls}"><span class="sc-change-arrow">${arrow}</span><div><strong>${d>0?'+':''}${d}${suffix}</strong><small>${esc(label)}</small></div></div>`;
+}
 function renderChanges(){
- const root=el('scChanges'),central=SC.centralHistory;
+ const root=el('scChanges'),summary=el('scChangeSummary'),central=SC.centralHistory;
  if(central?.ok&&central.source==='google-sheet'){
   if(!central.previous){
-   el('scPreviousTime').textContent='Google Sheet • خط أساس';
-   root.innerHTML='<div class="sc-change same"><b>تم حفظ أول Snapshot مركزي</b><span>من الغد ستظهر مقارنة فعلية مع آخر يوم مسجل لجميع المستخدمين.</span></div>';
+   el('scPreviousTime').textContent='تم تسجيل اليوم';
+   summary.innerHTML='<span class="sc-summary-icon neutral">●</span><div><b>تم إنشاء خط الأساس المركزي لليوم.</b><small>من أول يوم لاحق سيظهر هنا ملخص فعلي لما تحسن وما يحتاج انتباه.</small></div>';
+   root.innerHTML=changeCard('Snapshot مركزي','0','good','');
    return;
   }
   el('scPreviousTime').textContent='مقارنة مع '+central.previous.date;
   const c=central.changes||{};
-  const items=[
-   ['أوامر تم تنفيذها',c.completed,'good',''],
-   ['مشاكل جديدة',c.newIssues,'bad',''],
-   ['مشاكل تم حلها',c.resolvedIssues,'good',''],
-   ['إجمالي الاستثناءات',c.totalIssues,'bad',''],
-   ['اكتمال البيانات',c.qualityAvg,'good','%'],
-   ['صحة المشروع',c.health,'good','%']
-  ];
-  root.innerHTML=items.map(([label,value,direction,suffix])=>{
-   const d=Number(value||0),good=d===0?null:(direction==='good'?d>0:d<0);
-   const cls=d===0?'same':good?'down':'up';
-   return `<div class="sc-change ${cls}"><b>${d>0?'+':''}${d}${suffix}</b><span>${esc(label)}</span></div>`;
-  }).join('');
+  const completed=Number(c.completed||0),newIssues=Number(c.newIssues||0),resolved=Number(c.resolvedIssues||0),quality=Math.round(Number(c.qualityAvg||0)*10)/10;
+  const overall=(resolved+Math.max(0,completed))-(newIssues+Math.max(0,-completed));
+  const summaryTone=overall>0?'positive':overall<0?'negative':'neutral';
+  const summaryIcon=summaryTone==='positive'?'↑':summaryTone==='negative'?'↓':'→';
+  const parts=[];
+  if(completed)parts.push(`${completed>0?'تم تنفيذ':'انخفض عدد المنفذ بمقدار'} ${Math.abs(completed)} ${completed>0?'أمر عمل':''}`.trim());
+  if(newIssues)parts.push(`ظهرت ${newIssues} مشكلة جديدة`);
+  if(resolved)parts.push(`تم حل ${resolved} مشكلة`);
+  if(quality)parts.push(`${quality>0?'تحسن':'تراجع'} اكتمال البيانات ${Math.abs(quality)}%`);
+  const sentence=parts.length?parts.join('، ')+' .':'لا توجد تغيرات جوهرية مسجلة مقارنة بآخر يوم محفوظ.';
+  summary.innerHTML=`<span class="sc-summary-icon ${summaryTone}">${summaryIcon}</span><div><b>${esc(sentence)}</b><small>ملخص تلقائي مبني على Snapshot المركزي — وليس تقديرًا يدويًا.</small></div>`;
+  root.innerHTML=[
+   changeCard('أوامر تم تنفيذها',completed,'good'),
+   changeCard('مشاكل جديدة',newIssues,'bad'),
+   changeCard('مشاكل تم حلها',resolved,'good'),
+   changeCard('اكتمال البيانات',quality,'good','%')
+  ].join('');
   return;
  }
  const prev=SC.previous;
  if(!prev?.summary){
-  el('scPreviousTime').textContent='محلي • خط أساس';
-  root.innerHTML='<div class="sc-change same"><b>تعذر السجل المركزي</b><span>تم استخدام Snapshot محلي مؤقتًا حتى تتاح الكتابة على Google Sheet.</span></div>';
+  el('scPreviousTime').textContent='خط أساس محلي';
+  summary.innerHTML='<span class="sc-summary-icon neutral">!</span><div><b>السجل المركزي غير متاح حاليًا.</b><small>سيتم استخدام Snapshot محلي مؤقت حتى تعود المزامنة المركزية.</small></div>';
+  root.innerHTML=changeCard('حالة المقارنة',0,'good');
   return;
  }
  el('scPreviousTime').textContent='محلي • '+new Date(prev.time).toLocaleString('ar-SA');
- const items=[
-  ['إجمالي الاستثناءات',SC.summary.totalIssues,prev.summary.totalIssues,false,''],
-  ['الحالات الحرجة',SC.summary.critical,prev.summary.critical,false,''],
-  ['اكتمال البيانات',SC.summary.qualityAvg,prev.summary.qualityAvg,true,'%'],
-  ['صحة المشروع',SC.summary.health,prev.summary.health,true,'%']
- ];
- root.innerHTML=items.map(([label,now,old,goodUp,suffix])=>{const d=Math.round((Number(now)-Number(old))*10)/10;const good=d===0?null:(d>0)===goodUp;const cls=d===0?'same':good?'down':'up';return `<div class="sc-change ${cls}"><b>${d>0?'+':''}${d}${suffix}</b><span>${esc(label)} • الحالي ${Number(now).toFixed(suffix?1:0)}${suffix}</span></div>`}).join('');
+ const totalDelta=Math.round((SC.summary.totalIssues-prev.summary.totalIssues)*10)/10;
+ const criticalDelta=Math.round((SC.summary.critical-prev.summary.critical)*10)/10;
+ const qualityDelta=Math.round((SC.summary.qualityAvg-prev.summary.qualityAvg)*10)/10;
+ const healthDelta=Math.round((SC.summary.health-prev.summary.health)*10)/10;
+ summary.innerHTML='<span class="sc-summary-icon neutral">→</span><div><b>مقارنة محلية مؤقتة.</b><small>النتائج أدناه من آخر Snapshot محفوظ على هذا الجهاز.</small></div>';
+ root.innerHTML=[
+  changeCard('إجمالي الاستثناءات',totalDelta,'bad'),
+  changeCard('الحالات الحرجة',criticalDelta,'bad'),
+  changeCard('اكتمال البيانات',qualityDelta,'good','%'),
+  changeCard('صحة المشروع',healthDelta,'good','%')
+ ].join('');
 }
 function groupIssues(key,limit=10,source=SC.issues){
  const m=new Map();source.forEach(x=>{const name=clean(x[key]);if(name)m.set(name,(m.get(name)||0)+1)});
