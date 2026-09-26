@@ -125,11 +125,13 @@ function render(){
  const stats=sections.map(sectionStats);
  const totalIssues=stats.reduce((s,x)=>s+x.issues,0);
  const totalAffected=stats.reduce((s,x)=>s+x.affected,0);
+ const totalCells=stats.reduce((s,x)=>s+x.totalCells,0);
+ const overallCompletionRate=totalCells?((totalCells-totalIssues)/totalCells)*100:100;
 
  root.innerHTML=`
  <section class="dq-hero">
   <div><span>DATA QUALITY CONTROL</span><h2>مركز مراقبة جودة البيانات</h2><p>مراقبة مباشرة لنواقص الإدخال وقواعد الجودة في المشاريع والتوصيلات والتصاريح والأصول والطوارئ. اضغط على أي كارت لعرض السجلات التي تحتاج معالجة.</p></div>
-  <div class="dq-hero-score"><strong>${fmt(totalIssues)}</strong><span>ملاحظات جودة</span><small>${fmt(totalAffected)} حالات متأثرة عبر الأقسام</small></div>
+  <div class="dq-hero-score"><div class="dq-hero-score-main"><strong>${fmt(totalIssues)}</strong><b>${totalIssues===0?"100.00":overallCompletionRate.toFixed(2)}%</b></div><span>ملاحظات جودة <em>• نسبة الجودة</em></span><small>${fmt(totalAffected)} حالات متأثرة عبر الأقسام</small></div>
  </section>
  <section class="dq-overview">
   ${sections.map((s,i)=>`<button class="dq-overview-card" type="button" data-go="${esc(s.key)}"><span>${esc(s.title)}</span><strong>${fmt(stats[i].issues)}</strong><small>${fmt(stats[i].affected)} سجل متأثر</small></button>`).join('')}
