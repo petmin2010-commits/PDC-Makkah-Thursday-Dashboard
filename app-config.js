@@ -156,6 +156,9 @@ const APP = {
       ],
       filters: ['contractor','engineer','circuit','location','status']
     },
+    dataQuality: {
+      title: 'جودة البيانات', sheet: '', headerRow: 1, fields: [], filters: []
+    },
     tasks: {
       title: 'متابعة أعمال المواقع', sheet: '📌المهام والافادات', headerRow: 1,
       fields: [

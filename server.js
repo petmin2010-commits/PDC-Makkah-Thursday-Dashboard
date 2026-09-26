@@ -675,8 +675,39 @@ async function getWednesdayMeetingData(){
   return payload;
 }
 
+async function getDataQualityPage_(){
+  const pick=(rows,keys)=>rows.map(r=>{
+    const o={_row:r._row};
+    keys.forEach(k=>{o[k]=r[k]??''});
+    return o;
+  });
+  const [projects,connections,permits,assets,emergency]=await Promise.all([
+    readConfiguredSheet_(APP.PAGES.projects,'projects'),
+    readConfiguredSheet_(APP.PAGES.connections,'connections'),
+    readConfiguredSheet_(APP.PAGES.permits,'permits'),
+    readConfiguredSheet_(APP.PAGES.assets,'assets'),
+    readConfiguredSheet_(APP.PAGES.emergency,'emergency')
+  ]);
+  return {
+    key:'dataQuality',
+    title:'جودة البيانات',
+    updatedAt:now_(),
+    rows:[],
+    columns:[],
+    filterKeys:[],
+    quality:{
+      projects:pick(projects,['workOrder','contractor','engineer','stage','stageStatus','excavationTarget','extensionTarget','advice','adviceAge']),
+      connections:pick(connections,['workOrder','contractor','engineer','stage','stageStatus','detail','advice','adviceAge']),
+      permits:pick(permits,['workOrder','contractor','permitStatus','actionTaken','evaluation']),
+      assets:pick(assets,['workOrder','contractor','location','installDate','engineer','plantingReview','plantingStatus','assetForm','procedure207','fieldReceipt','notes','resolved','systemReceipt']),
+      emergency:pick(emergency,['noticeNo','station','assignedDate','startDate','endDate','description','classification','type','administration','circuit','section','emergencyType','location','consultant','engineer','contractor','status','archive'])
+    }
+  };
+}
+
 async function getPageData(pageKey){
   const cfg=APP.PAGES[pageKey];if(!cfg)throw new Error('صفحة غير معرفة: '+pageKey);
+  if(pageKey==='dataQuality')return getDataQualityPage_();
   if(pageKey==='executionViolations')return getExecutionViolationsPage_();
   if(pageKey==='minutes')return getMinutesPage_();
   if(pageKey==='violationsCombined')return getCombinedViolationsPage_();
