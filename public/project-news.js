@@ -9,13 +9,13 @@ function stopMotion(){if(timer){clearInterval(timer);timer=null}}
 function startMotion(){
  stopMotion();const viewport=document.querySelector('#projectNewsTicker .news-viewport'),track=document.getElementById('projectNewsTrack');
  if(!viewport||!track||lastRows.length<2)return;
- offset=0;track.style.transform='translateX(0px)';
+ const limit=Math.max(0,track.scrollWidth-viewport.clientWidth);
+ if(limit<=0){offset=0;track.style.transform='translateX(0px)';return}
+ offset=-limit;track.style.transform='translateX('+offset+'px)';
  timer=setInterval(()=>{
   if(paused)return;
-  offset-=1;
-  const limit=Math.max(0,track.scrollWidth-viewport.clientWidth);
-  if(limit<=0){offset=0;track.style.transform='translateX(0px)';return}
-  if(Math.abs(offset)>limit)offset=0;
+  offset+=1;
+  if(offset>=0)offset=-limit;
   track.style.transform='translateX('+offset+'px)';
  },45);
 }
