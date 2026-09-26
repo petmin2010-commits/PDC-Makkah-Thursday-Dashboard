@@ -33,7 +33,6 @@ function definitions(q){
    missing('بدون مهندس مسئول','V','engineer','المهندس المسئول'),
    missing('بدون مرحلة تنفيذ','W','stage','مرحلة التنفيذ'),
    missing('بدون حالة مرحلة','X','stageStatus','حالة المرحلة'),
-   missing('بدون شرح تفاصيل أمر العمل','Z','detail','شرح تفاصيل أمر العمل'),
    missing('بدون إفادة استشاري','AC','advice','إفادة الاستشاري'),
    custom('إفادات قديمة','AE','حالة الإفادة','العمود AE — يحسب كل إدخال غير «جديدة»',r=>!!t(r.adviceAge)&&!exact(r.adviceAge,'جديدة'),r=>t(r.adviceAge))
   ]},
@@ -57,7 +56,6 @@ function definitions(q){
   ]},
   {key:'emergency',title:'الطوارئ',subtitle:'⚠ إشعارات الطوارئ',rows:q.emergency||[],cards:[
    missing('بدون رقم إشعار','B','noticeNo','رقم الإشعار'),
-   missing('بدون محطة / مغذي','C','station','المحطة / المغذي'),
    missing('بدون تاريخ إسناد','D','assignedDate','تاريخ الإسناد'),
    custom('بدون تاريخ مباشرة العمل','E','تاريخ مباشرة العمل','العمود E — مطلوب للحالة «منجز» فقط',r=>exact(r.status,'منجز')&&blank(r,'startDate'),()=> 'فارغ'),
    custom('بدون تاريخ انتهاء العمل','F','تاريخ انتهاء العمل','العمود F — مطلوب للحالة «منجز» فقط',r=>exact(r.status,'منجز')&&blank(r,'endDate'),()=> 'فارغ'),
@@ -101,7 +99,10 @@ function sectionStats(section){
   const rows=issueRows(section,card);counts.push(rows.length);
   rows.forEach(r=>affected.add(r._row));
  });
- return {issues:counts.reduce((a,b)=>a+b,0),affected:affected.size,counts};
+ const issues=counts.reduce((a,b)=>a+b,0);
+ const totalCells=section.rows.length*section.cards.length;
+ const issueRate=totalCells?(issues/totalCells)*100:0;
+ return {issues,affected:affected.size,counts,totalCells,issueRate};
 }
 
 function renderDetails(section,card){
@@ -136,7 +137,7 @@ function render(){
  </section>
  ${sections.map((section,si)=>`
  <section class="dq-section" id="dq-${esc(section.key)}">
-  <div class="dq-section-head"><div><span>${esc(section.subtitle)}</span><h3>${esc(section.title)}</h3></div><div><b>${fmt(stats[si].issues)}</b><small>ملاحظات جودة</small></div></div>
+  <div class="dq-section-head"><div><span>${esc(section.subtitle)}</span><h3>${esc(section.title)}</h3></div><div class="dq-section-metrics"><div><b>${fmt(stats[si].issues)}</b><small>ملاحظات جودة</small></div><div class="dq-quality-rate"><b>${stats[si].issueRate.toFixed(1)}%</b><small>نسبة جودة البيانات</small><em>${fmt(stats[si].issues)} / ${fmt(stats[si].totalCells)} خلية</em></div></div></div>
   <div class="dq-cards">
    ${section.cards.map((card,ci)=>{const count=stats[si].counts[ci];return `
     <button type="button" class="dq-card ${count?'has-issue':'is-ok'}" data-si="${si}" data-ci="${ci}" title="${esc(card.note)}">
