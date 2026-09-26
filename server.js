@@ -1206,30 +1206,91 @@ function newsEvent_(key,priority,category,title,summary){
     source:'تحليل الشيتات',eventKey:key
   });
 }
+function newsFmt_(v,unit){
+  const n=Number(v||0);
+  const x=Math.abs(n-Math.round(n))<0.0001?String(Math.round(n)):String(Math.round(n*10)/10);
+  return x+(unit||'');
+}
 function newsObserve_(o){
-  const value=Number(o.value||0),prev=projectNewsState.snapshot.get(o.key);
+  const value=Number(o.value||0),prev=projectNewsState.snapshot.get(o.key),unit=o.unit||'';
   const widespread=o.kind==='issue'&&Number(o.total||0)>=10&&value/Number(o.total||1)>=0.95;
   const issueCategory=widespread?'فجوة شاملة • '+o.category:o.category;
   const issueNote=(widespread?'الملاحظة تشمل 95% أو أكثر من السجلات؛ راجع احتمال وجود فجوة تشغيلية عامة أو تغير/خلل في ربط العمود. ':'')+(o.note||'رصد تلقائي من بيانات المشروع الحالية');
   projectNewsState.snapshot.set(o.key,value);
+  if(o.silent)return;
   if(prev===undefined){
     if(o.kind==='issue'&&value>0){
-      newsEvent_(o.key,newsPriority_(value,o.total),issueCategory,(widespread?'فجوة شاملة — ':'')+o.label+': '+value+' حالة',issueNote);
+      newsEvent_(o.key,newsPriority_(value,o.total),issueCategory,(widespread?'فجوة شاملة — ':'')+o.label+': '+newsFmt_(value,unit)+' حالة',issueNote);
+    }else if(o.kind==='progress'&&o.initialNews&&value>0){
+      newsEvent_(o.key,'تحديث',o.category,o.label+' حاليًا: '+newsFmt_(value,unit),o.note||'قراءة حالية من بيانات المشروع.');
     }
     return;
   }
   if(prev===value)return;
+  const delta=Math.round((value-prev)*10)/10;
   if(o.kind==='issue'){
     if(value===0&&prev>0){
-      newsEvent_(o.key,'تحديث','تمت المعالجة','تمت معالجة «'+o.label+'» بالكامل','كان عدد الحالات '+prev+' وأصبح صفرًا.');
+      newsEvent_(o.key,'إنجاز','تمت المعالجة','تمت معالجة «'+o.label+'» بالكامل','كان عدد الحالات '+newsFmt_(prev,unit)+' وأصبح صفرًا.');
+    }else if(value>0&&delta<0){
+      newsEvent_(o.key,'تحسن','تحسن • '+o.category,'تحسن «'+o.label+'»: انخفضت الحالات من '+newsFmt_(prev,unit)+' إلى '+newsFmt_(value,unit),'تم خفض عدد الحالات بمقدار '+newsFmt_(Math.abs(delta),unit)+'. '+issueNote);
     }else if(value>0){
-      const delta=value-prev,word=delta>0?'زيادة':'انخفاض';
-      newsEvent_(o.key,newsPriority_(value,o.total),issueCategory,(widespread?'فجوة شاملة — ':'')+o.label+': '+value+' حالة — '+word+' '+Math.abs(delta),'القيمة السابقة '+prev+' والحالية '+value+'. '+issueNote);
+      newsEvent_(o.key,newsPriority_(value,o.total),issueCategory,(widespread?'فجوة شاملة — ':'')+o.label+': '+newsFmt_(value,unit)+' حالة — زيادة '+newsFmt_(Math.abs(delta),unit),'القيمة السابقة '+newsFmt_(prev,unit)+' والحالية '+newsFmt_(value,unit)+'. '+issueNote);
     }
   }else{
-    const delta=value-prev,word=delta>0?'ارتفع':'انخفض';
-    newsEvent_(o.key,'تحديث',o.category,o.label+': '+prev+' ← '+value,word+' المؤشر بمقدار '+Math.abs(delta)+'.');
+    if(delta>0&&o.goodUp===true){
+      newsEvent_(o.key,'إنجاز',o.category,'تقدم «'+o.label+'»: +'+newsFmt_(delta,unit)+' — الإجمالي '+newsFmt_(value,unit),o.note||'تقدم تلقائي مرصود من بيانات المشروع.');
+    }else if(delta<0&&o.goodUp===true){
+      newsEvent_(o.key,'مهم','تراجع • '+o.category,'انخفاض «'+o.label+'» بمقدار '+newsFmt_(Math.abs(delta),unit)+' — الحالي '+newsFmt_(value,unit),o.note||'يستحسن مراجعة سبب الانخفاض.');
+    }else{
+      const word=delta>0?'ارتفع':'انخفض';
+      newsEvent_(o.key,'تحديث',o.category,o.label+': '+newsFmt_(prev,unit)+' ← '+newsFmt_(value,unit),word+' المؤشر بمقدار '+newsFmt_(Math.abs(delta),unit)+'.');
+    }
   }
+}
+
+function newsSmartAggregate_(observations){
+  let added=0,resolved=0,qualityAdded=0,qualityResolved=0;
+  const changed=[];
+  for(const o of observations){
+    const prev=projectNewsState.snapshot.get(o.key);
+    if(prev===undefined)continue;
+    const value=Number(o.value||0),delta=Math.round((value-Number(prev||0))*10)/10;
+    if(!delta)continue;
+    changed.push({o,prev:Number(prev||0),value,delta});
+    if(o.kind==='issue'){
+      if(delta>0){added+=delta;if(String(o.key).startsWith('dq:'))qualityAdded+=delta}
+      else{resolved+=Math.abs(delta);if(String(o.key).startsWith('dq:'))qualityResolved+=Math.abs(delta)}
+    }
+  }
+  if(resolved>0)newsEvent_('smart:resolved','إنجاز','Smart News Feed','تم إغلاق '+newsFmt_(resolved)+' ملاحظة تحليلية منذ آخر تحديث','يشمل التحسن الملاحظات التشغيلية وجودة البيانات التي انخفض عددها.');
+  if(added>0)newsEvent_('smart:added','مهم','Smart News Feed','ظهرت '+newsFmt_(added)+' ملاحظة تحليلية جديدة منذ آخر تحديث','تم احتساب الزيادات الفعلية في قواعد التدقيق؛ قد يجمع السجل الواحد أكثر من نوع ملاحظة.');
+  if(qualityResolved>0)newsEvent_('smart:qualityResolved','تحسن','جودة البيانات','تحسن جودة البيانات — تم إغلاق '+newsFmt_(qualityResolved)+' ملاحظة جودة','مقارنة بآخر قراءة للشيتات.');
+  if(qualityAdded>0)newsEvent_('smart:qualityAdded','مهم','جودة البيانات','ظهرت '+newsFmt_(qualityAdded)+' ملاحظة جودة بيانات جديدة','تحتاج مراجعة الحقول أو السجلات التي تغيرت.');
+
+  const byKey=new Map(changed.map(x=>[x.o.key,x]));
+  const delayed=byKey.get('ops:delayedExecution');
+  if(delayed?.delta>0)newsEvent_('smart:delayed','مهم','التأخير',newsFmt_(delayed.delta)+' حالة دخلت نطاق التأخير','ارتفع عدد أوامر العمل المتأخرة من '+newsFmt_(delayed.prev)+' إلى '+newsFmt_(delayed.value)+'.');
+  if(delayed?.delta<0)newsEvent_('smart:delayed','إنجاز','التأخير','انخفض نطاق التأخير بمقدار '+newsFmt_(Math.abs(delayed.delta))+' حالة','انخفض عدد أوامر العمل المتأخرة من '+newsFmt_(delayed.prev)+' إلى '+newsFmt_(delayed.value)+'.');
+
+  const completed=byKey.get('progress:workordersCompleted');
+  if(completed?.delta>0)newsEvent_('smart:completed','إنجاز','التنفيذ','تم تنفيذ +'+newsFmt_(completed.delta)+' أمر عمل منذ آخر تحديث','ارتفع إجمالي أوامر العمل المنفذة إلى '+newsFmt_(completed.value)+'.');
+
+  const docs=byKey.get('ops:docsNotReceived');
+  if(docs?.delta<0)newsEvent_('smart:docs','إنجاز','مستندات المقاول','تحسن استلام المستندات — انخفض غير المستلم بمقدار '+newsFmt_(Math.abs(docs.delta))+' أمر','الحالات غير المستلمة أصبحت '+newsFmt_(docs.value)+'.');
+  if(docs?.delta>0)newsEvent_('smart:docs','مهم','مستندات المقاول','زادت أوامر العمل غير المستلمة مستنداتها بمقدار '+newsFmt_(docs.delta),'الحالات غير المستلمة أصبحت '+newsFmt_(docs.value)+'.');
+
+  const emergency=byKey.get('progress:emergencyCompleted');
+  if(emergency?.delta>0)newsEvent_('smart:emergency','إنجاز','الطوارئ','تم إنجاز +'+newsFmt_(emergency.delta)+' إشعار طوارئ','إجمالي الإشعارات المنجزة أصبح '+newsFmt_(emergency.value)+'.');
+
+  const attachments=byKey.get('progress:attachmentsUploaded');
+  if(attachments?.delta>0)newsEvent_('smart:attachments','إنجاز','المرفقات','تم استكمال رفع +'+newsFmt_(attachments.delta)+' سجل مرفقات','إجمالي السجلات المرفوعة أصبح '+newsFmt_(attachments.value)+'.');
+
+  const quality=byKey.get('progress:dataQualityScore');
+  if(quality?.delta>0)newsEvent_('smart:qualityScore','تحسن','جودة البيانات','تحسن مؤشر جودة البيانات بمقدار '+newsFmt_(quality.delta,'%')+' — أصبح '+newsFmt_(quality.value,'%'),'المؤشر محسوب من قواعد اكتمال وجودة الحقول التي يتابعها الداشبورد.');
+  if(quality?.delta<0)newsEvent_('smart:qualityScore','مهم','جودة البيانات','تراجع مؤشر جودة البيانات بمقدار '+newsFmt_(Math.abs(quality.delta),'%')+' — أصبح '+newsFmt_(quality.value,'%'),'ظهرت نواقص أو ملاحظات جديدة ضمن قواعد الجودة المتابعة.');
+
+  const contractors=changed.filter(x=>String(x.o.key).startsWith('contractor:completed:')&&x.delta>0).sort((a,b)=>b.delta-a.delta).slice(0,3);
+  contractors.forEach(x=>newsEvent_('smart:contractor:'+x.o.contractor,'إنجاز','المقاولون','المقاول «'+x.o.contractor+'» أنجز +'+newsFmt_(x.delta)+' أمر عمل','إجمالي المنفذ للمقاول أصبح '+newsFmt_(x.value)+' أمر عمل.'));
 }
 function newsQualityObservations_(q){
   const out=[],add=(section,title,key,label,rows,pred,note)=>{
@@ -1450,7 +1511,12 @@ async function buildLiveProjectNewsObservations_(){
   const obs=[];
   try{
     const dq=await getDataQualityPage_();
-    obs.push(...newsQualityObservations_(dq.quality||{}));
+    const qObs=newsQualityObservations_(dq.quality||{});
+    obs.push(...qObs);
+    const qIssues=qObs.reduce((sum,x)=>sum+Number(x.value||0),0);
+    const qChecks=qObs.reduce((sum,x)=>sum+Number(x.total||0),0);
+    const qualityScore=qChecks?Math.max(0,Math.round((1-qIssues/qChecks)*1000)/10):100;
+    obs.push({key:'progress:dataQualityScore',kind:'progress',category:'جودة البيانات',label:'مؤشر جودة البيانات',value:qualityScore,total:100,unit:'%',goodUp:true,initialNews:true,note:'محسوب من قواعد اكتمال وجودة الحقول التي يراقبها الداشبورد.'});
   }catch(e){console.warn('Project news data-quality analysis skipped:',e.message||e)}
   try{
     obs.push(...await newsDeepAuditObservations_());
@@ -1461,18 +1527,27 @@ async function buildLiveProjectNewsObservations_(){
     obs.push({key:'ops:delayedClosure',kind:'issue',category:'الإغلاقات',label:'أوامر منفذة متأخرة في الإغلاق',value:rows.filter(r=>r.delayedClosure).length,total});
     obs.push({key:'ops:docsNotReceived',kind:'issue',category:'مستندات المقاول',label:'أوامر لم تُستلم مستنداتها من المقاول',value:rows.filter(r=>{const s=clean_(r.docsStatus);return /لم.*(استلام|تسل)/.test(s)}).length,total});
     obs.push({key:'progress:workordersTotal',kind:'progress',category:'أوامر العمل',label:'إجمالي أوامر العمل',value:total,total});
-    obs.push({key:'progress:workordersCompleted',kind:'progress',category:'التنفيذ',label:'أوامر العمل المنفذة',value:rows.filter(r=>r.completed).length,total});
+    obs.push({key:'progress:workordersCompleted',kind:'progress',category:'التنفيذ',label:'أوامر العمل المنفذة',value:rows.filter(r=>r.completed).length,total,goodUp:true,initialNews:true});
+    const contractorProgress=new Map();
+    for(const r of rows){
+      const contractor=clean_(r.contractor);if(!contractor)continue;
+      const x=contractorProgress.get(contractor)||{total:0,completed:0};
+      x.total++;if(r.completed)x.completed++;contractorProgress.set(contractor,x);
+    }
+    for(const [contractor,x] of contractorProgress){
+      obs.push({key:'contractor:completed:'+norm_(contractor),kind:'progress',category:'المقاولون',label:'أوامر المقاول المنفذة',value:x.completed,total:x.total,goodUp:true,silent:true,contractor});
+    }
   }catch(e){console.warn('Project news work-order analysis skipped:',e.message||e)}
   try{
     const er=await readConfiguredSheet_(APP.PAGES.emergency,'emergency'),total=er.length;
     obs.push({key:'ops:emergencyIncomplete',kind:'issue',category:'الطوارئ',label:'إشعارات طوارئ غير منجزة',value:er.filter(r=>!newsExact_(r.status,'منجز')).length,total});
-    obs.push({key:'progress:emergencyCompleted',kind:'progress',category:'الطوارئ',label:'إشعارات الطوارئ المنجزة',value:er.filter(r=>newsExact_(r.status,'منجز')).length,total});
+    obs.push({key:'progress:emergencyCompleted',kind:'progress',category:'الطوارئ',label:'إشعارات الطوارئ المنجزة',value:er.filter(r=>newsExact_(r.status,'منجز')).length,total,goodUp:true,initialNews:true});
   }catch(e){console.warn('Project news emergency analysis skipped:',e.message||e)}
   try{
     if(APP.PAGES.attachments){
       const ar=await readConfiguredSheet_(APP.PAGES.attachments,'attachments'),total=ar.length;
       obs.push({key:'ops:attachmentsPending',kind:'issue',category:'المرفقات',label:'سجلات مرفقات غير مكتملة الرفع',value:ar.filter(r=>!contains_(r.status,'تم رفع')).length,total});
-      obs.push({key:'progress:attachmentsUploaded',kind:'progress',category:'المرفقات',label:'سجلات المرفقات المرفوعة',value:ar.filter(r=>contains_(r.status,'تم رفع')).length,total});
+      obs.push({key:'progress:attachmentsUploaded',kind:'progress',category:'المرفقات',label:'سجلات المرفقات المرفوعة',value:ar.filter(r=>contains_(r.status,'تم رفع')).length,total,goodUp:true,initialNews:true});
     }
   }catch(e){console.warn('Project news attachment analysis skipped:',e.message||e)}
   return obs;
@@ -1482,6 +1557,7 @@ async function getProjectNews(){
   const key='PDC_PROJECT_NEWS_LIVE_V2';
   const hit=cacheGet(key);if(hit)return hit;
   const observations=await buildLiveProjectNewsObservations_();
+  newsSmartAggregate_(observations);
   observations.forEach(newsObserve_);
   const activeIssueKeys=new Set(observations.filter(o=>o.kind==='issue'&&Number(o.value||0)>0).map(o=>o.key));
   const cutoff=Date.now()-PROJECT_NEWS_RETENTION_MS;
@@ -1489,7 +1565,7 @@ async function getProjectNews(){
     const ts=Date.parse(event.date)||0;
     if(ts<cutoff&&!activeIssueKeys.has(eventKey))projectNewsState.events.delete(eventKey);
   }
-  const order={عاجل:0,مهم:1,تحديث:2};
+  const order={عاجل:0,مهم:1,إنجاز:2,تحسن:2,تحديث:3};
   const rows=[...projectNewsState.events.values()]
     .filter(r=>activeIssueKeys.has(r.eventKey)||(Date.parse(r.date)||0)>=cutoff)
     .sort((a,b)=>(order[a.priority]??9)-(order[b.priority]??9)||(activeIssueKeys.has(b.eventKey)?1:0)-(activeIssueKeys.has(a.eventKey)?1:0)||(Date.parse(b.date)||0)-(Date.parse(a.date)||0))
