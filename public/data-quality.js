@@ -50,8 +50,7 @@ function definitions(q){
    missing('بدون نموذج الأصول','M','assetForm','نموذج الأصول'),
    missing('بدون إجراء 207','N','procedure207','إجراء 207'),
    missing('بدون الاستلام الميداني','O','fieldReceipt','الاستلام الميداني'),
-   missing('بدون ملاحظات','P','notes','الملاحظات'),
-   missing('بدون بيان تلافي الملاحظات','Q','resolved','هل تم تلافيها'),
+   custom('بدون بيان تلافي الملاحظات','Q','هل تم تلافيها','العمود Q — يُحتسب فارغًا فقط عند وجود ملاحظة مكتوبة في العمود P',r=>!!t(r.notes)&&blank(r,'resolved'),()=> 'فارغ'),
    missing('بدون حالة استلام الأصول على النظام','R','systemReceipt','استلام الأصول على النظام')
   ]},
   {key:'emergency',title:'الطوارئ',subtitle:'⚠ إشعارات الطوارئ',rows:q.emergency||[],cards:[
