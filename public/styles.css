@@ -2329,3 +2329,92 @@ body.vd-report-dark .vps-presets button.active{background:#2878e8;color:#fff;bor
 body.vd-report-dark .vps-clear{background:rgba(228,80,91,.08);color:#ff9da5;border-color:rgba(228,80,91,.34)}
 @media(max-width:1050px){.vps-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.vps-presets{grid-column:1/-1}.vps-clear{grid-column:1/-1}}
 @media(max-width:620px){.vps-head{flex-direction:column}.vps-summary{width:100%;box-sizing:border-box}.vps-controls{grid-template-columns:1fr}.vps-presets,.vps-clear{grid-column:auto}.vps-presets button{flex:1 1 calc(50% - 6px)}}
+
+/* =========================================================
+   COLORED SIDEBAR ICONS — shared Makkah + Jeddah
+   ========================================================= */
+#nav .nav-item{
+  position:relative;
+  font-size:0!important;
+  gap:8px!important;
+  min-height:40px;
+  transition:background .18s ease,color .18s ease,transform .18s ease,box-shadow .18s ease!important;
+}
+#nav .nav-item>span{
+  flex:1;
+  font-size:10px!important;
+  line-height:1.35;
+}
+#nav .nav-item::before{
+  content:"";
+  width:25px;
+  height:25px;
+  flex:0 0 25px;
+  display:grid;
+  place-items:center;
+  border-radius:8px;
+  font-size:13px;
+  line-height:1;
+  font-weight:900;
+  font-family:"Segoe UI Symbol","Segoe UI Emoji",Arial,sans-serif;
+  color:#fff;
+  background:linear-gradient(145deg,var(--nav-ic1,#5aa8ff),var(--nav-ic2,#266eed));
+  border:1px solid rgba(255,255,255,.24);
+  box-shadow:0 4px 10px rgba(2,12,27,.22),inset 0 1px 0 rgba(255,255,255,.25);
+  text-shadow:0 1px 2px rgba(0,0,0,.18);
+  transition:transform .18s ease,box-shadow .18s ease,filter .18s ease;
+}
+#nav .nav-item:hover::before{
+  transform:translateY(-1px) scale(1.06);
+  filter:saturate(1.12) brightness(1.05);
+  box-shadow:0 6px 14px rgba(2,12,27,.28),0 0 0 2px rgba(255,255,255,.08);
+}
+#nav .nav-item.active{
+  background:linear-gradient(90deg,rgba(255,255,255,.13),rgba(255,255,255,.055))!important;
+  box-shadow:inset -3px 0 var(--nav-accent,#4c9bff),0 7px 18px rgba(0,0,0,.10)!important;
+}
+#nav .nav-item.active::before{
+  transform:scale(1.08);
+  box-shadow:0 6px 15px rgba(2,12,27,.30),0 0 0 2px rgba(255,255,255,.18);
+}
+#nav .nav-item[data-page="master"]{--nav-ic1:#2dd4bf;--nav-ic2:#0f9f8c;--nav-accent:#2dd4bf}
+#nav .nav-item[data-page="master"]::before{content:"\2302"}
+#nav .nav-item[data-page="projects"]{--nav-ic1:#ffbe55;--nav-ic2:#f47a18;--nav-accent:#ff9d2f}
+#nav .nav-item[data-page="projects"]::before{content:"\26A1"}
+#nav .nav-item[data-page="connections"]{--nav-ic1:#60a5fa;--nav-ic2:#2563eb;--nav-accent:#60a5fa}
+#nav .nav-item[data-page="connections"]::before{content:"\25C9"}
+#nav .nav-item[data-page="permits"]{--nav-ic1:#55d6e7;--nav-ic2:#0891b2;--nav-accent:#22d3ee}
+#nav .nav-item[data-page="permits"]::before{content:"\25A4"}
+#nav .nav-item[data-page="assets"]{--nav-ic1:#b18cff;--nav-ic2:#7c3aed;--nav-accent:#a78bfa}
+#nav .nav-item[data-page="assets"]::before{content:"\2B21"}
+#nav .nav-item[data-page="closures"]{--nav-ic1:#4ade80;--nav-ic2:#059669;--nav-accent:#34d399}
+#nav .nav-item[data-page="closures"]::before{content:"\2713"}
+#nav .nav-item[data-page="tasks"]{--nav-ic1:#38bdf8;--nav-ic2:#0284c7;--nav-accent:#38bdf8}
+#nav .nav-item[data-page="tasks"]::before{content:"\2726"}
+#nav .nav-item[data-page="emergency"]{--nav-ic1:#fb7185;--nav-ic2:#e11d48;--nav-accent:#fb7185}
+#nav .nav-item[data-page="emergency"]::before{content:"\26A0"}
+#nav .nav-item[data-page="importantLinks"]{--nav-ic1:#818cf8;--nav-ic2:#4f46e5;--nav-accent:#818cf8}
+#nav .nav-item[data-page="importantLinks"]::before{content:"\2197"}
+#nav .nav-item[data-page="hrStaff"]{--nav-ic1:#d946ef;--nav-ic2:#9333ea;--nav-accent:#d946ef}
+#nav .nav-item[data-page="hrStaff"]::before{content:"\25C6"}
+#nav .nav-item[data-page="wednesdayMeeting"]{--nav-ic1:#facc15;--nav-ic2:#d97706;--nav-accent:#facc15}
+#nav .nav-item[data-page="wednesdayMeeting"]::before{content:"\25A6"}
+#nav .nav-item[data-page="safety"]{--nav-ic1:#fb923c;--nav-ic2:#ea580c;--nav-accent:#fb923c}
+#nav .nav-item[data-page="safety"]::before{content:"\26A0"}
+#nav .nav-item[data-page="executionViolations"]{--nav-ic1:#f43f5e;--nav-ic2:#be123c;--nav-accent:#f43f5e}
+#nav .nav-item[data-page="executionViolations"]::before{content:"\2298"}
+#nav .nav-item[data-page="minutes"]{--nav-ic1:#a78bfa;--nav-ic2:#6d28d9;--nav-accent:#a78bfa}
+#nav .nav-item[data-page="minutes"]::before{content:"\2261"}
+
+body.theme-purple #nav .nav-item::before{
+  border-color:rgba(255,255,255,.30);
+  box-shadow:0 4px 12px rgba(34,18,64,.28),inset 0 1px 0 rgba(255,255,255,.25);
+}
+@media(max-width:850px){
+  #nav .nav-item{min-height:42px!important;padding:7px 6px!important}
+  #nav .nav-item::before{width:29px;height:29px;flex-basis:29px;border-radius:9px;font-size:15px}
+  #nav .nav-item>span{display:none!important}
+}
+@media print{
+  #nav .nav-item::before{box-shadow:none!important}
+}
