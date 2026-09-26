@@ -136,7 +136,7 @@ function render(){
  </section>
  ${sections.map((section,si)=>`
  <section class="dq-section" id="dq-${esc(section.key)}">
-  <div class="dq-section-head"><div><span>${esc(section.subtitle)}</span><h3>${esc(section.title)}</h3></div><div class="dq-section-metrics"><div><b>${fmt(stats[si].issues)}</b><small>ملاحظات جودة</small></div><div class="dq-quality-rate"><b>${stats[si].completionRate.toFixed(1)}%</b><small>نسبة جودة البيانات</small><em>${fmt(stats[si].totalCells-stats[si].issues)} / ${fmt(stats[si].totalCells)} خلية مكتملة</em></div></div></div>
+  <div class="dq-section-head"><div><span>${esc(section.subtitle)}</span><h3>${esc(section.title)}</h3></div><div class="dq-section-metrics"><div><b>${fmt(stats[si].issues)}</b><small>ملاحظات جودة</small></div><div class="dq-quality-rate"><b>${stats[si].issues===0?"100.00":stats[si].completionRate.toFixed(2)}%</b><small>نسبة جودة البيانات</small><em>${fmt(stats[si].totalCells-stats[si].issues)} / ${fmt(stats[si].totalCells)} خلية مكتملة</em></div></div></div>
   <div class="dq-cards">
    ${section.cards.map((card,ci)=>{const count=stats[si].counts[ci];return `
     <button type="button" class="dq-card ${count?'has-issue':'is-ok'}" data-si="${si}" data-ci="${ci}" title="${esc(card.note)}">
