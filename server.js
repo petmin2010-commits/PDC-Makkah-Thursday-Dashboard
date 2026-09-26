@@ -286,7 +286,14 @@ function kpi_(label,value,page,tone,sub,isPercent,isMoney){return {label,value,p
 function now_(){return DateTime.now().setZone(APP.TZ||'Asia/Riyadh').toFormat('yyyy-LL-dd HH:mm:ss')}
 function findHeader_(headers,candidates){
   const normalized=headers.map(norm_);
-  for(const c of candidates){const nc=norm_(c);let i=normalized.indexOf(nc);if(i>=0)return i;i=normalized.findIndex(h=>h&&nc&&(h.includes(nc)||nc.includes(h)));if(i>=0)return i}return -1;
+  for(const c of candidates){
+    const nc=norm_(c);if(!nc)continue;
+    let i=normalized.indexOf(nc);if(i>=0)return i;
+    // منع المطابقة الكاذبة مع هيدرات قصيرة مثل «م».
+    i=normalized.findIndex(h=>h&&h.length>=4&&nc.length>=4&&(h.includes(nc)||nc.includes(h)));
+    if(i>=0)return i;
+  }
+  return -1;
 }
 
 async function readWorkOrdersBoot_(){
@@ -944,24 +951,27 @@ function newsEvent_(key,priority,category,title,summary){
 }
 function newsObserve_(o){
   const value=Number(o.value||0),prev=projectNewsState.snapshot.get(o.key);
+  const widespread=o.kind==='issue'&&Number(o.total||0)>=10&&value/Number(o.total||1)>=0.95;
+  const issueCategory=widespread?'فجوة شاملة • '+o.category:o.category;
+  const issueNote=(widespread?'الملاحظة تشمل 95% أو أكثر من السجلات؛ راجع احتمال وجود فجوة تشغيلية عامة أو تغير/خلل في ربط العمود. ':'')+(o.note||'رصد تلقائي من بيانات المشروع الحالية');
   projectNewsState.snapshot.set(o.key,value);
   if(prev===undefined){
     if(o.kind==='issue'&&value>0){
-      newsEvent_(o.key,newsPriority_(value,o.total),o.category,`${o.label}: ${value} حالة`,o.note||'رصد تلقائي من بيانات المشروع الحالية');
+      newsEvent_(o.key,newsPriority_(value,o.total),issueCategory,(widespread?'فجوة شاملة — ':'')+o.label+': '+value+' حالة',issueNote);
     }
     return;
   }
   if(prev===value)return;
   if(o.kind==='issue'){
     if(value===0&&prev>0){
-      newsEvent_(o.key,'تحديث','تمت المعالجة',`تمت معالجة «${o.label}» بالكامل`,`كان عدد الحالات ${prev} وأصبح صفرًا.`);
+      newsEvent_(o.key,'تحديث','تمت المعالجة','تمت معالجة «'+o.label+'» بالكامل','كان عدد الحالات '+prev+' وأصبح صفرًا.');
     }else if(value>0){
       const delta=value-prev,word=delta>0?'زيادة':'انخفاض';
-      newsEvent_(o.key,newsPriority_(value,o.total),o.category,`${o.label}: ${value} حالة — ${word} ${Math.abs(delta)}`,`القيمة السابقة ${prev} والحالية ${value}.`);
+      newsEvent_(o.key,newsPriority_(value,o.total),issueCategory,(widespread?'فجوة شاملة — ':'')+o.label+': '+value+' حالة — '+word+' '+Math.abs(delta),'القيمة السابقة '+prev+' والحالية '+value+'. '+issueNote);
     }
   }else{
     const delta=value-prev,word=delta>0?'ارتفع':'انخفض';
-    newsEvent_(o.key,'تحديث',o.category,`${o.label}: ${prev} ← ${value}`,`${word} المؤشر بمقدار ${Math.abs(delta)}.`);
+    newsEvent_(o.key,'تحديث',o.category,o.label+': '+prev+' ← '+value,word+' المؤشر بمقدار '+Math.abs(delta)+'.');
   }
 }
 function newsQualityObservations_(q){
@@ -1012,12 +1022,182 @@ function newsQualityObservations_(q){
   add('emergency','الطوارئ','archive','طوارئ بدون أرشفة مستندات',e,r=>newsBlank_(r,'archive'));
   return out;
 }
+function newsDone_(v){
+  const s=norm_(v);if(!s||s.startsWith('لم')||s==='false'||s==='لا')return false;
+  return s==='تم'||s==='نعم'||s.startsWith('تم');
+}
+function newsDateValue_(v){
+  const s=clean_(v);if(!s)return null;
+  let d=DateTime.fromISO(s,{zone:APP.TZ||'Asia/Riyadh'});
+  if(d.isValid)return d.startOf('day');
+  for(const f of ['d/M/yyyy','dd/MM/yyyy','d-M-yyyy','dd-MM-yyyy','yyyy/M/d','yyyy-MM-dd']){
+    d=DateTime.fromFormat(s,f,{zone:APP.TZ||'Asia/Riyadh'});
+    if(d.isValid)return d.startOf('day');
+  }
+  return null;
+}
+function newsGap_(out,key,category,label,count,total,note){
+  out.push({key,kind:'issue',category,label,value:Number(count||0),total:Number(total||0),note:note||''});
+}
+function newsExamples_(rows,key,pred,limit=6){
+  return rows.filter(pred).map(r=>clean_(r[key]||r.workOrder||r.noticeNo||r._row)).filter(Boolean).slice(0,limit);
+}
+function newsGroups_(rows,key){
+  const g=new Map();
+  for(const r of rows){
+    const k=clean_(r[key]);if(!k)continue;
+    if(!g.has(k))g.set(k,[]);
+    g.get(k).push(r);
+  }
+  return g;
+}
+function newsConflictGroups_(rows,key,fields){
+  const g=newsGroups_(rows,key),examples=[];let count=0;
+  for(const [k,a] of g){
+    if(a.length<2)continue;
+    const bad=fields.some(f=>new Set(a.map(r=>norm_(r[f])).filter(Boolean)).size>1);
+    if(bad){count++;if(examples.length<6)examples.push(k);}
+  }
+  return {count,examples};
+}
+function newsSetFrom_(rows,key='workOrder'){
+  return new Set(rows.map(r=>cleanWorkOrder_(r[key])).filter(Boolean));
+}
+function newsSetDiff_(a,b){return [...a].filter(x=>!b.has(x))}
+async function newsSchemaObservations_(){
+  const cacheKey='PDC_NEWS_SCHEMA_AUDIT_V2',hit=cacheGet(cacheKey);if(hit)return hit;
+  const out=[];
+  const pages=['workorders','projects','connections','permits','closures','assets','emergency','tasks','attachments'];
+  for(const pageKey of pages){
+    const cfg=APP.PAGES[pageKey];if(!cfg||!cfg.sheet)continue;
+    try{
+      const end=pageKey==='workorders'?'BD':pageKey==='emergency'?'Z':pageKey==='connections'?'AO':pageKey==='permits'?'T':'AZ';
+      const vals=await valuesGet(qSheet(cfg.sheet)+'!A1:'+end+'2');
+      const headers=(vals[0]||[]).map(clean_);
+      const unmapped=(cfg.fields||[]).filter(f=>findHeader_(headers,f[2])<0);
+      if(unmapped.length){
+        newsGap_(out,'schema:'+pageKey+':unmapped','فجوة ربط/هيكل','حقول غير مرتبطة في '+cfg.title,unmapped.length,(cfg.fields||[]).length,'الحقول: '+unmapped.slice(0,8).map(f=>f[1]).join('، '));
+      }
+      const seen=new Map();
+      headers.map(norm_).filter(Boolean).forEach(h=>seen.set(h,(seen.get(h)||0)+1));
+      const dup=[...seen].filter(x=>x[1]>1);
+      if(dup.length){
+        newsGap_(out,'schema:'+pageKey+':duplicateHeaders','فجوة ربط/هيكل','هيدرات مكررة في '+cfg.title,dup.length,headers.length,'وجود هيدرات مكررة قد يسبب قراءة عمود غير مقصود.');
+      }
+    }catch(e){
+      newsGap_(out,'schema:'+pageKey+':sourceError','فجوة ربط/هيكل','مصدر '+cfg.title+' غير قابل للقراءة',1,1,String(e.message||e).slice(0,220));
+    }
+  }
+  cachePut(cacheKey,out,900);
+  return out;
+}
+async function newsDeepAuditObservations_(){
+  const out=[];
+  out.push(...await newsSchemaObservations_());
+  const safe=async key=>{
+    const cfg=APP.PAGES[key];if(!cfg)return [];
+    try{return await readConfiguredSheet_(cfg,key)}catch(e){return []}
+  };
+  const [projects,connections,permits,assets,emergency,closures,tasks,attachments]=await Promise.all([
+    safe('projects'),safe('connections'),safe('permits'),safe('assets'),safe('emergency'),safe('closures'),safe('tasks'),safe('attachments')
+  ]);
+  const detail=[...projects,...connections];
+
+  // اكتمال الربط بين أوامر المشاريع/التوصيلات وورقة التصاريح.
+  const detailSet=newsSetFrom_(detail),permitSet=newsSetFrom_(permits);
+  const missingPermit=newsSetDiff_(detailSet,permitSet),extraPermit=newsSetDiff_(permitSet,detailSet);
+  newsGap_(out,'rel:detailMissingPermit','فجوة ترابط','أوامر موجودة بالمشاريع/التوصيلات وغير موجودة بالتصاريح',missingPermit.length,detailSet.size,missingPermit.length?'أمثلة: '+missingPermit.slice(0,6).join('، '):'');
+  newsGap_(out,'rel:permitMissingDetail','فجوة ترابط','أوامر موجودة بالتصاريح وغير موجودة بالمشاريع/التوصيلات',extraPermit.length,permitSet.size,extraPermit.length?'أمثلة: '+extraPermit.slice(0,6).join('، '):'');
+
+  // نفس رقم أمر العمل داخل أكثر من مسار رئيسي.
+  const projectSet=newsSetFrom_(projects),connectionSet=newsSetFrom_(connections);
+  const overlap=[...projectSet].filter(x=>connectionSet.has(x));
+  newsGap_(out,'rel:projectConnectionOverlap','فجوة تصنيف','أوامر مصنفة كمشاريع وتوصيلات في الوقت نفسه',overlap.length,detailSet.size,overlap.length?'أمثلة: '+overlap.slice(0,6).join('، '):'');
+
+  // التكرار لا يعد خطأ بذاته؛ نبلغ فقط عندما يحمل المعرّف المكرر بيانات متعارضة.
+  const conflicts=[
+    ['connections',connections,'workOrder',['contractor','executionStatus','stage'],'أوامر توصيلات مكررة ببيانات/حالات متعارضة'],
+    ['permits',permits,'workOrder',['contractor','permitStatus','evaluation'],'أوامر تصاريح مكررة بحالات متعارضة'],
+    ['emergency',emergency,'noticeNo',['status','contractor','archive'],'إشعارات مكررة تحمل حالات متعارضة'],
+    ['closures',closures,'workOrder',['contractor','docsReceived','docsReview'],'أوامر إغلاق مكررة بمواقف مستندات متعارضة']
+  ];
+  for(const [k,rows,idField,fields,label] of conflicts){
+    const x=newsConflictGroups_(rows,idField,fields);
+    newsGap_(out,'conflict:'+k,'تعارض بيانات',label,x.count,rows.length,x.count?'أمثلة: '+x.examples.join('، '):'');
+  }
+
+  // تسلسل دورة العمل: قواعد قوية لا تعتمد على تفسير احتمالي.
+  const executedWrongStage=detail.filter(r=>newsExact_(r.executionStatus,'تم التنفيذ')&&!newsExact_(r.stage,'مرحلة الإغلاق'));
+  newsGap_(out,'logic:executedWrongStage','تعارض منطقي','أوامر حالتها «تم التنفيذ» لكنها ليست بمرحلة الإغلاق',executedWrongStage.length,detail.length,executedWrongStage.length?'أمثلة: '+newsExamples_(executedWrongStage,'workOrder',()=>true).join('، '):'');
+
+  const issuedMissingDates=permits.filter(r=>newsExact_(r.permitStatus,'تم اصدار التصريح')&&(newsBlank_(r,'permitStart')||newsBlank_(r,'permitEnd')));
+  newsGap_(out,'logic:issuedPermitMissingDates','تعارض منطقي','تصاريح صادرة بدون تواريخ بداية/نهاية مكتملة',issuedMissingDates.length,permits.length,issuedMissingDates.length?'أمثلة: '+newsExamples_(issuedMissingDates,'workOrder',()=>true).join('، '):'');
+
+  const enteredBeforeStatus=permits.filter(r=>newsExact_(r.permitStatus,'لم يتم ادخال التصريح')&&(clean_(r.permitStart)||clean_(r.permitEnd)));
+  newsGap_(out,'logic:notEnteredWithDates','تعارض منطقي','تصاريح حالتها «لم يتم الإدخال» وبها تواريخ تصريح',enteredBeforeStatus.length,permits.length,enteredBeforeStatus.length?'أمثلة: '+newsExamples_(enteredBeforeStatus,'workOrder',()=>true).join('، '):'');
+
+  const badPermitDates=permits.filter(r=>{const a=newsDateValue_(r.permitStart),b=newsDateValue_(r.permitEnd);return a&&b&&b<a});
+  newsGap_(out,'logic:permitDateOrder','تعارض زمني','تاريخ نهاية التصريح أسبق من تاريخ البداية',badPermitDates.length,permits.length,badPermitDates.length?'أمثلة: '+newsExamples_(badPermitDates,'workOrder',()=>true).join('، '):'');
+
+  const plantedNoReview=assets.filter(r=>newsExact_(r.plantingStatus,'تمت الزراعة')&&!newsExact_(r.plantingReview,'تمت المراجعة'));
+  newsGap_(out,'logic:assetPlantedNoReview','تعارض منطقي','أصول حالتها «تمت الزراعة» دون اكتمال المراجعة',plantedNoReview.length,assets.length,plantedNoReview.length?'أمثلة: '+newsExamples_(plantedNoReview,'workOrder',()=>true).join('، '):'');
+
+  const systemBeforeField=assets.filter(r=>newsDone_(r.systemReceipt)&&!newsDone_(r.fieldReceipt));
+  newsGap_(out,'logic:assetSystemBeforeField','تعارض تسلسل','استلام أصول على النظام قبل الاستلام الميداني',systemBeforeField.length,assets.length,systemBeforeField.length?'أمثلة: '+newsExamples_(systemBeforeField,'workOrder',()=>true).join('، '):'');
+
+  const approvedEmergencyNotDone=emergency.filter(r=>newsExact_(r.archive,'تم الاعتماد من PDC')&&!newsExact_(r.status,'منجز'));
+  newsGap_(out,'logic:emergencyApprovedNotDone','تعارض منطقي','إشعارات معتمدة من PDC وحالة التنفيذ ليست «منجز»',approvedEmergencyNotDone.length,emergency.length,approvedEmergencyNotDone.length?'أمثلة: '+newsExamples_(approvedEmergencyNotDone,'noticeNo',()=>true).join('، '):'');
+
+  const closureRules=[
+    ['reviewBeforeReceive','مراجعة مستندات تمت قبل تسجيل استلامها من المقاول',r=>newsDone_(r.docsReview)&&!newsDone_(r.docsReceived)],
+    ['stampBeforeReview','تختيم مستندات تم قبل اكتمال المراجعة',r=>newsDone_(r.stamp)&&!newsDone_(r.docsReview)],
+    ['emailBeforeStamp','معاملة مرسلة بالإيميل قبل التختيم',r=>newsDone_(r.email)&&!newsDone_(r.stamp)],
+    ['systemBeforeEmail','معاملة مرفوعة على النظام قبل تسجيل إرسالها بالإيميل',r=>newsDone_(r.systemUpload)&&!newsDone_(r.email)],
+    ['certificateBeforeSystem','شهادة إنجاز معتمدة قبل تسجيل رفع المعاملة على النظام',r=>newsDone_(r.certificate)&&!newsDone_(r.systemUpload)]
+  ];
+  for(const [k,label,pred] of closureRules){
+    const bad=closures.filter(pred);
+    newsGap_(out,'logic:closure:'+k,'مراجعة تسلسل',label,bad.length,closures.length,bad.length?'هذه إشارة مراجعة للتأكد من اكتمال توثيق الخطوات السابقة. أمثلة: '+newsExamples_(bad,'workOrder',()=>true).join('، '):'');
+  }
+
+  // المهام: كل مهمة سابقة يجب أن يكون لها إفادة مستقلة.
+  const today=DateTime.now().setZone(APP.TZ||'Asia/Riyadh').startOf('day');
+  const pastNoStatement=tasks.filter(r=>{const d=newsDateValue_(r.date);return d&&d<today&&newsBlank_(r,'statement')});
+  newsGap_(out,'tasks:pastNoStatement','متابعة المواقع','مهام أيام سابقة بدون إفادة موقع',pastNoStatement.length,tasks.length,pastNoStatement.length?'أمثلة صفوف: '+pastNoStatement.slice(0,6).map(r=>r._row).join('، '):'');
+
+  const pastNoAttachments=tasks.filter(r=>{const d=newsDateValue_(r.date);return d&&d<today&&contains_(r.attachments,'لم يتم رفع')});
+  newsGap_(out,'tasks:pastNoAttachments','متابعة المواقع','مهام أيام سابقة ما زالت بدون مرفقات',pastNoAttachments.length,tasks.length,pastNoAttachments.length?'أمثلة صفوف: '+pastNoAttachments.slice(0,6).map(r=>r._row).join('، '):'');
+
+  for(const [k,label] of [['workOrder','مهام بدون رقم أمر عمل'],['engineer','مهام بدون مسؤول موقع'],['date','مهام بدون تاريخ'],['task','مهام بدون وصف مهمة']]){
+    const bad=tasks.filter(r=>newsBlank_(r,k));
+    newsGap_(out,'tasks:missing:'+k,'جودة بيانات • متابعة المواقع',label,bad.length,tasks.length,bad.length?'أمثلة صفوف: '+bad.slice(0,6).map(r=>r._row).join('، '):'');
+  }
+
+  if(attachments.length){
+    const partial=attachments.filter(r=>contains_(r.status,'رفع جزئي'));
+    const failed=attachments.filter(r=>contains_(r.status,'فشل'));
+    const uploadedNoFiles=attachments.filter(r=>contains_(r.status,'تم رفع')&&num_(r.files)<=0);
+    newsGap_(out,'attachments:partial','المرفقات','سجلات رفع جزئي للمرفقات',partial.length,attachments.length,partial.length?'أمثلة: '+newsExamples_(partial,'workOrder',()=>true).join('، '):'');
+    newsGap_(out,'attachments:failed','المرفقات','سجلات فشل رفع المرفقات',failed.length,attachments.length,failed.length?'أمثلة: '+newsExamples_(failed,'workOrder',()=>true).join('، '):'');
+    newsGap_(out,'attachments:uploadedNoFiles','تعارض منطقي','حالة «تم رفع مرفقات» بدون عدد ملفات موجب',uploadedNoFiles.length,attachments.length,uploadedNoFiles.length?'أمثلة: '+newsExamples_(uploadedNoFiles,'workOrder',()=>true).join('، '):'');
+  }
+
+  // الوصول إلى حد القراءة يعني احتمال وجود بيانات خارج نطاق الداشبورد.
+  for(const [k,label,rows] of [['projects','المشاريع',projects],['connections','التوصيلات',connections],['permits','التصاريح',permits],['emergency','الطوارئ',emergency],['closures','الإغلاقات',closures],['tasks','المهام',tasks],['attachments','المرفقات',attachments]]){
+    newsGap_(out,'limit:'+k,'فجوة تغطية','مصدر '+label+' وصل إلى حد القراءة '+APP.MAX_ROWS,rows.length>=APP.MAX_ROWS?1:0,1,rows.length>=APP.MAX_ROWS?'قد توجد سجلات إضافية لا تدخل في التحليل الحالي.':'');
+  }
+  return out;
+}
+
 async function buildLiveProjectNewsObservations_(){
   const obs=[];
   try{
     const dq=await getDataQualityPage_();
     obs.push(...newsQualityObservations_(dq.quality||{}));
   }catch(e){console.warn('Project news data-quality analysis skipped:',e.message||e)}
+  try{
+    obs.push(...await newsDeepAuditObservations_());
+  }catch(e){console.warn('Project news deep-audit analysis skipped:',e.message||e)}
   try{
     const m=await getWednesdayMeetingData(),rows=m.rows||[],total=rows.length;
     obs.push({key:'ops:delayedExecution',kind:'issue',category:'التنفيذ',label:'أوامر عمل متأخرة بالتنفيذ',value:num_(m.abKpis&&m.abKpis.delayedExecution)||rows.filter(r=>r.delayedExecution).length,total});
@@ -1046,16 +1226,17 @@ async function getProjectNews(){
   const hit=cacheGet(key);if(hit)return hit;
   const observations=await buildLiveProjectNewsObservations_();
   observations.forEach(newsObserve_);
+  const activeIssueKeys=new Set(observations.filter(o=>o.kind==='issue'&&Number(o.value||0)>0).map(o=>o.key));
   const cutoff=Date.now()-PROJECT_NEWS_RETENTION_MS;
   for(const [eventKey,event] of projectNewsState.events){
     const ts=Date.parse(event.date)||0;
-    if(ts<cutoff)projectNewsState.events.delete(eventKey);
+    if(ts<cutoff&&!activeIssueKeys.has(eventKey))projectNewsState.events.delete(eventKey);
   }
   const order={عاجل:0,مهم:1,تحديث:2};
   const rows=[...projectNewsState.events.values()]
-    .filter(r=>(Date.parse(r.date)||0)>=cutoff)
-    .sort((a,b)=>(order[a.priority]??9)-(order[b.priority]??9)||(Date.parse(b.date)||0)-(Date.parse(a.date)||0))
-    .slice(0,40);
+    .filter(r=>activeIssueKeys.has(r.eventKey)||(Date.parse(r.date)||0)>=cutoff)
+    .sort((a,b)=>(order[a.priority]??9)-(order[b.priority]??9)||(activeIssueKeys.has(b.eventKey)?1:0)-(activeIssueKeys.has(a.eventKey)?1:0)||(Date.parse(b.date)||0)-(Date.parse(a.date)||0))
+    .slice(0,80);
   const result={updatedAt:now_(),source:'live-sheet-analysis',retentionHours:72,rows};
   cachePut(key,result,60);
   return result;
