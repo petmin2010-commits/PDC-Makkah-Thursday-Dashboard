@@ -1,14 +1,59 @@
 (()=>{
 'use strict';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let paused=false,lastRows=[];
-function tone(v){const s=String(v||'').trim();if(/عاجل|urgent/i.test(s))return 'urgent';if(/مهم|important|تنبيه/i.test(s))return 'important';if(/إنجاز|انجاز|تحسن|نجاح|achievement|improvement/i.test(s))return 'positive';return 'update';}
+let paused=false,lastRows=[],timer=null,offset=0;
+function tone(v){const s=String(v||'').trim();if(/عاجل|urgent/i.test(s))return 'urgent';if(/مهم|important|تنبيه/i.test(s))return 'important';if(/إنجاز|انجاز|تحسن|نجاح|achievement|improvement/i.test(s))return 'positive';return 'update'}
 function cleanDate(v){const s=String(v||'').trim();if(!s)return '';const d=new Date(s);if(isNaN(d))return s;try{return new Intl.DateTimeFormat('ar-SA-u-ca-gregory',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}).format(d)}catch{return s}}
-function item(r){const tip=r.summary?' title="'+esc(r.summary)+'"':'';return '<span class="news-item"'+tip+'><span class="news-source sheet">🧠 Smart News</span><span class="news-priority '+tone(r.priority)+'">'+esc(r.priority||'تحديث')+'</span><span class="news-category">'+esc(r.category||'عام')+'</span><span class="news-title">'+esc(r.title||'')+'</span>'+(r.date?'<span class="news-date">'+esc(cleanDate(r.date))+'</span>':'')+'</span><span class="news-sep">◆</span>';}
-function render(rows){lastRows=Array.isArray(rows)?rows:[];const host=document.getElementById('projectNewsTicker'),track=document.getElementById('projectNewsTrack'),btn=document.getElementById('projectNewsPause');if(!host||!track)return;
-if(!lastRows.length){host.classList.add('is-empty');track.innerHTML='<span>لا توجد أخبار جديدة أو فجوات نشطة — Smart News يعتمد على تحليل الشيتات والداشبورد فقط.</span>';if(btn)btn.style.display='none';return;}
-host.classList.remove('is-empty');if(btn)btn.style.display='';const body=lastRows.map(item).join('');track.innerHTML=body+body;const dur=Math.max(30,Math.min(360,lastRows.length*9));track.style.setProperty('--news-duration',dur+'s');}
-function load(){if(!window.google?.script?.run)return;google.script.run.withSuccessHandler(p=>render(p?.rows||[])).withFailureHandler(()=>render([])).getProjectNews();}
-document.addEventListener('DOMContentLoaded',()=>{const btn=document.getElementById('projectNewsPause');if(btn)btn.addEventListener('click',()=>{paused=!paused;const host=document.getElementById('projectNewsTicker');host?.classList.toggle('is-paused',paused);btn.textContent=paused?'▶':'❚❚';btn.setAttribute('aria-label',paused?'تشغيل شريط الأخبار':'إيقاف شريط الأخبار');});load();setInterval(load,5*60*1000);});
+function item(r){const tip=r.summary?' title="'+esc(r.summary)+'"':'';return '<span class="news-item"'+tip+'><span class="news-source sheet">🧠 Smart News</span><span class="news-priority '+tone(r.priority)+'">'+esc(r.priority||'تحديث')+'</span><span class="news-category">'+esc(r.category||'عام')+'</span><span class="news-title">'+esc(r.title||'')+'</span>'+(r.date?'<span class="news-date">'+esc(cleanDate(r.date))+'</span>':'')+'</span><span class="news-sep">◆</span>'}
+function stopMotion(){if(timer){clearInterval(timer);timer=null}}
+function startMotion(){
+ stopMotion();const viewport=document.querySelector('#projectNewsTicker .news-viewport'),track=document.getElementById('projectNewsTrack');
+ if(!viewport||!track||lastRows.length<2)return;
+ offset=0;track.style.transform='translateX(0px)';
+ timer=setInterval(()=>{
+  if(paused)return;
+  offset-=1;
+  const limit=Math.max(0,track.scrollWidth-viewport.clientWidth);
+  if(limit<=0){offset=0;track.style.transform='translateX(0px)';return}
+  if(Math.abs(offset)>limit)offset=0;
+  track.style.transform='translateX('+offset+'px)';
+ },45);
+}
+function render(rows){
+ lastRows=Array.isArray(rows)?rows.filter(Boolean):[];
+ const host=document.getElementById('projectNewsTicker'),track=document.getElementById('projectNewsTrack'),btn=document.getElementById('projectNewsPause');
+ if(!host||!track)return;
+ stopMotion();track.style.transform='translateX(0px)';
+ if(!lastRows.length){
+  host.classList.add('is-empty');track.innerHTML='<span class="news-empty-message">لا توجد أخبار جديدة أو فجوات نشطة حاليًا.</span>';
+  if(btn)btn.style.display='none';return;
+ }
+ host.classList.remove('is-empty');if(btn)btn.style.display='';
+ track.innerHTML=lastRows.slice(0,60).map(item).join('');
+ requestAnimationFrame(()=>requestAnimationFrame(startMotion));
+}
+async function load(){
+ const track=document.getElementById('projectNewsTrack');
+ try{
+  const r=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json','Cache-Control':'no-cache'},cache:'no-store',body:JSON.stringify({method:'getProjectNews',args:[]})});
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok||data.ok===false)throw new Error(data.error||('HTTP '+r.status));
+  render(data.result?.rows||[]);
+ }catch(e){
+  console.error('Smart News load failed:',e);
+  if(track)track.innerHTML='<span class="news-empty-message">تعذر تحميل الأخبار الذكية — اضغط تحديث الصفحة.</span>';
+ }
+}
+function boot(){
+ const btn=document.getElementById('projectNewsPause');
+ if(btn)btn.addEventListener('click',()=>{
+  paused=!paused;
+  document.getElementById('projectNewsTicker')?.classList.toggle('is-paused',paused);
+  btn.textContent=paused?'▶':'❚❚';btn.setAttribute('aria-label',paused?'تشغيل شريط الأخبار':'إيقاف شريط الأخبار');
+ });
+ load();setInterval(load,5*60*1000);
+ window.addEventListener('resize',()=>{if(lastRows.length)startMotion()});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 window.refreshProjectNews=load;
 })();
