@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const SC={loaded:false,loading:false,pages:{},issues:[],quality:[],summary:null,charts:{},projectKey:'',lastUpdated:'',previous:null};
+const SC={loaded:false,loading:false,pages:{},issues:[],quality:[],summary:null,charts:{},projectKey:'',lastUpdated:'',previous:null,centralHistory:null};
 const PAGE_KEYS=['workorders','projects','connections','permits','assets','closures','emergency','attachments','tasks'];
 const PAGE_TITLES={workorders:'أوامر العمل',projects:'المشاريع',connections:'التوصيلات',permits:'التصاريح',assets:'الأصول',closures:'الإغلاقات',emergency:'الطوارئ',attachments:'المرفقات',tasks:'متابعة المواقع'};
 const SEV_LABELS={critical:'حرجة',high:'مرتفعة',medium:'متوسطة'};
@@ -57,7 +57,7 @@ async function loadSmartCenter(force=false){
   if(force){SC.pages={};SC.issues=[];SC.quality=[];SC.summary=null}
   const identity=projectIdentity();SC.projectKey=identity.key;SC.previous=previousSnapshot();
   const results=await Promise.all(PAGE_KEYS.map(async key=>{try{return [key,await rpc('getPageData',[key])]}catch(e){return [key,{key,title:PAGE_TITLES[key],rows:[],error:e.message}]}}));
-  SC.pages=Object.fromEntries(results);analyzeProject();SC.loaded=true;SC.lastUpdated=new Date().toLocaleString('ar-SA');
+  SC.pages=Object.fromEntries(results);analyzeProject();await syncCentralHistory();SC.loaded=true;SC.lastUpdated=new Date().toLocaleString('ar-SA');
   renderAll();saveSnapshot();
  }catch(e){
   el('scContent').innerHTML='<div class="sc-panel"><div class="sc-empty">تعذر بناء التحليل: '+esc(e.message||e)+'</div></div>';el('scContent').style.display='block';
@@ -144,7 +144,7 @@ function renderAll(){
 }
 function contentMarkup(){return `
 <div class="sc-kpis" id="scKpis"></div>
-<div class="sc-grid"><article class="sc-panel"><div class="sc-panel-head"><div><span>WHAT CHANGED</span><h3>ماذا تغير منذ آخر فحص على هذا الجهاز؟</h3></div><b class="sc-badge" id="scPreviousTime">—</b></div><div id="scChanges" class="sc-changes"></div><div class="sc-method">المقارنة مجانية ومحلية وتستخدم آخر Snapshot محفوظ في هذا المتصفح.</div></article><article class="sc-panel"><div class="sc-panel-head"><div><span>PRIORITY RADAR</span><h3>أعلى نقاط التدخل الآن</h3></div><b class="sc-badge">حسب عدد الاستثناءات</b></div><div id="scPriorities" class="sc-priority-list"></div></article></div>
+<div class="sc-grid"><article class="sc-panel"><div class="sc-panel-head"><div><span>WHAT CHANGED</span><h3>ماذا تغير منذ آخر يوم مسجل؟</h3></div><b class="sc-badge" id="scPreviousTime">—</b></div><div id="scChanges" class="sc-changes"></div><div class="sc-method">المقارنة مركزية ومشتركة بين جميع المستخدمين، ويتم حفظ Snapshot يومي داخل ورقة Dashboard History في Google Sheet.</div></article><article class="sc-panel"><div class="sc-panel-head"><div><span>PRIORITY RADAR</span><h3>أعلى نقاط التدخل الآن</h3></div><b class="sc-badge">حسب عدد الاستثناءات</b></div><div id="scPriorities" class="sc-priority-list"></div></article></div>
 <div class="sc-grid"><article class="sc-panel"><div class="sc-panel-head"><div><span>SMART ANALYST</span><h3>اسأل المحلل المجاني</h3></div><b class="sc-badge">Rule Engine</b></div><div class="sc-analyst"><div class="sc-question-row"><button class="sc-chip" data-q="ما الحالات الحرجة؟">الحالات الحرجة</button><button class="sc-chip" data-q="من أكثر المقاولين لديهم مشاكل؟">المقاولون</button><button class="sc-chip" data-q="أين مشاكل جودة البيانات؟">جودة البيانات</button><button class="sc-chip" data-q="ما مشاكل المستندات؟">المستندات</button><button class="sc-chip" data-q="ما مشاكل التصاريح؟">التصاريح</button></div><div class="sc-ask-box"><input id="scQuestion" placeholder="اكتب: أكثر المقاولين تأخيرًا، مشاكل الأصول، الحالات الحرجة..."><button id="scAsk">تحليل</button></div><div id="scAnswer" class="sc-answer">اختر سؤالًا جاهزًا أو اكتب سؤالك. الإجابات ناتجة من قواعد وأرقام الداشبورد مباشرة.</div></div></article><article class="sc-panel"><div class="sc-panel-head"><div><span>DATA COMPLETENESS</span><h3>نسبة اكتمال البيانات حسب التاب</h3></div><b class="sc-badge">حقول أساسية</b></div><div class="sc-chart compact"><canvas id="scQualityChart"></canvas></div></article></div>
 <div class="sc-grid"><article class="sc-panel"><div class="sc-panel-head"><div><span>ISSUE PROFILE</span><h3>توزيع الاستثناءات حسب النوع</h3></div></div><div class="sc-chart"><canvas id="scIssueChart"></canvas></div></article><article class="sc-panel"><div class="sc-panel-head"><div><span>CONTRACTOR EXPOSURE</span><h3>أعلى المقاولين في عدد الاستثناءات</h3></div></div><div class="sc-chart"><canvas id="scContractorChart"></canvas></div></article></div>
 <article class="sc-panel sc-exception-wrap"><div class="sc-panel-head"><div><span>EXCEPTION CENTER</span><h3>مركز الاستثناءات — الحالات التي تحتاج مراجعة</h3></div><b class="sc-badge" id="scIssueCount">0</b></div><div class="sc-toolbar"><select id="scSeverity"><option value="">كل درجات الأهمية</option><option value="critical">حرجة</option><option value="high">مرتفعة</option><option value="medium">متوسطة</option></select><select id="scCategory"><option value="">كل الأنواع</option></select><input id="scIssueSearch" placeholder="بحث بأمر العمل، الإشعار، المقاول، المهندس أو الوصف..."></div><div id="scExceptionTable" class="sc-table-wrap"></div></article>`}
@@ -165,11 +165,52 @@ function snapshotData(){
 function snapshotKey(){return 'smart-center-snapshot-v1|'+SC.projectKey}
 function previousSnapshot(){try{return JSON.parse(localStorage.getItem(snapshotKey())||'null')}catch(e){return null}}
 function saveSnapshot(){try{localStorage.setItem(snapshotKey(),JSON.stringify(snapshotData()))}catch(e){}}
-function deltaText(now,old){const d=Number(now||0)-Number(old||0);return {d,text:(d>0?'+':'')+d,cls:d>0?'up':d<0?'down':'same'}}
+function issueKey(x){return [x.severity,x.category,x.pageKey,x.title,x.id,x.row].map(clean).join('|')}
+async function syncCentralHistory(){
+ const categories=Object.fromEntries(groupIssues('category',40).map(x=>[x.name,x.count]));
+ const contractors=Object.fromEntries(groupIssues('contractor',80).map(x=>[x.name,x.count]));
+ const payload={
+  summary:SC.summary,
+  issueKeys:SC.issues.slice(0,1800).map(issueKey),
+  categories,
+  contractors
+ };
+ try{SC.centralHistory=await rpc('saveSmartHistory',[payload])}
+ catch(e){SC.centralHistory={ok:false,error:e.message||String(e)}}
+}
+function deltaText(now,old){const d=Math.round((Number(now||0)-Number(old||0))*10)/10;return {d,text:(d>0?'+':'')+d,cls:d>0?'up':d<0?'down':'same'}}
 function renderChanges(){
- const prev=SC.previous,root=el('scChanges');
- if(!prev?.summary){el('scPreviousTime').textContent='خط أساس جديد';root.innerHTML='<div class="sc-change same"><b>تم إنشاء خط الأساس</b><span>في الفحص القادم ستظهر الزيادة والانخفاض تلقائيًا.</span></div>';return}
- el('scPreviousTime').textContent=new Date(prev.time).toLocaleString('ar-SA');
+ const root=el('scChanges'),central=SC.centralHistory;
+ if(central?.ok&&central.source==='google-sheet'){
+  if(!central.previous){
+   el('scPreviousTime').textContent='Google Sheet • خط أساس';
+   root.innerHTML='<div class="sc-change same"><b>تم حفظ أول Snapshot مركزي</b><span>من الغد ستظهر مقارنة فعلية مع آخر يوم مسجل لجميع المستخدمين.</span></div>';
+   return;
+  }
+  el('scPreviousTime').textContent='مقارنة مع '+central.previous.date;
+  const c=central.changes||{};
+  const items=[
+   ['أوامر تم تنفيذها',c.completed,'good',''],
+   ['مشاكل جديدة',c.newIssues,'bad',''],
+   ['مشاكل تم حلها',c.resolvedIssues,'good',''],
+   ['إجمالي الاستثناءات',c.totalIssues,'bad',''],
+   ['اكتمال البيانات',c.qualityAvg,'good','%'],
+   ['صحة المشروع',c.health,'good','%']
+  ];
+  root.innerHTML=items.map(([label,value,direction,suffix])=>{
+   const d=Number(value||0),good=d===0?null:(direction==='good'?d>0:d<0);
+   const cls=d===0?'same':good?'down':'up';
+   return `<div class="sc-change ${cls}"><b>${d>0?'+':''}${d}${suffix}</b><span>${esc(label)}</span></div>`;
+  }).join('');
+  return;
+ }
+ const prev=SC.previous;
+ if(!prev?.summary){
+  el('scPreviousTime').textContent='محلي • خط أساس';
+  root.innerHTML='<div class="sc-change same"><b>تعذر السجل المركزي</b><span>تم استخدام Snapshot محلي مؤقتًا حتى تتاح الكتابة على Google Sheet.</span></div>';
+  return;
+ }
+ el('scPreviousTime').textContent='محلي • '+new Date(prev.time).toLocaleString('ar-SA');
  const items=[
   ['إجمالي الاستثناءات',SC.summary.totalIssues,prev.summary.totalIssues,false,''],
   ['الحالات الحرجة',SC.summary.critical,prev.summary.critical,false,''],

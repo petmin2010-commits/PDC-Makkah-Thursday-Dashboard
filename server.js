@@ -186,7 +186,7 @@ function credentialsFromEnv(){
 async function getSheets(){
   const creds=credentialsFromEnv();
   if(!creds) throw new Error('لم يتم إعداد حساب Google Service Account. ضع credentials.json أو GOOGLE_SERVICE_ACCOUNT_JSON.');
-  const auth=new google.auth.GoogleAuth({credentials:creds, scopes:['https://www.googleapis.com/auth/spreadsheets.readonly']});
+  const auth=new google.auth.GoogleAuth({credentials:creds, scopes:['https://www.googleapis.com/auth/spreadsheets']});
   return google.sheets({version:'v4', auth});
 }
 
@@ -212,6 +212,135 @@ async function valuesGetFrom_(spreadsheetId,range){
   })();
   valuesInFlight.set(key,pending);
   try{return await pending}finally{valuesInFlight.delete(key)}
+}
+
+const SMART_HISTORY_SHEET='Dashboard History';
+const SMART_HISTORY_HEADERS=[
+  'date','timestamp','project','totalOrders','completed','executionRate','health','qualityAvg','docScore',
+  'totalIssues','critical','high','newIssues','resolvedIssues','issueKeysJson','categoriesJson','contractorsJson','version'
+];
+
+async function ensureSmartHistorySheet_(){
+  assertConfig();
+  const sheets=await getSheets();
+  const meta=await sheets.spreadsheets.get({
+    spreadsheetId:SPREADSHEET_ID,
+    fields:'sheets.properties(sheetId,title)'
+  });
+  const exists=(meta.data.sheets||[]).some(s=>s.properties?.title===SMART_HISTORY_SHEET);
+  if(!exists){
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId:SPREADSHEET_ID,
+      requestBody:{requests:[{addSheet:{properties:{
+        title:SMART_HISTORY_SHEET,
+        gridProperties:{rowCount:5000,columnCount:18},
+        rightToLeft:true
+      }}}]}
+    });
+  }
+  const headerRange=`${qSheet(SMART_HISTORY_SHEET)}!A1:R1`;
+  const current=await sheets.spreadsheets.values.get({spreadsheetId:SPREADSHEET_ID,range:headerRange});
+  const row=current.data.values?.[0]||[];
+  if(SMART_HISTORY_HEADERS.some((h,i)=>row[i]!==h)){
+    await sheets.spreadsheets.values.update({
+      spreadsheetId:SPREADSHEET_ID,
+      range:headerRange,
+      valueInputOption:'RAW',
+      requestBody:{values:[SMART_HISTORY_HEADERS]}
+    });
+  }
+  return sheets;
+}
+
+function safeJsonParse_(v,fallback){
+  try{return JSON.parse(String(v||''))}catch{return fallback}
+}
+function smartHistoryNum_(v){const n=Number(v);return Number.isFinite(n)?Math.round(n*10)/10:0}
+function smartIssueHashes_(keys){
+  return [...new Set((Array.isArray(keys)?keys:[]).slice(0,1800).map(x=>
+    crypto.createHash('sha1').update(String(x||'')).digest('hex').slice(0,12)
+  ))];
+}
+function smartHistoryRowToObj_(r,rowNumber){
+  return {
+    rowNumber,
+    date:String(r[0]||''),timestamp:String(r[1]||''),project:String(r[2]||''),
+    totalOrders:smartHistoryNum_(r[3]),completed:smartHistoryNum_(r[4]),executionRate:smartHistoryNum_(r[5]),
+    health:smartHistoryNum_(r[6]),qualityAvg:smartHistoryNum_(r[7]),docScore:smartHistoryNum_(r[8]),
+    totalIssues:smartHistoryNum_(r[9]),critical:smartHistoryNum_(r[10]),high:smartHistoryNum_(r[11]),
+    newIssues:smartHistoryNum_(r[12]),resolvedIssues:smartHistoryNum_(r[13]),
+    issueKeys:safeJsonParse_(r[14],[]),categories:safeJsonParse_(r[15],{}),contractors:safeJsonParse_(r[16],{}),
+    version:String(r[17]||'')
+  };
+}
+
+async function saveSmartHistory(payload){
+  const sheets=await ensureSmartHistorySheet_();
+  const zone=APP.TZ||'Asia/Riyadh';
+  const today=DateTime.now().setZone(zone).toFormat('yyyy-LL-dd');
+  const timestamp=DateTime.now().setZone(zone).toFormat('yyyy-LL-dd HH:mm:ss');
+  const summary=payload?.summary||{};
+  const categories=payload?.categories&&typeof payload.categories==='object'?payload.categories:{};
+  const contractors=payload?.contractors&&typeof payload.contractors==='object'?payload.contractors:{};
+  const issueKeys=smartIssueHashes_(payload?.issueKeys);
+
+  const historyRange=`${qSheet(SMART_HISTORY_SHEET)}!A2:R5000`;
+  const raw=(await sheets.spreadsheets.values.get({
+    spreadsheetId:SPREADSHEET_ID,range:historyRange,valueRenderOption:'UNFORMATTED_VALUE'
+  })).data.values||[];
+  const history=raw.map((r,i)=>smartHistoryRowToObj_(r,i+2)).filter(x=>x.date);
+  const previous=[...history].filter(x=>x.date<today).sort((a,b)=>b.date.localeCompare(a.date))[0]||null;
+  const previousKeys=new Set(previous?.issueKeys||[]);
+  const currentKeys=new Set(issueKeys);
+  const newIssues=previous?issueKeys.filter(k=>!previousKeys.has(k)).length:0;
+  const resolvedIssues=previous?[...previousKeys].filter(k=>!currentKeys.has(k)).length:0;
+
+  const row=[
+    today,timestamp,APP.TITLE,
+    smartHistoryNum_(summary.totalOrders),smartHistoryNum_(summary.completed),smartHistoryNum_(summary.executionRate),
+    smartHistoryNum_(summary.health),smartHistoryNum_(summary.qualityAvg),smartHistoryNum_(summary.docScore),
+    smartHistoryNum_(summary.totalIssues),smartHistoryNum_(summary.critical),smartHistoryNum_(summary.high),
+    newIssues,resolvedIssues,JSON.stringify(issueKeys),JSON.stringify(categories),JSON.stringify(contractors),'v1'
+  ];
+  const todayRow=history.find(x=>x.date===today);
+  if(todayRow){
+    await sheets.spreadsheets.values.update({
+      spreadsheetId:SPREADSHEET_ID,
+      range:`${qSheet(SMART_HISTORY_SHEET)}!A${todayRow.rowNumber}:R${todayRow.rowNumber}`,
+      valueInputOption:'RAW',requestBody:{values:[row]}
+    });
+  }else{
+    await sheets.spreadsheets.values.append({
+      spreadsheetId:SPREADSHEET_ID,
+      range:`${qSheet(SMART_HISTORY_SHEET)}!A:R`,
+      valueInputOption:'RAW',insertDataOption:'INSERT_ROWS',requestBody:{values:[row]}
+    });
+  }
+
+  const current=smartHistoryRowToObj_(row,todayRow?.rowNumber||history.length+2);
+  const compactHistory=[...history.filter(x=>x.date!==today),current]
+    .sort((a,b)=>a.date.localeCompare(b.date)).slice(-30)
+    .map(x=>({date:x.date,health:x.health,qualityAvg:x.qualityAvg,executionRate:x.executionRate,totalIssues:x.totalIssues,critical:x.critical,high:x.high}));
+
+  return {
+    ok:true,source:'google-sheet',sheet:SMART_HISTORY_SHEET,today,updatedAt:timestamp,
+    current:{date:today,...summary,newIssues,resolvedIssues},
+    previous:previous?{
+      date:previous.date,totalOrders:previous.totalOrders,completed:previous.completed,executionRate:previous.executionRate,
+      health:previous.health,qualityAvg:previous.qualityAvg,docScore:previous.docScore,totalIssues:previous.totalIssues,
+      critical:previous.critical,high:previous.high
+    }:null,
+    changes:{
+      completed:previous?smartHistoryNum_(summary.completed)-previous.completed:0,
+      executionRate:previous?smartHistoryNum_(summary.executionRate)-previous.executionRate:0,
+      health:previous?smartHistoryNum_(summary.health)-previous.health:0,
+      qualityAvg:previous?smartHistoryNum_(summary.qualityAvg)-previous.qualityAvg:0,
+      totalIssues:previous?smartHistoryNum_(summary.totalIssues)-previous.totalIssues:0,
+      critical:previous?smartHistoryNum_(summary.critical)-previous.critical:0,
+      newIssues,resolvedIssues
+    },
+    history:compactHistory
+  };
 }
 
 async function getHrStaffData_(){
@@ -1243,7 +1372,7 @@ async function getProjectNews(){
 }
 
 
-const METHODS={getBootData,getSecondaryMasterKpis,getWorkOrderMasterEnrichment,getPageData,getWednesdayMeetingData,getMonitorData,getFullMonitorData,getProjectNews,clearDashboardCache};
+const METHODS={getBootData,getSecondaryMasterKpis,getWorkOrderMasterEnrichment,getPageData,getWednesdayMeetingData,getMonitorData,getFullMonitorData,getProjectNews,saveSmartHistory,clearDashboardCache};
 
 const app=express();
 const PUBLIC_DIR=path.join(__dirname,'public');
