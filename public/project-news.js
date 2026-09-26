@@ -7,15 +7,15 @@ function cleanDate(v){const s=String(v||'').trim();if(!s)return '';const d=new D
 function item(r){const tip=r.summary?' title="'+esc(r.summary)+'"':'';return '<span class="news-item"'+tip+'><span class="news-source sheet">🧠 Smart News</span><span class="news-priority '+tone(r.priority)+'">'+esc(r.priority||'تحديث')+'</span><span class="news-category">'+esc(r.category||'عام')+'</span><span class="news-title">'+esc(r.title||'')+'</span>'+(r.date?'<span class="news-date">'+esc(cleanDate(r.date))+'</span>':'')+'</span><span class="news-sep">◆</span>'}
 function stopMotion(){if(timer){clearInterval(timer);timer=null}}
 function startMotion(){
- stopMotion();const viewport=document.querySelector('#projectNewsTicker .news-viewport'),track=document.getElementById('projectNewsTrack');
- if(!viewport||!track||lastRows.length<2)return;
- const limit=Math.max(0,track.scrollWidth-viewport.clientWidth);
- if(limit<=0){offset=0;track.style.transform='translateX(0px)';return}
- offset=-limit;track.style.transform='translateX('+offset+'px)';
+ stopMotion();const track=document.getElementById('projectNewsTrack'),group=track?.querySelector('.news-group');
+ if(!track||!group||lastRows.length<2)return;
+ const cycle=Math.max(0,group.offsetWidth);
+ if(cycle<=0){offset=0;track.style.transform='translateX(0px)';return}
+ offset=-cycle;track.style.transform='translateX('+offset+'px)';
  timer=setInterval(()=>{
   if(paused)return;
   offset+=1;
-  if(offset>=0)offset=-limit;
+  if(offset>=0)offset=-cycle;
   track.style.transform='translateX('+offset+'px)';
  },45);
 }
@@ -29,7 +29,8 @@ function render(rows){
   if(btn)btn.style.display='none';return;
  }
  host.classList.remove('is-empty');if(btn)btn.style.display='';
- track.innerHTML=lastRows.slice(0,60).map(item).join('');
+ const body=lastRows.slice(0,60).map(item).join('');
+ track.innerHTML='<span class="news-group">'+body+'</span><span class="news-group" aria-hidden="true">'+body+'</span>';
  requestAnimationFrame(()=>requestAnimationFrame(startMotion));
 }
 async function load(){
