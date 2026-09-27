@@ -1199,7 +1199,7 @@ async function getFullMonitorData(){
 }
 
 const PROJECT_NEWS_RETENTION_MS=72*60*60*1000;
-const projectNewsState={snapshot:new Map(),events:new Map(),rowSnapshots:new Map()};
+const projectNewsState={snapshot:new Map(),events:new Map(),rowSnapshots:new Map(),violationCounts:new Map(),contractorWeekCounts:new Map(),violationIntelReady:false};
 
 function newsExact_(v,x){return norm_(v)===norm_(x)}
 function newsChecked_(v){return v===true||/^(true|نعم|تم|yes|1)$/i.test(clean_(v))}
@@ -1569,6 +1569,77 @@ async function newsDeepAuditObservations_(){
   return out;
 }
 
+async function newsViolationIntelligence_(){
+  const out=[];
+  const [safety,execution,minutes]=await Promise.all([
+    readConfiguredSheet_(APP.PAGES.safety,'safety'),
+    readConfiguredSheet_(APP.PAGES.executionViolations,'executionViolations'),
+    readConfiguredSheet_(APP.PAGES.minutes,'minutes')
+  ]);
+  const rows=[];
+  safety.forEach(r=>rows.push({source:'مخالفات السلامة',workOrder:r.workOrder,contractor:r.contractor,date:r.date,supervisor:r.supervisor,violation:[r.violation1,r.violation2].filter(Boolean).join(' / ')}));
+  execution.forEach(r=>rows.push({source:'مخالفات التنفيذ',workOrder:r.workOrder,contractor:r.contractor,date:r.date,supervisor:r.supervisor,violation:r.violation}));
+  minutes.forEach(r=>rows.push({source:'محاضر إثبات الحالة',workOrder:r.workOrder,contractor:r.contractor,date:r.date,supervisor:'—',violation:r.minuteType||r.penaltyItem1||''}));
+
+  newsTrackRows_('intelSafetyRows',safety,'_row',[[ 'workOrder','أمر العمل'],['contractor','المقاول'],['date','التاريخ'],['supervisor','مشرف الموقع'],['violation1','المخالفة 1'],['violation2','المخالفة 2'],['reason','السبب']],'مخالفات السلامة','مخالفات السلامة');
+  newsTrackRows_('intelExecutionRows',execution,'_row',[[ 'workOrder','أمر العمل'],['contractor','المقاول'],['date','التاريخ'],['supervisor','مشرف الموقع'],['violation','نوع المخالفة'],['reason','السبب'],['emailStatus','حالة الإيميل']],'مخالفات التنفيذ','مخالفات التنفيذ');
+  newsTrackRows_('intelMinutesRows',minutes,'_row',[[ 'workOrder','أمر العمل'],['contractor','المقاول'],['date','التاريخ'],['minuteType','نوع المحضر'],['penalty','إجمالي الغرامات'],['uploadStatus','حالة الرفع'],['notes','الملاحظات']],'محاضر إثبات الحالة','محاضر إثبات الحالة');
+
+  const woNow=new Map();
+  for(const r of rows){
+    const wo=cleanWorkOrder_(r.workOrder);if(!wo)continue;
+    const x=woNow.get(wo)||{total:0,contractor:clean_(r.contractor),sources:new Map()};
+    x.total++;if(!x.contractor&&r.contractor)x.contractor=clean_(r.contractor);
+    x.sources.set(r.source,(x.sources.get(r.source)||0)+1);woNow.set(wo,x);
+  }
+  if(projectNewsState.violationIntelReady){
+    for(const [wo,x] of woNow){
+      const prev=projectNewsState.violationCounts.get(wo)||0,delta=x.total-prev;
+      if(delta>0){
+        const src=[...x.sources].map(([k,v])=>k+' '+v).join('، ');
+        newsEvent_('intel:wo:'+norm_(wo),delta>=3?'مهم':'تحديث','أخبار ذكية • المخالفات',
+          'أمر العمل «'+wo+'» سجل +'+newsFmt_(delta)+' مخالفة/محضر جديد',
+          'الإجمالي المرتبط بالأمر أصبح '+newsFmt_(x.total)+' سجل. '+(x.contractor?'المقاول: '+x.contractor+'. ':'')+'التوزيع: '+src+'.');
+      }else if(delta<0){
+        newsEvent_('intel:wo:'+norm_(wo),'مهم','تصحيح بيانات • المخالفات',
+          'انخفضت سجلات المخالفات لأمر العمل «'+wo+'» بمقدار '+newsFmt_(Math.abs(delta)),
+          'العدد السابق '+newsFmt_(prev)+' والحالي '+newsFmt_(x.total)+'؛ يُنصح بمراجعة الحذف أو التصحيح.');
+      }
+    }
+    for(const [wo,prev] of projectNewsState.violationCounts){
+      if(woNow.has(wo)||prev<=0)continue;
+      newsEvent_('intel:wo:'+norm_(wo),'مهم','تصحيح بيانات • المخالفات',
+        'اختفت جميع سجلات المخالفات المرتبطة بأمر العمل «'+wo+'»',
+        'كان مرتبطًا بـ '+newsFmt_(prev)+' سجل في القراءة السابقة وأصبح صفرًا؛ راجع الحذف أو التصحيح.');
+    }
+  }
+  projectNewsState.violationCounts=new Map([...woNow].map(([k,x])=>[k,x.total]));
+
+  const rg=smartWeekRange_(),weekRows=rows.filter(r=>{const d=smartDate_(r.date);return d&&d.toMillis()>=rg.start.toMillis()&&d.toMillis()<=rg.end.toMillis()});
+  const contractorNow=new Map();
+  for(const r of weekRows){const c=clean_(r.contractor);if(!c)continue;contractorNow.set(c,(contractorNow.get(c)||0)+1)}
+  for(const [contractor,count] of contractorNow){
+    const prev=projectNewsState.contractorWeekCounts.get(contractor);
+    if(count>=5&&(prev===undefined||count>prev)){
+      newsEvent_('intel:contractor:'+norm_(contractor),count>=10?'مهم':'تحديث','أخبار ذكية • تكرار المقاولين',
+        'المقاول «'+contractor+'» لديه تكرار مرتفع: '+newsFmt_(count)+' سجلات هذا الأسبوع',
+        'الفترة من '+rg.start.toFormat('dd/LL/yyyy')+' إلى '+rg.end.toFormat('dd/LL/yyyy')+'. راجع أسباب تكرار المخالفات على أوامر المقاول.');
+    }
+  }
+  projectNewsState.contractorWeekCounts=new Map(contractorNow);
+
+  const fieldObs=(key,label,list,pred,note)=>out.push({key:'intel:dq:'+key,kind:'issue',category:'جودة بيانات • المخالفات',label,value:list.filter(pred).length,total:list.length,note});
+  const supervised=[...safety,...execution];
+  fieldObs('missingSupervisor','سجلات مخالفات بلا مشرف موقع',supervised,r=>newsBlank_(r,'supervisor'),'يشمل مخالفات السلامة والتنفيذ فقط.');
+  fieldObs('missingWorkOrder','سجلات مخالفات/محاضر بلا رقم أمر عمل',rows,r=>!cleanWorkOrder_(r.workOrder),'يمنع الربط الصحيح بين المخالفة وأمر العمل.');
+  fieldObs('missingContractor','سجلات مخالفات/محاضر بلا مقاول',rows,r=>!clean_(r.contractor),'يؤثر على تحليل أداء المقاولين.');
+  fieldObs('missingDate','سجلات مخالفات/محاضر بلا تاريخ',rows,r=>!clean_(r.date),'يمنع إدراج السجل بدقة في تقرير الأسبوع.');
+  fieldObs('missingViolation','سجلات بلا نوع مخالفة/محضر',rows,r=>!clean_(r.violation),'يؤثر على تصنيف وتحليل أسباب المخالفات.');
+
+  projectNewsState.violationIntelReady=true;
+  return out;
+}
+
 async function buildLiveProjectNewsObservations_(){
   const obs=[];
   try{
@@ -1583,6 +1654,9 @@ async function buildLiveProjectNewsObservations_(){
   try{
     obs.push(...await newsDeepAuditObservations_());
   }catch(e){console.warn('Project news deep-audit analysis skipped:',e.message||e)}
+  try{
+    obs.push(...await newsViolationIntelligence_());
+  }catch(e){console.warn('Project news violation-intelligence analysis skipped:',e.message||e)}
   try{
     const m=await getWednesdayMeetingData(),rows=m.rows||[],total=rows.length;
     obs.push({key:'ops:delayedExecution',kind:'issue',category:'التنفيذ',label:'أوامر عمل متأخرة بالتنفيذ',value:num_(m.abKpis&&m.abKpis.delayedExecution)||rows.filter(r=>r.delayedExecution).length,total});
@@ -1616,7 +1690,7 @@ async function buildLiveProjectNewsObservations_(){
 }
 
 async function getProjectNews(){
-  const key='PDC_PROJECT_NEWS_LIVE_V3';
+  const key='PDC_PROJECT_NEWS_LIVE_V4';
   const hit=cacheGet(key);if(hit)return hit;
   const observations=await buildLiveProjectNewsObservations_();
   newsSmartAggregate_(observations);
