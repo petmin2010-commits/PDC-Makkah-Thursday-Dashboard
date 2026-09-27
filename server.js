@@ -956,12 +956,15 @@ async function getDataQualityPage_(){
     keys.forEach(k=>{o[k]=r[k]??''});
     return o;
   });
-  const [projects,connections,permits,assets,emergency]=await Promise.all([
+  const [projects,connections,permits,assets,emergency,safety,executionViolations,minutes]=await Promise.all([
     readConfiguredSheet_(APP.PAGES.projects,'projects'),
     readConfiguredSheet_(APP.PAGES.connections,'connections'),
     readConfiguredSheet_(APP.PAGES.permits,'permits'),
     readConfiguredSheet_(APP.PAGES.assets,'assets'),
-    readConfiguredSheet_(APP.PAGES.emergency,'emergency')
+    readConfiguredSheet_(APP.PAGES.emergency,'emergency'),
+    readConfiguredSheet_(APP.PAGES.safety,'safety'),
+    readConfiguredSheet_(APP.PAGES.executionViolations,'executionViolations'),
+    readConfiguredSheet_(APP.PAGES.minutes,'minutes')
   ]);
   return {
     key:'dataQuality',
@@ -971,11 +974,14 @@ async function getDataQualityPage_(){
     columns:[],
     filterKeys:[],
     quality:{
-      projects:pick(projects,['workOrder','contractor','engineer','stage','stageStatus','excavationTarget','extensionTarget','advice','adviceAge']),
-      connections:pick(connections,['workOrder','contractor','engineer','stage','stageStatus','detail','advice','adviceAge']),
-      permits:pick(permits,['workOrder','contractor','permitStatus','actionTaken','evaluation']),
+      projects:pick(projects,['workOrder','contractor','engineer','assignedDate','permitStart','permitEnd','stage','stageStatus','excavationTarget','extensionTarget','advice','adviceAge']),
+      connections:pick(connections,['workOrder','contractor','engineer','assignedDate','permitStart','permitEnd','stage','stageStatus','detail','advice','adviceAge']),
+      permits:pick(permits,['workOrder','contractor','assignedDate','permitStart','permitEnd','permitStatus','actionTaken','evaluation']),
       assets:pick(assets,['workOrder','contractor','location','installDate','engineer','plantingReview','plantingStatus','assetForm','procedure207','fieldReceipt','notes','resolved','systemReceipt']),
-      emergency:pick(emergency,['noticeNo','station','assignedDate','startDate','endDate','description','classification','type','administration','circuit','section','emergencyType','location','consultant','engineer','contractor','status','archive'])
+      emergency:pick(emergency,['noticeNo','station','assignedDate','startDate','endDate','description','classification','type','administration','circuit','section','emergencyType','location','consultant','engineer','contractor','status','archive']),
+      safety:pick(safety,['workOrder','contractor','date','violation1','violation2','supervisor','editor','reason','link']),
+      executionViolations:pick(executionViolations,['workOrder','contractor','date','violation','violationSection','supervisor','editor','reason','link','emailStatus']),
+      minutes:pick(minutes,['workOrder','contractor','date','minuteType','statement','penalty','uploadStatus','notes'])
     }
   };
 }

@@ -75,6 +75,98 @@ function definitions(q){
  ];
 }
 
+function dqDate(v){
+ const raw=t(v);if(!raw)return null;
+ const s=raw.replace(/[٠-٩]/g,d=>'0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]).replace(/[۰-۹]/g,d=>'0123456789'['۰۱۲۳۴۵۶۷۸۹'.indexOf(d)]);
+ const make=(y,m,d)=>{const x=new Date(y,m-1,d);return x.getFullYear()===y&&x.getMonth()===m-1&&x.getDate()===d?x:null};
+ let m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})(?:\s.*)?$/);
+ if(m)return make(Number(m[3]),Number(m[2]),Number(m[1]));
+ m=s.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})(?:\s.*)?$/);
+ if(m)return make(Number(m[1]),Number(m[2]),Number(m[3]));
+ const d=new Date(s);return isNaN(d)?null:d;
+}
+function dqAdvancedRow(source,r,issue,value){
+ return {source,_row:r._row||'—',workOrder:t(r.workOrder||r.noticeNo),contractor:t(r.contractor),issue,value:t(value)||'—'};
+}
+function advancedChecks(q){
+ const projects=q.projects||[],connections=q.connections||[],permits=q.permits||[],assets=q.assets||[],emergency=q.emergency||[];
+ const safety=q.safety||[],execution=q.executionViolations||[],minutes=q.minutes||[];
+ const checks=[];
+
+ const missingWo=[];
+ [['المشاريع',projects],['التوصيلات',connections],['التصاريح',permits],['الأصول',assets],['مخالفات السلامة',safety],['مخالفات التنفيذ',execution],['محاضر إثبات الحالة',minutes]].forEach(([source,rows])=>{
+  rows.forEach(r=>{if(blank(r,'workOrder'))missingWo.push(dqAdvancedRow(source,r,'رقم أمر العمل فارغ','فارغ'))});
+ });
+ checks.push({key:'missingWorkOrder',label:'رقم أمر ناقص',note:'سجل موجود بدون رقم أمر عمل، ما يمنع الربط الصحيح بين البيانات.',rows:missingWo});
+
+ const badDates=[],today=new Date();today.setHours(0,0,0,0);const futureLimit=new Date(today);futureLimit.setDate(futureLimit.getDate()+1);
+ const inspectDates=(source,rows,fields,pairs=[],futureKeys=[])=>{
+  rows.forEach(r=>{
+   fields.forEach(([key,label])=>{
+    const raw=t(r[key]);if(!raw)return;const d=dqDate(raw);
+    if(!d)badDates.push(dqAdvancedRow(source,r,'تنسيق '+label+' غير صالح',raw));
+    else if(futureKeys.includes(key)&&d>futureLimit)badDates.push(dqAdvancedRow(source,r,label+' في المستقبل',raw));
+   });
+   pairs.forEach(([a,b,label])=>{const da=dqDate(r[a]),db=dqDate(r[b]);if(da&&db&&da>db)badDates.push(dqAdvancedRow(source,r,label,t(r[a])+' ← '+t(r[b])))});
+  });
+ };
+ inspectDates('المشاريع',projects,[['assignedDate','تاريخ الإسناد'],['permitStart','بداية التصريح'],['permitEnd','نهاية التصريح']],[['permitStart','permitEnd','نهاية التصريح أسبق من البداية']],['assignedDate']);
+ inspectDates('التوصيلات',connections,[['assignedDate','تاريخ الإسناد'],['permitStart','بداية التصريح'],['permitEnd','نهاية التصريح']],[['permitStart','permitEnd','نهاية التصريح أسبق من البداية']],['assignedDate']);
+ inspectDates('التصاريح',permits,[['assignedDate','تاريخ الإسناد'],['permitStart','بداية التصريح'],['permitEnd','نهاية التصريح']],[['permitStart','permitEnd','نهاية التصريح أسبق من البداية']],['assignedDate']);
+ inspectDates('الأصول',assets,[['installDate','تاريخ تركيب المعدة']],[],['installDate']);
+ inspectDates('الطوارئ',emergency,[['assignedDate','تاريخ الإسناد'],['startDate','تاريخ مباشرة العمل'],['endDate','تاريخ انتهاء العمل']],[['startDate','endDate','تاريخ انتهاء العمل أسبق من المباشرة']]);
+ inspectDates('مخالفات السلامة',safety,[['date','تاريخ المخالفة']],[],['date']);
+ inspectDates('مخالفات التنفيذ',execution,[['date','تاريخ المخالفة']],[],['date']);
+ inspectDates('محاضر إثبات الحالة',minutes,[['date','تاريخ المحضر']],[],['date']);
+ checks.push({key:'badDate',label:'تاريخ غير منطقي',note:'تنسيق تاريخ غير صالح، تاريخ مستقبلي، أو نهاية أسبق من البداية.',rows:badDates});
+
+ const missingLinks=[];
+ safety.forEach(r=>{if((t(r.violation1)||t(r.violation2))&&blank(r,'link'))missingLinks.push(dqAdvancedRow('مخالفات السلامة',r,'مخالفة مسجلة بدون رابط','الرابط فارغ'))});
+ execution.forEach(r=>{if(t(r.violation)&&blank(r,'link'))missingLinks.push(dqAdvancedRow('مخالفات التنفيذ',r,'مخالفة مسجلة بدون رابط','الرابط فارغ'))});
+ checks.push({key:'missingLink',label:'رابط مفقود',note:'مخالفة مسجلة ولكن رابط المستند/المخالفة غير موجود.',rows:missingLinks});
+
+ const duplicateRows=[],seen=new Map();
+ const addDup=(source,rows,violationFn)=>{
+  rows.forEach(r=>{
+   const sig=[source,t(r.workOrder),t(r.contractor),t(r.date),t(violationFn(r))].map(norm).join('|');
+   if(sig.split('|').filter(Boolean).length<4)return;
+   if(!seen.has(sig))seen.set(sig,[]);
+   seen.get(sig).push({source,r});
+  });
+ };
+ addDup('مخالفات السلامة',safety,r=>[r.violation1,r.violation2].filter(Boolean).join(' / '));
+ addDup('مخالفات التنفيذ',execution,r=>r.violation);
+ addDup('محاضر إثبات الحالة',minutes,r=>r.minuteType);
+ seen.forEach(group=>{if(group.length>1)group.forEach(x=>duplicateRows.push(dqAdvancedRow(x.source,x.r,'سجل مطابق مكرر',group.length+' نسخ متطابقة')))});
+ checks.push({key:'duplicate',label:'تكرار سجل',note:'تكرار مطابق لنفس المصدر + أمر العمل + المقاول + التاريخ + نوع المخالفة/المحضر.',rows:duplicateRows});
+
+ const contractorNoSupervisor=[];
+ safety.forEach(r=>{if(t(r.contractor)&&blank(r,'supervisor'))contractorNoSupervisor.push(dqAdvancedRow('مخالفات السلامة',r,'مقاول مسجل بدون مشرف موقع','المشرف فارغ'))});
+ execution.forEach(r=>{if(t(r.contractor)&&blank(r,'supervisor'))contractorNoSupervisor.push(dqAdvancedRow('مخالفات التنفيذ',r,'مقاول مسجل بدون مشرف موقع','المشرف فارغ'))});
+ checks.push({key:'contractorNoSupervisor',label:'مقاول بدون مشرف',note:'يوجد مقاول في سجل مخالفة ولا يوجد مشرف موقع مرتبط بالسجل.',rows:contractorNoSupervisor});
+
+ const violationNoStatement=[];
+ safety.forEach(r=>{if((t(r.violation1)||t(r.violation2))&&blank(r,'reason'))violationNoStatement.push(dqAdvancedRow('مخالفات السلامة',r,'مخالفة بدون إفادة / سبب','سبب المخالفة فارغ'))});
+ execution.forEach(r=>{if(t(r.violation)&&blank(r,'reason'))violationNoStatement.push(dqAdvancedRow('مخالفات التنفيذ',r,'مخالفة بدون إفادة / سبب','سبب المخالفة فارغ'))});
+ minutes.forEach(r=>{if(t(r.minuteType)&&blank(r,'statement'))violationNoStatement.push(dqAdvancedRow('محاضر إثبات الحالة',r,'محضر بدون إفادة موقع','إفادة الموقع فارغة'))});
+ checks.push({key:'violationNoStatement',label:'مخالفة بدون إفادة',note:'في المخالفات: سبب/إفادة المخالفة فارغ؛ وفي المحاضر: إفادة الموقع فارغة.',rows:violationNoStatement});
+
+ return checks;
+}
+function renderAdvancedDetails(check){
+ const root=document.getElementById('dqIssueDetails');if(!root)return;
+ const rows=check.rows||[];
+ root.innerHTML=`
+  <div class="dq-detail-head">
+   <div><span>SMART DATA AUDIT</span><h3>التدقيق الذكي — ${esc(check.label)}</h3><small>${esc(check.note)}</small></div>
+   <div class="dq-detail-count">${fmt(rows.length)} حالة</div>
+  </div>
+  ${rows.length?`<div class="dq-table-wrap"><table><thead><tr><th>#</th><th>المصدر</th><th>صف الشيت</th><th>المعرف</th><th>المقاول</th><th>المشكلة</th><th>القيمة الحالية</th></tr></thead><tbody>
+   ${rows.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.source)}</td><td>${esc(r._row)}</td><td><b>${esc(r.workOrder||'—')}</b></td><td>${esc(r.contractor||'—')}</td><td>${esc(r.issue)}</td><td>${esc(r.value)}</td></tr>`).join('')}
+  </tbody></table></div>`:'<div class="dq-empty">لا توجد حالات مخالفة لهذا الفحص حاليًا.</div>'}`;
+ root.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
 function ensure(){
  const dataPage=document.getElementById('dataPage');if(!dataPage)return null;
  let root=document.getElementById('dataQualityDashboard');
@@ -122,6 +214,7 @@ function render(){
  const root=ensure();if(!root)return;
  const q=S.page&&S.page.quality?S.page.quality:{};
  const sections=definitions(q);DQ.sections=sections;
+ const advanced=advancedChecks(q);DQ.advanced=advanced;
  const stats=sections.map(sectionStats);
  const totalIssues=stats.reduce((s,x)=>s+x.issues,0);
  const totalAffected=stats.reduce((s,x)=>s+x.affected,0);
@@ -146,6 +239,12 @@ function render(){
     </button>`}).join('')}
   </div>
  </section>`).join('')}
+ <section class="dq-smart-audit">
+  <div class="dq-smart-head"><div><span>SMART DATA AUDIT</span><h3>التدقيق الذكي المتقدم</h3><p>فحوصات إضافية لا تغيّر الكروت الحالية: تكشف أخطاء الربط والمنطق والتكرار ونواقص سجلات المخالفات.</p></div><div class="dq-smart-total"><b>${fmt(advanced.reduce((s,x)=>s+x.rows.length,0))}</b><small>ملاحظة ذكية</small></div></div>
+  <div class="dq-smart-cards">
+   ${advanced.map((check,ai)=>`<button type="button" class="dq-smart-card ${check.rows.length?'has-issue':'is-ok'}" data-ai="${ai}" title="${esc(check.note)}"><i>✦</i><span>${esc(check.label)}</span><strong>${fmt(check.rows.length)}</strong><small>${esc(check.note)}</small></button>`).join('')}
+  </div>
+ </section>
  <section id="dqIssueDetails" class="dq-details">
   <div class="dq-detail-placeholder"><b>تفاصيل الحالات</b><span>اضغط على أي كارت أعلاه لعرض الصفوف التي تحتاج مراجعة.</span></div>
  </section>`;
@@ -156,6 +255,9 @@ function render(){
  }));
  root.querySelectorAll('.dq-overview-card').forEach(btn=>btn.addEventListener('click',()=>{
   document.getElementById('dq-'+btn.dataset.go)?.scrollIntoView({behavior:'smooth',block:'start'});
+ }));
+ root.querySelectorAll('.dq-smart-card').forEach(btn=>btn.addEventListener('click',()=>{
+  renderAdvancedDetails(advanced[Number(btn.dataset.ai)]);
  }));
 }
 
