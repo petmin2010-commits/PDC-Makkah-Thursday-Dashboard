@@ -238,7 +238,7 @@ const APP = {
         ['excelLink','ملف Excel',['ملف Excel']],['pdfLink','ملف PDF',['ملف PDF']],['pcloudLink','فولدر pCloud',['فولدر pCloud']],['uploadStatus','حالة الرفع',['حالة الرفع']],
         ['source','مصدر أمر العمل',['مصدر أمر العمل']],['notes','ملاحظات',['ملاحظات']]
       ],
-      filters: ['minuteType','contractor','region','source','uploadStatus']
+      filters: ['workOrder','minuteType','contractor','region','source','uploadStatus']
     },
     finance: {
       title: 'المعلومات المالية', sheet: '💰ماليات الكهرباء', headerRow: 2,
