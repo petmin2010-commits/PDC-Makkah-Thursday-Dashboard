@@ -27,7 +27,9 @@ function installUi(){
  const memoryBtn=document.createElement('button');memoryBtn.type='button';memoryBtn.id='temporalMemoryNav';memoryBtn.className='nav-item';memoryBtn.innerHTML='◷ <span>ذاكرة المشروع الزمنية</span>';
  const investigationBtn=document.createElement('button');investigationBtn.type='button';investigationBtn.id='investigationRoomNav';investigationBtn.className='nav-item';investigationBtn.innerHTML='⌕ <span>غرفة التحقيق الذكية</span>';
  const decisionBtn=document.createElement('button');decisionBtn.type='button';decisionBtn.id='explainableDecisionNav';decisionBtn.className='nav-item';decisionBtn.innerHTML='⚖ <span>محرك القرار المفسر</span>';
+ const thursdayBtn=nav.querySelector('[data-page="smartThursday"]');
  nav.insertBefore(label,reports||null);nav.insertBefore(btn,reports||null);nav.insertBefore(memoryBtn,reports||null);nav.insertBefore(investigationBtn,reports||null);nav.insertBefore(decisionBtn,reports||null);
+ if(thursdayBtn)nav.insertBefore(thursdayBtn,reports||null);
  const page=document.createElement('section');page.id='smartCenterPage';page.className='page smart-center-page';page.innerHTML=smartCenterMarkup();
  const memoryPage=document.createElement('section');memoryPage.id='temporalMemoryPage';memoryPage.className='page smart-center-page temporal-memory-page';memoryPage.innerHTML=temporalMemoryMarkup();
  const investigationPage=document.createElement('section');investigationPage.id='investigationRoomPage';investigationPage.className='page smart-center-page investigation-room-page';investigationPage.innerHTML=investigationRoomMarkup();
