@@ -5,7 +5,7 @@ const LABELS={
  delay:'التأخير',executionStatus:'حالة التنفيذ',permit:'التصريح',permitStatus:'حالة التصريح',
  category:'النوع الفرعي',stage:'مرحلة التنفيذ',stageStatus:'حالة المرحلة',approval:'الاعتماد',
  resolved:'المعالجة',faultType:'نوع العطل',source:'المصدر',attachments:'المرفقات',
- employee:'الموظف',sourceType:'النوع',supervisor:'المشرف',editor:'المحرر',violation:'المخالفة',
+ employee:'الموظف',sourceType:'النوع',supervisor:'المشرف',editor:'المحرر',violation:'المخالفة',workOrder:'رقم أمر العمل',
  emailStatus:'حالة الإيميل',violationSection:'قسم المخالفة',minuteType:'نوع المحضر',
  uploadStatus:'حالة الرفع',payment:'حالة السداد',consultant155:'155 الاستشاري',contractor155:'155 المقاول',value:'القيمة المالية',paymentStatus:'حالة الدفع',statementNo:'المستخلص',
  sapStatus:'حالة SAP',group:'المجموعة',executionEntity:'جهة التنفيذ',evaluation:'التقييم',date:'التاريخ'
@@ -60,6 +60,7 @@ function bind(){
  const clearFilters=document.getElementById('clearFilters');
  if(clearFilters) clearFilters.onclick=()=>{
    ['f1','f2','f3','f4','f5'].forEach(id=>document.getElementById(id).value='');
+   document.querySelectorAll('.workorder-option-search').forEach(input=>input.value='');
    document.getElementById('globalSearch').value='';
    clearChartFilters(S.current);
    if(S.current==='master')applyMasterFilters();else applyFilters();
@@ -759,8 +760,43 @@ function setupInteractiveFilters(defs,rows,isMaster,resetValues){
    box.dataset.key=d[0];
    box.dataset.master=isMaster?'1':'0';
    lab.textContent=d[1];
+   syncWorkOrderSearch(box,resetValues);
  }
  rebuildFilterOptions(rows,isMaster);
+}
+
+function syncWorkOrderSearch(select,resetValue){
+ const wrap=select.parentElement;
+ let input=wrap.querySelector('.workorder-option-search');
+ if(select.dataset.key!=='workOrder'){
+   if(input){input.value='';input.style.display='none';}
+   return;
+ }
+ if(!input){
+   input=document.createElement('input');
+   input.type='search';
+   input.className='workorder-option-search';
+   input.placeholder='ابحث برقم أمر العمل...';
+   input.setAttribute('aria-label','بحث برقم أمر العمل');
+   input.autocomplete='off';
+   input.oninput=()=>filterWorkOrderSelectOptions(select,input.value);
+   wrap.insertBefore(input,select);
+ }
+ input.style.display='block';
+ if(resetValue)input.value='';
+}
+
+function filterWorkOrderSelectOptions(select,query){
+ const all=Array.isArray(select._allFilterOptions)?select._allFilterOptions:Array.from(select.options).map(o=>({value:o.value,text:o.textContent}));
+ const current=select.value;
+ const q=String(query||'').trim().toLowerCase();
+ const shown=all.filter(o=>!o.value||!q||String(o.text).toLowerCase().includes(q)||String(o.value).toLowerCase().includes(q)||o.value===current);
+ select.innerHTML='';
+ shown.forEach(item=>{
+   const o=document.createElement('option');
+   o.value=item.value;o.textContent=item.text;select.appendChild(o);
+ });
+ if(Array.from(select.options).some(o=>o.value===current))select.value=current;
 }
 
 function currentSelections(){
@@ -804,6 +840,12 @@ function rebuildFilterOptions(rows,isMaster){
    // الحفاظ على الاختيار إذا ما زال صالحًا
    if(current && options.includes(current)) s.value=current;
    else if(current) s.value='';
+
+   s._allFilterOptions=Array.from(s.options).map(o=>({value:o.value,text:o.textContent}));
+   if(key==='workOrder'){
+     const search=s.parentElement.querySelector('.workorder-option-search');
+     if(search&&search.value)filterWorkOrderSelectOptions(s,search.value);
+   }
  }
  updateFilterVisualState();
 }
