@@ -1187,7 +1187,7 @@ async function getFullMonitorData(){
 }
 
 const PROJECT_NEWS_RETENTION_MS=72*60*60*1000;
-const projectNewsState={snapshot:new Map(),events:new Map()};
+const projectNewsState={snapshot:new Map(),events:new Map(),rowSnapshots:new Map()};
 
 function newsExact_(v,x){return norm_(v)===norm_(x)}
 function newsChecked_(v){return v===true||/^(true|نعم|تم|yes|1)$/i.test(clean_(v))}
@@ -1210,6 +1210,47 @@ function newsFmt_(v,unit){
   const n=Number(v||0);
   const x=Math.abs(n-Math.round(n))<0.0001?String(Math.round(n)):String(Math.round(n*10)/10);
   return x+(unit||'');
+}
+function newsRowValue_(v){return clean_(v).replace(/\s+/g,' ').slice(0,180)}
+function newsTrackRows_(pageKey,rows,idField,fields,category,label){
+  const current=new Map();
+  for(const r of rows||[]){
+    const id=newsRowValue_(r[idField]||r.workOrder||r.noticeNo||r._row);
+    if(!id)continue;
+    const snap={};
+    for(const [field] of fields)snap[field]=newsRowValue_(r[field]);
+    current.set(id,snap);
+  }
+  const previous=projectNewsState.rowSnapshots.get(pageKey);
+  projectNewsState.rowSnapshots.set(pageKey,current);
+  if(!previous)return;
+  let emitted=0;
+  const maxPerCycle=35;
+  for(const [id,cur] of current){
+    if(emitted>=maxPerCycle)break;
+    const old=previous.get(id);
+    if(!old){
+      newsEvent_('row:new:'+pageKey+':'+norm_(id),'تحديث','جديد • '+category,'سجل جديد في '+label+' — '+id,'تم رصد سجل جديد مباشرة من الشيت.');
+      emitted++;
+      continue;
+    }
+    for(const [field,fieldLabel] of fields){
+      const before=old[field]||'',after=cur[field]||'';
+      if(before===after)continue;
+      const sig=crypto.createHash('sha1').update(before+'→'+after).digest('hex').slice(0,8);
+      const completed=/(منجز|تم التنفيذ|تمت المراجعة|تم الاعتماد من pdc|تم اصدار التصريح|مرحلة الإغلاق|مرحلة الاغلاق|^نعم$|^تم$)/i.test(norm_(after));
+      const priority=before&&!after?'مهم':completed?'إنجاز':'تحديث';
+      newsEvent_('row:change:'+pageKey+':'+norm_(id)+':'+field+':'+sig,priority,'تغيير مباشر • '+category,'تغير '+fieldLabel+' — '+id,'من «'+(before||'فارغ')+'» إلى «'+(after||'فارغ')+'».');
+      emitted++;
+      if(emitted>=maxPerCycle)break;
+    }
+  }
+  if(emitted>=maxPerCycle)newsEvent_('row:burst:'+pageKey,'مهم','تغييرات كثيفة • '+category,'تم رصد تغييرات كثيرة في '+label,'تم عرض أول '+maxPerCycle+' تغييرًا مباشرًا في هذه الدورة؛ يستمر الرصد في الدورة التالية.');
+}
+function newsTrackConfiguredRows_(pageKey,rows,idField){
+  const cfg=APP.PAGES[pageKey]||{};
+  const fields=(cfg.fields||[]).map(f=>[f[0],f[1]||f[0]]).filter(x=>x[0]&&x[0]!==idField);
+  if(fields.length)newsTrackRows_(pageKey,rows,idField,fields,cfg.title||pageKey,cfg.title||pageKey);
 }
 function newsObserve_(o){
   const value=Number(o.value||0),prev=projectNewsState.snapshot.get(o.key),unit=o.unit||'';
@@ -1421,6 +1462,15 @@ async function newsDeepAuditObservations_(){
   ]);
   const detail=[...projects,...connections];
 
+  // رصد تغييرات الصفوف مباشرة: أي تعديل في أي حقل مرتبط يتحول إلى خبر مستقل.
+  newsTrackConfiguredRows_('projects',projects,'workOrder');
+  newsTrackConfiguredRows_('connections',connections,'workOrder');
+  newsTrackConfiguredRows_('permits',permits,'workOrder');
+  newsTrackConfiguredRows_('assets',assets,'workOrder');
+  newsTrackConfiguredRows_('emergency',emergency,'noticeNo');
+  newsTrackConfiguredRows_('closures',closures,'workOrder');
+  newsTrackConfiguredRows_('attachments',attachments,'workOrder');
+
   // اكتمال الربط بين أوامر المشاريع/التوصيلات وورقة التصاريح.
   const detailSet=newsSetFrom_(detail),permitSet=newsSetFrom_(permits);
   const missingPermit=newsSetDiff_(detailSet,permitSet),extraPermit=newsSetDiff_(permitSet,detailSet);
@@ -1554,7 +1604,7 @@ async function buildLiveProjectNewsObservations_(){
 }
 
 async function getProjectNews(){
-  const key='PDC_PROJECT_NEWS_LIVE_V2';
+  const key='PDC_PROJECT_NEWS_LIVE_V3';
   const hit=cacheGet(key);if(hit)return hit;
   const observations=await buildLiveProjectNewsObservations_();
   newsSmartAggregate_(observations);
@@ -1568,10 +1618,10 @@ async function getProjectNews(){
   const order={عاجل:0,مهم:1,إنجاز:2,تحسن:2,تحديث:3};
   const rows=[...projectNewsState.events.values()]
     .filter(r=>activeIssueKeys.has(r.eventKey)||(Date.parse(r.date)||0)>=cutoff)
-    .sort((a,b)=>(order[a.priority]??9)-(order[b.priority]??9)||(activeIssueKeys.has(b.eventKey)?1:0)-(activeIssueKeys.has(a.eventKey)?1:0)||(Date.parse(b.date)||0)-(Date.parse(a.date)||0))
-    .slice(0,80);
+    .sort((a,b)=>(Date.parse(b.date)||0)-(Date.parse(a.date)||0)||(order[a.priority]??9)-(order[b.priority]??9)||(activeIssueKeys.has(b.eventKey)?1:0)-(activeIssueKeys.has(a.eventKey)?1:0))
+    .slice(0,180);
   const result={updatedAt:now_(),source:'live-sheet-analysis',retentionHours:72,rows};
-  cachePut(key,result,60);
+  cachePut(key,result,20);
   return result;
 }
 
