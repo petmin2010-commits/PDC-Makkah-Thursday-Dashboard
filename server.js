@@ -318,9 +318,14 @@ async function saveSmartHistory(payload){
   }
 
   const current=smartHistoryRowToObj_(row,todayRow?.rowNumber||history.length+2);
-  const compactHistory=[...history.filter(x=>x.date!==today),current]
-    .sort((a,b)=>a.date.localeCompare(b.date)).slice(-30)
+  const fullHistory=[...history.filter(x=>x.date!==today),current].sort((a,b)=>a.date.localeCompare(b.date));
+  const compactHistory=fullHistory.slice(-30)
     .map(x=>({date:x.date,health:x.health,qualityAvg:x.qualityAvg,executionRate:x.executionRate,totalIssues:x.totalIssues,critical:x.critical,high:x.high}));
+  const memoryHistory=fullHistory.slice(-180).map(x=>({
+    date:x.date,timestamp:x.timestamp,totalOrders:x.totalOrders,completed:x.completed,executionRate:x.executionRate,
+    health:x.health,qualityAvg:x.qualityAvg,docScore:x.docScore,totalIssues:x.totalIssues,critical:x.critical,high:x.high,
+    newIssues:x.newIssues,resolvedIssues:x.resolvedIssues,categories:x.categories||{},contractors:x.contractors||{}
+  }));
 
   return {
     ok:true,source:'google-sheet',sheet:SMART_HISTORY_SHEET,today,updatedAt:timestamp,
@@ -339,7 +344,9 @@ async function saveSmartHistory(payload){
       critical:previous?smartHistoryNum_(summary.critical)-previous.critical:0,
       newIssues,resolvedIssues
     },
-    history:compactHistory
+    history:compactHistory,
+    memoryHistory,
+    memoryCoverage:{days:memoryHistory.length,from:memoryHistory[0]?.date||today,to:memoryHistory[memoryHistory.length-1]?.date||today}
   };
 }
 
