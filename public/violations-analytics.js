@@ -45,6 +45,7 @@ function setPreset(preset){
  const key=typeof S!=='undefined'?S.current:'';if(!REPORT_KEYS.has(key))return;
  const st=periodState(key),today=new Date();today.setHours(0,0,0,0);
  if(preset==='all'){st.from='';st.to='';}
+ else if(preset==='week'){const start=new Date(today);start.setDate(start.getDate()-((start.getDay()-5+7)%7));const end=new Date(start);end.setDate(end.getDate()+6);st.from=isoDate(start);st.to=isoDate(end);}
  else if(preset==='month'){st.from=isoDate(new Date(today.getFullYear(),today.getMonth(),1));st.to=isoDate(today);}
  else if(preset==='30'){const d=new Date(today);d.setDate(d.getDate()-29);st.from=isoDate(d);st.to=isoDate(today);}
  else if(preset==='90'){const d=new Date(today);d.setDate(d.getDate()-89);st.from=isoDate(d);st.to=isoDate(today);}
@@ -103,6 +104,7 @@ function ensure(){
       <label><span>إلى تاريخ</span><input id="vpsTo" type="date"></label>
       <div class="vps-presets" aria-label="اختيارات سريعة للفترة">
         <button type="button" data-period="all" class="active">كامل المدة</button>
+        <button type="button" data-period="week" title="من الجمعة إلى الخميس">آخر أسبوع</button>
         <button type="button" data-period="month">هذا الشهر</button>
         <button type="button" data-period="30">آخر 30 يوم</button>
         <button type="button" data-period="90">آخر 90 يوم</button>
