@@ -8,10 +8,9 @@ function rpc(method,args=[]){return fetch('/api/rpc',{method:'POST',headers:{'Co
 function install(){
  if(el('workOrder360Page'))return;
  const nav=el('nav');if(!nav)return;
- const anchor=el('smartCenterNav');
- const label=document.createElement('div');label.className='nav-section-label wo360-label';label.textContent='التحليل الشامل';
+ const anchor=el('explainableDecisionNav')||el('smartCenterNav');
  const btn=document.createElement('button');btn.type='button';btn.id='workOrder360Nav';btn.className='nav-item';btn.innerHTML='🔎 <span>Work Order 360°</span>';
- if(anchor){nav.insertBefore(label,anchor);nav.insertBefore(btn,anchor)}else{nav.appendChild(label);nav.appendChild(btn)}
+ if(anchor){nav.insertBefore(btn,anchor.nextSibling)}else{nav.appendChild(btn)}
  const main=document.querySelector('main');if(!main)return;
  const page=document.createElement('section');page.id='workOrder360Page';page.className='page wo360-page';page.innerHTML=markup();
  main.insertBefore(page,main.firstChild);
