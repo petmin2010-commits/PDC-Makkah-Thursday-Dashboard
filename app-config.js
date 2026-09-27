@@ -221,7 +221,7 @@ const APP = {
         ['reason','سبب المخالفة',['سبب المخالفة']],['link','رابط المخالفة',['الرابط']],['emailStatus','حالة إرسال الإيميل',['حالة إرسال الإيميل']],
         ['emailDate','تاريخ إرسال الإيميل',['تاريخ إرسال الإيميل']],['emailTo','مرسل إلى',['مرسل إلى']],['emailCc','نسخة إلى CC',['نسخة إلى CC']],['emailNote','ملاحظة الإرسال',['ملاحظة إرسال الإيميل']]
       ],
-      filters: ['contractor','violation','supervisor','editor','emailStatus']
+      filters: ['workOrder','contractor','violation','supervisor','editor','emailStatus']
     },
     minutes: {
       title: '🚫محاضر مخالفة اثبات الحالة', sheet: '🚫محاضر مخالفة اثبات الحالة', headerRow: 1,
