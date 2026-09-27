@@ -240,6 +240,14 @@ const APP = {
       ],
       filters: ['workOrder','minuteType','contractor','region','source','uploadStatus']
     },
+    smartThursday: {
+      title: 'تقرير الخميس الذكي', sheet: '', headerRow: 1,
+      fields: [
+        ['source','المصدر',[]],['workOrder','أمر العمل',[]],['contractor','المقاول',[]],['date','التاريخ',[]],
+        ['violation','المخالفة / المحضر',[]],['status','الحالة المتاحة',[]],['penalty','الغرامة',[]]
+      ],
+      filters: []
+    },
     finance: {
       title: 'المعلومات المالية', sheet: '💰ماليات الكهرباء', headerRow: 2,
       fields: [
