@@ -59,13 +59,13 @@ function bind(){
  };
  const clearFilters=document.getElementById('clearFilters');
  if(clearFilters) clearFilters.onclick=()=>{
-   ['f1','f2','f3','f4','f5'].forEach(id=>document.getElementById(id).value='');
+   ['f1','f2','f3','f4','f5','f6'].forEach(id=>document.getElementById(id).value='');
    document.querySelectorAll('.workorder-option-search').forEach(input=>input.value='');
    document.getElementById('globalSearch').value='';
    clearChartFilters(S.current);
    if(S.current==='master')applyMasterFilters();else applyFilters();
  };
- ['f1','f2','f3','f4','f5'].forEach(id=>{
+ ['f1','f2','f3','f4','f5','f6'].forEach(id=>{
    const el=document.getElementById(id);
    if(el) el.onchange=applyFilters;
  });
@@ -737,12 +737,12 @@ function configureMasterFilters(){
 
 function configurePageFilters(){
  // جميع الفلاتر المعرفة لكل تاب تعمل كتفاعلية مترابطة.
- const defs=(S.filterKeys||[]).slice(0,5).map(k=>[k,LABELS[k]||k]);
+ const defs=(S.filterKeys||[]).slice(0,6).map(k=>[k,LABELS[k]||k]);
  setupInteractiveFilters(defs,S.raw,false,true);
 }
 
 function setupInteractiveFilters(defs,rows,isMaster,resetValues){
- for(let i=0;i<5;i++){
+ for(let i=0;i<6;i++){
    const box=document.getElementById('f'+(i+1)), lab=document.getElementById('fl'+(i+1));
    if(!box||!lab)continue;
    const d=defs[i];
@@ -767,23 +767,66 @@ function setupInteractiveFilters(defs,rows,isMaster,resetValues){
 
 function syncWorkOrderSearch(select,resetValue){
  const wrap=select.parentElement;
- let input=wrap.querySelector('.workorder-option-search');
+ let row=wrap.querySelector('.workorder-search-row');
+ let input=row?row.querySelector('.workorder-option-search'):null;
  if(select.dataset.key!=='workOrder'){
-   if(input){input.value='';input.style.display='none';}
+   if(row){input.value='';row.style.display='none';}
    return;
  }
- if(!input){
+ if(!row){
+   row=document.createElement('div');
+   row.className='workorder-search-row';
    input=document.createElement('input');
    input.type='search';
    input.className='workorder-option-search';
-   input.placeholder='ابحث برقم أمر العمل...';
+   input.placeholder='اكتب رقم أمر العمل';
    input.setAttribute('aria-label','بحث برقم أمر العمل');
    input.autocomplete='off';
+   const btn=document.createElement('button');
+   btn.type='button';
+   btn.className='workorder-search-btn';
+   btn.textContent='بحث';
+   btn.onclick=()=>runWorkOrderSearch(select,input);
    input.oninput=()=>filterWorkOrderSelectOptions(select,input.value);
-   wrap.insertBefore(input,select);
+   input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();runWorkOrderSearch(select,input);}};
+   row.append(input,btn);
+   wrap.insertBefore(row,select);
  }
- input.style.display='block';
+ row.style.display='flex';
  if(resetValue)input.value='';
+}
+
+function runWorkOrderSearch(select,input){
+ const q=String(input?.value||'').trim();
+ if(!q){toast('اكتب رقم أمر العمل أولاً');input?.focus();return;}
+ const values=unique((Array.isArray(S.raw)?S.raw:[]).map(r=>r.workOrder)).filter(Boolean);
+ const norm=v=>String(v||'').trim().toLowerCase();
+ const exact=values.find(v=>norm(v)===norm(q));
+ const matches=exact?[exact]:values.filter(v=>norm(v).includes(norm(q)));
+ if(!matches.length){
+   filterWorkOrderSelectOptions(select,q);
+   toast('لا يوجد أمر عمل مطابق للرقم المدخل');
+   input?.focus();
+   return;
+ }
+ if(matches.length>1){
+   filterWorkOrderSelectOptions(select,q);
+   toast(`يوجد ${matches.length} أوامر مطابقة؛ أكمل الرقم أو اختر من القائمة`);
+   select.focus();
+   return;
+ }
+ const target=matches[0];
+ ['f1','f2','f3','f4','f5','f6'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+ const gs=document.getElementById('globalSearch');if(gs)gs.value='';
+ clearChartFilters(S.current);
+ const periodClear=document.getElementById('vpsClear');
+ const periodBox=document.getElementById('violationPeriodSlicer');
+ if(periodClear&&periodBox&&periodBox.style.display!=='none')periodClear.click();
+ rebuildFilterOptions(S.raw,false);
+ select.value=target;
+ input.value=target;
+ applyFilters();
+ toast(`تم عرض جميع سجلات أمر العمل ${target}`);
 }
 
 function filterWorkOrderSelectOptions(select,query){
@@ -801,7 +844,7 @@ function filterWorkOrderSelectOptions(select,query){
 
 function currentSelections(){
  const out={};
- for(let i=1;i<=5;i++){
+ for(let i=1;i<=6;i++){
    const s=document.getElementById('f'+i);
    if(s.parentElement.style.display==='none'||!s.dataset.key)continue;
    out[s.dataset.key]=s.value||'';
@@ -820,7 +863,7 @@ function rowMatchesSelections(row,selections,skipKey){
 function rebuildFilterOptions(rows,isMaster){
  const selections=currentSelections();
 
- for(let i=1;i<=5;i++){
+ for(let i=1;i<=6;i++){
    const s=document.getElementById('f'+i);
    if(s.parentElement.style.display==='none'||!s.dataset.key)continue;
 
@@ -852,7 +895,7 @@ function rebuildFilterOptions(rows,isMaster){
 
 function updateFilterVisualState(){
  let active=0;
- for(let i=1;i<=5;i++){
+ for(let i=1;i<=6;i++){
    const s=document.getElementById('f'+i);
    const wrap=s.parentElement;
    const on=!!s.value;
@@ -3383,7 +3426,7 @@ function exportExecutionReportPdf(){
  if(S.current!=='executionViolations')return;
  const rows=S.filtered||[];if(!rows.length){toast('لا توجد بيانات مطابقة للفلاتر لتصديرها');return;}
  const win=window.open('','_blank');if(!win){toast('اسمح بالنوافذ المنبثقة لتصدير PDF');return;}
- const filterParts=[];['f1','f2','f3','f4','f5'].forEach(id=>{const el=document.getElementById(id);if(!el||!el.value)return;const lab=document.getElementById('fl'+id.slice(1));filterParts.push(`${lab?.textContent||''}: ${el.value}`)});const q=document.getElementById('globalSearch')?.value?.trim();if(q)filterParts.push(`البحث: ${q}`);
+ const filterParts=[];['f1','f2','f3','f4','f5','f6'].forEach(id=>{const el=document.getElementById(id);if(!el||!el.value)return;const lab=document.getElementById('fl'+id.slice(1));filterParts.push(`${lab?.textContent||''}: ${el.value}`)});const q=document.getElementById('globalSearch')?.value?.trim();if(q)filterParts.push(`البحث: ${q}`);
  const contractors=unique(rows.map(r=>r.contractor)).length,workOrders=unique(rows.map(r=>r.workOrder)).length,types=unique(rows.map(r=>r.type)).length;
  const woCounts=safetyCounts(rows,'workOrder').filter(x=>x[0]!=='غير محدد'),repeated=woCounts.filter(x=>x[1]>1).length;
  const topContractors=safetyCounts(rows,'contractor').slice(0,7),topViolations=safetyCounts(rows,'violation').slice(0,7),topSections=safetyCounts(rows,'violationSection').filter(x=>x[0]!=='غير محدد').slice(0,7),topWorkOrders=woCounts.filter(x=>x[1]>1).slice(0,7);
@@ -3411,7 +3454,7 @@ function exportSafetyReportPdf(){
  if(!win){toast('اسمح بالنوافذ المنبثقة لتصدير PDF');return;}
 
  const filterParts=[];
- ['f1','f2','f3','f4','f5'].forEach(id=>{
+ ['f1','f2','f3','f4','f5','f6'].forEach(id=>{
    const el=document.getElementById(id); if(!el||!el.value)return;
    const lab=document.getElementById('fl'+id.slice(1));
    filterParts.push(`${lab?.textContent||''}: ${el.value}`);

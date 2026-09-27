@@ -63,6 +63,12 @@ main{margin-right:255px;padding:22px 27px 45px}.topbar{display:flex;justify-cont
 .filter.active-filter label{color:#2477e8}
 .clear-btn.has-active{background:#fff0f1;color:#c74752;border:1px solid #f4d5d8}
 .filter select{transition:border-color .18s ease,background .18s ease,box-shadow .18s ease}
+.filters{grid-template-columns:repeat(6,minmax(105px,1fr)) auto}
+.workorder-search-row{display:flex;align-items:center;gap:6px;margin:0 0 6px}
+.workorder-search-row .workorder-option-search{flex:1;min-width:0;width:auto;margin:0}
+.workorder-search-btn{height:34px;min-width:58px;border:0;border-radius:9px;padding:0 12px;background:#2477e8;color:#fff;font:800 9px Tajawal,Arial;cursor:pointer;box-shadow:0 5px 14px rgba(36,119,232,.16)}
+.workorder-search-btn:hover{filter:brightness(1.06)}
+html[data-theme] body .workorder-search-btn{background:var(--ta);color:#fff}
 
 /* V2.2.1 — Monthly Assignment Combo Chart */
 .monthly-assignment-panel{margin-bottom:14px}
