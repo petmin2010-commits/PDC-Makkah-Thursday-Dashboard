@@ -210,7 +210,7 @@ const APP = {
         ['reason','سبب المخالفة',['سبب المخالفة']],
         ['link','رابط المخالفة',['الرابط']]
       ],
-      filters: ['contractor','supervisor','editor','type','violation1']
+      filters: ['workOrder','contractor','supervisor','editor','type','violation1']
     },
     executionViolations: {
       title: '🚫مخالفات التنفيذ', sheet: '🚫مخالفات التنفيذ', headerRow: 1,
