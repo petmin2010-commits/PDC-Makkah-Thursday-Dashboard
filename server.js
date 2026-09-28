@@ -984,11 +984,13 @@ async function getDataQualityPage_(){
       projects:pick(projects,['workOrder','contractor','engineer','assignedDate','permitStart','permitEnd','stage','stageStatus','excavationTarget','extensionTarget','advice','adviceAge']),
       connections:pick(connections,['workOrder','contractor','engineer','assignedDate','permitStart','permitEnd','stage','stageStatus','detail','advice','adviceAge']),
       permits:pick(permits,['workOrder','contractor','assignedDate','permitStart','permitEnd','permitStatus','actionTaken','evaluation']),
-      assets:pick(assets,['workOrder','contractor','location','installDate','engineer','plantingReview','plantingStatus','assetForm','procedure207','fieldReceipt','notes','resolved','systemReceipt']),
+      assets:pick(assets,['workOrder','contractor','location','ageDays','installDate','equipmentNo','testType','executingEntity','engineer','plantingReview','plantingStatus','assetForm','fieldReceipt','procedure207','notes','resolved','systemReceipt']),
       emergency:pick(emergency,['noticeNo','station','assignedDate','startDate','endDate','description','classification','type','administration','circuit','section','emergencyType','location','consultant','engineer','contractor','status','archive']),
-      safety:pick(safety,['workOrder','contractor','date','violation1','violation2','supervisor','editor','reason','link']),
-      executionViolations:pick(executionViolations,['workOrder','contractor','date','violation','violationSection','supervisor','editor','reason','link','emailStatus']),
-      minutes:pick(minutes,['workOrder','contractor','date','minuteType','statement','penalty','uploadStatus','notes'])
+      // Keep every configured column for these three sheets so duplicate auditing can
+      // compare the complete row (only the physical sheet row number is ignored).
+      safety:pick(safety,APP.PAGES.safety.fields.map(f=>f[0])),
+      executionViolations:pick(executionViolations,APP.PAGES.executionViolations.fields.map(f=>f[0])),
+      minutes:pick(minutes,APP.PAGES.minutes.fields.map(f=>f[0]))
     }
   };
 }

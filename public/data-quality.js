@@ -43,15 +43,18 @@ function definitions(q){
     r=>'T: '+(t(r.evaluation)||'فارغ')+' | R: '+(checked(r.actionTaken)?'✓':'غير محدد / غير مفعّل'))
   ]},
   {key:'assets',title:'الأصول',subtitle:'🏭 الأصول',rows:q.assets||[],cards:[
-   custom('بدون تاريخ تركيب المعدة','I','تاريخ تركيب المعدة','العمود I — يُحتسب ناقصًا فقط إذا كانت K = «تمت المراجعة»',r=>exact(r.plantingReview,'تمت المراجعة')&&blank(r,'installDate'),()=> 'فارغ'),
-   custom('بدون اسم مهندس التركيب','J','اسم المهندس المسئول عن التركيب','العمود J — يُحتسب ناقصًا فقط إذا كانت K = «تمت المراجعة»',r=>exact(r.plantingReview,'تمت المراجعة')&&blank(r,'engineer'),()=> 'فارغ'),
-   missing('بدون مراجعة بيانات الزراعة','K','plantingReview','مراجعة بيانات الزراعة'),
-   missing('بدون حالة الزراعة','L','plantingStatus','حالة الزراعة'),
-   missing('بدون نموذج الأصول','M','assetForm','نموذج الأصول'),
-   missing('بدون إجراء 207','N','procedure207','إجراء 207'),
-   missing('بدون الاستلام الميداني','O','fieldReceipt','الاستلام الميداني'),
-   custom('بدون بيان تلافي الملاحظات','Q','هل تم تلافيها','العمود Q — يُحتسب فارغًا فقط عند وجود ملاحظة مكتوبة في العمود P',r=>!!t(r.notes)&&blank(r,'resolved'),()=> 'فارغ'),
-   missing('بدون حالة استلام الأصول على النظام','R','systemReceipt','استلام الأصول على النظام')
+   missing('بدون تاريخ تركيب المعدة','I','installDate','تاريخ تركيب المعدة'),
+   missing('بدون رقم المعدة','J','equipmentNo','رقم المعدة'),
+   missing('بدون نوع الاختبار','K','testType','نوع الاختبار'),
+   missing('بدون الجهة المنفذة','L','executingEntity','الجهة المنفذة'),
+   missing('بدون اسم مهندس التركيب','M','engineer','اسم المهندس المسئول عن التركيب'),
+   missing('بدون مراجعة بيانات الزراعة','N','plantingReview','مراجعة بيانات الزراعه'),
+   missing('بدون حالة الزراعة','O','plantingStatus','حالة الزاعة'),
+   missing('بدون نموذج الأصول','P','assetForm','نموذج الأصول'),
+   missing('بدون الاستلام الميداني','Q','fieldReceipt','الإستلام الميداني'),
+   missing('بدون إجراء 207','R','procedure207','إجراء 207'),
+   missing('بدون بيان هل تم تلافيها','T','resolved','هل تم تلافيها'),
+   missing('بدون استلام الأصول على النظام 211','U','systemReceipt','استلام الأصول على النظام اجراء 211')
   ]},
   {key:'emergency',title:'الطوارئ',subtitle:'⚠ إشعارات الطوارئ',rows:q.emergency||[],cards:[
    missing('بدون رقم إشعار','B','noticeNo','رقم الإشعار'),
@@ -79,11 +82,26 @@ function dqDate(v){
  const raw=t(v);if(!raw)return null;
  const s=raw.replace(/[٠-٩]/g,d=>'0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]).replace(/[۰-۹]/g,d=>'0123456789'['۰۱۲۳۴۵۶۷۸۹'.indexOf(d)]);
  const make=(y,m,d)=>{const x=new Date(y,m-1,d);return x.getFullYear()===y&&x.getMonth()===m-1&&x.getDate()===d?x:null};
- let m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})(?:\s.*)?$/);
- if(m)return make(Number(m[3]),Number(m[2]),Number(m[1]));
- m=s.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})(?:\s.*)?$/);
+ let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:\s.*)?$/);
  if(m)return make(Number(m[1]),Number(m[2]),Number(m[3]));
+ m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s.*)?$/);
+ if(m)return make(Number(m[3]),Number(m[2]),Number(m[1]));
+ m=s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})(?:\s.*)?$/);
+ if(m){
+  // Google Sheets API returns the project permit dates as MM-DD-YYYY
+  // (e.g. 07-03-2026 = 3 July 2026). Fall back to DD-MM-YYYY
+  // only when the US interpretation is impossible.
+  const y=Number(m[3]),a=Number(m[1]),b=Number(m[2]);
+  return make(y,a,b)||make(y,b,a);
+ }
+ m=s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s.*)?$/);
+ if(m)return make(Number(m[3]),Number(m[2]),Number(m[1]));
  const d=new Date(s);return isNaN(d)?null:d;
+}
+function dqDateLabel(v){
+ const d=dqDate(v);if(!d)return t(v);
+ const p=n=>String(n).padStart(2,'0');
+ return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear();
 }
 function dqAdvancedRow(source,r,issue,value){
  return {source,_row:r._row||'—',workOrder:t(r.workOrder||r.noticeNo),contractor:t(r.contractor),issue,value:t(value)||'—'};
@@ -107,7 +125,7 @@ function advancedChecks(q){
     if(!d)badDates.push(dqAdvancedRow(source,r,'تنسيق '+label+' غير صالح',raw));
     else if(futureKeys.includes(key)&&d>futureLimit)badDates.push(dqAdvancedRow(source,r,label+' في المستقبل',raw));
    });
-   pairs.forEach(([a,b,label])=>{const da=dqDate(r[a]),db=dqDate(r[b]);if(da&&db&&da>db)badDates.push(dqAdvancedRow(source,r,label,t(r[a])+' ← '+t(r[b])))});
+   pairs.forEach(([a,b,label])=>{const da=dqDate(r[a]),db=dqDate(r[b]);if(da&&db&&da>db)badDates.push(dqAdvancedRow(source,r,label,dqDateLabel(r[a])+' ← '+dqDateLabel(r[b])))});
   });
  };
  inspectDates('المشاريع',projects,[['assignedDate','تاريخ الإسناد'],['permitStart','بداية التصريح'],['permitEnd','نهاية التصريح']],[['permitStart','permitEnd','نهاية التصريح أسبق من البداية']],['assignedDate']);
@@ -126,19 +144,27 @@ function advancedChecks(q){
  checks.push({key:'missingLink',label:'رابط مفقود',note:'مخالفة مسجلة ولكن رابط المستند/المخالفة غير موجود.',rows:missingLinks});
 
  const duplicateRows=[],seen=new Map();
- const addDup=(source,rows,violationFn)=>{
+ const fullRowSignature=(source,r)=>{
+  // Duplicate = every mapped cell in the sheet row is identical.
+  // Ignore only internal metadata such as _row because the physical row number must differ.
+  const keys=Object.keys(r).filter(k=>!k.startsWith('_')).sort();
+  const values=keys.map(k=>t(r[k]));
+  if(!values.some(Boolean))return '';
+  return JSON.stringify([t(source),...keys.map((k,i)=>[k,values[i]])]);
+ };
+ const addDup=(source,rows)=>{
   rows.forEach(r=>{
-   const sig=[source,t(r.workOrder),t(r.contractor),t(r.date),t(violationFn(r))].map(norm).join('|');
-   if(sig.split('|').filter(Boolean).length<4)return;
+   const sig=fullRowSignature(source,r);
+   if(!sig)return;
    if(!seen.has(sig))seen.set(sig,[]);
    seen.get(sig).push({source,r});
   });
  };
- addDup('مخالفات السلامة',safety,r=>[r.violation1,r.violation2].filter(Boolean).join(' / '));
- addDup('مخالفات التنفيذ',execution,r=>r.violation);
- addDup('محاضر إثبات الحالة',minutes,r=>r.minuteType);
- seen.forEach(group=>{if(group.length>1)group.forEach(x=>duplicateRows.push(dqAdvancedRow(x.source,x.r,'سجل مطابق مكرر',group.length+' نسخ متطابقة')))});
- checks.push({key:'duplicate',label:'تكرار سجل',note:'تكرار مطابق لنفس المصدر + أمر العمل + المقاول + التاريخ + نوع المخالفة/المحضر.',rows:duplicateRows});
+ addDup('مخالفات السلامة',safety);
+ addDup('مخالفات التنفيذ',execution);
+ addDup('محاضر إثبات الحالة',minutes);
+ seen.forEach(group=>{if(group.length>1)group.forEach(x=>duplicateRows.push(dqAdvancedRow(x.source,x.r,'صف كامل مطابق ومكرر',group.length+' صفوف متطابقة بالكامل')))});
+ checks.push({key:'duplicate',label:'تكرار سجل',note:'لا تُرصد الملاحظة إلا إذا تطابقت جميع خلايا الصف بالكامل داخل نفس المصدر؛ يُستثنى فقط رقم صف الشيت.',rows:duplicateRows});
 
  const contractorNoSupervisor=[];
  safety.forEach(r=>{if(t(r.contractor)&&blank(r,'supervisor'))contractorNoSupervisor.push(dqAdvancedRow('مخالفات السلامة',r,'مقاول مسجل بدون مشرف موقع','المشرف فارغ'))});
