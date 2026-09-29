@@ -68,6 +68,22 @@ function languageFrom(header, col) {
   if (/انج|english/i.test(h)) return 'English';
   return col % 2 ? 'عربي' : 'English';
 }
+
+function fileNameFromCell(cell) {
+  if (!cell) return '';
+  const value = cell.value;
+  if (value && typeof value === 'object' && typeof value.text === 'string') return value.text.trim();
+  const text = String(cell.text || '').trim();
+  return text === '[object Object]' ? '' : text;
+}
+
+function manualCategoryFromHeader(header) {
+  const h = String(header || '').toLowerCase();
+  if (/تشغيل|operation/.test(h)) return 'operation';
+  if (/صيان|maintenance/.test(h)) return 'maintenance';
+  return '';
+}
+
 async function readLiveManuals() {
   const exportUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=xlsx`;
   const response = await fetch(exportUrl, { redirect: 'follow', headers: { 'User-Agent': 'SIO-Manuals-Dashboard/1.0' } });
@@ -83,18 +99,35 @@ async function readLiveManuals() {
     headers[c] = String(sheet.getCell(1, c).text || '').trim();
   }
 
-  const result = { operation: [], maintenance: [], other: [], source: 'live', fetchedAt: new Date().toISOString() };
+  const result = { operation: [], maintenance: [], source: 'live', fetchedAt: new Date().toISOString() };
+  let lastSector = '';
+
   for (let r = 2; r <= sheet.rowCount; r++) {
-    const sector = String(sheet.getCell(r, 1).text || '').trim();
+    const rowSector = String(sheet.getCell(r, 1).text || '').trim();
+    if (rowSector) lastSector = rowSector;
+
     for (let c = 2; c <= sheet.columnCount; c++) {
+      const category = manualCategoryFromHeader(headers[c]);
+      if (!category) continue;
+
       const cell = sheet.getCell(r, c);
-      const fileName = String(cell.text || '').trim();
+      const url = extractUrl(cell);
+      if (!url) continue;
+
+      const fileName = fileNameFromCell(cell);
       if (!fileName) continue;
+
       const zeroCol = c - 1;
-      const item = { sector: sector || 'غير مصنف', language: languageFrom(headers[c], zeroCol), fileName, url: extractUrl(cell), column: headers[c] || `عمود ${c}` };
-      if (c === 2 || c === 3) result.operation.push(item);
-      else if (c === 4 || c === 5) result.maintenance.push(item);
-      else result.other.push(item);
+      const item = {
+        sector: rowSector || lastSector || 'غير مصنف',
+        language: languageFrom(headers[c], zeroCol),
+        fileName,
+        url,
+        column: headers[c] || `عمود ${c}`,
+        cell: cell.address
+      };
+
+      result[category].push(item);
     }
   }
   return result;

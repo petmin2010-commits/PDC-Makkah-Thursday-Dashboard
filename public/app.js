@@ -1,6 +1,6 @@
 const state = {
   activeTab: 'operation',
-  manuals: { operation: [], maintenance: [], other: [] },
+  manuals: { operation: [], maintenance: [] },
   meta: null
 };
 
@@ -12,8 +12,7 @@ const emptyState = $('emptyState');
 
 const labels = {
   operation: { ar: 'أدلة التشغيل', en: 'OPERATION MANUALS', type: 'دليل تشغيل' },
-  maintenance: { ar: 'أدلة الصيانة', en: 'MAINTENANCE MANUALS', type: 'دليل صيانة' },
-  other: { ar: 'ملفات أخرى', en: 'OTHER PROJECT FILES', type: 'ملف مشروع' }
+  maintenance: { ar: 'أدلة الصيانة', en: 'MAINTENANCE MANUALS', type: 'دليل صيانة' }
 };
 
 function escapeHtml(value) {
@@ -71,12 +70,10 @@ async function loadManuals(force = false) {
     const data = await api('/api/manuals' + (force ? '?refresh=1' : ''));
     state.manuals.operation = data.operation || [];
     state.manuals.maintenance = data.maintenance || [];
-    state.manuals.other = data.other || [];
 
     $('operationCount').textContent = state.manuals.operation.length;
     $('maintenanceCount').textContent = state.manuals.maintenance.length;
-    $('otherCount').textContent = state.manuals.other.length;
-    $('totalFiles').textContent = state.manuals.operation.length + state.manuals.maintenance.length + state.manuals.other.length;
+    $('totalFiles').textContent = state.manuals.operation.length + state.manuals.maintenance.length;
 
     const sourceState = document.querySelector('.source-state');
     sourceState.classList.remove('live','fallback');
