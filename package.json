@@ -1,0 +1,14 @@
+{
+  "name": "sio-irrigation-manuals-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "بوابة أدلة التشغيل والصيانة - المؤسسة العامة للري بالأحساء",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "express-session": "^1.19.0",
+    "exceljs": "^4.4.0"
+  }
+}

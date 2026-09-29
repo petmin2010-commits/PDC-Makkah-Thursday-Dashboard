@@ -1,0 +1,14 @@
+{
+  "updatedFrom": "uploaded snapshot",
+  "operation": [
+    {"sector":"الكيلو 01","language":"عربي","fileName":"دليل التشغيل مجمع كيلو 1بتاريخ - فاينال.pdf","url":"https://drive.google.com/file/d/1RvDqilcgat_QVe1pphC_KQkWd1lswsAh/view?usp=drive_link"},
+    {"sector":"الكيلو 01","language":"English","fileName":"Operation Manual -Kilo1 Station- 08-02.pdf","url":"https://drive.google.com/file/d/1Zag6jn2PFv7lB0NrnMkE8HAHUo-AIT9_/view?usp=drive_link"},
+    {"sector":"قطاع 09","language":"عربي","fileName":"دليل التشغيل مجمع-قطاع 9-نسخة نهائية.pdf","url":"https://drive.google.com/file/d/1WCIZ1f9FaF7AZ78wB8UFPHmMtKqH02Ey/view?usp=drive_link"},
+    {"sector":"قطاع 09","language":"English","fileName":"Operation Manual -29-06- Zone9.pdf","url":"https://drive.google.com/file/d/1DtBqrSHsCUCb0GGcQmWy6Qiht_vto9ko/view?usp=drive_link"}
+  ],
+  "maintenance": [
+    {"sector":"الكيلو 01","language":"عربي","fileName":"دليل الصيانة محطة كيلو 1 - نسخة نهائية.pdf","url":"https://drive.google.com/file/d/10JL4RQ1A6X4ICqLcdjTwGildy8mjt06H/view?usp=drive_link"},
+    {"sector":"الكيلو 01","language":"English","fileName":"KILO1 MANUAL-01-03-2026.pdf","url":"https://drive.google.com/file/d/1iaFyVYsSZt87O5_AWhMJKzDN2jn_IjiE/view?usp=drive_link"}
+  ],
+  "other": []
+}

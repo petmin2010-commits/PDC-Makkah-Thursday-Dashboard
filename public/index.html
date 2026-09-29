@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#006a87">
+  <title>بوابة أدلة التشغيل والصيانة | المؤسسة العامة للري</title>
+  <link rel="icon" href="/sio-logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <section id="loginScreen" class="login-screen">
+    <div class="login-watermark" aria-hidden="true"><img src="/sio-logo.png" alt=""></div>
+    <div class="login-card">
+      <div class="brand-seal"><img src="/sio-logo.png" alt="شعار المؤسسة العامة للري"></div>
+      <div class="login-kicker">بوابة وثائق المشروع</div>
+      <h1>أدلة التشغيل والصيانة</h1>
+      <p id="loginProjectName" class="login-project">إعداد أدلة إجراءات وسياسات التشغيل والصيانة لفرع المؤسسة العامة للري بالأحساء</p>
+      <div class="official-line"><span></span><b>المؤسسة العامة للري</b><span></span></div>
+      <form id="loginForm" autocomplete="on">
+        <label class="field">
+          <span>اسم المستخدم</span>
+          <div class="input-wrap">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 8a7 7 0 0 0-14 0"/></svg>
+            <input id="username" name="username" autocomplete="username" required placeholder="أدخل اسم المستخدم">
+          </div>
+        </label>
+        <label class="field">
+          <span>كلمة المرور</span>
+          <div class="input-wrap">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2M5 10h14v10H5z"/></svg>
+            <input id="password" name="password" type="password" autocomplete="current-password" required placeholder="أدخل كلمة المرور">
+            <button id="togglePassword" class="icon-btn" type="button" aria-label="إظهار أو إخفاء كلمة المرور">◉</button>
+          </div>
+        </label>
+        <button id="loginButton" class="primary-btn" type="submit">تسجيل الدخول</button>
+        <div id="loginMessage" class="login-message" role="alert"></div>
+      </form>
+      <div class="login-foot">نظام مخصص لعرض وثائق المشروع المعتمدة</div>
+    </div>
+  </section>
+
+  <div id="appShell" class="app-shell" hidden>
+    <img class="page-watermark" src="/sio-logo.png" alt="" aria-hidden="true">
+    <header class="topbar">
+      <div class="topbar-brand">
+        <img src="/sio-logo.png" alt="شعار المؤسسة العامة للري">
+        <div>
+          <div class="org-name">المؤسسة العامة للري</div>
+          <h1 id="projectName">إعداد أدلة إجراءات وسياسات التشغيل والصيانة لفرع المؤسسة العامة للري بالأحساء</h1>
+          <div class="project-meta"><span>الأحساء</span><i></i><span>رقم العقد: <b id="contractNo">250301052116</b></span></div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button id="refreshBtn" class="ghost-btn" type="button" title="تحديث الملفات من المصدر">
+          <span>تحديث</span>
+          <svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 8M20 3v5h-5"/></svg>
+        </button>
+        <button id="logoutBtn" class="ghost-btn danger" type="button">
+          <span>خروج</span>
+          <svg viewBox="0 0 24 24"><path d="M10 17l5-5-5-5M15 12H3M14 3h7v18h-7"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="hero">
+        <div>
+          <span class="eyebrow">PROJECT DOCUMENT PORTAL</span>
+          <h2>مكتبة أدلة المشروع</h2>
+          <p>الوصول السريع إلى النسخ المعتمدة من أدلة التشغيل والصيانة والملفات المرتبطة بالمشروع.</p>
+        </div>
+        <div class="hero-stat">
+          <strong id="totalFiles">0</strong>
+          <span>ملف متاح</span>
+        </div>
+      </section>
+
+      <nav class="tabs" aria-label="أقسام الملفات">
+        <button class="tab active" data-tab="operation" type="button"><span class="tab-icon">⚙</span><span>أدلة التشغيل</span><b id="operationCount">0</b></button>
+        <button class="tab" data-tab="maintenance" type="button"><span class="tab-icon">🛠</span><span>أدلة الصيانة</span><b id="maintenanceCount">0</b></button>
+        <button class="tab" data-tab="other" type="button"><span class="tab-icon">▤</span><span>ملفات أخرى</span><b id="otherCount">0</b></button>
+      </nav>
+
+      <section class="section-head">
+        <div><span id="sectionEnglish">OPERATION MANUALS</span><h3 id="sectionTitle">أدلة التشغيل</h3></div>
+        <div class="source-state"><span id="sourceDot"></span><span id="sourceText">جاري قراءة المصدر...</span></div>
+      </section>
+
+      <section id="documentGrid" class="document-grid" aria-live="polite"></section>
+      <section id="emptyState" class="empty-state" hidden>
+        <div class="empty-icon">▧</div>
+        <h3>لا توجد ملفات مضافة في هذا القسم حاليًا</h3>
+        <p>عند إضافة روابط جديدة في «الورقة2» ستظهر هنا تلقائيًا بعد التحديث.</p>
+      </section>
+
+      <div class="data-note">
+        <div><span class="pulse"></span><span>المصدر: أدلة التشغيل والصيانة - تقدم الحالة / الورقة2</span></div>
+        <span id="lastUpdated">—</span>
+      </div>
+    </main>
+
+    <footer>
+      <span>المؤسسة العامة للري — الأحساء</span>
+      <span>بوابة وثائق مشروع أدلة التشغيل والصيانة</span>
+    </footer>
+  </div>
+
+  <div id="infoModal" class="modal" hidden>
+    <div class="modal-card">
+      <button id="modalClose" class="modal-close" type="button" aria-label="إغلاق">×</button>
+      <div class="modal-icon">i</div>
+      <h3 id="modalTitle"></h3>
+      <p id="modalText"></p>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
