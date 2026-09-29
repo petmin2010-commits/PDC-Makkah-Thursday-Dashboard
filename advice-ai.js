@@ -14,6 +14,7 @@ const norm=v=>clean(v).normalize('NFKC')
  .replace(/[\s\-_/\\|.,،؛;:!?؟"'()\[\]{}]+/g,'').toLowerCase();
 const hash=v=>crypto.createHash('sha1').update(String(v||'')).digest('hex').slice(0,16);
 const keyOf=(source,wo,row)=>clean(source)+'|'+clean(wo)+'|'+String(row||'');
+const isClosingStage=v=>clean(v)==='مرحلة الإغلاق';
 const qSheet=name=>"'"+String(name).replace(/'/g,"''")+"'";
 const nowKsa=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(new Date());
 function similarity(a,b){
@@ -134,15 +135,18 @@ async function syncAdviceHistory(opts){
   await ensureHistorySheet({sheets,spreadsheetId});
   const history=await readHistory({sheets,spreadsheetId});
   const latest=new Map();for(const h of history)latest.set(keyOf(h.source,h.workOrder,h.sourceRow),h);
-  const current=[
+  const currentAll=[
    ...await readAdviceSource({sheets,spreadsheetId,sheetName:projectsSheet,source:'المشاريع'}),
    ...await readAdviceSource({sheets,spreadsheetId,sheetName:connectionsSheet,source:'التوصيلات'})
   ];
-  const changes=current.filter(item=>{const p=latest.get(keyOf(item.source,item.workOrder,item.row));return !p||p.advice!==item.advice||p.adviceTimestamp!==item.adviceTimestamp;});
+  const current=currentAll.filter(item=>!isClosingStage(item.stage));
+  const activeKeys=new Set(current.map(item=>keyOf(item.source,item.workOrder,item.row)));
+  const changes=currentAll.filter(item=>{const p=latest.get(keyOf(item.source,item.workOrder,item.row));return !p||p.advice!==item.advice||p.adviceTimestamp!==item.adviceTimestamp||p.stage!==item.stage;});
   const rows=[],created=[];let aiCalls=0,maxAi=Math.max(1,Number(process.env.ADVICE_AI_MAX_PER_SYNC||20));
   for(const item of changes){
    const prev=latest.get(keyOf(item.source,item.workOrder,item.row)),capturedAt=nowKsa();let analysis;
-   if(!prev)analysis=baselineAnalysis(item);
+   if(isClosingStage(item.stage))analysis={enabled:false,classification:'مستبعد - مرحلة الإغلاق',score:null,reason:'أمر العمل في مرحلة الإغلاق؛ يُحفظ التغيير تاريخيًا ولا يُرسل لوكيل الذكاء الاصطناعي ولا يدخل في مؤشرات جودة الإفادات.',newInformation:[],substantive:null,model:''};
+   else if(!prev)analysis=baselineAnalysis(item);
    else if(process.env.OPENAI_API_KEY&&aiCalls<maxAi){try{analysis=await analyzeWithAI({...item,previousAdvice:prev.advice,previousTimestamp:prev.adviceTimestamp});aiCalls++;}catch(e){analysis={enabled:false,classification:'بانتظار وكيل الذكاء الاصطناعي',score:null,reason:clean(e.message),newInformation:[],substantive:null,model:''};}}
    else analysis={enabled:false,classification:'بانتظار وكيل الذكاء الاصطناعي',score:null,reason:norm(prev.advice)===norm(item.advice)?'التحقق الأولي يشير إلى تعديل شكلي، لكن الحكم النهائي متروك لوكيل الذكاء الاصطناعي.':'بانتظار وكيل الذكاء الاصطناعي لتحليل القيمة التشغيلية للتغيير.',newInformation:[],substantive:null,model:''};
    const row=eventRow(item,prev,analysis,capturedAt);rows.push(row);
@@ -151,10 +155,10 @@ async function syncAdviceHistory(opts){
   if(rows.length)await sheets.spreadsheets.values.append({spreadsheetId,range:`${qSheet(HISTORY_SHEET)}!A:X`,valueInputOption:'RAW',insertDataOption:'INSERT_ROWS',requestBody:{values:rows}});
   let finalHistory=[...history,...created];
   if(process.env.OPENAI_API_KEY){
-   const remaining=Math.max(1,maxAi-aiCalls),reanalyzed=await reanalyzePending({sheets,spreadsheetId,limit:remaining});
+   const remaining=Math.max(1,maxAi-aiCalls),reanalyzed=await reanalyzePending({sheets,spreadsheetId,limit:remaining,activeKeys});
    if(reanalyzed)finalHistory=await readHistory({sheets,spreadsheetId});
   }
-  return buildSummary(finalHistory,{created:created.length,agentEnabled:!!process.env.OPENAI_API_KEY});
+  return buildSummary(finalHistory,{created:created.length,agentEnabled:!!process.env.OPENAI_API_KEY,activeKeys,excludedClosed:currentAll.length-current.length});
  })();
  try{return await syncPromise}finally{syncPromise=null}
 }
@@ -167,7 +171,9 @@ function daysSince(v){const d=parseKsaStamp(v);return d?Math.max(0,(Date.now()-d
 
 function buildSummary(history,meta={}){
  const latest=new Map();for(const h of history)latest.set(keyOf(h.source,h.workOrder,h.sourceRow),h);
- const current=[...latest.values()],events=history.filter(h=>h.classification&&h.classification!=='خط أساس');
+ const activeKeys=meta.activeKeys instanceof Set?meta.activeKeys:null;
+ const current=[...latest.values()].filter(h=>!activeKeys||activeKeys.has(keyOf(h.source,h.workOrder,h.sourceRow)));
+ const events=history.filter(h=>h.classification&&h.classification!=='خط أساس'&&!h.classification.startsWith('مستبعد')&&(!activeKeys||activeKeys.has(keyOf(h.source,h.workOrder,h.sourceRow))));
  const isSusp=h=>h.classification==='شكلي'||h.classification.includes('مشتبه');
  const counts={substantive:events.filter(h=>h.classification==='جوهري').length,weak:events.filter(h=>h.classification==='ضعيف').length,cosmetic:events.filter(h=>h.classification==='شكلي').length,suspicious:events.filter(isSusp).length,pending:events.filter(h=>h.classification.includes('بانتظار')).length};
  const age={fresh:0,old:0,veryOld:0,neglect:0,severe:0,unknown:0};
@@ -176,13 +182,13 @@ function buildSummary(history,meta={}){
  const suspiciousByEngineer=[...engineerMap.entries()].sort((a,b)=>b[1]-a[1]).slice(0,15).map(([engineer,count])=>({engineer,count}));
  const recent=events.slice(-120).reverse().map(h=>({eventId:h.eventId,capturedAt:h.capturedAt,source:h.source,row:h.sourceRow,workOrder:h.workOrder,engineer:h.engineer,contractor:h.contractor,stage:h.stage,previousAdvice:h.previousAdvice,currentAdvice:h.advice,previousTimestamp:h.previousTimestamp,currentTimestamp:h.adviceTimestamp,similarity:h.similarity,classification:h.classification,score:h.score,reason:h.reason,newInformation:h.newInformation,lastSubstantiveAt:h.lastSubstantiveAt,model:h.model}));
  const currentOrders=current.map(h=>({source:h.source,row:h.sourceRow,workOrder:h.workOrder,engineer:h.engineer,contractor:h.contractor,stage:h.stage,currentAdvice:h.advice,currentTimestamp:h.adviceTimestamp,lastSubstantiveAt:h.lastSubstantiveAt,daysSinceSubstantive:daysSince(h.lastSubstantiveAt),classification:h.classification,score:h.score}));
- return {sheet:HISTORY_SHEET,agentEnabled:!!meta.agentEnabled,created:meta.created||0,totalEvents:events.length,trackedOrders:current.length,counts,age,suspiciousByEngineer,recent,currentOrders};
+ return {sheet:HISTORY_SHEET,agentEnabled:!!meta.agentEnabled,created:meta.created||0,totalEvents:events.length,trackedOrders:current.length,excludedClosed:Number(meta.excludedClosed||0),counts,age,suspiciousByEngineer,recent,currentOrders};
 }
 
-async function reanalyzePending({sheets,spreadsheetId,limit=20}){
+async function reanalyzePending({sheets,spreadsheetId,limit=20,activeKeys=null}){
  if(!process.env.OPENAI_API_KEY)return 0;
  const history=await readHistory({sheets,spreadsheetId});
- const pending=history.filter(h=>h.classification.includes('بانتظار وكيل')).slice(-Math.max(1,limit));
+ const pending=history.filter(h=>h.classification.includes('بانتظار وكيل')&&(!activeKeys||activeKeys.has(keyOf(h.source,h.workOrder,h.sourceRow)))).slice(-Math.max(1,limit));
  let done=0;
  for(const h of pending){
   try{

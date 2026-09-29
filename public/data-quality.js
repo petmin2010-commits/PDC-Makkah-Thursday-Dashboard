@@ -279,7 +279,7 @@ function renderAdviceAi(ai){
  const status=ai.agentEnabled?'الوكيل مفعل':'الوكيل غير مفعل';
  const statusText=ai.agentEnabled?'يحلل التغييرات الدلالية في الإفادات ويحدد هل المتابعة جوهرية أم شكلية.':'تم تجهيز النظام والتخزين التاريخي، ويلزم تفعيل OPENAI_API_KEY على السيرفر لبدء التحليل الدلالي.';
  return `<section class="dq-ai-advice">
-  <div class="dq-ai-head"><div><span>AI ADVICE QUALITY AGENT</span><h3>وكيل الذكاء الاصطناعي لتحليل جودة الإفادات</h3><p>يفصل بين آخر تعديل وآخر متابعة حقيقية، ويقارن الإفادة السابقة بالجديدة ويكشف التحديثات الشكلية أو التي لا تضيف معلومة تشغيلية.</p></div><div class="dq-ai-status ${ai.agentEnabled?'on':'off'}"><b>${esc(status)}</b><small>${esc(statusText)}</small></div></div>
+  <div class="dq-ai-head"><div><span>AI ADVICE QUALITY AGENT</span><h3>وكيل الذكاء الاصطناعي لتحليل جودة الإفادات</h3><p>يفصل بين آخر تعديل وآخر متابعة حقيقية، ويقارن الإفادة السابقة بالجديدة. أوامر العمل في «مرحلة الإغلاق» مستبعدة من التحليل ومؤشرات جودة الإفادات.</p></div><div class="dq-ai-status ${ai.agentEnabled?'on':'off'}"><b>${esc(status)}</b><small>${esc(statusText)}</small></div></div>
   <div class="dq-ai-cards">
    <button data-advice-ai="all"><span>أوامر تحت الرقابة</span><strong>${fmt(ai.trackedOrders||0)}</strong><small>المشاريع + التوصيلات</small></button>
    <button data-advice-ai="substantive"><span>تحديثات جوهرية</span><strong>${fmt(c.substantive||0)}</strong><small>أضافت معلومة أو إجراءً فعليًا</small></button>
@@ -288,6 +288,7 @@ function renderAdviceAi(ai){
    <button data-advice-ai="pending"><span>بانتظار تحليل الوكيل</span><strong>${fmt(c.pending||0)}</strong><small>تُحلل تلقائيًا بعد تفعيل الوكيل</small></button>
    <button data-advice-ai="stale"><span>دون متابعة جوهرية 3+ أيام</span><strong>${fmt(stale)}</strong><small>لا يعتمد على آخر تعديل شكلي</small></button>
    <button data-advice-ai="severe"><span>دون متابعة جوهرية 15+ يوم</span><strong>${fmt(a.severe||0)}</strong><small>إهمال شديد بالمتابعة الحقيقية</small></button>
+   <button type="button" disabled><span>مستبعد — مرحلة الإغلاق</span><strong>${fmt(ai.excludedClosed||0)}</strong><small>لا يُرسل للوكيل ولا يدخل في مؤشرات الجودة</small></button>
    <button type="button" disabled><span>سجل تاريخي محفوظ</span><strong>${fmt(ai.totalEvents||0)}</strong><small>${esc(ai.sheet||'🔒 سجل الإفادات التاريخي')}</small></button>
   </div>
  </section>`;
