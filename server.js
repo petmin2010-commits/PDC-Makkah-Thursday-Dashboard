@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const { google } = require('googleapis');
 const { DateTime } = require('luxon');
 const { APP } = require('./app-config');
+const { syncAdviceHistory } = require('./advice-ai');
 
 function loadEnvFile(){
   const p=path.join(__dirname,'.env');
@@ -351,7 +352,7 @@ async function saveSmartHistory(payload){
 }
 
 const WO360_HEADER_SCAN_ROWS=40;
-const WO360_SYSTEM_SHEETS=['dp users','dashboard history'];
+const WO360_SYSTEM_SHEETS=['dp users','dashboard history','🔒 سجل الافادات التاريخي'];
 
 function wo360Norm_(v){
   return clean_(v).normalize('NFKC').replace(/[\u064B-\u065F\u0670]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').toLowerCase().replace(/\s+/g,' ').trim();
@@ -605,7 +606,7 @@ async function getWorkOrderMasterEnrichment(){
 }
 
 async function readConfiguredSheet_(cfg,cacheKey){
-  const key='PDC_V3_'+cacheKey;
+  const key='PDC_V4_'+cacheKey;
   if(cacheKey!=='workorders'){const hit=cacheGet(key);if(hit)return hit}
   const endColumn=cacheKey==='workorders'?'BD':cacheKey==='emergency'?'Z':cacheKey==='connections'?'AO':cacheKey==='permits'?'T':'AZ';  const values=await valuesGet(`${qSheet(cfg.sheet)}!A:${endColumn}`);
   const headerRow=cfg.headerRow||1;
@@ -628,6 +629,13 @@ async function readConfiguredSheet_(cfg,cacheKey){
   body.forEach((r,idx)=>{
     const obj={_row:headerRow+1+idx},search=[];let meaningful=false;
     cfg.fields.forEach(f=>{const absolute=map[f[0]];let v=absolute>=0?clean_(r[absolute]):'';if(f[0]==='workOrder')v=cleanWorkOrder_(v);obj[f[0]]=v;if(v){meaningful=true;search.push(v)}});
+    // Preserve a compact signature of the COMPLETE physical sheet row for duplicate auditing.
+    // This includes columns that are not mapped to dashboard fields (e.g. email send timestamp).
+    if(cacheKey==='safety'||cacheKey==='executionViolations'||cacheKey==='minutes'){
+      const rawCells=r.map(v=>clean_(v));
+      while(rawCells.length&&!rawCells[rawCells.length-1])rawCells.pop();
+      obj._fullRowSignature=JSON.stringify(rawCells);
+    }
     if(cacheKey==='emergency'&&!clean_(obj.noticeNo))return;
     if(cacheKey==='connections'&&!clean_(obj.workOrder))return;
     if(cacheKey==='permits'&&!clean_(obj.workOrder))return;
@@ -957,9 +965,20 @@ async function getWednesdayMeetingData(){
   return payload;
 }
 
+async function getAdviceIntelligence_(){
+  assertConfig();
+  const sheets=await getSheets();
+  return syncAdviceHistory({
+    sheets,
+    spreadsheetId:SPREADSHEET_ID,
+    projectsSheet:APP.PAGES.projects.sheet,
+    connectionsSheet:APP.PAGES.connections.sheet
+  });
+}
+
 async function getDataQualityPage_(){
   const pick=(rows,keys)=>rows.map(r=>{
-    const o={_row:r._row};
+    const o={_row:r._row,_fullRowSignature:r._fullRowSignature||''};
     keys.forEach(k=>{o[k]=r[k]??''});
     return o;
   });
@@ -973,6 +992,7 @@ async function getDataQualityPage_(){
     readConfiguredSheet_(APP.PAGES.executionViolations,'executionViolations'),
     readConfiguredSheet_(APP.PAGES.minutes,'minutes')
   ]);
+  const adviceIntelligence=await getAdviceIntelligence_().catch(e=>({agentEnabled:!!process.env.OPENAI_API_KEY,error:e.message||String(e),created:0,totalEvents:0,trackedOrders:0,counts:{},age:{},suspiciousByEngineer:[],recent:[]}));
   return {
     key:'dataQuality',
     title:'جودة البيانات',
@@ -980,11 +1000,12 @@ async function getDataQualityPage_(){
     rows:[],
     columns:[],
     filterKeys:[],
+    adviceIntelligence,
     quality:{
       projects:pick(projects,['workOrder','contractor','engineer','assignedDate','permitStart','permitEnd','stage','stageStatus','excavationTarget','extensionTarget','advice','adviceAge']),
       connections:pick(connections,['workOrder','contractor','engineer','assignedDate','permitStart','permitEnd','stage','stageStatus','detail','advice','adviceAge']),
       permits:pick(permits,['workOrder','contractor','assignedDate','permitStart','permitEnd','permitStatus','actionTaken','evaluation']),
-      assets:pick(assets,['workOrder','contractor','location','ageDays','installDate','equipmentNo','testType','executingEntity','engineer','plantingReview','plantingStatus','assetForm','fieldReceipt','procedure207','notes','resolved','systemReceipt']),
+      assets:pick(assets,['workOrder','contractor','location','ageDays','orderFollowStatus','installDate','equipmentNo','testType','executingEntity','engineer','plantingReview','plantingStatus','assetForm','fieldReceipt','procedure207','notes','resolved','systemReceipt']),
       emergency:pick(emergency,['noticeNo','station','assignedDate','startDate','endDate','description','classification','type','administration','circuit','section','emergencyType','location','consultant','engineer','contractor','status','archive']),
       // Keep every configured column for these three sheets so duplicate auditing can
       // compare the complete row (only the physical sheet row number is ignored).
@@ -2093,8 +2114,16 @@ app.use((req,res)=>{
 
 });
 
+function startAdviceHistoryWatcher_(){
+  const run=()=>getAdviceIntelligence_().catch(e=>console.warn('Advice history sync skipped:',e.message||e));
+  setTimeout(run,15000);
+  const timer=setInterval(run,3*60*1000);
+  if(typeof timer.unref==='function')timer.unref();
+}
+
 app.listen(PORT,'0.0.0.0',()=>{
   console.log(`PDC Makkah website: http://0.0.0.0:${PORT}`);
   console.log(`Public directory: ${PUBLIC_DIR}`);
   console.log(`index.html exists: ${fs.existsSync(INDEX_FILE)}`);
+  startAdviceHistoryWatcher_();
 });

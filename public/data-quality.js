@@ -11,12 +11,14 @@ const exact=(v,x)=>norm(v)===norm(x);
 const rowId=(r,section)=>t(r.workOrder||r.noticeNo)||(section==='emergency'?'إشعار':'سجل')+' — صف '+(r._row||'—');
 const ctx=(r)=>t(r.contractor||r.engineer||r.location)||'—';
 
-function missing(label,col,field,header,note){
- return {label,col,field,header,note:note||('العمود '+col+' — بيانات ناقصة'),issue:r=>blank(r,field),value:()=> 'فارغ'};
+function missing(label,col,field,header,note,applicable){
+ return {label,col,field,header,note:note||('العمود '+col+' — بيانات ناقصة'),issue:r=>blank(r,field),value:()=> 'فارغ',applicable:applicable||(()=>true)};
 }
-function custom(label,col,header,note,predicate,value){
- return {label,col,header,note,issue:predicate,value:value||(()=> '—')};
+function custom(label,col,header,note,predicate,value,applicable){
+ return {label,col,header,note,issue:predicate,value:value||(()=> '—'),applicable:applicable||(()=>true)};
 }
+const assetExecuted=r=>exact(r&&r.orderFollowStatus,'تم التنفيذ');
+const assetHasNote=r=>!!t(r&&r.notes)&&!/لا\s*(يوجد|توجد).*ملاحظ/i.test(t(r&&r.notes));
 
 function definitions(q){
  return [
@@ -43,18 +45,18 @@ function definitions(q){
     r=>'T: '+(t(r.evaluation)||'فارغ')+' | R: '+(checked(r.actionTaken)?'✓':'غير محدد / غير مفعّل'))
   ]},
   {key:'assets',title:'الأصول',subtitle:'🏭 الأصول',rows:q.assets||[],cards:[
-   missing('بدون تاريخ تركيب المعدة','I','installDate','تاريخ تركيب المعدة'),
-   missing('بدون رقم المعدة','J','equipmentNo','رقم المعدة'),
-   missing('بدون نوع الاختبار','K','testType','نوع الاختبار'),
-   missing('بدون الجهة المنفذة','L','executingEntity','الجهة المنفذة'),
-   missing('بدون اسم مهندس التركيب','M','engineer','اسم المهندس المسئول عن التركيب'),
-   missing('بدون مراجعة بيانات الزراعة','N','plantingReview','مراجعة بيانات الزراعه'),
-   missing('بدون حالة الزراعة','O','plantingStatus','حالة الزاعة'),
-   missing('بدون نموذج الأصول','P','assetForm','نموذج الأصول'),
-   missing('بدون الاستلام الميداني','Q','fieldReceipt','الإستلام الميداني'),
-   missing('بدون إجراء 207','R','procedure207','إجراء 207'),
-   missing('بدون بيان هل تم تلافيها','T','resolved','هل تم تلافيها'),
-   missing('بدون استلام الأصول على النظام 211','U','systemReceipt','استلام الأصول على النظام اجراء 211')
+   missing('بدون تاريخ تركيب المعدة','J','installDate','تاريخ تركيب المعدة','العمود J — مطلوب عندما تكون حالة الأمر «تم التنفيذ»',assetExecuted),
+   missing('بدون رقم المعدة','K','equipmentNo','رقم المعدة','العمود K — مطلوب لكل أمر حالته «تم التنفيذ»',assetExecuted),
+   missing('بدون نوع الاختبار','L','testType','نوع الاختبار','العمود L — مطلوب لكل أمر حالته «تم التنفيذ»',assetExecuted),
+   missing('بدون الجهة المنفذة','M','executingEntity','الجهة المنفذة','العمود M — مطلوب عندما تكون حالة الأمر «تم التنفيذ»',assetExecuted),
+   missing('بدون اسم مهندس التركيب','N','engineer','اسم المهندس المسئول عن التركيب','العمود N — مطلوب عندما تكون حالة الأمر «تم التنفيذ»',assetExecuted),
+   missing('بدون مراجعة بيانات الزراعة','O','plantingReview','مراجعة بيانات الزراعه','العمود O — «لا يتطلب» قيمة صحيحة ومكتملة'),
+   missing('بدون حالة الزراعة','P','plantingStatus','حالة الزاعة','العمود P — «لا يتطلب» قيمة صحيحة ومكتملة'),
+   missing('بدون نموذج الأصول','Q','assetForm','نموذج الأصول','العمود Q — «لا يتطلب» قيمة صحيحة ومكتملة'),
+   missing('بدون الاستلام الميداني','R','fieldReceipt','الإستلام الميداني'),
+   missing('بدون إجراء 207','S','procedure207','إجراء 207'),
+   custom('بدون بيان هل تم تلافيها','U','هل تم تلافيها','العمود U — مطلوب فقط عند وجود ملاحظة فعلية في العمود T',r=>blank(r,'resolved'),()=> 'فارغ',assetHasNote),
+   missing('بدون استلام الأصول على النظام 211','V','systemReceipt','استلام الأصول على النظام اجراء 211')
   ]},
   {key:'emergency',title:'الطوارئ',subtitle:'⚠ إشعارات الطوارئ',rows:q.emergency||[],cards:[
    missing('بدون رقم إشعار','B','noticeNo','رقم الإشعار'),
@@ -138,6 +140,14 @@ function advancedChecks(q){
  inspectDates('محاضر إثبات الحالة',minutes,[['date','تاريخ المحضر']],[],['date']);
  checks.push({key:'badDate',label:'تاريخ غير منطقي',note:'تنسيق تاريخ غير صالح، تاريخ مستقبلي، أو نهاية أسبق من البداية.',rows:badDates});
 
+ const assetSequence=[];
+ assets.forEach(r=>{
+  if(exact(r.procedure207,'تم')&&!exact(r.fieldReceipt,'تم')){
+   assetSequence.push(dqAdvancedRow('الأصول',r,'إجراء 207 تم قبل الاستلام الميداني','R: '+(t(r.fieldReceipt)||'فارغ')+' | S: '+(t(r.procedure207)||'فارغ')));
+  }
+ });
+ checks.push({key:'assetSequence',label:'تسلسل أصول غير منطقي',note:'إجراء 207 لا يُعتبر صحيحًا إلا بعد أن يكون الاستلام الميداني = «تم».',rows:assetSequence});
+
  const missingLinks=[];
  safety.forEach(r=>{if((t(r.violation1)||t(r.violation2))&&blank(r,'link'))missingLinks.push(dqAdvancedRow('مخالفات السلامة',r,'مخالفة مسجلة بدون رابط','الرابط فارغ'))});
  execution.forEach(r=>{if(t(r.violation)&&blank(r,'link'))missingLinks.push(dqAdvancedRow('مخالفات التنفيذ',r,'مخالفة مسجلة بدون رابط','الرابط فارغ'))});
@@ -145,8 +155,10 @@ function advancedChecks(q){
 
  const duplicateRows=[],seen=new Map();
  const fullRowSignature=(source,r)=>{
-  // Duplicate = every mapped cell in the sheet row is identical.
-  // Ignore only internal metadata such as _row because the physical row number must differ.
+  // Prefer the server-side signature of the COMPLETE physical sheet row.
+  // It contains unmapped columns too (such as email send timestamp), while ignoring only the sheet row number.
+  if(r&&r._fullRowSignature)return JSON.stringify([t(source),String(r._fullRowSignature)]);
+  // Backward-compatible fallback for older payloads.
   const keys=Object.keys(r).filter(k=>!k.startsWith('_')).sort();
   const values=keys.map(k=>t(r[k]));
   if(!values.some(Boolean))return '';
@@ -209,15 +221,19 @@ function ensure(){
  return root;
 }
 
-function issueRows(section,card){return section.rows.filter(card.issue)}
+function issueRows(section,card){
+ const applicable=card.applicable||(()=>true);
+ return section.rows.filter(r=>applicable(r)&&card.issue(r));
+}
 function sectionStats(section){
- const affected=new Set(),counts=[];
+ const affected=new Set(),counts=[];let totalCells=0;
  section.cards.forEach(card=>{
+  const applicable=card.applicable||(()=>true);
+  totalCells+=section.rows.filter(applicable).length;
   const rows=issueRows(section,card);counts.push(rows.length);
   rows.forEach(r=>affected.add(r._row));
  });
  const issues=counts.reduce((a,b)=>a+b,0);
- const totalCells=section.rows.length*section.cards.length;
  const completionRate=totalCells?((totalCells-issues)/totalCells)*100:100;
  return {issues,affected:affected.size,counts,totalCells,completionRate};
 }
@@ -236,9 +252,51 @@ function renderDetails(section,card){
  root.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
+function renderAdviceAiDetails(ai,type){
+ const root=document.getElementById('dqIssueDetails');if(!root)return;
+ const recent=Array.isArray(ai?.recent)?ai.recent:[];
+ const current=Array.isArray(ai?.currentOrders)?ai.currentOrders:[];
+ let rows=[],title='سجل تحليل الإفادات',note='تحليل وكيل الذكاء الاصطناعي للتغييرات التاريخية في إفادات المشاريع والتوصيلات.';
+ if(type==='substantive'){rows=recent.filter(x=>x.classification==='جوهري');title='تحديثات جوهرية'}
+ else if(type==='weak'){rows=recent.filter(x=>x.classification==='ضعيف');title='إفادات ضعيفة'}
+ else if(type==='suspicious'){rows=recent.filter(x=>x.classification==='شكلي'||t(x.classification).includes('مشتبه'));title='تحديثات شكلية / مشتبهة'}
+ else if(type==='pending'){rows=recent.filter(x=>t(x.classification).includes('بانتظار'));title='بانتظار تحليل الوكيل'}
+ else if(type==='stale'){rows=current.filter(x=>Number(x.daysSinceSubstantive)>=3);title='لم تُحدّث جوهريًا منذ 3 أيام فأكثر';note='العمر محسوب من آخر متابعة اعتبرها الوكيل جوهرية، وليس من آخر تعديل شكلي.'}
+ else if(type==='severe'){rows=current.filter(x=>Number(x.daysSinceSubstantive)>=15);title='إهمال شديد — 15 يومًا فأكثر';note='لم يرصد النظام متابعة جوهرية منذ 15 يومًا فأكثر.'}
+ else rows=recent;
+ const staleMode=type==='stale'||type==='severe';
+ root.innerHTML=`
+  <div class="dq-detail-head"><div><span>AI ADVICE AGENT</span><h3>${esc(title)}</h3><small>${esc(note)}</small></div><div class="dq-detail-count">${fmt(rows.length)} حالة</div></div>
+  ${rows.length?`<div class="dq-table-wrap"><table><thead><tr><th>#</th><th>المصدر</th><th>أمر العمل</th><th>المهندس</th><th>المرحلة</th><th>${staleMode?'آخر متابعة جوهرية':'التصنيف'}</th><th>${staleMode?'العمر':'الدرجة'}</th><th>الإفادة السابقة</th><th>الإفادة الحالية</th><th>تحليل الوكيل</th></tr></thead><tbody>
+   ${rows.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.source)}</td><td><b>${esc(r.workOrder)}</b></td><td>${esc(r.engineer||'—')}</td><td>${esc(r.stage||'—')}</td><td>${esc(staleMode?(r.lastSubstantiveAt||'—'):(r.classification||'—'))}</td><td>${staleMode?(Number(r.daysSinceSubstantive||0).toFixed(1)+' يوم'):(r.score==null?'—':esc(r.score)+'/100')}</td><td class="dq-advice-text">${esc(r.previousAdvice||'—')}</td><td class="dq-advice-text">${esc(r.currentAdvice||'—')}</td><td class="dq-advice-text">${esc(r.reason||'—')}</td></tr>`).join('')}
+  </tbody></table></div>`:'<div class="dq-empty">لا توجد حالات ضمن هذا التصنيف حاليًا.</div>'}`;
+ root.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function renderAdviceAi(ai){
+ ai=ai||{};const c=ai.counts||{},a=ai.age||{};
+ const stale=Number(a.old||0)+Number(a.veryOld||0)+Number(a.neglect||0)+Number(a.severe||0);
+ const status=ai.agentEnabled?'الوكيل مفعل':'الوكيل غير مفعل';
+ const statusText=ai.agentEnabled?'يحلل التغييرات الدلالية في الإفادات ويحدد هل المتابعة جوهرية أم شكلية.':'تم تجهيز النظام والتخزين التاريخي، ويلزم تفعيل OPENAI_API_KEY على السيرفر لبدء التحليل الدلالي.';
+ return `<section class="dq-ai-advice">
+  <div class="dq-ai-head"><div><span>AI ADVICE QUALITY AGENT</span><h3>وكيل الذكاء الاصطناعي لتحليل جودة الإفادات</h3><p>يفصل بين آخر تعديل وآخر متابعة حقيقية، ويقارن الإفادة السابقة بالجديدة ويكشف التحديثات الشكلية أو التي لا تضيف معلومة تشغيلية.</p></div><div class="dq-ai-status ${ai.agentEnabled?'on':'off'}"><b>${esc(status)}</b><small>${esc(statusText)}</small></div></div>
+  <div class="dq-ai-cards">
+   <button data-advice-ai="all"><span>أوامر تحت الرقابة</span><strong>${fmt(ai.trackedOrders||0)}</strong><small>المشاريع + التوصيلات</small></button>
+   <button data-advice-ai="substantive"><span>تحديثات جوهرية</span><strong>${fmt(c.substantive||0)}</strong><small>أضافت معلومة أو إجراءً فعليًا</small></button>
+   <button data-advice-ai="weak"><span>إفادات ضعيفة</span><strong>${fmt(c.weak||0)}</strong><small>تغيير موجود لكن قيمته التشغيلية محدودة</small></button>
+   <button data-advice-ai="suspicious"><span>تحديثات شكلية / مشتبهة</span><strong>${fmt(c.suspicious||0)}</strong><small>مسافة، شرطة، إعادة صياغة أو لا جديد جوهري</small></button>
+   <button data-advice-ai="pending"><span>بانتظار تحليل الوكيل</span><strong>${fmt(c.pending||0)}</strong><small>تُحلل تلقائيًا بعد تفعيل الوكيل</small></button>
+   <button data-advice-ai="stale"><span>دون متابعة جوهرية 3+ أيام</span><strong>${fmt(stale)}</strong><small>لا يعتمد على آخر تعديل شكلي</small></button>
+   <button data-advice-ai="severe"><span>دون متابعة جوهرية 15+ يوم</span><strong>${fmt(a.severe||0)}</strong><small>إهمال شديد بالمتابعة الحقيقية</small></button>
+   <button type="button" disabled><span>سجل تاريخي محفوظ</span><strong>${fmt(ai.totalEvents||0)}</strong><small>${esc(ai.sheet||'🔒 سجل الإفادات التاريخي')}</small></button>
+  </div>
+ </section>`;
+}
+
 function render(){
  const root=ensure();if(!root)return;
  const q=S.page&&S.page.quality?S.page.quality:{};
+ const adviceAi=S.page&&S.page.adviceIntelligence?S.page.adviceIntelligence:{};
  const sections=definitions(q);DQ.sections=sections;
  const advanced=advancedChecks(q);DQ.advanced=advanced;
  const stats=sections.map(sectionStats);
@@ -265,6 +323,7 @@ function render(){
     </button>`}).join('')}
   </div>
  </section>`).join('')}
+ ${renderAdviceAi(adviceAi)}
  <section class="dq-smart-audit">
   <div class="dq-smart-head"><div><span>SMART DATA AUDIT</span><h3>التدقيق الذكي المتقدم</h3><p>فحوصات إضافية لا تغيّر الكروت الحالية: تكشف أخطاء الربط والمنطق والتكرار ونواقص سجلات المخالفات.</p></div><div class="dq-smart-total"><b>${fmt(advanced.reduce((s,x)=>s+x.rows.length,0))}</b><small>ملاحظة ذكية</small></div></div>
   <div class="dq-smart-cards">
@@ -282,6 +341,7 @@ function render(){
  root.querySelectorAll('.dq-overview-card').forEach(btn=>btn.addEventListener('click',()=>{
   document.getElementById('dq-'+btn.dataset.go)?.scrollIntoView({behavior:'smooth',block:'start'});
  }));
+ root.querySelectorAll('[data-advice-ai]').forEach(btn=>btn.addEventListener('click',()=>renderAdviceAiDetails(adviceAi,btn.dataset.adviceAi)));
  root.querySelectorAll('.dq-smart-card').forEach(btn=>btn.addEventListener('click',()=>{
   renderAdvancedDetails(advanced[Number(btn.dataset.ai)]);
  }));
