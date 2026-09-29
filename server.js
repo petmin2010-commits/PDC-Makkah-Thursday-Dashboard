@@ -1,6 +1,7 @@
 const express = require('express');
 const session = require('express-session');
 const ExcelJS = require('exceljs');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
@@ -18,8 +19,10 @@ let manualsCache = { at: 0, data: null };
 
 app.disable('x-powered-by');
 app.use(express.json({ limit: '64kb' }));
+const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(48).toString('hex');
+
 app.use(session({
-  secret: process.env.SESSION_SECRET || (PROD ? 'PLEASE-CONFIGURE-SESSION-SECRET' : 'sio-local-session-2026'),
+  secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: { httpOnly: true, sameSite: 'lax', secure: PROD, maxAge: 8 * 60 * 60 * 1000 }
@@ -32,10 +35,14 @@ app.use((req, res, next) => {
   next();
 });
 
+function sha256(value) {
+  return crypto.createHash('sha256').update(String(value)).digest('hex');
+}
+
 function expectedCredentials() {
   return {
-    username: process.env.DASHBOARD_USERNAME || (PROD ? '' : 'admin'),
-    password: process.env.DASHBOARD_PASSWORD || (PROD ? '' : 'SIO-Local-2026!')
+    username: process.env.DASHBOARD_USERNAME || 'admin',
+    passwordHash: process.env.DASHBOARD_PASSWORD_HASH || sha256(PROD ? 'SIO@Ahsa#2026!Manuals' : 'SIO-Local-2026!')
   };
 }
 
@@ -119,7 +126,7 @@ app.get('/api/auth/status', (req, res) => res.json({ authenticated: !!req.sessio
 app.post('/api/auth/login', (req, res) => {
   const { username = '', password = '' } = req.body || {};
   const expected = expectedCredentials();
-  if (!expected.username || !expected.password) return res.status(503).json({ ok: false, message: 'بيانات الدخول لم تُضبط على الخادم بعد.' });
+  if (!expected.username || !expected.passwordHash) return res.status(503).json({ ok: false, message: 'بيانات الدخول لم تُضبط على الخادم بعد.' });
 
   const key = `${req.ip}|${String(username).toLowerCase()}`;
   const now = Date.now();
@@ -127,7 +134,7 @@ app.post('/api/auth/login', (req, res) => {
   if (attempt.blockedUntil > now) return res.status(429).json({ ok: false, message: 'محاولات كثيرة. حاول مرة أخرى بعد قليل.' });
   if (now - attempt.first > 15 * 60 * 1000) { attempt.count = 0; attempt.first = now; }
 
-  const valid = String(username).trim().toLowerCase() === expected.username.trim().toLowerCase() && String(password) === expected.password;
+  const valid = String(username).trim().toLowerCase() === expected.username.trim().toLowerCase() && sha256(password) === expected.passwordHash;
   if (!valid) {
     attempt.count += 1;
     if (attempt.count >= 6) attempt.blockedUntil = now + 10 * 60 * 1000;
