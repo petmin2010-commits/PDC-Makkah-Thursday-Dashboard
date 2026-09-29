@@ -2115,7 +2115,7 @@ app.use((req,res)=>{
 });
 
 function startAdviceHistoryWatcher_(){
-  const run=()=>getAdviceIntelligence_().catch(e=>console.warn('Advice history sync skipped:',e.message||e));
+  const run=()=>getAdviceIntelligence_().then(x=>console.log(`Advice AI sync: ${x.agentEnabled?'enabled':'disabled'} | tracked=${x.trackedOrders||0} | new=${x.created||0} | pending=${x.counts?.pending||0}`)).catch(e=>console.warn('Advice history sync skipped:',e.message||e));
   setTimeout(run,15000);
   const timer=setInterval(run,3*60*1000);
   if(typeof timer.unref==='function')timer.unref();
