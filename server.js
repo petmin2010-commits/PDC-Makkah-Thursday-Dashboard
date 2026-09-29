@@ -10,6 +10,7 @@ const PORT = Number(process.env.PORT || 3000);
 const PROD = process.env.NODE_ENV === 'production' || String(process.env.RENDER || '').toLowerCase() === 'true';
 const SPREADSHEET_ID = process.env.SOURCE_SPREADSHEET_ID || '1LsWHMcYvzfURbgU9wZBR8uXY0mjoK1PYxqwWw_50KKM';
 const SHEET_NAME = process.env.SOURCE_SHEET_NAME || 'الورقة2';
+const USERS_SHEET = process.env.USERS_SHEET_NAME || 'dp users';
 const CACHE_MS = Number(process.env.CACHE_SECONDS || 180) * 1000;
 const PROJECT_NAME = 'إعداد أدلة إجراءات وسياسات التشغيل والصيانة لفرع المؤسسة العامة للري بالأحساء';
 const CONTRACT_NO = '250301052116';
@@ -116,36 +117,93 @@ async function getManuals(force = false) {
   }
 }
 
+async function readDashboardUsers_() {
+  const exportUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=xlsx`;
+  const response = await fetch(exportUrl, { redirect:'follow', headers:{'User-Agent':'SIO-Manuals-Dashboard/1.0'} });
+  if (!response.ok) throw new Error(`Google Sheets export failed: ${response.status}`);
+  const buffer = Buffer.from(await response.arrayBuffer());
+  const book = new ExcelJS.Workbook();
+  await book.xlsx.load(buffer);
+  const sheet = book.getWorksheet(USERS_SHEET);
+  if (!sheet) return [];
+
+  const users = [];
+  for (let r = 2; r <= sheet.rowCount; r++) {
+    const name = String(sheet.getCell(r,1).text || '').trim();
+    const role = String(sheet.getCell(r,2).text || '').trim();
+    const email = String(sheet.getCell(r,3).text || '').trim().toLowerCase();
+    const passwordHash = String(sheet.getCell(r,4).text || '').trim().toLowerCase();
+    const active = String(sheet.getCell(r,5).text || '').trim().toLowerCase();
+    if (email) users.push({ name, role, email, passwordHash, active });
+  }
+  return users;
+}
+
+function publicUser_(user) {
+  return { name:user.name || '', role:user.role || '', email:user.email || '' };
+}
+
 function requireAuth(req, res, next) {
   if (req.session && req.session.authenticated) return next();
   return res.status(401).json({ ok: false, message: 'يلزم تسجيل الدخول' });
 }
 
 app.get('/api/meta', (req, res) => res.json({ projectName: PROJECT_NAME, contractNo: CONTRACT_NO, organization: 'المؤسسة العامة للري', location: 'الأحساء' }));
-app.get('/api/auth/status', (req, res) => res.json({ authenticated: !!req.session?.authenticated, username: req.session?.username || '' }));
-app.post('/api/auth/login', (req, res) => {
-  const { username = '', password = '' } = req.body || {};
-  const expected = expectedCredentials();
-  if (!expected.username || !expected.passwordHash) return res.status(503).json({ ok: false, message: 'بيانات الدخول لم تُضبط على الخادم بعد.' });
+app.get('/api/auth/status', (req, res) => res.json({ authenticated: !!req.session?.authenticated, user: req.session?.user || null }));
 
-  const key = `${req.ip}|${String(username).toLowerCase()}`;
+app.post('/api/auth/login', async (req, res) => {
+  const { username = '', password = '' } = req.body || {};
+  const identifier = String(username).trim().toLowerCase();
+  const key = `${req.ip}|${identifier}`;
   const now = Date.now();
   const attempt = loginAttempts.get(key) || { count: 0, first: now, blockedUntil: 0 };
-  if (attempt.blockedUntil > now) return res.status(429).json({ ok: false, message: 'محاولات كثيرة. حاول مرة أخرى بعد قليل.' });
-  if (now - attempt.first > 15 * 60 * 1000) { attempt.count = 0; attempt.first = now; }
 
-  const valid = String(username).trim().toLowerCase() === expected.username.trim().toLowerCase() && sha256(password) === expected.passwordHash;
-  if (!valid) {
-    attempt.count += 1;
-    if (attempt.count >= 6) attempt.blockedUntil = now + 10 * 60 * 1000;
-    loginAttempts.set(key, attempt);
-    return res.status(401).json({ ok: false, message: 'اسم المستخدم أو كلمة المرور غير صحيحة.' });
+  if (attempt.blockedUntil > now) {
+    return res.status(429).json({ ok:false, message:'محاولات كثيرة. حاول مرة أخرى بعد قليل.' });
+  }
+  if (now - attempt.first > 15 * 60 * 1000) {
+    attempt.count = 0;
+    attempt.first = now;
   }
 
-  loginAttempts.delete(key);
-  req.session.authenticated = true;
-  req.session.username = String(username).trim();
-  return res.json({ ok: true });
+  try {
+    const users = await readDashboardUsers_();
+    const user = users.find(u => u.email === identifier);
+    const active = !!user && user.active === 'active';
+    const passwordOK = !!user && /^[a-f0-9]{64}$/i.test(user.passwordHash) && sha256(password) === user.passwordHash;
+
+    let authenticatedUser = null;
+
+    if (active && passwordOK) {
+      authenticatedUser = publicUser_(user);
+    } else if (!user) {
+      const fallback = expectedCredentials();
+      if (identifier === fallback.username.trim().toLowerCase() && sha256(password) === fallback.passwordHash) {
+        authenticatedUser = { name:'مدير النظام', role:'Administrator', email:fallback.username };
+      }
+    }
+
+    if (!authenticatedUser) {
+      attempt.count += 1;
+      if (attempt.count >= 6) attempt.blockedUntil = now + 10 * 60 * 1000;
+      loginAttempts.set(key, attempt);
+      return res.status(401).json({ ok:false, message:'بيانات الدخول غير صحيحة أو الحساب غير نشط.' });
+    }
+
+    loginAttempts.delete(key);
+    req.session.regenerate(err => {
+      if (err) return res.status(500).json({ ok:false, message:'تعذر إنشاء جلسة الدخول.' });
+      req.session.authenticated = true;
+      req.session.user = authenticatedUser;
+      req.session.save(saveErr => {
+        if (saveErr) return res.status(500).json({ ok:false, message:'تعذر حفظ جلسة الدخول.' });
+        res.json({ ok:true, user:authenticatedUser });
+      });
+    });
+  } catch (error) {
+    console.error('Login users-sheet error:', error.message);
+    return res.status(503).json({ ok:false, message:'تعذر قراءة ورقة المستخدمين حاليًا.' });
+  }
 });
 
 app.post('/api/auth/logout', (req, res) => {
