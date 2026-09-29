@@ -132,9 +132,9 @@ async function readDashboardUsers_() {
     const name = String(sheet.getCell(r,1).text || '').trim();
     const role = String(sheet.getCell(r,2).text || '').trim();
     const email = String(sheet.getCell(r,3).text || '').trim().toLowerCase();
-    const passwordHash = String(sheet.getCell(r,4).text || '').trim().toLowerCase();
+    const password = String(sheet.getCell(r,4).text || '').trim();
     const active = String(sheet.getCell(r,5).text || '').trim().toLowerCase();
-    if (email) users.push({ name, role, email, passwordHash, active });
+    if (email) users.push({ name, role, email, password, active });
   }
   return users;
 }
@@ -170,11 +170,11 @@ app.post('/api/auth/login', async (req, res) => {
     const users = await readDashboardUsers_();
     const user = users.find(u => u.email === identifier);
     const active = !!user && user.active === 'active';
-    const passwordOK = !!user && /^[a-f0-9]{64}$/i.test(user.passwordHash) && sha256(password) === user.passwordHash;
+    const passwordOK = !!user && active && String(user.password || '').trim() === String(password);
 
     let authenticatedUser = null;
 
-    if (active && passwordOK) {
+    if (passwordOK) {
       authenticatedUser = publicUser_(user);
     } else if (!user) {
       const fallback = expectedCredentials();
