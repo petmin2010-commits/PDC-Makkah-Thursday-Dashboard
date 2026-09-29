@@ -19,14 +19,16 @@ const loginAttempts = new Map();
 let manualsCache = { at: 0, data: null };
 
 app.disable('x-powered-by');
+if (PROD) app.set('trust proxy', 1);
 app.use(express.json({ limit: '64kb' }));
 const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(48).toString('hex');
 
 app.use(session({
+  name: 'sio.sid',
   secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  cookie: { httpOnly: true, sameSite: 'lax', secure: PROD, maxAge: 8 * 60 * 60 * 1000 }
+  cookie: { httpOnly: true, sameSite: 'lax', secure: 'auto', maxAge: 8 * 60 * 60 * 1000 }
 }));
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
