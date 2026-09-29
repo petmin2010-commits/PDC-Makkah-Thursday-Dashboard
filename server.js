@@ -17,6 +17,8 @@ const CONTRACT_NO = '250301052116';
 
 const loginAttempts = new Map();
 let manualsCache = { at: 0, data: null };
+let usersCache = [];
+let refreshPromise = null;
 
 app.disable('x-powered-by');
 if (PROD) app.set('trust proxy', 1);
@@ -84,13 +86,31 @@ function manualCategoryFromHeader(header) {
   return '';
 }
 
-async function readLiveManuals() {
+async function fetchLiveWorkbook() {
   const exportUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=xlsx`;
-  const response = await fetch(exportUrl, { redirect: 'follow', headers: { 'User-Agent': 'SIO-Manuals-Dashboard/1.0' } });
-  if (!response.ok) throw new Error(`Google Sheets export failed: ${response.status}`);
-  const buffer = Buffer.from(await response.arrayBuffer());
-  const book = new ExcelJS.Workbook();
-  await book.xlsx.load(buffer);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 120000);
+
+  try {
+    const response = await fetch(exportUrl, {
+      redirect: 'follow',
+      cache: 'no-store',
+      signal: controller.signal,
+      headers: { 'User-Agent': 'SIO-Manuals-Dashboard/1.0' }
+    });
+
+    if (!response.ok) throw new Error(`Google Sheets export failed: ${response.status}`);
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const book = new ExcelJS.Workbook();
+    await book.xlsx.load(buffer);
+    return book;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function parseManualsFromWorkbook(book) {
   const sheet = book.getWorksheet(SHEET_NAME);
   if (!sheet) throw new Error(`Sheet not found: ${SHEET_NAME}`);
 
@@ -99,7 +119,18 @@ async function readLiveManuals() {
     headers[c] = String(sheet.getCell(1, c).text || '').trim();
   }
 
-  const result = { operation: [], maintenance: [], source: 'live', fetchedAt: new Date().toISOString() };
+  const result = {
+    operation: [],
+    maintenance: [],
+    source: 'live',
+    fetchedAt: new Date().toISOString()
+  };
+
+  const seen = {
+    operation: new Set(),
+    maintenance: new Set()
+  };
+
   let lastSector = '';
 
   for (let r = 2; r <= sheet.rowCount; r++) {
@@ -112,25 +143,69 @@ async function readLiveManuals() {
 
       const cell = sheet.getCell(r, c);
       const url = extractUrl(cell);
-      if (!url) continue;
+      if (!url || seen[category].has(url)) continue;
 
       const fileName = fileNameFromCell(cell);
       if (!fileName) continue;
 
+      seen[category].add(url);
+
       const zeroCol = c - 1;
-      const item = {
+      result[category].push({
         sector: rowSector || lastSector || 'غير مصنف',
         language: languageFrom(headers[c], zeroCol),
         fileName,
         url,
         column: headers[c] || `عمود ${c}`,
         cell: cell.address
-      };
-
-      result[category].push(item);
+      });
     }
   }
+
   return result;
+}
+
+function parseUsersFromWorkbook(book) {
+  const sheet = book.getWorksheet(USERS_SHEET);
+  if (!sheet) return [];
+
+  const users = [];
+  for (let r = 2; r <= sheet.rowCount; r++) {
+    const name = String(sheet.getCell(r, 1).text || '').trim();
+    const role = String(sheet.getCell(r, 2).text || '').trim();
+    const email = String(sheet.getCell(r, 3).text || '').trim().toLowerCase();
+    const password = String(sheet.getCell(r, 4).text || '').trim();
+    const active = String(sheet.getCell(r, 5).text || '').trim().toLowerCase();
+
+    if (email) users.push({ name, role, email, password, active });
+  }
+
+  return users;
+}
+
+async function refreshAllData() {
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    const book = await fetchLiveWorkbook();
+    const manuals = parseManualsFromWorkbook(book);
+    const users = parseUsersFromWorkbook(book);
+
+    manualsCache = { at: Date.now(), data: manuals };
+    usersCache = users;
+
+    console.log(
+      `Live sheet cache refreshed: operation=${manuals.operation.length}, maintenance=${manuals.maintenance.length}, users=${users.length}`
+    );
+
+    return { manuals, users };
+  })();
+
+  try {
+    return await refreshPromise;
+  } finally {
+    refreshPromise = null;
+  }
 }
 function readFallback() {
   const fp = path.join(__dirname, 'fallback-manuals.json');
@@ -139,39 +214,34 @@ function readFallback() {
 }
 
 async function getManuals(force = false) {
-  if (!force && manualsCache.data && Date.now() - manualsCache.at < CACHE_MS) return manualsCache.data;
-  try {
-    const data = await readLiveManuals();
-    manualsCache = { at: Date.now(), data };
-    return data;
-  } catch (error) {
-    const fallback = readFallback();
-    fallback.warning = error.message;
-    manualsCache = { at: Date.now(), data: fallback };
-    return fallback;
+  if (!manualsCache.data) {
+    manualsCache = { at: Date.now(), data: readFallback() };
   }
+
+  const stale = Date.now() - manualsCache.at >= CACHE_MS;
+
+  if ((force || stale) && !refreshPromise) {
+    refreshAllData().catch(error => {
+      console.error('Background manuals refresh failed:', error.message);
+    });
+  }
+
+  return {
+    ...manualsCache.data,
+    refreshing: !!refreshPromise
+  };
 }
 
 async function readDashboardUsers_() {
-  const exportUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=xlsx`;
-  const response = await fetch(exportUrl, { redirect:'follow', headers:{'User-Agent':'SIO-Manuals-Dashboard/1.0'} });
-  if (!response.ok) throw new Error(`Google Sheets export failed: ${response.status}`);
-  const buffer = Buffer.from(await response.arrayBuffer());
-  const book = new ExcelJS.Workbook();
-  await book.xlsx.load(buffer);
-  const sheet = book.getWorksheet(USERS_SHEET);
-  if (!sheet) return [];
+  if (usersCache.length) return usersCache;
 
-  const users = [];
-  for (let r = 2; r <= sheet.rowCount; r++) {
-    const name = String(sheet.getCell(r,1).text || '').trim();
-    const role = String(sheet.getCell(r,2).text || '').trim();
-    const email = String(sheet.getCell(r,3).text || '').trim().toLowerCase();
-    const password = String(sheet.getCell(r,4).text || '').trim();
-    const active = String(sheet.getCell(r,5).text || '').trim().toLowerCase();
-    if (email) users.push({ name, role, email, password, active });
+  try {
+    await refreshAllData();
+  } catch (error) {
+    console.error('Users cache refresh failed:', error.message);
   }
-  return users;
+
+  return usersCache;
 }
 
 function publicUser_(user) {
@@ -250,22 +320,61 @@ app.get('/api/manuals', requireAuth, async (req, res) => {
   res.json({ ok: true, ...data });
 });
 
-app.get('/api/_diag/manual-counts', async (req, res) => {
-  try {
-    const data = await readLiveManuals();
-    res.json({ ok:true, source:data.source, operation:data.operation.length, maintenance:data.maintenance.length });
-  } catch (error) {
-    res.status(500).json({ ok:false, error:error.message });
-  }
-});
-
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: 0, etag: true }));
 app.use((req, res, next) => {
   if (req.method === 'GET' && !req.path.startsWith('/api/')) return res.sendFile(path.join(__dirname, 'public', 'index.html'));
   next();
 });
 
-app.listen(PORT, () => {
-  console.log(`SIO Manuals Dashboard running on port ${PORT}`);
-  if (!PROD) console.log('Local login: admin / SIO-Local-2026!');
+async function warmUpLiveData() {
+  const maxAttempts = 3;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      await refreshAllData();
+
+      if (
+        manualsCache.data &&
+        (manualsCache.data.operation.length || manualsCache.data.maintenance.length)
+      ) {
+        return true;
+      }
+    } catch (error) {
+      console.error(`Initial live data attempt ${attempt} failed:`, error.message);
+    }
+
+    if (attempt < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 5000 * attempt));
+    }
+  }
+
+  return false;
+}
+
+async function startServer() {
+  const warmed = await warmUpLiveData();
+
+  if (!warmed) {
+    manualsCache = { at: Date.now(), data: readFallback() };
+    console.warn('Started with fallback manuals because live Google Sheet warm-up failed.');
+  }
+
+  app.listen(PORT, () => {
+    console.log(`SIO Manuals Dashboard running on port ${PORT}`);
+    console.log(
+      `Manuals ready: operation=${manualsCache.data?.operation?.length || 0}, maintenance=${manualsCache.data?.maintenance?.length || 0}`
+    );
+    if (!PROD) console.log('Local login: admin / SIO-Local-2026!');
+  });
+
+  setInterval(() => {
+    refreshAllData().catch(error => {
+      console.error('Scheduled live data refresh failed:', error.message);
+    });
+  }, Math.max(CACHE_MS, 10 * 60 * 1000));
+}
+
+startServer().catch(error => {
+  console.error('Fatal startup error:', error);
+  process.exit(1);
 });

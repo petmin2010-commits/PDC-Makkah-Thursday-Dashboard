@@ -1,14 +1,423 @@
 {
-  "updatedFrom": "uploaded snapshot",
+  "updatedFrom": "live Google Sheet snapshot 2026-09-29",
   "operation": [
-    {"sector":"الكيلو 01","language":"عربي","fileName":"دليل التشغيل مجمع كيلو 1بتاريخ - فاينال.pdf","url":"https://drive.google.com/file/d/1RvDqilcgat_QVe1pphC_KQkWd1lswsAh/view?usp=drive_link"},
-    {"sector":"الكيلو 01","language":"English","fileName":"Operation Manual -Kilo1 Station- 08-02.pdf","url":"https://drive.google.com/file/d/1Zag6jn2PFv7lB0NrnMkE8HAHUo-AIT9_/view?usp=drive_link"},
-    {"sector":"قطاع 09","language":"عربي","fileName":"دليل التشغيل مجمع-قطاع 9-نسخة نهائية.pdf","url":"https://drive.google.com/file/d/1WCIZ1f9FaF7AZ78wB8UFPHmMtKqH02Ey/view?usp=drive_link"},
-    {"sector":"قطاع 09","language":"English","fileName":"Operation Manual -29-06- Zone9.pdf","url":"https://drive.google.com/file/d/1DtBqrSHsCUCb0GGcQmWy6Qiht_vto9ko/view?usp=drive_link"}
+    {
+      "sector": "الكيلو 01",
+      "language": "عربي",
+      "fileName": "دليل التشغيل مجمع كيلو 1بتاريخ - فاينال.pdf",
+      "url": "https://drive.google.com/file/d/1RvDqilcgat_QVe1pphC_KQkWd1lswsAh/view?usp=drive_link",
+      "column": "دليل التشغيل / عربي PDF",
+      "cell": "B2"
+    },
+    {
+      "sector": "الكيلو 01",
+      "language": "English",
+      "fileName": "Operation Manual -Kilo1 Station- 08-02.pdf",
+      "url": "https://drive.google.com/file/d/1Zag6jn2PFv7lB0NrnMkE8HAHUo-AIT9_/view?usp=drive_link",
+      "column": "دليل التشغيل / انجليزي PDF",
+      "cell": "C2"
+    },
+    {
+      "sector": "قطاع 09",
+      "language": "عربي",
+      "fileName": "دليل التشغيل مجمع-قطاع 9-نسخة نهائية.pdf",
+      "url": "https://drive.google.com/file/d/1WCIZ1f9FaF7AZ78wB8UFPHmMtKqH02Ey/view?usp=drive_link",
+      "column": "دليل التشغيل / عربي PDF",
+      "cell": "B3"
+    },
+    {
+      "sector": "قطاع 09",
+      "language": "English",
+      "fileName": "Operation Manual -29-06- Zone9.pdf",
+      "url": "https://drive.google.com/file/d/1DtBqrSHsCUCb0GGcQmWy6Qiht_vto9ko/view?usp=drive_link",
+      "column": "دليل التشغيل / انجليزي PDF",
+      "cell": "C3"
+    },
+    {
+      "sector": "قطاع 06",
+      "language": "عربي",
+      "fileName": "دليل التشغيل  مجمع -قطاع-  06 النسخة النهائية (Recovered).pdf",
+      "url": "https://drive.google.com/file/d/1TdHTPGOXFa5Vtnk7bOZ_C2MCWZdK9XcI/view?usp=drive_link",
+      "column": "دليل التشغيل / عربي PDF",
+      "cell": "B4"
+    },
+    {
+      "sector": "قطاع 06",
+      "language": "English",
+      "fileName": "Operation Manual - Zone6- 29-06-.pdf",
+      "url": "https://drive.google.com/file/d/18ZUkXaehN3WM0sqEqX0_hOeFtuWbfcKQ/view?usp=drive_link",
+      "column": "دليل التشغيل / انجليزي PDF",
+      "cell": "C4"
+    },
+    {
+      "sector": "محطة أبقيق",
+      "language": "عربي",
+      "fileName": "دليل التشغيل  مجمع -محطة أبقيق- فاينال.pdf",
+      "url": "https://drive.google.com/file/d/1rhneE4uNustCVsPGJ2k0OdEvbxfK5yRo/view?usp=drive_link",
+      "column": "دليل التشغيل / عربي PDF",
+      "cell": "B5"
+    },
+    {
+      "sector": "محطة أبقيق",
+      "language": "English",
+      "fileName": "Abqaiq Station operation Manual 02-03.pdf",
+      "url": "https://drive.google.com/file/d/1dcKdBuuoGpRCfOZ19nBTME1PaQlhvVd1/view?usp=drive_link",
+      "column": "دليل التشغيل / انجليزي PDF",
+      "cell": "C5"
+    },
+    {
+      "sector": "محطة الخبر",
+      "language": "عربي",
+      "fileName": "دليل التشغيل  مجمع -محطة الخبر-08-03 - فاينال.pdf",
+      "url": "https://drive.google.com/file/d/1tAyf6bJa0QRk0QNbclwUAHKVhwVddJgY/view?usp=drive_link",
+      "column": "دليل التشغيل / عربي PDF",
+      "cell": "B6"
+    },
+    {
+      "sector": "محطة الخبر",
+      "language": "English",
+      "fileName": "Alkhobar Station operation Manual 08-03.pdf",
+      "url": "https://drive.google.com/file/d/1LzkO5WT8Wd61H1hIkDIj4ohSG9RAo2fv/view?usp=drive_link",
+      "column": "دليل التشغيل / انجليزي PDF",
+      "cell": "C6"
+    },
+    {
+      "sector": "قطاع 03",
+      "language": "عربي",
+      "fileName": "دليل التشغيل مجمع-قطاع 3- فاينال.pdf",
+      "url": "https://drive.google.com/file/d/1L9B-zQQo1oL_lCJsLKO2i4ug9YqUvkAo/view?usp=drive_link",
+      "column": "دليل التشغيل / عربي PDF",
+      "cell": "B7"
+    },
+    {
+      "sector": "قطاع 03",
+      "language": "English",
+      "fileName": "Operation Manual -07-12- Zone3.pdf",
+      "url": "https://drive.google.com/file/d/1D1i58lNeD8QfXUSwfny-PEUfacQ67Ujn/view?usp=drive_link",
+      "column": "دليل التشغيل / انجليزي PDF",
+      "cell": "C7"
+    },
+    {
+      "sector": "قطاع 10",
+      "language": "عربي",
+      "fileName": "دليل التشغيل - قطاع 10- فاينال.pdf",
+      "url": "https://drive.google.com/file/d/1_omaglKjRfbd-_oIqTmTi1L-VAcKRjSc/view?usp=drive_link",
+      "column": "دليل التشغيل / عربي PDF",
+      "cell": "B8"
+    },
+    {
+      "sector": "قطاع 10",
+      "language": "English",
+      "fileName": "Operation Manual -12-02- Zone10.pdf",
+      "url": "https://drive.google.com/file/d/1pdr3VC9K1bXhju89yDxeIlng5NZhE9lx/view?usp=drive_link",
+      "column": "دليل التشغيل / انجليزي PDF",
+      "cell": "C8"
+    },
+    {
+      "sector": "قطاع 02",
+      "language": "عربي",
+      "fileName": "دليل التشغيل مجمع -قطاع 2- فاينال.pdf",
+      "url": "https://drive.google.com/file/d/1jb2gVkhydUfTU5jeVMUJHmT-U7YeunB7/view?usp=drive_link",
+      "column": "دليل التشغيل / عربي PDF",
+      "cell": "B9"
+    },
+    {
+      "sector": "قطاع 02",
+      "language": "English",
+      "fileName": "Operation Manual - Zone2 - Final 12-07.pdf",
+      "url": "https://drive.google.com/file/d/1rvKwDDAXx8XagENte3g_6waeQCSh_gp5/view?usp=drive_link",
+      "column": "دليل التشغيل / انجليزي PDF",
+      "cell": "C9"
+    },
+    {
+      "sector": "قطاع 01",
+      "language": "عربي",
+      "fileName": "دليل التشغيل مجمع-قطاع 1-فاينال.pdf",
+      "url": "https://drive.google.com/file/d/1qAI29czTFmT3Lkiu_LzWxDfDCeAH1_hw/view?usp=drive_link",
+      "column": "دليل التشغيل / عربي PDF",
+      "cell": "B10"
+    },
+    {
+      "sector": "قطاع 01",
+      "language": "English",
+      "fileName": "Operation Manual -12-02- Zone1.pdf",
+      "url": "https://drive.google.com/file/d/1XAh7oWZgc_oDiPtV8ohVNMqmLN5SJ-2a/view?usp=drive_link",
+      "column": "دليل التشغيل / انجليزي PDF",
+      "cell": "C10"
+    },
+    {
+      "sector": "محطة الضخ (قطاع 05)",
+      "language": "عربي",
+      "fileName": "دليل التشغيل- مجمع - قطاع (4-5-7-8)-فاينال.pdf",
+      "url": "https://drive.google.com/file/d/16wOe8N7oWXJT3qnxcAGjkqP2twHlvgZi/view?usp=drive_link",
+      "column": "دليل التشغيل / عربي PDF",
+      "cell": "B11"
+    },
+    {
+      "sector": "محطة الضخ (قطاع 05)",
+      "language": "English",
+      "fileName": "Operation Manual - Zone(4-5-7-8)-25-06.pdf",
+      "url": "https://drive.google.com/file/d/18P9D8r0uE_Q7YoeMwaHkqQoX8LdDf1qe/view?usp=drive_link",
+      "column": "دليل التشغيل / انجليزي PDF",
+      "cell": "C11"
+    },
+    {
+      "sector": "محطة الكيلو 07",
+      "language": "عربي",
+      "fileName": "دليل التشغيل- مجمع - محطة ك 7- عربي  - فاينال.pdf",
+      "url": "https://drive.google.com/file/d/1gzag8eRr0-CH5-SxcLZU6p0ACQbFYT6p/view?usp=drive_link",
+      "column": "دليل التشغيل / عربي PDF",
+      "cell": "B12"
+    },
+    {
+      "sector": "محطة الكيلو 07",
+      "language": "English",
+      "fileName": "SOP+Operation Manual - Kilo 7- 18-06.pdf",
+      "url": "https://drive.google.com/file/d/1-Xy4VCNhkTTCZiIZCtHpkyZEE74Oh1It/view?usp=drive_link",
+      "column": "دليل التشغيل / انجليزي PDF",
+      "cell": "C12"
+    },
+    {
+      "sector": "محطة كيلو 25",
+      "language": "عربي",
+      "fileName": "دليل التشغيل- مجمع - محطة ك 25- عربي - نسخة نهائية.pdf",
+      "url": "https://drive.google.com/file/d/1aJte8AN-_SG-LJ3Tias0fH0A0gfVKKNz/view?usp=drive_link",
+      "column": "دليل التشغيل / عربي PDF",
+      "cell": "B13"
+    },
+    {
+      "sector": "محطة كيلو 25",
+      "language": "English",
+      "fileName": "SOP+Operation Manual - Kilo 25--22-06.pdf",
+      "url": "https://drive.google.com/file/d/1PzQO2IrQG6MdhgGnxQY6HcAV8PiFoR1l/view?usp=drive_link",
+      "column": "دليل التشغيل / انجليزي PDF",
+      "cell": "C13"
+    },
+    {
+      "sector": "PTW+ Work Permit \nدليل أذونات العمل بالمؤسسة العامة للري",
+      "language": "عربي",
+      "fileName": "ptw+ النماذج مجمع.pdf",
+      "url": "https://drive.google.com/file/d/1mRc_P2C3CRpZU1EeEcrq85jGhZYHjb3K/view?usp=drive_link",
+      "column": "دليل التشغيل / عربي PDF",
+      "cell": "B16"
+    }
   ],
   "maintenance": [
-    {"sector":"الكيلو 01","language":"عربي","fileName":"دليل الصيانة محطة كيلو 1 - نسخة نهائية.pdf","url":"https://drive.google.com/file/d/10JL4RQ1A6X4ICqLcdjTwGildy8mjt06H/view?usp=drive_link"},
-    {"sector":"الكيلو 01","language":"English","fileName":"KILO1 MANUAL-01-03-2026.pdf","url":"https://drive.google.com/file/d/1iaFyVYsSZt87O5_AWhMJKzDN2jn_IjiE/view?usp=drive_link"}
-  ],
-  "other": []
+    {
+      "sector": "الكيلو 01",
+      "language": "عربي",
+      "fileName": "دليل   الصيانة محطة كيلو 1 - نسخة نهائية.pdf",
+      "url": "https://drive.google.com/file/d/10JL4RQ1A6X4ICqLcdjTwGildy8mjt06H/view?usp=drive_link",
+      "column": "دليل الصيانة / عربي PDF",
+      "cell": "D2"
+    },
+    {
+      "sector": "الكيلو 01",
+      "language": "English",
+      "fileName": "KILO1 MANUAL-01-03-2026.pdf",
+      "url": "https://drive.google.com/file/d/1iaFyVYsSZt87O5_AWhMJKzDN2jn_IjiE/view?usp=drive_link",
+      "column": "دليل الصيانة / انجليزي PDF",
+      "cell": "E2"
+    },
+    {
+      "sector": "قطاع 09",
+      "language": "عربي",
+      "fileName": "دليل واجراءات الصيانة لقطاع 9 عربي - فاينال.pdf",
+      "url": "https://drive.google.com/file/d/1QVkJnaKM27yJf6NP7W2zIyArXmkKFoQ8/view?usp=drive_link",
+      "column": "دليل الصيانة / عربي PDF",
+      "cell": "D3"
+    },
+    {
+      "sector": "قطاع 09",
+      "language": "English",
+      "fileName": "Z 9 - English Maintenance Manual.pdf",
+      "url": "https://drive.google.com/file/d/1uQ4YayWnLiWb0YRJZVy8LCehLwY54axF/view?usp=drive_link",
+      "column": "دليل الصيانة / انجليزي PDF",
+      "cell": "E3"
+    },
+    {
+      "sector": "قطاع 06",
+      "language": "عربي",
+      "fileName": "دليل واجراءات الصيانة لقطاع 6 عربي - فاينال.pdf",
+      "url": "https://drive.google.com/file/d/1mNHaH7Ce8USraCOqGNiNnl0RuVy2tJE8/view?usp=drive_link",
+      "column": "دليل الصيانة / عربي PDF",
+      "cell": "D4"
+    },
+    {
+      "sector": "قطاع 06",
+      "language": "English",
+      "fileName": "Z 6 - English Maintenance Manual.pdf",
+      "url": "https://drive.google.com/file/d/1JFWykbfmhg9GZWwn9o3ydWkI1hxw_TBg/view?usp=drive_link",
+      "column": "دليل الصيانة / انجليزي PDF",
+      "cell": "E4"
+    },
+    {
+      "sector": "محطة أبقيق",
+      "language": "عربي",
+      "fileName": "دليل  محطة أبقيق - final.pdf",
+      "url": "https://drive.google.com/file/d/1TcU9fVMtnNLY5kqBfgj-7gCTgY0Mky8V/view?usp=drive_link",
+      "column": "دليل الصيانة / عربي PDF",
+      "cell": "D5"
+    },
+    {
+      "sector": "محطة أبقيق",
+      "language": "English",
+      "fileName": "ABQ- English Manual-02-MAR-2026.pdf",
+      "url": "https://drive.google.com/file/d/1t2yz6VrSQYeeOwKaEvfdBM5u690iM4zM/view?usp=drive_link",
+      "column": "دليل الصيانة / انجليزي PDF",
+      "cell": "E5"
+    },
+    {
+      "sector": "محطة الخبر",
+      "language": "عربي",
+      "fileName": "دليل الصيانة  محطة الخبر-عربي نسخة نهائية -08-3-2026.pdf",
+      "url": "https://drive.google.com/file/d/14cuT1dQvQXdEfPypMYTQ9wWXD3ZaDYAx/view?usp=drive_link",
+      "column": "دليل الصيانة / عربي PDF",
+      "cell": "D6"
+    },
+    {
+      "sector": "محطة الخبر",
+      "language": "English",
+      "fileName": "Al Khobar- English Manual 8-3-2026.pdf",
+      "url": "https://drive.google.com/file/d/1SWfg4sPICSQCI_4Osi91IdV4QkAuIzkl/view?usp=drive_link",
+      "column": "دليل الصيانة / انجليزي PDF",
+      "cell": "E6"
+    },
+    {
+      "sector": "قطاع 03",
+      "language": "عربي",
+      "fileName": "فاينال - دليل واجراءات الصيانه لقطاع 3 عربي.pdf",
+      "url": "https://drive.google.com/file/d/1DEIl_1OcyIVJKESMru3MfLiD8DfxQ-wi/view?usp=drive_link",
+      "column": "دليل الصيانة / عربي PDF",
+      "cell": "D7"
+    },
+    {
+      "sector": "قطاع 03",
+      "language": "English",
+      "fileName": "Z-3 - English Maintenance Manual.pdf",
+      "url": "https://drive.google.com/file/d/1zGeSarYZ0-0QBRiZGwOLypfx-SOY2hl_/view?usp=drive_link",
+      "column": "دليل الصيانة / انجليزي PDF",
+      "cell": "E7"
+    },
+    {
+      "sector": "قطاع 10",
+      "language": "عربي",
+      "fileName": "دليل وإجراءات الصيانة لقطاع 10 فاينال.pdf",
+      "url": "https://drive.google.com/file/d/13zODJxmSbkUZJEfzvhYxBOlAUYOyvtHx/view?usp=drive_link",
+      "column": "دليل الصيانة / عربي PDF",
+      "cell": "D8"
+    },
+    {
+      "sector": "قطاع 10",
+      "language": "English",
+      "fileName": "Z10-English Manual-Maintenance-22-12-2025.pdf",
+      "url": "https://drive.google.com/file/d/1jq_q0zV6YvNL5V8PAYPxhOcgVJvawvhR/view?usp=drive_link",
+      "column": "دليل الصيانة / انجليزي PDF",
+      "cell": "E8"
+    },
+    {
+      "sector": "قطاع 02",
+      "language": "عربي",
+      "fileName": "دليل واجراءات الصيانه لقطاع 2 عربي - فاينال.pdf",
+      "url": "https://drive.google.com/file/d/1sQR_Gk-PQsYxjW6EgmL1490VjQsl5lCC/view?usp=drive_link",
+      "column": "دليل الصيانة / عربي PDF",
+      "cell": "D9"
+    },
+    {
+      "sector": "قطاع 02",
+      "language": "English",
+      "fileName": "Z 2- English Maintenance Manual.pdf",
+      "url": "https://drive.google.com/file/d/1zko9TmWODZjF6pIsTmLQisD5Esn-cvYL/view?usp=drive_link",
+      "column": "دليل الصيانة / انجليزي PDF",
+      "cell": "E9"
+    },
+    {
+      "sector": "قطاع 01",
+      "language": "عربي",
+      "fileName": "دليل وإجراءات الصيانة لقطاع - 1 -فاينال.pdf",
+      "url": "https://drive.google.com/file/d/1-UFSSgjqOCiA4s2UHouhTBM1fS61ATOf/view?usp=drive_link",
+      "column": "دليل الصيانة / عربي PDF",
+      "cell": "D10"
+    },
+    {
+      "sector": "قطاع 01",
+      "language": "English",
+      "fileName": "Z1- English Manual-Complete- 29-12-2025.pdf",
+      "url": "https://drive.google.com/file/d/11OSjCVqUuZfjOqsjuUg1h216QlGoTudC/view?usp=drive_link",
+      "column": "دليل الصيانة / انجليزي PDF",
+      "cell": "E10"
+    },
+    {
+      "sector": "محطة الضخ (قطاع 05)",
+      "language": "عربي",
+      "fileName": "دليل واجراءات الصيانه لقطاع 5 عربي - فاينال محطة الضخ.pdf",
+      "url": "https://drive.google.com/file/d/1cQebV99YjUQ1PrcRWlLH-V_02jscK7KM/view?usp=drive_link",
+      "column": "دليل الصيانة / عربي PDF",
+      "cell": "D11"
+    },
+    {
+      "sector": "محطة الضخ (قطاع 05)",
+      "language": "English",
+      "fileName": "Z 5 - English Maintenance Manual-محدث بعد الملاحظات.pdf",
+      "url": "https://drive.google.com/file/d/1wuIyF8PrzIGLmhl0QqVl0Ti8VPJzS-dO/view?usp=drive_link",
+      "column": "دليل الصيانة / انجليزي PDF",
+      "cell": "E11"
+    },
+    {
+      "sector": "محطة الكيلو 07",
+      "language": "عربي",
+      "fileName": "كيلو 7 صيانة.pdf",
+      "url": "https://drive.google.com/file/d/1g0uNJAbn1DNn0uMaiNLzsTAwveHN1Sfr/view?usp=drive_link",
+      "column": "دليل الصيانة / عربي PDF",
+      "cell": "D12"
+    },
+    {
+      "sector": "محطة الكيلو 07",
+      "language": "English",
+      "fileName": "English Manual-K07.pdf",
+      "url": "https://drive.google.com/file/d/1tPpZphPGnePRkNfcIfPFNhcyOTSUco6Z/view?usp=drive_link",
+      "column": "دليل الصيانة / انجليزي PDF",
+      "cell": "E12"
+    },
+    {
+      "sector": "محطة كيلو 25",
+      "language": "عربي",
+      "fileName": "دليل واجراءات الصيانة لمحطة كيلو 25.pdf",
+      "url": "https://drive.google.com/file/d/1M6U8GhjN8CUMj9pxeCtgpG3jMaZBH0q0/view?usp=drive_link",
+      "column": "دليل الصيانة / عربي PDF",
+      "cell": "D13"
+    },
+    {
+      "sector": "محطة كيلو 25",
+      "language": "English",
+      "fileName": "English-Maintenance Manual-K25-Complete-30-6-2026.pdf",
+      "url": "https://drive.google.com/file/d/1_wa8dXAZmdYkIDZ8XAjKm0ejWT_RZTNG/view?usp=drive_link",
+      "column": "دليل الصيانة / انجليزي PDF",
+      "cell": "E13"
+    },
+    {
+      "sector": "دليل صيانة شبكات الري",
+      "language": "عربي",
+      "fileName": "فاينال - دليل الشبكات عربي 15-06-2026.pdf",
+      "url": "https://drive.google.com/file/d/16yGXnTnf81Rm4AUfrBO4MEXbD477h_e2/view?usp=drive_link",
+      "column": "دليل الصيانة / عربي PDF",
+      "cell": "D14"
+    },
+    {
+      "sector": "دليل صيانة شبكات الري",
+      "language": "English",
+      "fileName": "دليل الشبكات انجليزي 01-08-2026.pdf",
+      "url": "https://drive.google.com/file/d/1K6ghvm7Fm_eGMvu9mofWHbfFMrG6WvSz/view?usp=drive_link",
+      "column": "دليل الصيانة / انجليزي PDF",
+      "cell": "E14"
+    },
+    {
+      "sector": "PTW+ Work Permit \nدليل أذونات العمل بالمؤسسة العامة للري",
+      "language": "عربي",
+      "fileName": "دليل أذونات العمل بالمؤسسة العامة للري -اللغة العربية.pdf",
+      "url": "https://drive.google.com/file/d/12u_q2kHatw7S_JxmRWvkHHUiK1d8iVh3/view?usp=drive_link",
+      "column": "دليل الصيانة / عربي PDF",
+      "cell": "D16"
+    }
+  ]
 }
