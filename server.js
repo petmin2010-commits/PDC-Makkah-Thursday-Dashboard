@@ -232,16 +232,85 @@ async function getManuals(force = false) {
   };
 }
 
-async function readDashboardUsers_() {
-  if (usersCache.length) return usersCache;
+function parseCsv_(text) {
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let quoted = false;
 
-  try {
-    await refreshAllData();
-  } catch (error) {
-    console.error('Users cache refresh failed:', error.message);
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+
+    if (quoted) {
+      if (ch === '"' && text[i + 1] === '"') {
+        cell += '"';
+        i++;
+      } else if (ch === '"') {
+        quoted = false;
+      } else {
+        cell += ch;
+      }
+      continue;
+    }
+
+    if (ch === '"') {
+      quoted = true;
+    } else if (ch === ',') {
+      row.push(cell);
+      cell = '';
+    } else if (ch === '\n') {
+      row.push(cell.replace(/\r$/, ''));
+      rows.push(row);
+      row = [];
+      cell = '';
+    } else {
+      cell += ch;
+    }
   }
 
-  return usersCache;
+  if (cell.length || row.length) {
+    row.push(cell.replace(/\r$/, ''));
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+async function readDashboardUsers_() {
+  const url =
+    `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?` +
+    `tqx=out:csv&sheet=${encodeURIComponent(USERS_SHEET)}&range=A1:E200`;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+
+  try {
+    const response = await fetch(url, {
+      redirect: 'follow',
+      cache: 'no-store',
+      signal: controller.signal,
+      headers: { 'User-Agent': 'SIO-Manuals-Dashboard/1.0' }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Users sheet CSV failed: ${response.status}`);
+    }
+
+    const rows = parseCsv_(await response.text());
+
+    return rows
+      .slice(1)
+      .map(r => ({
+        name: String(r[0] || '').trim(),
+        role: String(r[1] || '').trim(),
+        email: String(r[2] || '').trim().toLowerCase(),
+        password: String(r[3] || '').trim(),
+        active: String(r[4] || '').trim().toLowerCase()
+      }))
+      .filter(u => u.email);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function publicUser_(user) {
@@ -326,46 +395,22 @@ app.use((req, res, next) => {
   next();
 });
 
-async function warmUpLiveData() {
-  const maxAttempts = 3;
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      await refreshAllData();
-
-      if (
-        manualsCache.data &&
-        (manualsCache.data.operation.length || manualsCache.data.maintenance.length)
-      ) {
-        return true;
-      }
-    } catch (error) {
-      console.error(`Initial live data attempt ${attempt} failed:`, error.message);
-    }
-
-    if (attempt < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 5000 * attempt));
-    }
-  }
-
-  return false;
-}
-
-async function startServer() {
-  const warmed = await warmUpLiveData();
-
-  if (!warmed) {
-    manualsCache = { at: Date.now(), data: readFallback() };
-    console.warn('Started with fallback manuals because live Google Sheet warm-up failed.');
-  }
+function startServer() {
+  manualsCache = { at: Date.now(), data: readFallback() };
 
   app.listen(PORT, () => {
     console.log(`SIO Manuals Dashboard running on port ${PORT}`);
     console.log(
-      `Manuals ready: operation=${manualsCache.data?.operation?.length || 0}, maintenance=${manualsCache.data?.maintenance?.length || 0}`
+      `Manuals ready immediately from cache: operation=${manualsCache.data.operation.length}, maintenance=${manualsCache.data.maintenance.length}`
     );
     if (!PROD) console.log('Local login: admin / SIO-Local-2026!');
   });
+
+  setTimeout(() => {
+    refreshAllData().catch(error => {
+      console.error('Initial background live refresh failed:', error.message);
+    });
+  }, 1000);
 
   setInterval(() => {
     refreshAllData().catch(error => {
@@ -374,7 +419,4 @@ async function startServer() {
   }, Math.max(CACHE_MS, 10 * 60 * 1000));
 }
 
-startServer().catch(error => {
-  console.error('Fatal startup error:', error);
-  process.exit(1);
-});
+startServer();
