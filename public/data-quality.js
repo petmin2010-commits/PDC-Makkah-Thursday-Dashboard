@@ -256,14 +256,14 @@ function renderAdviceAiDetails(ai,type){
  const root=document.getElementById('dqIssueDetails');if(!root)return;
  const recent=Array.isArray(ai?.recent)?ai.recent:[];
  const current=Array.isArray(ai?.currentOrders)?ai.currentOrders:[];
- let rows=[],title='سجل تحليل الإفادات',note='تحليل وكيل الذكاء الاصطناعي للتغييرات التاريخية في إفادات المشاريع والتوصيلات.';
- if(type==='substantive'){rows=recent.filter(x=>x.classification==='جوهري');title='تحديثات جوهرية'}
- else if(type==='weak'){rows=recent.filter(x=>x.classification==='ضعيف');title='إفادات ضعيفة'}
- else if(type==='suspicious'){rows=recent.filter(x=>x.classification==='شكلي'||t(x.classification).includes('مشتبه'));title='تحديثات شكلية / مشتبهة'}
- else if(type==='pending'){rows=recent.filter(x=>t(x.classification).includes('بانتظار'));title='بانتظار تحليل الوكيل'}
+ let rows=[],title='الحالة الحالية للإفادات',note='الكروت تعرض الحالة الحالية فقط؛ السجل التاريخي يحتفظ بكل التغييرات السابقة للمراجعة.';
+ if(type==='substantive'){rows=current.filter(x=>x.classification==='جوهري');title='تحديثات جوهرية حالية'}
+ else if(type==='weak'){rows=current.filter(x=>x.classification==='ضعيف');title='إفادات ضعيفة حاليًا'}
+ else if(type==='suspicious'){rows=current.filter(x=>x.classification==='شكلي'||t(x.classification).includes('مشتبه'));title='تحديثات شكلية / مشتبهة حاليًا';note='تختفي الحالة من هذا الكارت فور إدخال إفادة جوهرية لاحقة، مع بقاء الحدث القديم محفوظًا في السجل التاريخي.'}
+ else if(type==='pending'){rows=current.filter(x=>t(x.classification).includes('بانتظار'));title='بانتظار تحليل الوكيل'}
  else if(type==='stale'){rows=current.filter(x=>Number(x.daysSinceSubstantive)>=3);title='لم تُحدّث جوهريًا منذ 3 أيام فأكثر';note='العمر محسوب من آخر متابعة اعتبرها الوكيل جوهرية، وليس من آخر تعديل شكلي.'}
  else if(type==='severe'){rows=current.filter(x=>Number(x.daysSinceSubstantive)>=15);title='إهمال شديد — 15 يومًا فأكثر';note='لم يرصد النظام متابعة جوهرية منذ 15 يومًا فأكثر.'}
- else rows=recent;
+ else rows=current;
  const staleMode=type==='stale'||type==='severe';
  root.innerHTML=`
   <div class="dq-detail-head"><div><span>AI ADVICE AGENT</span><h3>${esc(title)}</h3><small>${esc(note)}</small></div><div class="dq-detail-count">${fmt(rows.length)} حالة</div></div>
@@ -282,9 +282,9 @@ function renderAdviceAi(ai){
   <div class="dq-ai-head"><div><span>AI ADVICE QUALITY AGENT</span><h3>وكيل الذكاء الاصطناعي لتحليل جودة الإفادات</h3><p>يفصل بين آخر تعديل وآخر متابعة حقيقية، ويقارن الإفادة السابقة بالجديدة. أوامر العمل في «مرحلة الإغلاق» مستبعدة من التحليل ومؤشرات جودة الإفادات.</p></div><div class="dq-ai-status ${ai.agentEnabled?'on':'off'}"><b>${esc(status)}</b><small>${esc(statusText)}</small></div></div>
   <div class="dq-ai-cards">
    <button data-advice-ai="all"><span>أوامر تحت الرقابة</span><strong>${fmt(ai.trackedOrders||0)}</strong><small>المشاريع + التوصيلات</small></button>
-   <button data-advice-ai="substantive"><span>تحديثات جوهرية</span><strong>${fmt(c.substantive||0)}</strong><small>أضافت معلومة أو إجراءً فعليًا</small></button>
-   <button data-advice-ai="weak"><span>إفادات ضعيفة</span><strong>${fmt(c.weak||0)}</strong><small>تغيير موجود لكن قيمته التشغيلية محدودة</small></button>
-   <button data-advice-ai="suspicious"><span>تحديثات شكلية / مشتبهة</span><strong>${fmt(c.suspicious||0)}</strong><small>مسافة، شرطة، إعادة صياغة أو لا جديد جوهري</small></button>
+   <button data-advice-ai="substantive"><span>تحديثات جوهرية حالية</span><strong>${fmt(c.substantive||0)}</strong><small>آخر إفادة أضافت معلومة أو إجراءً فعليًا</small></button>
+   <button data-advice-ai="weak"><span>إفادات ضعيفة حاليًا</span><strong>${fmt(c.weak||0)}</strong><small>آخر إفادة قيمتها التشغيلية محدودة</small></button>
+   <button data-advice-ai="suspicious"><span>تحديثات شكلية / مشتبهة حاليًا</span><strong>${fmt(c.suspicious||0)}</strong><small>تختفي فور وصول إفادة جوهرية لاحقة</small></button>
    <button data-advice-ai="pending"><span>بانتظار تحليل الوكيل</span><strong>${fmt(c.pending||0)}</strong><small>تُحلل تلقائيًا بعد تفعيل الوكيل</small></button>
    <button data-advice-ai="stale"><span>دون متابعة جوهرية 3+ أيام</span><strong>${fmt(stale)}</strong><small>لا يعتمد على آخر تعديل شكلي</small></button>
    <button data-advice-ai="severe"><span>دون متابعة جوهرية 15+ يوم</span><strong>${fmt(a.severe||0)}</strong><small>إهمال شديد بالمتابعة الحقيقية</small></button>

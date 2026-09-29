@@ -175,13 +175,14 @@ function buildSummary(history,meta={}){
  const current=[...latest.values()].filter(h=>!activeKeys||activeKeys.has(keyOf(h.source,h.workOrder,h.sourceRow)));
  const events=history.filter(h=>h.classification&&h.classification!=='خط أساس'&&!h.classification.startsWith('مستبعد')&&(!activeKeys||activeKeys.has(keyOf(h.source,h.workOrder,h.sourceRow))));
  const isSusp=h=>h.classification==='شكلي'||h.classification.includes('مشتبه');
- const counts={substantive:events.filter(h=>h.classification==='جوهري').length,weak:events.filter(h=>h.classification==='ضعيف').length,cosmetic:events.filter(h=>h.classification==='شكلي').length,suspicious:events.filter(isSusp).length,pending:events.filter(h=>h.classification.includes('بانتظار')).length};
+ const currentAnalyzed=current.filter(h=>h.classification&&h.classification!=='خط أساس'&&!h.classification.startsWith('مستبعد'));
+ const counts={substantive:currentAnalyzed.filter(h=>h.classification==='جوهري').length,weak:currentAnalyzed.filter(h=>h.classification==='ضعيف').length,cosmetic:currentAnalyzed.filter(h=>h.classification==='شكلي').length,suspicious:currentAnalyzed.filter(isSusp).length,pending:currentAnalyzed.filter(h=>h.classification.includes('بانتظار')).length};
  const age={fresh:0,old:0,veryOld:0,neglect:0,severe:0,unknown:0};
  current.forEach(h=>{const d=daysSince(h.lastSubstantiveAt);if(d==null)age.unknown++;else if(d>=15)age.severe++;else if(d>=10)age.neglect++;else if(d>=6)age.veryOld++;else if(d>=3)age.old++;else age.fresh++;});
  const engineerMap=new Map();for(const h of events.filter(isSusp)){const k=h.engineer||'غير محدد';engineerMap.set(k,(engineerMap.get(k)||0)+1)}
  const suspiciousByEngineer=[...engineerMap.entries()].sort((a,b)=>b[1]-a[1]).slice(0,15).map(([engineer,count])=>({engineer,count}));
  const recent=events.slice(-120).reverse().map(h=>({eventId:h.eventId,capturedAt:h.capturedAt,source:h.source,row:h.sourceRow,workOrder:h.workOrder,engineer:h.engineer,contractor:h.contractor,stage:h.stage,previousAdvice:h.previousAdvice,currentAdvice:h.advice,previousTimestamp:h.previousTimestamp,currentTimestamp:h.adviceTimestamp,similarity:h.similarity,classification:h.classification,score:h.score,reason:h.reason,newInformation:h.newInformation,lastSubstantiveAt:h.lastSubstantiveAt,model:h.model}));
- const currentOrders=current.map(h=>({source:h.source,row:h.sourceRow,workOrder:h.workOrder,engineer:h.engineer,contractor:h.contractor,stage:h.stage,currentAdvice:h.advice,currentTimestamp:h.adviceTimestamp,lastSubstantiveAt:h.lastSubstantiveAt,daysSinceSubstantive:daysSince(h.lastSubstantiveAt),classification:h.classification,score:h.score}));
+ const currentOrders=current.map(h=>({source:h.source,row:h.sourceRow,workOrder:h.workOrder,engineer:h.engineer,contractor:h.contractor,stage:h.stage,previousAdvice:h.previousAdvice,currentAdvice:h.advice,previousTimestamp:h.previousTimestamp,currentTimestamp:h.adviceTimestamp,lastSubstantiveAt:h.lastSubstantiveAt,daysSinceSubstantive:daysSince(h.lastSubstantiveAt),classification:h.classification,score:h.score,reason:h.reason,newInformation:h.newInformation,model:h.model}));
  return {sheet:HISTORY_SHEET,agentEnabled:!!meta.agentEnabled,created:meta.created||0,totalEvents:events.length,trackedOrders:current.length,excludedClosed:Number(meta.excludedClosed||0),counts,age,suspiciousByEngineer,recent,currentOrders};
 }
 
