@@ -250,7 +250,16 @@ app.get('/api/manuals', requireAuth, async (req, res) => {
   res.json({ ok: true, ...data });
 });
 
-app.use(express.static(path.join(__dirname, 'public'), { maxAge: PROD ? '1h' : 0 }));
+app.get('/api/_diag/manual-counts', async (req, res) => {
+  try {
+    const data = await readLiveManuals();
+    res.json({ ok:true, source:data.source, operation:data.operation.length, maintenance:data.maintenance.length });
+  } catch (error) {
+    res.status(500).json({ ok:false, error:error.message });
+  }
+});
+
+app.use(express.static(path.join(__dirname, 'public'), { maxAge: 0, etag: true }));
 app.use((req, res, next) => {
   if (req.method === 'GET' && !req.path.startsWith('/api/')) return res.sendFile(path.join(__dirname, 'public', 'index.html'));
   next();
