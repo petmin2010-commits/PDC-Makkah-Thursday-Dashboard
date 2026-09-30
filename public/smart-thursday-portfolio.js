@@ -57,8 +57,18 @@ function activity(period,previous){
 }
 function group(rows,key,limit=10){const m=new Map();rows.forEach(x=>{const v=t(x[key])||'غير محدد';m.set(v,(m.get(v)||0)+1)});return [...m].sort((a,b)=>b[1]-a[1]).slice(0,limit).map(x=>({name:x[0],count:x[1]}))}
 function delayProfile(rows){const b={'ضمن المدة':0,'أوشكت المدة':0,'تأخير بسيط':0,'تأخير متوسط':0,'تأخير شديد':0,'موقوف/محول':0,'غير محدد':0};rows.forEach(x=>{const s=norm(x.delay);let k='غير محدد';if(s.includes('موقوف')||s.includes('محول'))k='موقوف/محول';else if(s.includes('ضمن المده'))k='ضمن المدة';else if(s.includes('اوشك'))k='أوشكت المدة';else if(s.includes('شديد')||s.includes('عالي'))k='تأخير شديد';else if(s.includes('متوسط'))k='تأخير متوسط';else if(s.includes('بسيط'))k='تأخير بسيط';b[k]++});return Object.entries(b).map(x=>({name:x[0],count:x[1]})).filter(x=>x.count)}
-function deltaBadge(v){if(v==null)return '<span class="stp-delta neutral">بدون خط أساس</span>';const cls=v>0?'up':v<0?'down':'neutral',a=v>0?'↑':v<0?'↓':'→';return '<span class="stp-delta '+cls+'">'+a+' '+(v>0?'+':'')+r1(v)+' نقطة</span>'}
-function card(x,change){const pending=Math.max(0,x.total-x.completed);return '<article class="stp-section-card" data-stp-page="'+e(x.page)+'"><div class="stp-card-head"><span>'+e(x.label)+'</span>'+deltaBadge(change?.delta)+'</div><strong>'+r1(x.rate)+'%</strong><div class="stp-progress"><i style="width:'+Math.max(0,Math.min(100,x.rate))+'%"></i></div><div class="stp-mini"><span><b>'+x.total.toLocaleString('ar-SA')+'</b>إجمالي</span><span><b>'+x.completed.toLocaleString('ar-SA')+'</b>مكتمل</span><span><b>'+pending.toLocaleString('ar-SA')+'</b>متبقي</span></div><small>'+e(x.secondaryLabel)+(x.secondaryRate==null?'':': '+r1(x.secondaryRate)+'%')+'</small><em>'+e(x.note||'')+'</em></article>'}
+function baselineSection(snap,key){return (snap?.sections||[]).find(s=>s.key===key)||null}
+function signed(v,dec=0){const x=Number(v||0),z=dec?r1(x):Math.round(x);return (z>0?'+':'')+z.toLocaleString('ar-SA')}
+function baselineCard(x,latest,previous){
+ const a=baselineSection(previous,x.key),b=baselineSection(latest,x.key),has=!!(a&&b);
+ const pair=has?(previous.label+' → '+latest.label):(latest?(latest.label+' • بانتظار خميس سابق'):'بانتظار أول لقطة خميس');
+ if(!has)return '<article class="stp-section-card stp-baseline-card" data-stp-page="'+e(x.page)+'"><div class="stp-card-head"><span>'+e(x.label)+'</span><span class="stp-delta neutral">'+e(pair)+'</span></div><strong class="stp-delta-main neutral">—</strong><div class="stp-baseline-values"><span>لا يوجد خط أساس للمقارنة بعد</span></div><div class="stp-mini"><span><b>—</b>فرق الإجمالي</span><span><b>—</b>فرق المكتمل</span><span><b>—</b>فرق المتبقي</span></div><small>يظهر الفرق بعد توفر لقطة خميس سابقة</small></article>';
+ const dr=r1(Number(b.rate||0)-Number(a.rate||0));
+ const dt=Number(b.total||0)-Number(a.total||0),dc=Number(b.completed||0)-Number(a.completed||0);
+ const ap=Math.max(0,Number(a.total||0)-Number(a.completed||0)),bp=Math.max(0,Number(b.total||0)-Number(b.completed||0)),dp=bp-ap;
+ const cls=dr>0?'up':dr<0?'down':'neutral',arrow=dr>0?'↑':dr<0?'↓':'→';
+ return '<article class="stp-section-card stp-baseline-card" data-stp-page="'+e(x.page)+'"><div class="stp-card-head"><span>'+e(x.label)+'</span><span class="stp-delta '+cls+'">'+e(pair)+'</span></div><strong class="stp-delta-main '+cls+'">'+arrow+' '+signed(dr,1)+' نقطة</strong><div class="stp-baseline-values"><span><small>'+e(previous.label)+'</small><b>'+r1(a.rate)+'%</b></span><i>←</i><span><small>'+e(latest.label)+'</small><b>'+r1(b.rate)+'%</b></span></div><div class="stp-mini"><span><b>'+signed(dt)+'</b>فرق الإجمالي</span><span><b>'+signed(dc)+'</b>فرق المكتمل</span><span><b>'+signed(dp)+'</b>فرق المتبقي</span></div><small>فرق الإغلاق الرسمي بين خطي الأساس</small></article>'
+}
 function destroyCharts(){Object.values(P.charts).forEach(c=>{try{c.destroy()}catch{}});P.charts={}}
 function chart(id,type,labels,datasets,options={}){
  const el=document.getElementById(id);if(!el||typeof Chart==='undefined')return;
@@ -89,16 +99,17 @@ function render(root,legacy){
  if(P.loading&&!P.loaded){host.innerHTML='<div class="stp-loading"><span></span><b>جاري تجميع مؤشرات الإنجاز الفني...</b><small>المشاريع، التوصيلات، التصاريح والطوارئ — كل مسار بصورة مستقلة</small></div>';return}
  if(P.error&&!P.loaded){host.innerHTML='<div class="stp-error">تعذر بناء الملخص التنفيذي: '+e(P.error)+'</div><button class="stp-retry" id="stpRetry">إعادة المحاولة</button>';document.getElementById('stpRetry').onclick=()=>{P.error='';load(root,legacy,true)};return}
  if(!P.loaded){host.innerHTML='<div class="stp-loading"><b>تهيئة الملخص التنفيذي...</b></div>';load(root,legacy);return}
- const x=P.portfolio,h=P.history||{},s=x.summary,activityRows=activity(legacy.period,legacy.previousPeriod),changes=new Map((h.sectionChanges||[]).map(v=>[v.key,v]));
+ const x=P.portfolio,h=P.history||{},s=x.summary,activityRows=activity(legacy.period,legacy.previousPeriod),trend=h.trend||[],latest=trend.length?trend[trend.length-1]:null,previous=trend.length>1?trend[trend.length-2]:null;
  host.innerHTML='<div class="stp-title"><div><span>TECHNICAL WEEKLY PULSE</span><h2>الملخص التنفيذي للإنجاز الفني</h2><p>المشاريع والتوصيلات والتصاريح والطوارئ تُعرض كلٌ على حدة. لا يوجد متوسط يجمع المسارات المختلفة.</p></div><button id="stpRefresh">↻ تحديث شامل</button></div>'+
+ '<div class="stp-section-head"><div><span>LIVE STATUS</span><h3>الوضع الحالي</h3></div><small>قراءة حية من الشيتات أياً كان اليوم — لا تعتمد على لقطة الخميس</small></div>'+
  '<div class="stp-top-kpis">'+[
  ['متابعة المشاريع',s.projects.rate+'%','<span class="stp-tag">إجمالي '+s.projects.total.toLocaleString('ar-SA')+'</span>','مكتمل '+s.projects.completed.toLocaleString('ar-SA')+' • متبقي '+s.projects.pending.toLocaleString('ar-SA')],
  ['متابعة التوصيلات',s.connections.rate+'%','<span class="stp-tag">إجمالي '+s.connections.total.toLocaleString('ar-SA')+'</span>','مكتمل '+s.connections.completed.toLocaleString('ar-SA')+' • متبقي '+s.connections.pending.toLocaleString('ar-SA')],
  ['متابعة التصاريح',s.permits.rate+'%','<span class="stp-tag">إجمالي '+s.permits.total.toLocaleString('ar-SA')+'</span>','مكتمل '+s.permits.completed.toLocaleString('ar-SA')+' • متبقي '+s.permits.pending.toLocaleString('ar-SA')],
  ['متابعة الطوارئ',s.emergency.rate+'%','<span class="stp-tag">إجمالي '+s.emergency.total.toLocaleString('ar-SA')+'</span>','منجز '+s.emergency.completed.toLocaleString('ar-SA')+' • متبقي '+s.emergency.pending.toLocaleString('ar-SA')]
  ].map(v=>'<article><span>'+v[0]+'</span><strong>'+v[1]+'</strong>'+v[2]+'<small>'+v[3]+'</small></article>').join('')+'</div>'+
- '<div class="stp-section-head"><div><span>SEPARATE FOLLOW-UP</span><h3>المتابعات الفنية المستقلة</h3></div><small>لا يتم خلط نسب المشاريع والتوصيلات والتصاريح والطوارئ</small></div>'+
- '<div class="stp-section-grid">'+x.sections.filter(v=>v.total).map(v=>card(v,changes.get(v.key))).join('')+'</div>'+
+ '<div class="stp-section-head"><div><span>THURSDAY BASELINE DELTA</span><h3>الفرق بين خطي الأساس الأسبوعيين</h3></div><small>'+(previous&&latest?('مقارنة إغلاق '+previous.label+' مع '+latest.label):'تظهر الفروق بعد توفر لقطتي خميس رسميتين')+'</small></div>'+
+ '<div class="stp-section-grid">'+x.sections.filter(v=>v.total||baselineSection(latest,v.key)||baselineSection(previous,v.key)).map(v=>baselineCard(v,latest,previous)).join('')+'</div>'+
  '<div class="stp-chart-grid">'+
  '<article class="stp-panel stp-wide"><div><span>WEEKLY TREND</span><h3>التغير الأسبوعي لكل متابعة بصورة مستقلة</h3></div><canvas id="stpTrend"></canvas></article>'+
  '<article class="stp-panel stp-wide"><div><span>CURRENT PROGRESS</span><h3>نسب الإنجاز الحالية — بدون تجميع</h3></div><canvas id="stpSections"></canvas></article>'+
