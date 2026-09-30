@@ -365,11 +365,7 @@
         </div>
 
         <div class="vd-report-cover-badge">
-          ${
-            reportType === 'full'
-              ? 'تقرير كامل'
-              : 'تقرير تنفيذي'
-          }
+          تقرير فني
         </div>
 
       </div>
@@ -845,111 +841,13 @@
   }
 
   function showModal() {
-    let modal =
-      document.getElementById(MODAL_ID);
-
-    if (!modal) {
-      modal = document.createElement('div');
-
-      modal.id = MODAL_ID;
-      modal.className = 'vd-report-export-modal';
-
-      modal.innerHTML = `
-        <div class="vd-report-export-dialog">
-
-          <button
-            type="button"
-            class="vd-report-export-close"
-            aria-label="إغلاق"
-          >
-            ×
-          </button>
-
-          <div class="vd-report-export-icon">
-            📄
-          </div>
-
-          <h2>تصدير تقرير</h2>
-
-          <p>
-            اختر نوع التقرير المطلوب للتاب الحالي
-          </p>
-
-          <div class="vd-report-export-options">
-
-            <button
-              type="button"
-              data-report-type="executive"
-              class="vd-report-option primary"
-            >
-              <strong>تقرير تنفيذي</strong>
-              <span>
-                المؤشرات والأشجار والشارتات
-                والجداول الملخصة
-              </span>
-            </button>
-
-            <button
-              type="button"
-              data-report-type="full"
-              class="vd-report-option"
-            >
-              <strong>تقرير كامل</strong>
-              <span>
-                يشمل أيضًا ملحق البيانات التفصيلية
-              </span>
-            </button>
-
-          </div>
-
-          <div class="vd-report-print-note">
-            عند ظهور نافذة الطباعة:
-            ألغِ خيار
-            <b>Headers and footers</b>
-            للحصول على تقرير نظيف بدون رابط المتصفح
-            وتاريخ Chrome.
-          </div>
-
-        </div>
-      `;
-
-      document.body.appendChild(modal);
-
-      modal
-        .querySelector(
-          '.vd-report-export-close'
-        )
-        .addEventListener(
-          'click',
-          closeModal
-        );
-
-      modal.addEventListener(
-        'click',
-        event => {
-          if (event.target === modal) {
-            closeModal();
-          }
-        }
-      );
-
-      modal
-        .querySelectorAll(
-          '[data-report-type]'
-        )
-        .forEach(button => {
-          button.addEventListener(
-            'click',
-            () => {
-              printReport(
-                button.dataset.reportType
-              );
-            }
-          );
-        });
-    }
-
-    modal.classList.add('open');
+    /*
+      التصدير موحّد ومباشر مثل تقرير الخميس:
+      لا توجد نافذة لاختيار نوع التقرير.
+      يتم إنشاء التقرير الكامل للتاب النشط فقط.
+    */
+    document.getElementById(MODAL_ID)?.remove();
+    printReport('full');
   }
 
   function hideLegacyExportButtons() {
@@ -982,7 +880,7 @@
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'vd-tab-report-btn';
-      button.title = 'إنشاء تقرير للتاب الحالي فقط';
+      button.title = 'تصدير التقرير الكامل للتاب الحالي مباشرة';
       button.textContent = '⤓ تصدير تقرير';
 
       bar.appendChild(button);
@@ -1034,6 +932,7 @@
   }
 
   function install() {
+    document.getElementById(MODAL_ID)?.remove();
     hideLegacyExportButtons();
     installPageReportButtons();
     syncPageReportButton();
@@ -1062,6 +961,7 @@
   }
 
   window.VDReportExport = {
+    exportCurrentTab: () => printReport('full'),
     showModal,
     printReport
   };
