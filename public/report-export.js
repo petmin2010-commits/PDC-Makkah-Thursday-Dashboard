@@ -794,6 +794,13 @@
       'vd-report-data-quality-cover'
     );
 
+    /*
+      لا نستخدم Footer في الصفحة الأولى لجودة البيانات.
+      في Chrome كان الـ footer المطلق للغلاف يُرحّل وحده إلى ورقة ثانية،
+      وهو بالضبط سبب الصفحة البيضاء التي يظهر بها فقط رقم العقد واسم الشركة.
+    */
+    cover.querySelector('.vd-report-footer')?.remove();
+
     const coverBody =
       cover.querySelector('.vd-report-section-body');
 
