@@ -957,7 +957,6 @@
       'printBtn',
       'exportSafetyPdfBtn',
       'exportExecutionPdfBtn',
-      'stpExportReport',
       'stpExportHtml'
     ].forEach(id => {
       const button = document.getElementById(id);
@@ -1011,13 +1010,46 @@
     });
   }
 
+  function syncPageReportButton() {
+    const key = getActivePageKey();
+
+    document
+      .querySelectorAll('.vd-tab-report-actions')
+      .forEach(bar => {
+        bar.style.display =
+          key === 'smartThursday'
+            ? 'none'
+            : 'flex';
+      });
+
+    const thursdayButton =
+      document.getElementById('stpExportReport');
+
+    if (thursdayButton) {
+      thursdayButton.style.display =
+        key === 'smartThursday'
+          ? ''
+          : 'none';
+    }
+  }
+
   function install() {
     hideLegacyExportButtons();
     installPageReportButtons();
+    syncPageReportButton();
+
+    document.addEventListener(
+      'click',
+      event => {
+        if (!event.target.closest?.('.nav-item')) return;
+        setTimeout(syncPageReportButton, 0);
+      }
+    );
 
     const observer = new MutationObserver(() => {
       hideLegacyExportButtons();
       installPageReportButtons();
+      syncPageReportButton();
     });
 
     observer.observe(

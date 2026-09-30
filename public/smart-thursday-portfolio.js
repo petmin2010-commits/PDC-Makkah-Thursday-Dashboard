@@ -168,48 +168,211 @@ function reportBaselineCard(x,latest,previous){
 }
 function exportThursdayReport(){
  if(!P.loaded||!P.portfolio)return;
- const win=window.open('','_blank'); if(!win){alert('اسمح بالنوافذ المنبثقة لتصدير التقرير');return}
- const x=P.portfolio,h=P.history||{},trend=h.trend||[],latest=trend.length?trend[trend.length-1]:null,previous=trend.length>1?trend[trend.length-2]:null;
- const now=new Date(),stamp=exportDateLabel();
+ const win=window.open('','_blank');
+ if(!win){alert('اسمح بالنوافذ المنبثقة لتصدير التقرير');return}
+
+ const x=P.portfolio,h=P.history||{},trend=h.trend||[];
+ const latest=trend.length?trend[trend.length-1]:null;
+ const previous=trend.length>1?trend[trend.length-2]:null;
+ const stamp=exportDateLabel();
  const city=document.querySelector('.brand-copy strong')?.textContent?.trim()||document.title||'PDC';
  const contract=document.querySelector('.brand-copy em')?.textContent?.trim()||'';
+ const contractNo=contract.replace('رقم العقد:','').trim();
  const logo=location.origin+'/company-logo.png';
- const charts={
-  weekly:reportChartSrc('stpTrend'),
-  pStage:reportChartSrc('stpProjectsStageTrend'),
-  cStage:reportChartSrc('stpConnectionsStageTrend'),
-  pStatus:reportChartSrc('stpProjectsStageStatusTrend'),
-  cStatus:reportChartSrc('stpConnectionsStageStatusTrend')
- };
- const kpis=(x.sections||[]).map(v=>{
-  const pending=Math.max(0,Number(v.total||0)-Number(v.completed||0));
-  return '<article class="r-kpi"><div class="r-kpi-head"><span>'+e(v.label)+'</span><b>'+r1(v.rate)+'%</b></div><div class="r-bar"><i style="width:'+Math.max(0,Math.min(100,Number(v.rate||0)))+'%"></i></div><div class="r-kpi-mini"><span><b>'+Number(v.total||0).toLocaleString('ar-SA')+'</b>إجمالي</span><span><b>'+Number(v.completed||0).toLocaleString('ar-SA')+'</b>مكتمل</span><span><b>'+pending.toLocaleString('ar-SA')+'</b>متبقي</span></div></article>';
- }).join('');
- const deltas=(x.sections||[]).map(v=>reportBaselineCard(v,latest,previous)).join('');
- const histRows=trend.length?trend.map(z=>'<tr><td>'+e(z.label||z.date||'')+'</td>'+['projects','connections','permits','emergency'].map(k=>{const m=(z.sections||[]).find(a=>a.key===k);return '<td>'+(m?r1(m.rate)+'%':'—')+'</td>'}).join('')+'</tr>').join(''):'<tr><td colspan="5">لا توجد لقطات خميس محفوظة بعد.</td></tr>';
- const pRows=P.pages.projects?.rows||[],cRows=P.pages.connections?.rows||[];
+ const pRows=P.pages.projects?.rows||[];
+ const cRows=P.pages.connections?.rows||[];
  const pageTitle='التقرير الأسبوعي لمتابعة الأداء الفني';
  const baselineText=previous&&latest?('مقارنة '+previous.label+' مع '+latest.label):'بانتظار اكتمال خط الأساس الأسبوعي';
- const chart=(src,title)=>'<section class="r-chart"><h3>'+e(title)+'</h3>'+(src?'<img src="'+src+'" alt="'+e(title)+'">':'<div class="r-empty">لا توجد بيانات تاريخية كافية للرسم بعد</div>')+'</section>';
+ const weeklySrc=trend.length?reportChartSrc('stpTrend'):'';
 
- const html='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+e(pageTitle)+'</title><style>'+
- '@page{size:A4 landscape;margin:7mm}*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#172b5f;font-family:Tahoma,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}body{font-size:10px}.page{min-height:194mm;position:relative;padding:0 6mm 19mm;overflow:hidden;background:#fff}.page>*{position:relative;z-index:2}.page+.page{page-break-before:always}.page:before{content:"";position:absolute;z-index:0;left:-20mm;bottom:-25mm;width:345mm;height:56mm;border-top:9mm solid #232d70;border-radius:50% 50% 0 0/100% 100% 0 0;transform:rotate(-1deg)}.page:after{content:"";position:absolute;z-index:0;left:-18mm;bottom:-17mm;width:340mm;height:46mm;border-top:5mm solid #d9dde3;border-radius:50% 50% 0 0/100% 100% 0 0;transform:rotate(-1deg)}.topline{display:none}.header{position:relative;min-height:34mm;text-align:center;margin:0 0 2mm;padding-top:4mm}.logo{position:absolute;left:3mm;top:3mm;width:31mm;height:19mm;object-fit:contain;object-position:left top}.title{text-align:center;padding:0 38mm}.title h1{font-size:21px;margin:0;color:#172b5f;font-weight:900;letter-spacing:.1px;position:relative}.title h1:after{content:"";display:block;width:76mm;height:1px;background:#f5a01a;margin:4mm auto 0}.title h1:before{content:"";position:absolute;left:50%;transform:translateX(-50%) rotate(45deg);top:11mm;width:4mm;height:4mm;background:#f5a01a}.title p{margin:1.3mm 0 0;color:#6f737b;font-weight:600;font-size:10px}.title p:first-of-type{font-size:11px}.meta{position:absolute;right:3mm;top:3mm;min-width:47mm;text-align:right;color:#172b5f;font-size:8px}.meta b{display:block;color:#172b5f;font-size:9px;margin-bottom:1mm}.report-info{position:relative;margin:1mm 0 4mm;border:1.2px solid #26396f;border-radius:3px;display:grid;grid-template-columns:repeat(4,1fr);overflow:visible}.report-info:before{content:"بيانات التقرير";position:absolute;right:-1px;top:-8mm;background:#172b5f;color:#fff;padding:2.2mm 5mm;border-radius:3px 3px 0 0;font-weight:900;font-size:10px}.report-info span{display:flex;align-items:center;justify-content:center;gap:2mm;min-height:11mm;border-left:1px solid #c8ced9;background:#f7f8fa;color:#172b5f}.report-info span:nth-child(even){background:#eef0f4}.report-info span:last-child{border-left:0}.report-info b{font-size:8px}.report-info em{font-style:normal;color:#273f6d}.section-title{display:flex;width:max-content;max-width:90%;align-items:center;gap:4mm;margin:4mm 0 0 auto;padding:2.1mm 4mm;border-radius:4px 4px 0 0;background:#172b5f;color:#fff}.section-title h2{margin:0;font-size:11px}.section-title span{font-size:7px;color:#dce5f1}.section-title+.kpi-grid,.section-title+.delta-grid,.section-title+.r-chart,.section-title+.charts2,.section-title+.two,.section-title+.r-table-card{border-top:1.2px solid #26396f;padding-top:2.2mm}.kpi-grid,.delta-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm}.r-kpi,.r-delta-card{border:1.2px solid #26396f;border-radius:4px;padding:3mm;background:#fff;min-height:31mm}.r-kpi-head{display:flex;flex-direction:column-reverse;align-items:center;justify-content:center;gap:1.5mm;font-weight:800;color:#172b5f}.r-kpi-head span{font-size:9px}.r-kpi-head b{font-size:19px;color:#f19500}.r-bar{display:none}.r-kpi-mini,.r-delta-mini{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2mm;margin-top:2mm}.r-kpi-mini span,.r-delta-mini span{background:#f4f5f7;border:1px solid #d9dde3;border-radius:2px;padding:1.5mm;text-align:center;color:#667184;font-size:7px}.r-kpi-mini b,.r-delta-mini b{display:block;color:#172b5f;font-size:10px;margin-bottom:.5mm}.r-delta-title{text-align:center;font-weight:900;color:#172b5f;font-size:9px}.r-delta-main{text-align:center;font-size:15px;font-weight:900;margin:2mm 0}.r-delta-main.pos{color:#148a5b}.r-delta-main.neg{color:#c64f58}.r-delta-main.flat{color:#f19500}.r-pair{display:grid;grid-template-columns:1fr auto 1fr;gap:2mm;align-items:center;background:#f4f5f7;border:1px solid #d9dde3;border-radius:2px;padding:1.5mm;margin-bottom:1.5mm}.r-pair span{text-align:center}.r-pair small{display:block;color:#7a808a;font-size:6.5px}.r-pair b{display:block;font-size:10px;color:#172b5f}.r-pair i{font-style:normal;color:#f19500}.r-wait{height:13mm;display:flex;align-items:center;justify-content:center;color:#7a808a;background:#f4f5f7;border:1px solid #d9dde3;border-radius:2px;margin:2mm 0;font-size:7px}.r-chart{border:1.2px solid #26396f;border-radius:4px;padding:2.5mm;background:#fff;break-inside:avoid}.r-chart h3{margin:-2.5mm -2.5mm 2mm;padding:2mm 3mm;background:#eef0f4;border-bottom:1px solid #cbd1db;font-size:9px;color:#172b5f}.r-chart img{display:block;width:100%;height:47mm;object-fit:contain}.r-chart.wide img{height:53mm}.r-empty{height:45mm;display:flex;align-items:center;justify-content:center;background:#fafafa;color:#7a808a;border:1px dashed #c8ced7;border-radius:3px}.two{display:grid;grid-template-columns:1fr 1fr;gap:3mm}.r-table-card{border:1.2px solid #26396f;border-radius:3px;overflow:hidden;background:#fff;break-inside:avoid}.r-table-card h3{margin:0;padding:2mm 3mm;background:#172b5f;color:#fff;font-size:9px}table{width:100%;border-collapse:collapse;font-size:7.7px}th{background:#eef0f4;color:#172b5f;padding:1.7mm;text-align:right;border:1px solid #c8ced9;font-weight:900}td{padding:1.5mm;border:1px solid #d5d9e0;color:#263b64}tbody tr:nth-child(even){background:#fbfbfc}.history{margin-top:0}.footer{position:absolute;z-index:3;bottom:2.8mm;right:6mm;left:6mm;display:flex;justify-content:space-between;align-items:center;color:#777f8a;font-size:6.5px}.charts2{display:grid;grid-template-columns:1fr 1fr;gap:3mm}.charts2 .r-chart img{height:50mm}@media print{.no-print{display:none!important}}'+
- '</style></head><body>'+
- '<main class="page"><div class="topline"></div><header class="header"><img class="logo" src="'+logo+'"><div class="title"><h1>'+e(pageTitle)+'</h1><p>Weekly Technical Performance Report</p><p>'+e(city)+'</p></div><div class="meta"><b>'+e(contract)+'</b><span>'+e(stamp)+'</span></div></header><section class="report-info"><span><b>المشروع:</b><em>'+e(city)+'</em></span><span><b>العقد:</b><em>'+e(contract.replace('رقم العقد:','').trim())+'</em></span><span><b>تاريخ التقرير:</b><em>'+e(stamp)+'</em></span><span><b>المقارنة:</b><em>'+e(baselineText)+'</em></span></section>'+
- '<div class="section-title"><h2>1. الوضع الحالي</h2><span>LIVE STATUS</span></div><div class="kpi-grid">'+kpis+'</div>'+
- '<div class="section-title"><h2>2. التغير الأسبوعي مقارنة بخط الأساس</h2><span>THURSDAY BASELINE DELTA</span></div><div class="delta-grid">'+deltas+'</div>'+
- '<div class="section-title"><h2>3. الاتجاه الأسبوعي لنسبة الإنجاز</h2><span>WEEKLY TREND</span></div><section class="r-chart wide">'+(charts.weekly?'<img src="'+charts.weekly+'">':'<div class="r-empty">سيظهر الاتجاه بعد توفر لقطات الخميس</div>')+'</section>'+
- '<div class="section-title"><h2>4. توزيع مرحلة الإنجاز</h2><span>STAGE DISTRIBUTION</span></div><div class="charts2">'+chart(charts.pStage,'مرحلة الإنجاز — المشاريع')+chart(charts.cStage,'مرحلة الإنجاز — التوصيلات')+'</div>'+
- '<footer class="footer"><span>شركة أبعاد الرؤية للاستشارات الهندسية</span><span>تم إنشاء التقرير تلقائيًا من نظام المتابعة</span></footer></main>'+
- '<main class="page"><div class="topline"></div><header class="header"><img class="logo" src="'+logo+'"><div class="title"><h1>'+e(pageTitle)+'</h1><p>Weekly Technical Performance Report</p><p>'+e(city)+' — التفاصيل الفنية</p></div><div class="meta"><b>'+e(contract)+'</b><span>'+e(stamp)+'</span></div></header><section class="report-info"><span><b>المشروع:</b><em>'+e(city)+'</em></span><span><b>العقد:</b><em>'+e(contract.replace('رقم العقد:','').trim())+'</em></span><span><b>تاريخ التقرير:</b><em>'+e(stamp)+'</em></span><span><b>الصفحة:</b><em>2 / 2</em></span></section>'+
- '<div class="section-title"><h2>5. توزيع حالة المرحلة</h2><span>STAGE STATUS</span></div><div class="charts2">'+chart(charts.pStatus,'حالة المرحلة — المشاريع')+chart(charts.cStatus,'حالة المرحلة — التوصيلات')+'</div>'+
- '<div class="section-title"><h2>6. الجداول التفصيلية</h2><span>DETAIL TABLES</span></div><div class="two">'+
- reportBreakdown('مرحلة الإنجاز — المشاريع',breakdown(pRows,'stage'))+reportBreakdown('حالة المرحلة — المشاريع',breakdown(pRows,'stageStatus'))+
- reportBreakdown('مرحلة الإنجاز — التوصيلات',breakdown(cRows,'stage'))+reportBreakdown('حالة المرحلة — التوصيلات',breakdown(cRows,'stageStatus'))+'</div>'+
- '<div class="section-title"><h2>7. ملخص اللقطات الأسبوعية</h2><span>THURSDAY SNAPSHOTS</span></div><section class="r-table-card history"><table><thead><tr><th>الخميس</th><th>المشاريع</th><th>التوصيلات</th><th>التصاريح</th><th>الطوارئ</th></tr></thead><tbody>'+histRows+'</tbody></table></section>'+
- '<footer class="footer"><span>شركة أبعاد الرؤية للاستشارات الهندسية</span><span>صفحة 2 من 2</span></footer></main>'+
- '<script>window.addEventListener("load",()=>setTimeout(()=>window.print(),700));<\/script></body></html>';
- win.document.open();win.document.write(html);win.document.close();
+ function entries(rows,key){
+  return Object.entries(breakdown(rows,key)||{})
+   .map(function(v){return [v[0],Number(v[1]||0)]})
+   .sort(function(a,b){return b[1]-a[1]});
+ }
+ function section(title,en){
+  return '<div class="section-title"><h2>'+e(title)+'</h2><span>'+e(en)+'</span></div>';
+ }
+ function footer(pageNo,total){
+  return '<footer class="footer"><span>شركة أبعاد الرؤية للاستشارات الهندسية</span><span>صفحة '+pageNo+' من '+total+'</span></footer>';
+ }
+ function header(pageNo,total,sub){
+  return '<header class="header">'+
+   '<img class="logo" src="'+logo+'">'+
+   '<div class="title"><h1>'+e(pageTitle)+'</h1><p>Weekly Technical Performance Report</p><p>'+e(sub||city)+'</p></div>'+
+   '<div class="meta"><b>'+e(contract)+'</b><span>'+e(stamp)+'</span></div>'+
+   '</header>'+
+   '<section class="report-info">'+
+    '<span><b>المشروع:</b><em>'+e(city)+'</em></span>'+
+    '<span><b>العقد:</b><em>'+e(contractNo)+'</em></span>'+
+    '<span><b>تاريخ التقرير:</b><em>'+e(stamp)+'</em></span>'+
+    '<span><b>الصفحة:</b><em>'+pageNo+' / '+total+'</em></span>'+
+   '</section>';
+ }
+ function page(body,pageNo,total,sub){
+  return '<main class="page">'+header(pageNo,total,sub)+body+footer(pageNo,total)+'</main>';
+ }
+ function barPanel(title,data){
+  const list=Array.isArray(data)?data:[];
+  const max=Math.max(1,...list.map(function(v){return Number(v[1]||0)}));
+  const total=list.reduce(function(s,v){return s+Number(v[1]||0)},0);
+  const rows=list.length?list.map(function(v){
+    const value=Number(v[1]||0);
+    const share=total?(value/total*100):0;
+    const width=Math.max(1,Math.min(100,value/max*100));
+    return '<div class="bar-row">'+
+      '<div class="bar-label"><span>'+e(v[0])+'</span><b>'+value.toLocaleString('ar-SA')+' <small>'+share.toFixed(1)+'%</small></b></div>'+
+      '<div class="bar-track"><i style="width:'+width.toFixed(1)+'%"></i></div>'+
+     '</div>';
+   }).join(''):'<div class="empty">لا توجد بيانات</div>';
+  return '<section class="bar-card"><h3>'+e(title)+'</h3><div class="bar-list">'+rows+'</div></section>';
+ }
+ function tablePanel(title,data){
+  const list=Array.isArray(data)?data:[];
+  const total=list.reduce(function(s,v){return s+Number(v[1]||0)},0);
+  const rows=list.length?list.map(function(v){
+    const value=Number(v[1]||0);
+    const share=total?(value/total*100):0;
+    return '<tr><td>'+e(v[0])+'</td><td>'+value.toLocaleString('ar-SA')+'</td><td>'+share.toFixed(1)+'%</td></tr>';
+  }).join(''):'<tr><td colspan="3">لا توجد بيانات</td></tr>';
+  return '<section class="table-card"><h3>'+e(title)+'</h3><table><thead><tr><th>التصنيف</th><th>العدد</th><th>النسبة</th></tr></thead><tbody>'+rows+'</tbody></table></section>';
+ }
+
+ const kpis=(x.sections||[]).map(function(v){
+  const pending=Math.max(0,Number(v.total||0)-Number(v.completed||0));
+  return '<article class="kpi">'+
+   '<div class="kpi-head"><span>'+e(v.label)+'</span><b>'+r1(v.rate)+'%</b></div>'+
+   '<div class="kpi-mini">'+
+    '<span><b>'+Number(v.total||0).toLocaleString('ar-SA')+'</b>إجمالي</span>'+
+    '<span><b>'+Number(v.completed||0).toLocaleString('ar-SA')+'</b>مكتمل</span>'+
+    '<span><b>'+pending.toLocaleString('ar-SA')+'</b>متبقي</span>'+
+   '</div>'+
+  '</article>';
+ }).join('');
+
+ const deltas=(x.sections||[]).map(function(v){
+  return reportBaselineCard(v,latest,previous);
+ }).join('');
+
+ const pStage=entries(pRows,'stage');
+ const cStage=entries(cRows,'stage');
+ const pStatus=entries(pRows,'stageStatus');
+ const cStatus=entries(cRows,'stageStatus');
+
+ const hist=trend.slice(-12);
+ const histRows=hist.length?hist.map(function(z){
+  return '<tr><td>'+e(z.label||z.date||'')+'</td>'+
+   ['projects','connections','permits','emergency'].map(function(k){
+    const m=(z.sections||[]).find(function(a){return a.key===k});
+    return '<td>'+(m?r1(m.rate)+'%':'—')+'</td>';
+   }).join('')+
+   '</tr>';
+ }).join(''):'<tr><td colspan="5">لا توجد لقطات خميس محفوظة بعد.</td></tr>';
+
+ const totalPages=5;
+
+ const page1=
+  section('1. الوضع الحالي','LIVE STATUS')+
+  '<div class="kpi-grid">'+kpis+'</div>'+
+  section('2. التغير الأسبوعي مقارنة بخط الأساس','THURSDAY BASELINE DELTA')+
+  '<div class="delta-grid">'+deltas+'</div>'+
+  section('3. الاتجاه الأسبوعي لنسبة الإنجاز','WEEKLY TREND')+
+  '<section class="trend-card">'+
+   (weeklySrc?'<div class="trend-image-wrap"><img src="'+weeklySrc+'" alt="Weekly trend"></div>':'<div class="trend-empty">سيظهر الاتجاه الأسبوعي بعد توفر أول لقطة خميس رسمية.</div>')+
+  '</section>';
+
+ const page2=
+  section('4. توزيع مرحلة الإنجاز الحالي','CURRENT STAGE DISTRIBUTION')+
+  '<div class="two-cols">'+
+   barPanel('مرحلة الإنجاز — المشاريع',pStage)+
+   barPanel('مرحلة الإنجاز — التوصيلات',cStage)+
+  '</div>'+
+  '<div class="two-cols tables-top">'+
+   tablePanel('تفاصيل مرحلة الإنجاز — المشاريع',pStage)+
+   tablePanel('تفاصيل مرحلة الإنجاز — التوصيلات',cStage)+
+  '</div>';
+
+ const page3=
+  section('5. توزيع حالة المرحلة الحالي','CURRENT STAGE STATUS')+
+  '<div class="two-cols status-cols">'+
+   barPanel('حالة المرحلة — المشاريع',pStatus)+
+   barPanel('حالة المرحلة — التوصيلات',cStatus)+
+  '</div>';
+
+ const page4=
+  section('6. الجداول التفصيلية — المشاريع','PROJECTS DETAIL TABLES')+
+  '<div class="two-cols detail-cols">'+
+   tablePanel('مرحلة الإنجاز — المشاريع',pStage)+
+   tablePanel('حالة المرحلة — المشاريع',pStatus)+
+  '</div>';
+
+ const page5=
+  section('7. الجداول التفصيلية — التوصيلات','CONNECTIONS DETAIL TABLES')+
+  '<div class="two-cols detail-cols">'+
+   tablePanel('مرحلة الإنجاز — التوصيلات',cStage)+
+   tablePanel('حالة المرحلة — التوصيلات',cStatus)+
+  '</div>'+
+  section('8. ملخص آخر اللقطات الأسبوعية','THURSDAY SNAPSHOTS')+
+  '<section class="snapshot-card"><table><thead><tr><th>الخميس</th><th>المشاريع</th><th>التوصيلات</th><th>التصاريح</th><th>الطوارئ</th></tr></thead><tbody>'+histRows+'</tbody></table></section>';
+
+ const css=
+ '@page{size:A4 landscape;margin:0}'+
+ '*{box-sizing:border-box}'+
+ 'html,body{margin:0;padding:0;background:#fff;color:#172b5f;font-family:Tahoma,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
+ 'body{font-size:9px}'+
+ '.page{width:297mm;height:210mm;position:relative;padding:7mm 10mm 15mm;overflow:hidden;background:#fff;break-after:page;page-break-after:always}'+
+ '.page:last-child{break-after:auto;page-break-after:auto}'+
+ '.page>*{position:relative;z-index:2}'+
+ '.page:before{content:"";position:absolute;z-index:0;left:-20mm;bottom:-27mm;width:345mm;height:54mm;border-top:8mm solid #232d70;border-radius:50% 50% 0 0/100% 100% 0 0;transform:rotate(-1deg)}'+
+ '.page:after{content:"";position:absolute;z-index:0;left:-18mm;bottom:-19mm;width:340mm;height:43mm;border-top:4.5mm solid #d9dde3;border-radius:50% 50% 0 0/100% 100% 0 0;transform:rotate(-1deg)}'+
+ '.header{position:relative;min-height:23mm;text-align:center;padding-top:1mm;margin-bottom:1mm}'+
+ '.logo{position:absolute;left:0;top:0;width:28mm;height:18mm;object-fit:contain;object-position:left top}'+
+ '.title{padding:0 40mm}'+
+ '.title h1{position:relative;margin:0;color:#172b5f;font-size:19px;font-weight:900}'+
+ '.title h1:after{content:"";display:block;width:74mm;height:1px;background:#f2a31b;margin:3mm auto 0}'+
+ '.title h1:before{content:"";position:absolute;left:50%;top:10mm;width:3.8mm;height:3.8mm;background:#f2a31b;transform:translateX(-50%) rotate(45deg)}'+
+ '.title p{margin:1mm 0 0;color:#6e737b;font-size:8.5px;font-weight:700}'+
+ '.meta{position:absolute;right:0;top:0;text-align:right;color:#172b5f;font-size:7px;min-width:48mm}'+
+ '.meta b{display:block;font-size:8px;margin-bottom:.8mm}'+
+ '.report-info{position:relative;margin:0 0 3mm;border:1px solid #26396f;border-radius:2px;display:grid;grid-template-columns:repeat(4,1fr);overflow:visible}'+
+ '.report-info:before{content:"بيانات التقرير";position:absolute;right:-1px;top:-6.2mm;background:#172b5f;color:#fff;padding:1.6mm 4mm;border-radius:2px 2px 0 0;font-weight:900;font-size:8px}'+
+ '.report-info span{display:flex;align-items:center;justify-content:center;gap:1.5mm;min-height:8mm;border-left:1px solid #c8ced9;background:#f7f8fa}'+
+ '.report-info span:nth-child(even){background:#eef0f4}.report-info span:last-child{border-left:0}.report-info b{font-size:7px}.report-info em{font-style:normal;color:#273f6d;font-size:7.5px}'+
+ '.section-title{display:flex;width:max-content;max-width:95%;align-items:center;gap:3mm;margin:2.5mm 0 0 auto;padding:1.5mm 3.5mm;border-radius:3px 3px 0 0;background:#172b5f;color:#fff}'+
+ '.section-title h2{margin:0;font-size:9.5px}.section-title span{font-size:6px;color:#dce5f1}'+
+ '.section-title+*{border-top:1px solid #26396f;padding-top:1.5mm}'+
+ '.kpi-grid,.delta-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2.5mm}'+
+ '.kpi,.r-delta-card{border:1px solid #26396f;border-radius:3px;padding:2mm;background:#fff;min-height:25mm}'+
+ '.kpi-head{display:flex;flex-direction:column-reverse;align-items:center;gap:.8mm;font-weight:800}.kpi-head span{font-size:8px}.kpi-head b{font-size:17px;color:#f19500}'+
+ '.kpi-mini,.r-delta-mini{display:grid;grid-template-columns:repeat(3,1fr);gap:1mm;margin-top:1.3mm}.kpi-mini span,.r-delta-mini span{background:#f4f5f7;border:1px solid #d9dde3;border-radius:2px;padding:1mm;text-align:center;color:#667184;font-size:6px}.kpi-mini b,.r-delta-mini b{display:block;color:#172b5f;font-size:8.5px;margin-bottom:.3mm}'+
+ '.r-delta-title{text-align:center;font-weight:900;font-size:8px}.r-delta-main{text-align:center;font-size:13px;font-weight:900;margin:1.2mm 0}.r-delta-main.pos{color:#148a5b}.r-delta-main.neg{color:#c64f58}.r-delta-main.flat{color:#f19500}'+
+ '.r-pair{display:grid;grid-template-columns:1fr auto 1fr;gap:1mm;align-items:center;background:#f4f5f7;border:1px solid #d9dde3;border-radius:2px;padding:.8mm;margin-bottom:1mm}.r-pair span{text-align:center}.r-pair small{display:block;color:#7a808a;font-size:5.8px}.r-pair b{display:block;font-size:8px}.r-pair i{font-style:normal;color:#f19500}'+
+ '.r-wait{height:9mm;display:flex;align-items:center;justify-content:center;color:#7a808a;background:#f4f5f7;border:1px solid #d9dde3;border-radius:2px;margin:1.3mm 0;font-size:6px}'+
+ '.trend-card{border:1px solid #26396f;border-radius:3px;padding:1.5mm;background:#fff;height:49mm}'+
+ '.trend-image-wrap{height:100%;background:#071d34;border-radius:2px;overflow:hidden;display:flex;align-items:center;justify-content:center}.trend-image-wrap img{width:100%;height:100%;object-fit:contain}.trend-empty{height:100%;display:flex;align-items:center;justify-content:center;background:#f7f8fa;color:#7a808a;border:1px dashed #c8ced7;border-radius:2px}'+
+ '.two-cols{display:grid;grid-template-columns:1fr 1fr;gap:3mm}.tables-top{margin-top:3mm}.status-cols{height:143mm}.detail-cols{height:147mm}'+
+ '.bar-card,.table-card,.snapshot-card{border:1px solid #26396f;border-radius:3px;background:#fff;overflow:hidden;min-width:0}'+
+ '.bar-card h3,.table-card h3{margin:0;padding:1.8mm 2.5mm;background:#172b5f;color:#fff;font-size:8.5px}'+
+ '.bar-list{padding:2mm 2.5mm}.bar-row{margin-bottom:1.4mm}.bar-row:last-child{margin-bottom:0}.bar-label{display:flex;justify-content:space-between;gap:3mm;align-items:center;margin-bottom:.6mm;font-size:6.8px}.bar-label span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:72%}.bar-label b{white-space:nowrap;color:#172b5f}.bar-label small{font-size:5.8px;color:#7a808a;font-weight:400}.bar-track{height:2.3mm;background:#eceff3;border-radius:10px;overflow:hidden}.bar-track i{display:block;height:100%;background:linear-gradient(90deg,#172b5f,#2f66a5,#f2a31b);border-radius:10px}'+
+ 'table{width:100%;border-collapse:collapse;table-layout:auto;font-size:6.7px}th{background:#eef0f4;color:#172b5f;padding:1.2mm;text-align:right;border:1px solid #c8ced9;font-weight:900}td{padding:1.05mm 1.2mm;border:1px solid #d5d9e0;color:#263b64;line-height:1.2}tbody tr:nth-child(even){background:#fbfbfc}'+
+ '.detail-cols .table-card{height:100%}.detail-cols table{font-size:6.4px}.detail-cols td,.detail-cols th{padding:.92mm 1mm}'+
+ '.snapshot-card{margin-top:0}.snapshot-card table{font-size:6.5px}.snapshot-card td,.snapshot-card th{padding:1mm}'+
+ '.empty{padding:8mm;text-align:center;color:#7a808a}'+
+ '.footer{position:absolute;z-index:3;bottom:2.8mm;right:10mm;left:10mm;display:flex;justify-content:space-between;color:#777f8a;font-size:6px}'+
+ '@media print{html,body{width:297mm}body{margin:0}.page{break-inside:avoid}}';
+
+ const html='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+e(pageTitle)+'</title><style>'+css+'</style></head><body>'+
+  page(page1,1,totalPages,city)+
+  page(page2,2,totalPages,city+' — مرحلة الإنجاز')+
+  page(page3,3,totalPages,city+' — حالة المرحلة')+
+  page(page4,4,totalPages,city+' — تفاصيل المشاريع')+
+  page(page5,5,totalPages,city+' — تفاصيل التوصيلات')+
+  '<script>window.addEventListener("load",function(){setTimeout(function(){window.print()},900)});<\/script>'+
+  '</body></html>';
+
+ win.document.open();
+ win.document.write(html);
+ win.document.close();
 }
 function render(root,legacy){
  if(!root)return;
