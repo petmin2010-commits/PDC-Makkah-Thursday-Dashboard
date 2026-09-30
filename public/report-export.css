@@ -1,0 +1,71 @@
+
+/* Vision Dimensions unified PDF report theme — inspection-report visual language */
+.vd-report-export-modal{position:fixed;inset:0;z-index:999999;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(15,23,42,.56);backdrop-filter:blur(5px)}
+.vd-report-export-modal.open{display:flex}
+.vd-report-export-dialog{position:relative;width:min(560px,92vw);background:#fff;border:1px solid #d9dee7;border-radius:18px;padding:30px;box-shadow:0 24px 70px rgba(15,23,42,.28);direction:rtl;text-align:center;color:#172b5f}
+.vd-report-export-close{position:absolute;left:16px;top:12px;border:0;background:transparent;font-size:26px;cursor:pointer;color:#667085}
+.vd-report-export-icon{width:54px;height:54px;margin:0 auto 10px;border-radius:16px;display:grid;place-items:center;background:#eef1f6;color:#172b5f;font-size:28px}
+.vd-report-export-dialog h2{margin:6px 0 4px;color:#172b5f}.vd-report-export-dialog p{margin:0 0 18px;color:#6d7480}
+.vd-report-export-options{display:grid;grid-template-columns:1fr 1fr;gap:12px}.vd-report-option{border:1px solid #cfd5df;background:#fff;border-radius:12px;padding:16px;text-align:right;cursor:pointer;color:#172b5f}
+.vd-report-option.primary{border-color:#172b5f;background:#f7f8fb}.vd-report-option strong{display:block;font-size:15px}.vd-report-option span{display:block;font-size:12px;color:#717986;margin-top:5px}
+.vd-report-print-note{margin-top:16px;padding:11px 13px;border-radius:10px;background:#fff7e8;border:1px solid #f0c36a;color:#73551b;font-size:12px;line-height:1.7}
+#vdReportV2{display:none}
+body.vd-report-v2-mode{background:#fff!important}
+body.vd-report-v2-mode> *:not(#vdReportV2){display:none!important}
+body.vd-report-v2-mode #vdReportV2{display:block!important}
+.vd-report-v2{direction:rtl;background:#fff;color:#172b5f;font-family:Cairo,Tahoma,Arial,sans-serif}
+.vd-report-v2-page{position:relative;width:100%;min-height:190mm;padding:8mm 9mm 18mm;background:#fff;overflow:hidden;break-after:page;page-break-after:always}
+.vd-report-v2-page:last-child{break-after:auto;page-break-after:auto}
+.vd-report-v2-page:before{content:"";position:absolute;z-index:0;left:-18mm;bottom:-24mm;width:340mm;height:50mm;border-top:9mm solid #232d70;border-radius:50% 50% 0 0/100% 100% 0 0;transform:rotate(-1deg)}
+.vd-report-v2-page:after{content:"";position:absolute;z-index:0;left:-16mm;bottom:-16mm;width:338mm;height:41mm;border-top:5mm solid #d9dde3;border-radius:50% 50% 0 0/100% 100% 0 0;transform:rotate(-1deg)}
+.vd-report-v2-page>*{position:relative;z-index:2}
+.vd-report-section-header{min-height:30mm;text-align:center;padding:1mm 34mm 5mm;border-bottom:1px solid transparent}
+.vd-report-section-header:before{content:"";position:absolute;left:0;top:0;width:28mm;height:18mm;background:url('/company-logo.png') left top/contain no-repeat}
+.vd-report-section-header h2{margin:0;color:#172b5f;font-size:20px;font-weight:900}
+.vd-report-section-header h2:after{content:"";display:block;width:72mm;height:1.2px;background:#f2a31b;margin:4mm auto 0}
+.vd-report-section-header h2:before{content:"";position:absolute;left:50%;top:14mm;width:4mm;height:4mm;background:#f2a31b;transform:translateX(-50%) rotate(45deg)}
+.vd-report-section-header span{display:block;color:#6e737b;font-size:10px;font-weight:700;letter-spacing:.8px;margin-bottom:2mm}
+.vd-report-section-header p{margin:2mm 0 0;color:#6d7480;font-size:9px}
+.vd-report-section-body{margin-top:4mm}
+.vd-report-footer{position:absolute;z-index:3;bottom:3mm;right:9mm;left:9mm;display:flex;justify-content:space-between;align-items:center;color:#777f8b;font-size:7px}
+.vd-report-cover{padding-top:7mm}
+.vd-report-cover-top{display:flex;align-items:center;justify-content:space-between;min-height:22mm}
+.vd-report-cover-brand{display:flex;align-items:center;gap:4mm}
+.vd-report-cover-brand img{width:26mm;height:18mm;object-fit:contain}
+.vd-report-cover-brand strong{display:block;color:#172b5f;font-size:12px}.vd-report-cover-brand span{display:block;color:#7b8088;font-size:7px;letter-spacing:.4px}
+.vd-report-cover-badge{background:#172b5f;color:#fff;border-radius:3px;padding:2.3mm 5mm;font-size:9px;font-weight:800}
+.vd-report-cover-title{text-align:center;margin:5mm 0 4mm}
+.vd-report-cover-title small{display:block;color:#6d7480;font-size:9px;margin-bottom:2mm}
+.vd-report-cover-title h1{margin:0;color:#172b5f;font-size:24px;font-weight:900}
+.vd-report-cover-title h1:after{content:"";display:block;width:78mm;height:1.2px;background:#f2a31b;margin:4mm auto 0}
+.vd-report-cover-title h1:before{content:"";position:absolute;left:50%;margin-top:11mm;width:4mm;height:4mm;background:#f2a31b;transform:translateX(-50%) rotate(45deg)}
+.vd-report-cover-title p{margin:4mm 0 1mm;color:#172b5f;font-size:12px;font-weight:800}.vd-report-cover-title>strong{color:#525d6d;font-size:9px}
+.vd-report-cover-meta{position:relative;margin:8mm 0 5mm;border:1.2px solid #24366d;border-radius:3px;display:grid;grid-template-columns:repeat(3,1fr)}
+.vd-report-cover-meta:before{content:"بيانات التقرير";position:absolute;right:-1px;top:-7mm;background:#172b5f;color:#fff;padding:2mm 5mm;border-radius:3px 3px 0 0;font-weight:900;font-size:9px}
+.vd-report-cover-meta>div{padding:3mm;text-align:center;background:#f7f8fa;border-left:1px solid #d0d5dd}.vd-report-cover-meta>div:nth-child(even){background:#eef0f4}.vd-report-cover-meta>div:last-child{border-left:0}
+.vd-report-cover-meta span{display:block;color:#697386;font-size:7px}.vd-report-cover-meta b{display:block;color:#172b5f;font-size:11px;margin-top:1mm}
+.vd-report-cover-kpis,.vd-report-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm}
+.vd-report-cover-kpis{margin-top:4mm}
+.vd-report-kpi-clone{min-width:0!important;background:#fff!important;border:1.2px solid #24366d!important;border-radius:4px!important;padding:3mm!important;box-shadow:none!important;color:#172b5f!important;text-align:center!important}
+.vd-report-kpi-clone *{box-shadow:none!important}
+.vd-report-kpi-clone strong,.vd-report-kpi-clone b{color:#f09a00!important}
+.vd-report-cover-filters{margin-top:4mm;border:1px solid #d3d7de;border-radius:3px;padding:3mm;background:#fafafa}.vd-report-cover-filters>strong{display:block;color:#172b5f;margin-bottom:2mm}.vd-report-cover-filters>div{display:flex;gap:2mm;flex-wrap:wrap}.vd-report-cover-filters span{background:#eef0f4;padding:1.5mm 2.5mm;border-radius:2px;font-size:7px}
+.vd-report-cover-footer{position:absolute;bottom:4mm;right:9mm;color:#777f8b;font-size:7px}
+.vd-report-chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:4mm}
+.vd-report-chart-card,.vd-report-summary-table,.vd-report-detail-panel,.vd-report-tree-wrapper,.vd-report-misc-page .panel{background:#fff!important;border:1.2px solid #24366d!important;border-radius:4px!important;padding:3mm!important;box-shadow:none!important;color:#172b5f!important}
+.vd-report-chart-card .panel-title,.vd-report-summary-table .panel-title,.vd-report-detail-panel .panel-title,.vd-report-tree-wrapper .panel-title{background:#172b5f!important;color:#fff!important;margin:-3mm -3mm 3mm!important;padding:2mm 3mm!important;border-radius:3px 3px 0 0!important}
+.vd-report-chart-image{display:block;width:100%;height:auto;max-height:68mm;object-fit:contain;background:#fff}
+.vd-report-tree-wrapper{overflow:visible}.vd-report-tree-wrapper-large{font-size:90%}
+.vd-report-v2 table{width:100%!important;border-collapse:collapse!important;background:#fff!important;color:#263b64!important}
+.vd-report-v2 th{background:#eef0f4!important;color:#172b5f!important;border:1px solid #c7ced8!important;padding:1.8mm!important;font-weight:900!important}
+.vd-report-v2 td{background:#fff!important;color:#263b64!important;border:1px solid #d5d9e0!important;padding:1.6mm!important}
+.vd-report-v2 tbody tr:nth-child(even) td{background:#fbfbfc!important}
+.vd-report-static-value{display:inline-block;padding:1.5mm 2mm;border:1px solid #d0d5dd;border-radius:2px;background:#f8f9fb;color:#172b5f}
+.vd-report-v2 .panel,.vd-report-v2 article,.vd-report-v2 section{box-shadow:none!important}
+.vd-report-v2 .info-btn,.vd-report-v2 .help-btn,.vd-report-v2 .meeting-info-btn,.vd-report-v2 button{display:none!important}
+@page{size:A4 landscape;margin:7mm}
+@media print{
+  html,body{background:#fff!important}
+  body.vd-report-v2-mode #vdReportV2{display:block!important}
+  .vd-report-v2-page{min-height:190mm}
+}
