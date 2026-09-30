@@ -91,13 +91,73 @@ async function loadManuals(force = false) {
   }
 }
 function cardTitle(item, tab) {
-  const lang = item.language === 'English' ? 'إنجليزي' : item.language;
+  const lang = item.language === 'English' ? 'إنجليزي' : 'عربي';
   return `${labels[tab].type} — ${item.sector} — ${lang}`;
+}
+
+const arCollator = new Intl.Collator('ar', { numeric: true, sensitivity: 'base' });
+
+function numericSector(value) {
+  const text = String(value || '');
+  const match = text.match(/قطاع\s*0*(\d+)/i);
+  return match ? Number(match[1]) : null;
+}
+
+function sortBySectorDesc(a, b) {
+  const aSector = numericSector(a.sector);
+  const bSector = numericSector(b.sector);
+
+  if (aSector !== null && bSector !== null && aSector !== bSector) {
+    return bSector - aSector;
+  }
+  if (aSector !== null && bSector === null) return -1;
+  if (aSector === null && bSector !== null) return 1;
+
+  return arCollator.compare(String(b.sector || ''), String(a.sector || ''));
+}
+
+function renderCards(items, tab) {
+  return items.map(item => {
+    const title = cardTitle(item, tab);
+    const href = item.url ? escapeHtml(item.url) : '#';
+    const linkClass = item.url ? 'open-link' : 'open-link disabled';
+    const itemKey = encodeURIComponent(item.url || item.cell || item.fileName || '');
+
+    return `
+      <article class="doc-card">
+        <button class="doc-info" type="button" data-info-key="${itemKey}" aria-label="معلومات الملف">!</button>
+        <div class="doc-type">${escapeHtml(labels[tab].type)} · ${escapeHtml(item.language === 'English' ? 'إنجليزي' : 'عربي')}</div>
+        <h4>${escapeHtml(title)}</h4>
+        <div class="doc-file" title="${escapeHtml(item.fileName)}">${escapeHtml(item.fileName)}</div>
+        <a class="${linkClass}" href="${href}" target="_blank" rel="noopener noreferrer">
+          <span>اضغط هنا لفتح الرابط</span><span>↗</span>
+        </a>
+      </article>`;
+  }).join('');
+}
+
+function renderLanguageSection(titleAr, titleEn, items, tab, langClass) {
+  if (!items.length) return '';
+
+  return `
+    <section class="language-section ${langClass}">
+      <div class="language-head">
+        <div>
+          <span>${escapeHtml(titleEn)}</span>
+          <h4>${escapeHtml(titleAr)}</h4>
+        </div>
+        <b>${items.length}</b>
+      </div>
+      <div class="language-grid">
+        ${renderCards(items, tab)}
+      </div>
+    </section>`;
 }
 
 function render() {
   const tab = state.activeTab;
   const items = state.manuals[tab] || [];
+
   $('sectionTitle').textContent = labels[tab].ar;
   $('sectionEnglish').textContent = labels[tab].en;
   document.querySelectorAll('.tab').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
@@ -107,26 +167,29 @@ function render() {
     emptyState.hidden = false;
     return;
   }
+
+  const arabic = items
+    .filter(item => item.language !== 'English')
+    .sort(sortBySectorDesc);
+
+  const english = items
+    .filter(item => item.language === 'English')
+    .sort(sortBySectorDesc);
+
   emptyState.hidden = true;
-  grid.innerHTML = items.map((item, index) => {
-    const title = cardTitle(item, tab);
-    const href = item.url ? escapeHtml(item.url) : '#';
-    const linkClass = item.url ? 'open-link' : 'open-link disabled';
-    return `
-      <article class="doc-card">
-        <button class="doc-info" type="button" data-info="${index}" aria-label="معلومات الملف">!</button>
-        <div class="doc-type">${escapeHtml(labels[tab].type)} · ${escapeHtml(item.language || '')}</div>
-        <h4>${escapeHtml(title)}</h4>
-        <div class="doc-file" title="${escapeHtml(item.fileName)}">${escapeHtml(item.fileName)}</div>
-        <a class="${linkClass}" href="${href}" target="_blank" rel="noopener noreferrer">
-          <span>اضغط هنا لفتح الرابط</span><span>↗</span>
-        </a>
-      </article>`;
-  }).join('');
+  grid.innerHTML =
+    renderLanguageSection('النسخ العربية', 'ARABIC MANUALS', arabic, tab, 'arabic-section') +
+    renderLanguageSection('النسخ الإنجليزية', 'ENGLISH MANUALS', english, tab, 'english-section');
 }
-function openInfo(index) {
-  const item = (state.manuals[state.activeTab] || [])[Number(index)];
+
+function openInfo(key) {
+  const decoded = decodeURIComponent(String(key || ''));
+  const item = (state.manuals[state.activeTab] || []).find(
+    x => (x.url || x.cell || x.fileName || '') === decoded
+  );
+
   if (!item) return;
+
   $('modalTitle').textContent = cardTitle(item, state.activeTab);
   const linkState = item.url ? 'الرابط متاح ومربوط بالملف.' : 'لا يوجد رابط محفوظ لهذا الملف حتى الآن.';
   $('modalText').textContent = `الملف: ${item.fileName} — القطاع: ${item.sector}. ${linkState} المصدر: ${item.column || 'الورقة2'}.`;
@@ -176,7 +239,7 @@ document.querySelector('.tabs').addEventListener('click', (e) => {
 
 grid.addEventListener('click', (e) => {
   const btn = e.target.closest('.doc-info');
-  if (btn) openInfo(btn.dataset.info);
+  if (btn) openInfo(btn.dataset.infoKey);
 });
 
 $('modalClose').addEventListener('click', () => $('infoModal').hidden = true);
