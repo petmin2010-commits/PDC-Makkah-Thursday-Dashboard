@@ -103,17 +103,17 @@ function numericSector(value) {
   return match ? Number(match[1]) : null;
 }
 
-function sortBySectorDesc(a, b) {
+function sortBySectorAsc(a, b) {
   const aSector = numericSector(a.sector);
   const bSector = numericSector(b.sector);
 
   if (aSector !== null && bSector !== null && aSector !== bSector) {
-    return bSector - aSector;
+    return aSector - bSector;
   }
   if (aSector !== null && bSector === null) return -1;
   if (aSector === null && bSector !== null) return 1;
 
-  return arCollator.compare(String(b.sector || ''), String(a.sector || ''));
+  return arCollator.compare(String(a.sector || ''), String(b.sector || ''));
 }
 
 function renderCards(items, tab) {
@@ -170,11 +170,11 @@ function render() {
 
   const arabic = items
     .filter(item => item.language !== 'English')
-    .sort(sortBySectorDesc);
+    .sort(sortBySectorAsc);
 
   const english = items
     .filter(item => item.language === 'English')
-    .sort(sortBySectorDesc);
+    .sort(sortBySectorAsc);
 
   emptyState.hidden = true;
   grid.innerHTML =
