@@ -73,6 +73,14 @@ function baselineCard(x,latest,previous){
  const cls=dr>0?'up':dr<0?'down':'neutral',arrow=dr>0?'↑':dr<0?'↓':'→';
  return '<article class="stp-section-card stp-baseline-card" data-stp-page="'+e(x.page)+'"><div class="stp-card-head"><span>'+e(x.label)+'</span><span class="stp-delta '+cls+'">'+e(pair)+'</span></div><strong class="stp-delta-main '+cls+'">'+arrow+' '+signed(dr,1)+' نقطة</strong><div class="stp-baseline-values"><span><small>'+e(previous.label)+'</small><b>'+r1(a.rate)+'%</b></span><i>←</i><span><small>'+e(latest.label)+'</small><b>'+r1(b.rate)+'%</b></span></div><div class="stp-mini"><span><b>'+signed(dt)+'</b>فرق الإجمالي</span><span><b>'+signed(dc)+'</b>فرق المكتمل</span><span><b>'+signed(dp)+'</b>فرق المتبقي</span></div><small>فرق الإغلاق الرسمي بين خطي الأساس</small></article>'
 }
+function breakdown(rows,key){const out={};(rows||[]).forEach(x=>{const v=t(x?.[key])||'غير محدد';out[v]=(out[v]||0)+1});return out}
+const STP_TREND_COLORS=['#43a5ff','#ff5f7d','#f6a33b','#f4ca4d','#55d6a9','#9b7cff','#5ed1e8','#ff8f5c','#95a7bd','#c56cff','#7ddc6f','#e9a3ff'];
+function drawBreakdownTrend(id,sectionKey,fieldKey){
+ const h=P.history?.trend||[],maps=h.map(z=>z.summary?.stageBreakdowns?.[sectionKey]?.[fieldKey]||{});
+ const cats=[...new Set(maps.flatMap(o=>Object.keys(o)))].sort((a,b)=>maps.reduce((n,o)=>n+Number(o[b]||0),0)-maps.reduce((n,o)=>n+Number(o[a]||0),0));
+ const ds=cats.map((c,i)=>({label:c,data:maps.map(o=>Number(o[c]||0)),borderColor:STP_TREND_COLORS[i%STP_TREND_COLORS.length],backgroundColor:STP_TREND_COLORS[i%STP_TREND_COLORS.length],borderWidth:2,tension:.25,pointRadius:4,pointHoverRadius:6,fill:false}));
+ chart(id,'line',h.map(z=>z.label),ds,{scales:{y:{beginAtZero:true,ticks:{color:'#91a7bf',precision:0},grid:{color:'rgba(255,255,255,.05)'}},x:{ticks:{color:'#91a7bf'},grid:{display:false}}}})
+}
 function destroyCharts(){Object.values(P.charts).forEach(c=>{try{c.destroy()}catch{}});P.charts={}}
 function chart(id,type,labels,datasets,options={}){
  const el=document.getElementById(id);if(!el||typeof Chart==='undefined')return;
@@ -80,20 +88,15 @@ function chart(id,type,labels,datasets,options={}){
  P.charts[id]=new Chart(el,{type,data:{labels,datasets},options:Object.assign(base,options)});
 }
 function trendSeries(key,label){const h=P.history?.trend||[];return {label,data:h.map(x=>{if(key==='overall')return Number(x.overallRate||0);const m=(x.sections||[]).find(s=>s.key===key);return m?Number(m.rate||0):null}),borderWidth:2,tension:.3,spanGaps:true}}
-function drawCharts(activityRows){
- destroyCharts();const x=P.portfolio,s=x.summary;
+function drawCharts(){
+ destroyCharts();
  const yPct={min:0,max:100,ticks:{color:'#91a7bf',callback:v=>v+'%'},grid:{color:'rgba(255,255,255,.05)'}};
- const yCount={beginAtZero:true,ticks:{color:'#91a7bf',precision:0},grid:{color:'rgba(255,255,255,.05)'}};
- chart('stpSections','bar',x.sections.map(v=>v.label),[{label:'نسبة الإنجاز',data:x.sections.map(v=>v.rate),backgroundColor:'rgba(71,145,255,.72)'}],{indexAxis:'y',scales:{x:yPct,y:{ticks:{color:'#c5d4e6'},grid:{display:false}}}});
  const h=P.history?.trend||[];
  chart('stpTrend','line',h.map(z=>z.label),[trendSeries('projects','المشاريع'),trendSeries('connections','التوصيلات'),trendSeries('permits','التصاريح'),trendSeries('emergency','الطوارئ')],{scales:{y:yPct,x:{ticks:{color:'#91a7bf'},grid:{display:false}}}});
- chart('stpActivity','bar',activityRows.map(a=>a.label),[{label:'هذا الأسبوع',data:activityRows.map(a=>a.current),backgroundColor:'rgba(71,145,255,.78)'},{label:'الأسبوع السابق',data:activityRows.map(a=>a.previous),backgroundColor:'rgba(139,157,181,.45)'}],{indexAxis:'y',scales:{x:yCount,y:{ticks:{color:'#c5d4e6'},grid:{display:false}}}});
- chart('stpWoStatus','doughnut',['مكتمل','متبقي'],[{data:[s.construction.completed,s.construction.pending],backgroundColor:['#2fc88f','#f1b44c']}],{cutout:'66%'});
- const support=[['حفر المشاريع',s.projects.excavation],['تمديد المشاريع',s.projects.extension],['حفر التوصيلات',s.connections.excavation],['تمديد التوصيلات',s.connections.extension]];
- chart('stpSupport','bar',support.map(v=>v[0]),[{label:'نسبة الإنجاز الفني',data:support.map(v=>v[1]),backgroundColor:'rgba(87,212,175,.68)'}],{scales:{y:yPct,x:{ticks:{color:'#c5d4e6'},grid:{display:false}}}});
- const d=delayProfile([...(P.pages.projects?.rows||[]),...(P.pages.connections?.rows||[])]);chart('stpDelay','doughnut',d.map(v=>v.name),[{data:d.map(v=>v.count)}],{cutout:'58%'});
- const stage=group([...(P.pages.projects?.rows||[]),...(P.pages.connections?.rows||[])],'stage',9);
- chart('stpStages','bar',stage.map(v=>v.name),[{label:'عدد أوامر الإنشاءات',data:stage.map(v=>v.count),backgroundColor:'rgba(137,102,255,.68)'}],{indexAxis:'y',scales:{x:yCount,y:{ticks:{color:'#c5d4e6'},grid:{display:false}}}});
+ drawBreakdownTrend('stpProjectsStageTrend','projects','stage');
+ drawBreakdownTrend('stpConnectionsStageTrend','connections','stage');
+ drawBreakdownTrend('stpProjectsStageStatusTrend','projects','stageStatus');
+ drawBreakdownTrend('stpConnectionsStageStatusTrend','connections','stageStatus');
 }
 function render(root,legacy){
  if(!root)return;
@@ -103,7 +106,7 @@ function render(root,legacy){
  if(P.loading&&!P.loaded){host.innerHTML='<div class="stp-loading"><span></span><b>جاري تجميع مؤشرات الإنجاز الفني...</b><small>المشاريع، التوصيلات، التصاريح والطوارئ — كل مسار بصورة مستقلة</small></div>';return}
  if(P.error&&!P.loaded){host.innerHTML='<div class="stp-error">تعذر بناء الملخص التنفيذي: '+e(P.error)+'</div><button class="stp-retry" id="stpRetry">إعادة المحاولة</button>';document.getElementById('stpRetry').onclick=()=>{P.error='';load(root,legacy,true)};return}
  if(!P.loaded){host.innerHTML='<div class="stp-loading"><b>تهيئة الملخص التنفيذي...</b></div>';load(root,legacy);return}
- const x=P.portfolio,h=P.history||{},s=x.summary,activityRows=activity(legacy.period,legacy.previousPeriod),trend=h.trend||[],latest=trend.length?trend[trend.length-1]:null,previous=trend.length>1?trend[trend.length-2]:null;
+ const x=P.portfolio,h=P.history||{},s=x.summary,trend=h.trend||[],latest=trend.length?trend[trend.length-1]:null,previous=trend.length>1?trend[trend.length-2]:null;
  host.innerHTML='<div class="stp-title"><div><span>TECHNICAL WEEKLY PULSE</span><h2>الملخص التنفيذي للإنجاز الفني</h2><p>المشاريع والتوصيلات والتصاريح والطوارئ تُعرض كلٌ على حدة. لا يوجد متوسط يجمع المسارات المختلفة.</p></div><button id="stpRefresh">↻ تحديث شامل</button></div>'+
  '<div class="stp-section-head"><div><span>LIVE STATUS</span><h3>الوضع الحالي</h3></div><small>قراءة حية من الشيتات أياً كان اليوم — لا تعتمد على لقطة الخميس</small></div>'+
  '<div class="stp-section-grid stp-live-grid">'+x.sections.filter(v=>v.total).map(liveCard).join('')+'</div>'+
@@ -111,25 +114,14 @@ function render(root,legacy){
  '<div class="stp-section-grid">'+x.sections.filter(v=>v.total||baselineSection(latest,v.key)||baselineSection(previous,v.key)).map(v=>baselineCard(v,latest,previous)).join('')+'</div>'+
  '<div class="stp-chart-grid">'+
  '<article class="stp-panel stp-wide"><div><span>WEEKLY TREND</span><h3>التغير الأسبوعي لكل متابعة بصورة مستقلة</h3></div><canvas id="stpTrend"></canvas></article>'+
- '<article class="stp-panel stp-wide"><div><span>CURRENT PROGRESS</span><h3>نسب الإنجاز الحالية — بدون تجميع</h3></div><canvas id="stpSections"></canvas></article>'+
- '<article class="stp-panel stp-wide"><div><span>WEEKLY ACTIVITY</span><h3>حجم المتابعة هذا الأسبوع مقابل الأسبوع السابق</h3></div><canvas id="stpActivity"></canvas></article>'+
- '<article class="stp-panel"><div><span>CONSTRUCTION STATUS</span><h3>حالة الإنشاءات (مشاريع & توصيلات)</h3></div><canvas id="stpWoStatus"></canvas></article>'+
- '<article class="stp-panel"><div><span>EXCAVATION & EXTENSION</span><h3>الحفر والتمديد — مشاريع مقابل توصيلات</h3></div><canvas id="stpSupport"></canvas></article>'+
- '<article class="stp-panel"><div><span>CONSTRUCTION DELAY</span><h3>شرائح التأخير — الإنشاءات فقط</h3></div><canvas id="stpDelay"></canvas></article>'+
- '<article class="stp-panel"><div><span>CONSTRUCTION STAGES</span><h3>مراحل التنفيذ — الإنشاءات فقط</h3></div><canvas id="stpStages"></canvas></article>'+
- '</div>'+
- '<section class="stp-construction-final"><div class="stp-section-head"><div><span>FINAL CONSTRUCTION SUMMARY</span><h3>الإنشاءات (مشاريع & توصيلات)</h3></div><small>هذا هو التجميع الوحيد في التقرير</small></div>'+
- '<div class="stp-construction-grid">'+
- '<article><span>إجمالي الإنشاءات</span><strong>'+s.construction.total.toLocaleString('ar-SA')+'</strong><small>مشاريع '+s.projects.total.toLocaleString('ar-SA')+' + توصيلات '+s.connections.total.toLocaleString('ar-SA')+'</small></article>'+
- '<article><span>المكتمل</span><strong>'+s.construction.completed.toLocaleString('ar-SA')+'</strong><small>إجمالي المكتمل بالمشاريع والتوصيلات</small></article>'+
- '<article><span>المتبقي</span><strong>'+s.construction.pending.toLocaleString('ar-SA')+'</strong><small>إجمالي غير المكتمل</small></article>'+
- '<article><span>نسبة التنفيذ المكتمل</span><strong>'+s.construction.executionRate+'%</strong><small>المكتمل ÷ إجمالي الإنشاءات</small></article>'+
- '<article><span>نسبة التقدم الفني المجمعة</span><strong>'+s.construction.progressRate+'%</strong><small>متوسط موزون حسب عدد أوامر المشاريع والتوصيلات</small></article>'+
- '</div></section>'+
- '<div class="stp-foot"><b>الإغلاق الأسبوعي الرسمي:</b> تُحفظ لقطة ثابتة كل خميس لكل متابعة بصورة مستقلة، وتُقارن باللقطة الرسمية للخميس السابق. الإنشاءات تجمع المشاريع والتوصيلات فقط.</div>';
+ '<article class="stp-panel"><div><span>PROJECTS • STAGE</span><h3>تريند أعداد مرحلة الإنجاز — المشاريع</h3></div><canvas id="stpProjectsStageTrend"></canvas></article>'+
+ '<article class="stp-panel"><div><span>CONNECTIONS • STAGE</span><h3>تريند أعداد مرحلة الإنجاز — التوصيلات</h3></div><canvas id="stpConnectionsStageTrend"></canvas></article>'+
+ '<article class="stp-panel"><div><span>PROJECTS • STAGE STATUS</span><h3>تريند أعداد حالة المرحلة — المشاريع</h3></div><canvas id="stpProjectsStageStatusTrend"></canvas></article>'+
+ '<article class="stp-panel"><div><span>CONNECTIONS • STAGE STATUS</span><h3>تريند أعداد حالة المرحلة — التوصيلات</h3></div><canvas id="stpConnectionsStageStatusTrend"></canvas></article>'+
+ '</div>';
  document.getElementById('stpRefresh').onclick=()=>load(root,legacy,true);
  host.querySelectorAll('[data-stp-page]').forEach(c=>c.onclick=()=>{try{if(typeof openPage==='function')openPage(c.dataset.stpPage)}catch{}});
- setTimeout(()=>drawCharts(activityRows),20);
+ setTimeout(()=>drawCharts(),20);
 }
 async function load(root,legacy,force=false){
  if(P.loading)return;
@@ -142,7 +134,7 @@ async function load(root,legacy,force=false){
   const payload={
    overallRate:P.portfolio.summary.construction.progressRate,totalOrders:P.portfolio.summary.construction.total,completed:P.portfolio.summary.construction.completed,
    sections:P.portfolio.sections.map(s=>({key:s.key,label:s.label,rate:s.rate,total:s.total,completed:s.completed})),
-   summary:{constructionProgressRate:P.portfolio.summary.construction.progressRate,constructionExecutionRate:P.portfolio.summary.construction.executionRate,projects:P.portfolio.summary.projects,connections:P.portfolio.summary.connections,permits:P.portfolio.summary.permits,emergency:P.portfolio.summary.emergency}
+   summary:{constructionProgressRate:P.portfolio.summary.construction.progressRate,constructionExecutionRate:P.portfolio.summary.construction.executionRate,projects:P.portfolio.summary.projects,connections:P.portfolio.summary.connections,permits:P.portfolio.summary.permits,emergency:P.portfolio.summary.emergency,stageBreakdowns:{projects:{stage:breakdown(P.pages.projects?.rows||[],'stage'),stageStatus:breakdown(P.pages.projects?.rows||[],'stageStatus')},connections:{stage:breakdown(P.pages.connections?.rows||[],'stage'),stageStatus:breakdown(P.pages.connections?.rows||[],'stageStatus')}}}
   };
   try{P.history=await rpc('syncThursdayProgressHistory',[payload])}catch(err){P.history={ok:false,error:err.message,trend:[],sectionChanges:[],overallDelta:null}}
   P.loaded=true;P.loadedAt=Date.now();
