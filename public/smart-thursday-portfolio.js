@@ -146,6 +146,71 @@ async function exportThursdayHtml(){
  const date=new Date().toISOString().slice(0,10);
  a.href=url;a.download='Thursday-Technical-Report-'+date+'.html';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
 }
+
+function reportChartSrc(id){
+ const c=document.getElementById(id); if(!c)return '';
+ try{return c.toDataURL('image/png',1)}catch{return ''}
+}
+function reportBreakdown(title,data){
+ const entries=Object.entries(data||{}).sort((a,b)=>Number(b[1]||0)-Number(a[1]||0));
+ const total=entries.reduce((sum,[,v])=>sum+Number(v||0),0);
+ const rows=entries.length?entries.map(([k,v])=>'<tr><td>'+e(k)+'</td><td>'+Number(v||0).toLocaleString('ar-SA')+'</td><td>'+(total?pct(v,total):0)+'%</td></tr>').join(''):'<tr><td colspan="3">لا توجد بيانات</td></tr>';
+ return '<section class="r-table-card"><h3>'+e(title)+'</h3><table><thead><tr><th>التصنيف</th><th>العدد</th><th>النسبة</th></tr></thead><tbody>'+rows+'</tbody></table></section>';
+}
+function reportBaselineCard(x,latest,previous){
+ const a=baselineSection(previous,x.key),b=baselineSection(latest,x.key),has=!!(a&&b);
+ const pendingA=a?Math.max(0,Number(a.total||0)-Number(a.completed||0)):0;
+ const pendingB=b?Math.max(0,Number(b.total||0)-Number(b.completed||0)):0;
+ if(!has)return '<article class="r-delta-card"><div class="r-delta-title">'+e(x.label)+'</div><div class="r-wait">بانتظار توفر لقطتي خميس رسميتين</div><div class="r-delta-mini"><span>فرق الإجمالي<b>—</b></span><span>فرق المكتمل<b>—</b></span><span>فرق المتبقي<b>—</b></span></div></article>';
+ const dr=r1(Number(b.rate||0)-Number(a.rate||0)),dt=Number(b.total||0)-Number(a.total||0),dc=Number(b.completed||0)-Number(a.completed||0),dp=pendingB-pendingA;
+ const cls=dr>0?'pos':dr<0?'neg':'flat',arrow=dr>0?'▲':dr<0?'▼':'●';
+ return '<article class="r-delta-card"><div class="r-delta-title">'+e(x.label)+'</div><div class="r-delta-main '+cls+'">'+arrow+' '+signed(dr,1)+' نقطة</div><div class="r-pair"><span><small>'+e(previous.label)+'</small><b>'+r1(a.rate)+'%</b></span><i>←</i><span><small>'+e(latest.label)+'</small><b>'+r1(b.rate)+'%</b></span></div><div class="r-delta-mini"><span>فرق الإجمالي<b>'+signed(dt)+'</b></span><span>فرق المكتمل<b>'+signed(dc)+'</b></span><span>فرق المتبقي<b>'+signed(dp)+'</b></span></div></article>';
+}
+function exportThursdayReport(){
+ if(!P.loaded||!P.portfolio)return;
+ const win=window.open('','_blank'); if(!win){alert('اسمح بالنوافذ المنبثقة لتصدير التقرير');return}
+ const x=P.portfolio,h=P.history||{},trend=h.trend||[],latest=trend.length?trend[trend.length-1]:null,previous=trend.length>1?trend[trend.length-2]:null;
+ const now=new Date(),stamp=exportDateLabel();
+ const city=document.querySelector('.brand-copy strong')?.textContent?.trim()||document.title||'PDC';
+ const contract=document.querySelector('.brand-copy em')?.textContent?.trim()||'';
+ const logo=location.origin+'/company-logo.png';
+ const charts={
+  weekly:reportChartSrc('stpTrend'),
+  pStage:reportChartSrc('stpProjectsStageTrend'),
+  cStage:reportChartSrc('stpConnectionsStageTrend'),
+  pStatus:reportChartSrc('stpProjectsStageStatusTrend'),
+  cStatus:reportChartSrc('stpConnectionsStageStatusTrend')
+ };
+ const kpis=(x.sections||[]).map(v=>{
+  const pending=Math.max(0,Number(v.total||0)-Number(v.completed||0));
+  return '<article class="r-kpi"><div class="r-kpi-head"><span>'+e(v.label)+'</span><b>'+r1(v.rate)+'%</b></div><div class="r-bar"><i style="width:'+Math.max(0,Math.min(100,Number(v.rate||0)))+'%"></i></div><div class="r-kpi-mini"><span><b>'+Number(v.total||0).toLocaleString('ar-SA')+'</b>إجمالي</span><span><b>'+Number(v.completed||0).toLocaleString('ar-SA')+'</b>مكتمل</span><span><b>'+pending.toLocaleString('ar-SA')+'</b>متبقي</span></div></article>';
+ }).join('');
+ const deltas=(x.sections||[]).map(v=>reportBaselineCard(v,latest,previous)).join('');
+ const histRows=trend.length?trend.map(z=>'<tr><td>'+e(z.label||z.date||'')+'</td>'+['projects','connections','permits','emergency'].map(k=>{const m=(z.sections||[]).find(a=>a.key===k);return '<td>'+(m?r1(m.rate)+'%':'—')+'</td>'}).join('')+'</tr>').join(''):'<tr><td colspan="5">لا توجد لقطات خميس محفوظة بعد.</td></tr>';
+ const pRows=P.pages.projects?.rows||[],cRows=P.pages.connections?.rows||[];
+ const pageTitle='التقرير الأسبوعي لمتابعة الأداء الفني';
+ const baselineText=previous&&latest?('مقارنة '+previous.label+' مع '+latest.label):'بانتظار اكتمال خط الأساس الأسبوعي';
+ const chart=(src,title)=>'<section class="r-chart"><h3>'+e(title)+'</h3>'+(src?'<img src="'+src+'" alt="'+e(title)+'">':'<div class="r-empty">لا توجد بيانات تاريخية كافية للرسم بعد</div>')+'</section>';
+
+ const html='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+e(pageTitle)+'</title><style>'+
+ '@page{size:A4 landscape;margin:8mm}*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#17324d;font-family:Tahoma,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}body{font-size:10px}.page{min-height:190mm;position:relative;padding-bottom:13mm}.page+.page{page-break-before:always}.topline{height:5px;background:linear-gradient(90deg,#16356b,#0080b8 58%,#f5a623);border-radius:2px;margin-bottom:6mm}.header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:5mm}.logo{width:48mm;height:19mm;object-fit:contain;object-position:right center}.title{text-align:center;flex:1}.title h1{font-size:19px;margin:0;color:#12345b}.title p{margin:2px 0;color:#50708f;font-weight:700}.meta{text-align:left;min-width:54mm;color:#294d70}.meta b{display:block;color:#12345b;margin-bottom:2px}.section-title{display:flex;align-items:center;justify-content:space-between;margin:4mm 0 2.5mm;padding:2.4mm 3mm;border-radius:4px;background:#0e426f;color:#fff}.section-title h2{margin:0;font-size:12px}.section-title span{font-size:8px;color:#cfe3f7}.kpi-grid,.delta-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2.5mm}.r-kpi,.r-delta-card{border:1px solid #d8e3ee;border-radius:6px;padding:3mm;background:linear-gradient(180deg,#fbfdff,#f4f8fc)}.r-kpi-head,.r-delta-title{display:flex;justify-content:space-between;align-items:center;font-weight:800;color:#173d65}.r-kpi-head b{font-size:18px;color:#102f51}.r-bar{height:5mm;background:#e5eef6;border-radius:99px;overflow:hidden;margin:2.5mm 0}.r-bar i{display:block;height:100%;background:linear-gradient(90deg,#2188e7,#31b596);border-radius:99px}.r-kpi-mini,.r-delta-mini{display:grid;grid-template-columns:repeat(3,1fr);gap:1.6mm}.r-kpi-mini span,.r-delta-mini span{background:#edf4fa;border-radius:4px;padding:2mm;text-align:center;color:#607b96}.r-kpi-mini b,.r-delta-mini b{display:block;color:#17324d;font-size:12px;margin-bottom:1px}.r-delta-title{font-size:11px}.r-delta-main{text-align:center;font-size:16px;font-weight:900;margin:2.5mm 0}.r-delta-main.pos{color:#0e9d63}.r-delta-main.neg{color:#d64c58}.r-delta-main.flat{color:#687b8d}.r-pair{display:grid;grid-template-columns:1fr auto 1fr;gap:2mm;align-items:center;background:#edf4fa;border-radius:4px;padding:2mm;margin-bottom:2mm}.r-pair span{text-align:center}.r-pair small{display:block;color:#7890a7}.r-pair b{display:block;font-size:12px}.r-pair i{font-style:normal;color:#2f81c5}.r-wait{height:18mm;display:flex;align-items:center;justify-content:center;color:#758ba1;background:#edf4fa;border-radius:4px;margin:2.5mm 0}.r-chart{border:1px solid #d8e3ee;border-radius:6px;padding:2.5mm;background:#fff;break-inside:avoid}.r-chart h3{margin:0 0 2mm;font-size:10px;color:#173d65}.r-chart img{display:block;width:100%;height:49mm;object-fit:contain}.r-chart.wide img{height:55mm}.r-empty{height:48mm;display:flex;align-items:center;justify-content:center;background:#f5f8fb;color:#7b8fa3;border-radius:4px}.two{display:grid;grid-template-columns:1fr 1fr;gap:3mm}.r-table-card{border:1px solid #d8e3ee;border-radius:6px;overflow:hidden;background:#fff;break-inside:avoid}.r-table-card h3{margin:0;padding:2.4mm 3mm;background:#eaf3fb;color:#17436e;font-size:10px}table{width:100%;border-collapse:collapse;font-size:8px}th{background:#0e426f;color:#fff;padding:1.7mm;text-align:right}td{padding:1.55mm;border-bottom:1px solid #e3eaf0}tbody tr:nth-child(even){background:#f7fafc}.history{margin-top:3mm}.footer{position:absolute;bottom:0;right:0;left:0;border-top:1px solid #d9e3ec;padding-top:2.5mm;display:flex;justify-content:space-between;color:#71879c;font-size:7px}.foot-logo{height:7mm;vertical-align:middle}.charts2{display:grid;grid-template-columns:1fr 1fr;gap:3mm}.charts2 .r-chart img{height:52mm}@media print{.no-print{display:none!important}}'+
+ '</style></head><body>'+
+ '<main class="page"><div class="topline"></div><header class="header"><img class="logo" src="'+logo+'"><div class="title"><h1>'+e(pageTitle)+'</h1><p>'+e(city)+'</p><p>المشاريع — التوصيلات — التصاريح — الطوارئ</p></div><div class="meta"><b>'+e(contract)+'</b><span>تاريخ الإصدار: '+e(stamp)+'</span><br><span>'+e(baselineText)+'</span></div></header>'+
+ '<div class="section-title"><h2>1. الوضع الحالي</h2><span>LIVE STATUS</span></div><div class="kpi-grid">'+kpis+'</div>'+
+ '<div class="section-title"><h2>2. التغير الأسبوعي مقارنة بخط الأساس</h2><span>THURSDAY BASELINE DELTA</span></div><div class="delta-grid">'+deltas+'</div>'+
+ '<div class="section-title"><h2>3. الاتجاه الأسبوعي لنسبة الإنجاز</h2><span>WEEKLY TREND</span></div><section class="r-chart wide">'+(charts.weekly?'<img src="'+charts.weekly+'">':'<div class="r-empty">سيظهر الاتجاه بعد توفر لقطات الخميس</div>')+'</section>'+
+ '<div class="section-title"><h2>4. توزيع مرحلة الإنجاز</h2><span>STAGE DISTRIBUTION</span></div><div class="charts2">'+chart(charts.pStage,'مرحلة الإنجاز — المشاريع')+chart(charts.cStage,'مرحلة الإنجاز — التوصيلات')+'</div>'+
+ '<footer class="footer"><span>شركة أبعاد الرؤية للاستشارات الهندسية</span><span>تم إنشاء التقرير تلقائيًا من نظام المتابعة</span></footer></main>'+
+ '<main class="page"><div class="topline"></div><header class="header"><img class="logo" src="'+logo+'"><div class="title"><h1>'+e(pageTitle)+'</h1><p>'+e(city)+' — التفاصيل الفنية</p></div><div class="meta"><b>'+e(contract)+'</b><span>'+e(stamp)+'</span></div></header>'+
+ '<div class="section-title"><h2>5. توزيع حالة المرحلة</h2><span>STAGE STATUS</span></div><div class="charts2">'+chart(charts.pStatus,'حالة المرحلة — المشاريع')+chart(charts.cStatus,'حالة المرحلة — التوصيلات')+'</div>'+
+ '<div class="section-title"><h2>6. الجداول التفصيلية</h2><span>DETAIL TABLES</span></div><div class="two">'+
+ reportBreakdown('مرحلة الإنجاز — المشاريع',breakdown(pRows,'stage'))+reportBreakdown('حالة المرحلة — المشاريع',breakdown(pRows,'stageStatus'))+
+ reportBreakdown('مرحلة الإنجاز — التوصيلات',breakdown(cRows,'stage'))+reportBreakdown('حالة المرحلة — التوصيلات',breakdown(cRows,'stageStatus'))+'</div>'+
+ '<div class="section-title"><h2>7. ملخص اللقطات الأسبوعية</h2><span>THURSDAY SNAPSHOTS</span></div><section class="r-table-card history"><table><thead><tr><th>الخميس</th><th>المشاريع</th><th>التوصيلات</th><th>التصاريح</th><th>الطوارئ</th></tr></thead><tbody>'+histRows+'</tbody></table></section>'+
+ '<footer class="footer"><span>شركة أبعاد الرؤية للاستشارات الهندسية</span><span>صفحة 2 من 2</span></footer></main>'+
+ '<script>window.addEventListener("load",()=>setTimeout(()=>window.print(),700));<\/script></body></html>';
+ win.document.open();win.document.write(html);win.document.close();
+}
 function render(root,legacy){
  if(!root)return;
  let host=document.getElementById('stPortfolio');
@@ -155,7 +220,7 @@ function render(root,legacy){
  if(P.error&&!P.loaded){host.innerHTML='<div class="stp-error">تعذر بناء الملخص التنفيذي: '+e(P.error)+'</div><button class="stp-retry" id="stpRetry">إعادة المحاولة</button>';document.getElementById('stpRetry').onclick=()=>{P.error='';load(root,legacy,true)};return}
  if(!P.loaded){host.innerHTML='<div class="stp-loading"><b>تهيئة الملخص التنفيذي...</b></div>';load(root,legacy);return}
  const x=P.portfolio,h=P.history||{},s=x.summary,trend=h.trend||[],latest=trend.length?trend[trend.length-1]:null,previous=trend.length>1?trend[trend.length-2]:null;
- host.innerHTML='<div class="stp-title"><div><span>TECHNICAL WEEKLY PULSE</span><h2>الملخص التنفيذي للإنجاز الفني</h2><p>المشاريع والتوصيلات والتصاريح والطوارئ تُعرض كلٌ على حدة. لا يوجد متوسط يجمع المسارات المختلفة.</p></div><div class="stp-actions"><button id="stpExportHtml" class="stp-export-btn">⇩ تصدير HTML</button><button id="stpRefresh">↻ تحديث شامل</button></div></div>'+
+ host.innerHTML='<div class="stp-title"><div><span>TECHNICAL WEEKLY PULSE</span><h2>الملخص التنفيذي للإنجاز الفني</h2><p>المشاريع والتوصيلات والتصاريح والطوارئ تُعرض كلٌ على حدة. لا يوجد متوسط يجمع المسارات المختلفة.</p></div><div class="stp-actions"><button id="stpExportReport" class="stp-export-btn">⇩ تصدير تقرير</button><button id="stpRefresh">↻ تحديث شامل</button></div></div>'+
  '<div class="stp-section-head"><div><span>LIVE STATUS</span><h3>الوضع الحالي</h3></div><small>قراءة حية من الشيتات أياً كان اليوم — لا تعتمد على لقطة الخميس</small></div>'+
  '<div class="stp-section-grid stp-live-grid">'+x.sections.filter(v=>v.total).map(liveCard).join('')+'</div>'+
  '<div class="stp-section-head"><div><span>THURSDAY BASELINE DELTA</span><h3>الفرق بين خطي الأساس الأسبوعيين</h3></div><small>'+(previous&&latest?('مقارنة إغلاق '+previous.label+' مع '+latest.label):'تظهر الفروق بعد توفر لقطتي خميس رسميتين')+'</small></div>'+
@@ -168,7 +233,7 @@ function render(root,legacy){
  '<article class="stp-panel"><div><span>CONNECTIONS • STAGE STATUS</span><h3>تريند أعداد حالة المرحلة — التوصيلات</h3></div><canvas id="stpConnectionsStageStatusTrend"></canvas></article>'+
  '</div>';
  document.getElementById('stpRefresh').onclick=()=>load(root,legacy,true);
- document.getElementById('stpExportHtml').onclick=()=>exportThursdayHtml();
+ document.getElementById('stpExportReport').onclick=()=>exportThursdayReport();
  host.querySelectorAll('[data-stp-page]').forEach(c=>c.onclick=()=>{try{if(typeof openPage==='function')openPage(c.dataset.stpPage)}catch{}});
  setTimeout(()=>drawCharts(),20);
 }
