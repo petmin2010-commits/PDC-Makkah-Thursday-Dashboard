@@ -116,7 +116,7 @@ function render(root,legacy){
  '<article><span>نسبة التنفيذ المكتمل</span><strong>'+s.construction.executionRate+'%</strong><small>المكتمل ÷ إجمالي الإنشاءات</small></article>'+
  '<article><span>نسبة التقدم الفني المجمعة</span><strong>'+s.construction.progressRate+'%</strong><small>متوسط موزون حسب عدد أوامر المشاريع والتوصيلات</small></article>'+
  '</div></section>'+
- '<div class="stp-foot"><b>الذاكرة الأسبوعية:</b> كل متابعة تحفظ نسبتها منفصلة، بينما الإنشاءات تجمع المشاريع والتوصيلات فقط.</div>';
+ '<div class="stp-foot"><b>الإغلاق الأسبوعي الرسمي:</b> تُحفظ لقطة ثابتة كل خميس لكل متابعة بصورة مستقلة، وتُقارن باللقطة الرسمية للخميس السابق. الإنشاءات تجمع المشاريع والتوصيلات فقط.</div>';
  document.getElementById('stpRefresh').onclick=()=>load(root,legacy,true);
  host.querySelectorAll('[data-stp-page]').forEach(c=>c.onclick=()=>{try{if(typeof openPage==='function')openPage(c.dataset.stpPage)}catch{}});
  setTimeout(()=>drawCharts(activityRows),20);

@@ -396,11 +396,10 @@ async function ensureThursdayProgressSheet_(){
   return sheets;
 }
 
-function thursdayWeekStart_(dateStr){
+function isThursdaySnapshotDate_(dateStr){
   const zone=APP.TZ||'Asia/Riyadh';
   const d=DateTime.fromISO(String(dateStr||''),{zone}).startOf('day');
-  if(!d.isValid)return '';
-  return d.minus({days:(d.weekday-5+7)%7}).toISODate();
+  return !!(d.isValid&&d.weekday===4);
 }
 
 async function syncThursdayProgressHistory(payload){
@@ -429,37 +428,42 @@ async function syncThursdayProgressHistory(payload){
     totalOrders:Number(r[4]||0),completed:Number(r[5]||0),
     sections:safeJsonParse_(r[6],[]),summary:safeJsonParse_(r[7],{})
   })).filter(x=>x.date);
-  const outRow=[today,timestamp,APP.TITLE,overallRate,totalOrders,completed,JSON.stringify(sections),JSON.stringify(summary),'v1'];
+  const isThursday=now.weekday===4;
+  const outRow=[today,timestamp,APP.TITLE,overallRate,totalOrders,completed,JSON.stringify(sections),JSON.stringify(summary),'v2-thursday'];
   const current=rows.find(x=>x.date===today);
-  if(current){
-    await sheets.spreadsheets.values.update({
-      spreadsheetId:SPREADSHEET_ID,
-      range:`${qSheet(THURSDAY_PROGRESS_SHEET)}!A${current.row}:I${current.row}`,
-      valueInputOption:'RAW',requestBody:{values:[outRow]}
-    });
-  }else{
-    await sheets.spreadsheets.values.append({
-      spreadsheetId:SPREADSHEET_ID,
-      range:`${qSheet(THURSDAY_PROGRESS_SHEET)}!A:I`,
-      valueInputOption:'RAW',insertDataOption:'INSERT_ROWS',
-      requestBody:{values:[outRow]}
-    });
-  }
   const currentObj={row:current?.row||rows.length+2,date:today,timestamp,project:APP.TITLE,overallRate,totalOrders,completed,sections,summary};
-  const full=[...rows.filter(x=>x.date!==today),currentObj].sort((a,b)=>a.date.localeCompare(b.date));
-  const byWeek=new Map();
-  full.forEach(x=>{
-    const week=thursdayWeekStart_(x.date);
-    if(!week)return;
-    const old=byWeek.get(week);
-    if(!old||String(x.timestamp).localeCompare(String(old.timestamp))>0)byWeek.set(week,x);
-  });
-  const trend=[...byWeek.entries()].sort((a,b)=>a[0].localeCompare(b[0])).slice(-16).map(([week,x])=>({
-    week,date:x.date,label:DateTime.fromISO(week,{zone}).toFormat('dd/LL'),
+
+  // الإغلاق الأسبوعي الرسمي: لا تُنشأ لقطة تاريخية إلا يوم الخميس.
+  // خلال يوم الخميس يتم تحديث نفس اللقطة، وبعد انتهاء اليوم تظل ثابتة للمقارنات اللاحقة.
+  if(isThursday){
+    if(current){
+      await sheets.spreadsheets.values.update({
+        spreadsheetId:SPREADSHEET_ID,
+        range:`${qSheet(THURSDAY_PROGRESS_SHEET)}!A${current.row}:I${current.row}`,
+        valueInputOption:'RAW',requestBody:{values:[outRow]}
+      });
+    }else{
+      await sheets.spreadsheets.values.append({
+        spreadsheetId:SPREADSHEET_ID,
+        range:`${qSheet(THURSDAY_PROGRESS_SHEET)}!A:I`,
+        valueInputOption:'RAW',insertDataOption:'INSERT_ROWS',
+        requestBody:{values:[outRow]}
+      });
+    }
+  }
+
+  // الذاكرة الأسبوعية تعتمد فقط على لقطات الخميس الحقيقية؛ أي سجلات قديمة لأيام أخرى تُتجاهل في الاتجاه الأسبوعي.
+  let snapshots=rows.filter(x=>isThursdaySnapshotDate_(x.date)&&x.date!==today);
+  if(isThursday)snapshots.push(currentObj);
+  snapshots=snapshots.sort((a,b)=>a.date.localeCompare(b.date));
+  const trend=snapshots.slice(-16).map(x=>({
+    week:x.date,date:x.date,label:DateTime.fromISO(x.date,{zone}).toFormat('dd/LL'),
     overallRate:x.overallRate,totalOrders:x.totalOrders,completed:x.completed,
     sections:x.sections||[],summary:x.summary||{}
   }));
-  const previous=trend.length>1?trend[trend.length-2]:null;
+
+  // المقارنة دائمًا مع آخر خميس مكتمل قبل اليوم الحالي.
+  const previous=[...snapshots].reverse().find(x=>x.date<today)||null;
   const prevMap=new Map((previous?.sections||[]).map(x=>[x.key,x]));
   const sectionChanges=sections.map(x=>({
     key:x.key,label:x.label,current:x.rate,
@@ -468,7 +472,8 @@ async function syncThursdayProgressHistory(payload){
   }));
   return {
     ok:true,sheet:THURSDAY_PROGRESS_SHEET,updatedAt:timestamp,
-    trend,previousWeek:previous,
+    trend,previousWeek:previous,baselineDate:previous?.date||null,
+    snapshotToday:isThursday,
     overallDelta:previous?Math.round((overallRate-previous.overallRate)*10)/10:null,
     sectionChanges
   };
