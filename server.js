@@ -670,7 +670,7 @@ function countContains_(rows,k,t){return rows.filter(r=>contains_(r[k],t)).lengt
 function countExact_(rows,k,t){return rows.filter(r=>clean_(r[k])===t).length}
 function pct_(a,b){return b?Math.round(a/b*1000)/10:0}
 function yesNo_(v){const s=clean_(v);return s.includes('نعم')?'نعم':s.includes('لا')?'لا':s}
-function isCompletedStatus_(v){return clean_(v).replace(/\s+/g,' ').trim()==='تم التنفيذ'}
+function isCompletedStatus_(v){const s=norm_(v);return s==='تمالتنفيذ'||s==='منجز'||s==='مكتمل'||s.includes('تمالتنفيذ')||s.includes('تمالانجاز')}
 function kpi_(label,value,page,tone,sub,isPercent,isMoney){return {label,value,page,tone:tone||'primary',sub:sub||'',isPercent:!!isPercent,isMoney:!!isMoney}}
 function now_(){return DateTime.now().setZone(APP.TZ||'Asia/Riyadh').toFormat('yyyy-LL-dd HH:mm:ss')}
 function findHeader_(headers,candidates){

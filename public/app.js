@@ -1152,7 +1152,8 @@ function applyMasterFilters(){
 function renderInteractiveMasterKpis(rows){
  // المؤشرات المرتبطة مباشرة بورقة أوامر العمل تتغير فورًا مع الفلاتر.
  const total=rows.length;
- const completed=rows.filter(r=>exactStatus(r.status,'تم التنفيذ')).length;
+ const thursdayWO=window.VDKpiLogic?.metric?.('workorders',rows);
+ const completed=thursdayWO?thursdayWO.completed:rows.filter(r=>exactStatus(r.status,'تم التنفيذ')).length;
  const projects=rows.filter(r=>String(r.section||'').trim()==='مشاريع').length;
  const connections=rows.filter(r=>String(r.section||'').trim()==='توصيلات').length;
  const operations=rows.filter(r=>has(r.section,'عمليات')).length;
@@ -1168,7 +1169,7 @@ function renderInteractiveMasterKpis(rows){
    {label:'إجمالي أوامر العمل',value:total,page:'workorders',tone:'primary'},
    {label:'تم التنفيذ',value:completed,page:'workorders',tone:'success',sub:total?((completed/total)*100).toFixed(1)+'%':''},
    {label:'غير مكتمل',value:Math.max(0,total-completed),page:'workorders',tone:'warning'},
-   {label:'نسبة الإنجاز',value:total?completed/total*100:0,page:'workorders',tone:'success',sub:'من النتائج المفلترة',isPercent:true},
+   {label:'نسبة الإنجاز',value:thursdayWO?thursdayWO.rate:(total?completed/total*100:0),page:'workorders',tone:'success',sub:'نفس منطق تقرير الخميس',isPercent:true},
    {label:'المشاريع',value:projects,page:'projects',tone:'primary'},
    {label:'التوصيلات',value:connections,page:'connections',tone:'primary'},
    {label:'العمليات',value:operations,page:'operations',tone:'purple'},
@@ -3576,6 +3577,29 @@ function renderPermitDelayKpis(rows){
  `).join('');
 }
 
+function applyThursdayParityCards(key,rows,cards){
+ const metric=window.VDKpiLogic?.metric?.(key,rows);
+ if(!metric)return cards;
+ const aliases={
+   workorders:['نسبة التنفيذ'],
+   projects:['نسبة التنفيذ','متوسط الإنجاز','متوسط الإنجاز AM'],
+   connections:['نسبة التنفيذ','متوسط الإنجاز','متوسط الإنجاز AM'],
+   operations:['نسبة التنفيذ'],
+   permits:['نسبة الإنجاز'],
+   closures:['اكتمال دورة الإغلاق'],
+   assets:['اكتمال مسار الأصول'],
+   attachments:['نسبة الرفع'],
+   tasks:['توثيق الإفادة الميدانية'],
+   finance:['نسبة التحصيل']
+ };
+ const blocked=new Set([metric.primaryLabel,metric.secondaryLabel,...(aliases[key]||[])].filter(Boolean));
+ const out=(cards||[]).filter(c=>!blocked.has(String(c?.[0]||'')));
+ const pctText=v=>Number(v||0).toFixed(1)+'%';
+ const head=[[metric.primaryLabel,pctText(metric.rate)]];
+ if(metric.secondaryLabel&&metric.secondaryRate!=null)head.push([metric.secondaryLabel,pctText(metric.secondaryRate)]);
+ return head.concat(out);
+}
+
 function renderPageKpis(key,rows){
  const pageKpis=document.getElementById('pageKpis');
  pageKpis.classList.toggle('emergency-kpi-board',key==='emergency');
@@ -3716,6 +3740,7 @@ function renderPageKpis(key,rows){
    if(key==='tasks'){add('تمت المعالجة',rows.filter(r=>has(r.attachments,'تم المعالجة')||has(r.resolved,'تم')).length);add('مهندسون',unique(rows.map(r=>r.engineer)).length)}
  }
 
+ cards=applyThursdayParityCards(key,rows,cards);
  if(key==='executionViolations'||key==='minutes'){
    cards=cards.filter(c=>c[0]!=='إجمالي السجلات');
  }
@@ -3749,7 +3774,8 @@ function renderEmergencyKpis(rows,root){
    return d&&d.getFullYear()===today.getFullYear()&&d.getMonth()===today.getMonth();
  }).length;
  const sameDayCompleted=rows.filter(r=>isSameDay(parseDashboardDate(r.assignedDate),parseDashboardDate(r.endDate))).length;
- const done=statusCount('منجز');
+ const thursdayEmergency=window.VDKpiLogic?.metric?.('emergency',rows);
+ const done=thursdayEmergency?thursdayEmergency.completed:statusCount('منجز');
  const running=statusCount('جاري التنفيذ');
  const notStarted=statusCount('لم يتم البدء');
  const blankStatus=rows.filter(r=>!filled(r,'status')).length;
@@ -3761,7 +3787,7 @@ function renderEmergencyKpis(rows,root){
    if(!value)return false;
    return !/(^|\s)(لا|لم|غير)(\s|$)|غير مكتمل|ناقص/.test(value);
  };
- const archived=rows.filter(archiveIsDone).length;
+ const archived=window.VDKpiLogic?rows.filter(r=>window.VDKpiLogic.positive(r.archive)).length:rows.filter(archiveIsDone).length;
  const notArchived=rows.length-archived;
  const responseDurations=validDurations('assignedDate','startDate');
  const executionDurations=validDurations('startDate','endDate');

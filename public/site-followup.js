@@ -209,6 +209,7 @@ function render(rows){
   const support=attachmentSupport(rows),supportWos=new Set(support.map(r=>t(r.workOrder)).filter(Boolean)).size,mismatch=mismatchInfo(rows).length;
   const qualityChecks=rows.length*5,qualityGood=Math.max(0,qualityChecks-(q.coords+q.supervisor+q.phone+q.engineer+q.location));
   const qualityRate=qualityChecks?pct(qualityGood,qualityChecks):'—';
+  const thursdayMetric=window.VDKpiLogic?.metric?.('tasks',rows);
 
   x.innerHTML=
   '<section class="sf-hero"><div><span>SITE OPERATIONS CONTROL ROOM</span><h2>متابعة أعمال المواقع</h2><p>المصدر الأساسي: ورقة «📌المهام والافادات»؛ ورقة المرفقات تستخدم للمطابقة والتحقق. الإفادة تصبح مستحقة بعد 4:30 م بتوقيت السعودية في تاريخ المهمة.</p></div><div class="sf-hero-badge"><span>'+(latest.isToday?'تشغيل اليوم':'آخر يوم ضمن الفلاتر')+'</span><strong>'+e(dayLabel(latest.key))+'</strong><small>'+fmt(latest.rows.length)+' مهمة</small></div></section>'+
@@ -225,6 +226,8 @@ function render(rows){
     card('تأجيل / لا يوجد عمل',fmt(latestNoWork),pct(latestNoWork,latest.rows.length),latestNoWork?'amber':'green')+
    '</div></div>'+
    '<div class="sf-group"><h3>الالتزام بالإفادات والإنتاج الميداني</h3><div>'+
+    card('توثيق الإفادة الميدانية',thursdayMetric?thursdayMetric.rate.toFixed(1)+'%':'—','نفس منطق تقرير الخميس','green')+
+    card('معالجة المرفقات',thursdayMetric&&thursdayMetric.secondaryRate!=null?thursdayMetric.secondaryRate.toFixed(1)+'%':'—','نفس منطق تقرير الخميس','green')+
     card('المهام المستحقة',fmt(eligible.length),'حتى موعد الإفادة')+
     card('إفادات مستلمة',fmt(statements.length),pct(statements.length,eligible.length),'green')+
     card('مستحق بلا إفادة',fmt(missing.length),pct(missing.length,eligible.length),missing.length?'red':'green')+

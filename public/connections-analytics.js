@@ -28,6 +28,7 @@ function notDoneTable(rows){const a=rows.filter(z=>status(z)!=='تم التنف�
 function render(rows){
  const x=root();if(!x)return;destroy();
  const total=rows.length,doneN=rows.filter(z=>status(z)==='تم التنفيذ').length,notN=rows.filter(z=>status(z)==='لم يتم التنفيذ').length,stopN=rows.filter(z=>status(z)==='موقوف/محول').length;
+ const thursdayMetric=window.VDKpiLogic?.metric?.('connections',rows);
  const cats={exc:rows.filter(z=>eq(z.category,'حفريات')).length,meter:rows.filter(z=>eq(z.category,'عدادات')).length,blank:rows.filter(z=>!t(z.category)).length};
  const stages=['التصاريح','التنفيذ','مرحلة التشغيل','مرحلة الإغلاق','تحت المعالجة'],adv=['جديدة','قديمة','قديمة جدًا','إهمال','إهمال شديد','لا يوجد إفادة'];
  const db=['تم التنفيذ','ضمن المدة','أوشكت المدة','تأخير بسيط','تأخير متوسط','تأخير عالي','تأخير شديد','موقوف/محول'];
@@ -40,7 +41,7 @@ function render(rows){
  const invalidPermitDates=rows.filter(z=>{const a=date(z.permitStart),b=date(z.permitEnd);return a&&b&&b<a}).length;
  x.innerHTML=`<section class="ca-hero"><div><span>CONNECTIONS CONTROL ROOM</span><h2>التحليل التنفيذي المتقدم للتوصيلات</h2><p>قراءة مباشرة من «🔌التوصيلات العام» حتى AO فقط — من الإسناد والتصاريح إلى 155 وحالة التنفيذ.</p></div><b>${late?late+' أمر تجاوز مدة 155':missingAdvice?missingAdvice+' أمر يحتاج استكمال إفادة':'المتابعة مستقرة ضمن الفلاتر الحالية'}</b></section>
  <section class="ca-groups">
-  <div class="ca-group"><h3>حالة التنفيذ — AO</h3><div>${card('إجمالي التوصيلات',total)}${card('تم التنفيذ',doneN,total?pct(doneN/total):'—','green')}${card('لم يتم التنفيذ',notN,total?pct(notN/total):'—','amber')}${card('موقوف / محول',stopN,total?pct(stopN/total):'—','slate')}${card('نسبة التنفيذ',total?pct(doneN/total):'—','تم التنفيذ ÷ الإجمالي','green')}</div></div>
+  <div class="ca-group"><h3>حالة التنفيذ — AO</h3><div>${card('إجمالي التوصيلات',total)}${card('تم التنفيذ',doneN,total?pct(doneN/total):'—','green')}${card('لم يتم التنفيذ',notN,total?pct(notN/total):'—','amber')}${card('موقوف / محول',stopN,total?pct(stopN/total):'—','slate')}${card('نسبة التقدم',thursdayMetric?thursdayMetric.rate.toFixed(1)+'%':(total?pct(doneN/total):'—'),'نفس منطق تقرير الخميس','green')}${card('تنفيذ مكتمل',thursdayMetric&&thursdayMetric.secondaryRate!=null?thursdayMetric.secondaryRate.toFixed(1)+'%':(total?pct(doneN/total):'—'),'تم التنفيذ ÷ الإجمالي','green')}</div></div>
   <div class="ca-group"><h3>تصنيف الأعمال — M / Y</h3><div>${card('حفريات',cats.exc,total?pct(cats.exc/total):'—')}${card('عدادات',cats.meter,total?pct(cats.meter/total):'—')}${card('غير مصنف',cats.blank,'M فارغ','red')}${card('عدد المكاتب',uniq(rows,'office'))}${card('مكتب غير محدد/تحديث',rows.filter(z=>!t(z.office)||has(z.office,'تحديث')||has(z.office,'سيظهر')).length,'','amber')}</div></div>
   <div class="ca-group"><h3>مسار التنفيذ — W / X</h3><div>${stages.map(s=>card(s,rows.filter(z=>eq(z.stage,s)).length)).join('')}${topStatuses.map(([s,c])=>card(s,c,'حالة مرحلة X')).join('')}</div></div>
   <div class="ca-group"><h3>التأخير — O</h3><div>${db.map(s=>card(s,rows.filter(z=>delayBucket(z)===s).length,'',s==='تأخير شديد'?'red':s==='تأخير عالي'?'amber':s==='تم التنفيذ'?'green':'')).join('')}</div></div>
