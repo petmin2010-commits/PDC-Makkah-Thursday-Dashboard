@@ -205,3 +205,256 @@ body.vd-report-v2-mode #vdReportV2{display:block!important}
   .vd-tab-report-actions{display:none!important}
   .vd-report-v2-page{overflow:hidden}
 }
+
+/* Data Quality — dedicated professional report layout */
+.vd-dq-cover-grid{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:2.4mm!important;
+  margin-top:4mm!important;
+}
+.vd-dq-cover-grid .vd-dq-rule-card{
+  min-height:22mm;
+}
+.vd-report-data-quality-page .vd-report-section-body{
+  display:flex;
+  flex-direction:column;
+  gap:3mm;
+}
+.vd-dq-section-block{
+  border:1.2px solid #26396f;
+  border-radius:4px;
+  background:#fff;
+  overflow:hidden;
+  break-inside:avoid;
+}
+.vd-dq-section-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:5mm;
+  padding:2.5mm 3mm;
+  background:#eef0f4;
+  border-bottom:1px solid #c9d0db;
+}
+.vd-dq-section-head>div:first-child span{
+  display:block;
+  color:#6f7782;
+  font-size:6.3px;
+  margin-bottom:.6mm;
+}
+.vd-dq-section-head h3{
+  margin:0;
+  color:#172b5f;
+  font-size:11px;
+}
+.vd-dq-section-metrics{
+  display:flex;
+  align-items:stretch;
+  gap:2mm;
+  flex:0 0 auto;
+}
+.vd-dq-metric{
+  min-width:34mm;
+  padding:1.5mm 2.2mm;
+  background:#fff;
+  border:1px solid #d2d7df;
+  border-radius:3px;
+  text-align:center;
+}
+.vd-dq-metric b{
+  display:block;
+  color:#f09a00;
+  font-size:12px;
+  line-height:1.15;
+}
+.vd-dq-metric span{
+  display:block;
+  color:#172b5f;
+  font-size:6.2px;
+  font-weight:800;
+  margin-top:.5mm;
+}
+.vd-dq-metric small{
+  display:block;
+  color:#7b8490;
+  font-size:5.4px;
+  margin-top:.5mm;
+}
+.vd-dq-rule-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:2mm;
+  padding:2.5mm;
+}
+.vd-dq-rule-card{
+  position:relative;
+  min-width:0;
+  min-height:18mm;
+  padding:2mm 2.2mm;
+  border:1px solid #d5dbe4;
+  border-radius:3px;
+  background:#fff;
+  box-shadow:none;
+  overflow:hidden;
+}
+.vd-dq-rule-card:before{
+  content:"";
+  position:absolute;
+  right:0;
+  top:0;
+  bottom:0;
+  width:2.2mm;
+  background:#8796a8;
+}
+.vd-dq-rule-card.has-issue:before{
+  background:#d84e59;
+}
+.vd-dq-rule-card.is-ok:before{
+  background:#149869;
+}
+.vd-dq-rule-top{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:2mm;
+  padding-right:2mm;
+}
+.vd-dq-rule-top span{
+  color:#172b5f;
+  font-size:7px;
+  line-height:1.35;
+  font-weight:800;
+}
+.vd-dq-rule-top b{
+  flex:0 0 auto;
+  color:#172b5f;
+  font-size:12px;
+  line-height:1;
+}
+.vd-dq-rule-card.has-issue .vd-dq-rule-top b{
+  color:#c9414c;
+}
+.vd-dq-rule-card.is-ok .vd-dq-rule-top b{
+  color:#11845a;
+}
+.vd-dq-rule-card small{
+  display:block;
+  margin-top:1.2mm;
+  padding-right:2mm;
+  color:#697586;
+  font-size:5.4px;
+  line-height:1.45;
+}
+.vd-dq-rule-card p{
+  margin:1mm 0 0;
+  padding-right:2mm;
+  color:#7b8490;
+  font-size:5.2px;
+  line-height:1.4;
+}
+.vd-dq-ai-intro,
+.vd-dq-audit-intro{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:5mm;
+  padding:3mm;
+  border:1.2px solid #26396f;
+  border-radius:4px;
+  background:#f8f9fb;
+}
+.vd-dq-ai-intro h3,
+.vd-dq-audit-intro h3{
+  margin:0 0 1mm;
+  color:#172b5f;
+  font-size:11px;
+}
+.vd-dq-ai-intro p,
+.vd-dq-audit-intro p{
+  margin:0;
+  color:#687486;
+  font-size:6.4px;
+  line-height:1.6;
+}
+.vd-dq-ai-intro aside,
+.vd-dq-audit-intro aside{
+  flex:0 0 55mm;
+  padding:2.2mm 3mm;
+  border-radius:3px;
+  background:#172b5f;
+  color:#fff;
+  text-align:center;
+}
+.vd-dq-ai-intro aside b,
+.vd-dq-audit-intro aside b{
+  display:block;
+  font-size:11px;
+}
+.vd-dq-ai-intro aside small,
+.vd-dq-audit-intro aside small{
+  display:block;
+  margin-top:.8mm;
+  color:#dce4ee;
+  font-size:5.6px;
+  line-height:1.4;
+}
+.vd-dq-ai-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  padding:0;
+}
+.vd-dq-audit-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  padding:0;
+}
+.vd-report-dq-ai-page .vd-dq-rule-card{
+  min-height:26mm;
+}
+.vd-report-dq-audit-page .vd-dq-rule-card{
+  min-height:30mm;
+}
+.vd-report-data-quality-detail-page .vd-report-section-body{
+  overflow:hidden;
+}
+.vd-dq-detail-clone{
+  border:1.2px solid #26396f;
+  border-radius:4px;
+  overflow:hidden;
+  background:#fff;
+}
+.vd-dq-detail-clone .dq-detail-head{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:4mm!important;
+  padding:2.5mm 3mm!important;
+  background:#eef0f4!important;
+  border-bottom:1px solid #ccd3dd!important;
+  color:#172b5f!important;
+}
+.vd-dq-detail-clone .dq-detail-head h3{
+  margin:.5mm 0!important;
+  font-size:10px!important;
+  color:#172b5f!important;
+}
+.vd-dq-detail-clone .dq-detail-head span,
+.vd-dq-detail-clone .dq-detail-head small{
+  color:#6f7987!important;
+  font-size:5.8px!important;
+}
+.vd-dq-detail-clone .dq-detail-count{
+  color:#f09a00!important;
+  font-size:11px!important;
+  font-weight:900!important;
+}
+.vd-dq-detail-clone .dq-table-wrap{
+  max-height:none!important;
+  overflow:visible!important;
+}
+.vd-dq-detail-clone table{
+  font-size:5.4px!important;
+}
+.vd-dq-detail-clone th,
+.vd-dq-detail-clone td{
+  padding:.7mm!important;
+}

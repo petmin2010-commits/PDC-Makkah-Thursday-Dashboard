@@ -696,6 +696,382 @@
     });
   }
 
+  function dataQualityCardData(card) {
+    if (!card) return null;
+
+    return {
+      label:
+        card.querySelector('span')?.textContent?.trim()
+        || 'مؤشر جودة',
+      value:
+        card.querySelector('strong')?.textContent?.trim()
+        || '0',
+      note:
+        card.querySelector('small')?.textContent?.trim()
+        || card.getAttribute('title')
+        || '',
+      detail:
+        card.getAttribute('title')
+        || '',
+      issue:
+        card.classList.contains('has-issue'),
+      ok:
+        card.classList.contains('is-ok')
+    };
+  }
+
+  function appendDataQualityCards(container, cards) {
+    cards
+      .filter(Boolean)
+      .forEach(card => {
+        const item = document.createElement('article');
+
+        item.className =
+          'vd-dq-rule-card ' +
+          (
+            card.issue
+              ? 'has-issue'
+              : card.ok
+                ? 'is-ok'
+                : ''
+          );
+
+        item.innerHTML = `
+          <div class="vd-dq-rule-top">
+            <span>${escapeHtml(card.label)}</span>
+            <b>${escapeHtml(card.value)}</b>
+          </div>
+          ${card.note
+            ? `<small>${escapeHtml(card.note)}</small>`
+            : ''}
+          ${card.detail && card.detail !== card.note
+            ? `<p>${escapeHtml(card.detail)}</p>`
+            : ''}
+        `;
+
+        container.appendChild(item);
+      });
+  }
+
+  function buildDataQualityReport(report) {
+    const root =
+      document.getElementById('dataQualityDashboard');
+
+    if (!root) return false;
+
+    const hero = root.querySelector('.dq-hero');
+    const overview = [
+      ...root.querySelectorAll('.dq-overview-card')
+    ];
+
+    const heroIssues =
+      hero?.querySelector('.dq-hero-score-main strong')
+        ?.textContent?.trim()
+      || '0';
+
+    const heroRate =
+      hero?.querySelector('.dq-hero-score-main b')
+        ?.textContent?.trim()
+      || '100%';
+
+    const heroAffected =
+      hero?.querySelector('.dq-hero-score small')
+        ?.textContent?.trim()
+      || '';
+
+    /*
+      الغلاف: نفس هوية بقية التقارير ولكن مع مؤشرات جودة حقيقية،
+      بدل صفحة غلاف فارغة.
+    */
+    buildCover(report, 'full', []);
+
+    const cover =
+      report.querySelector('.vd-report-cover');
+
+    if (cover) {
+      const grid =
+        cover.querySelector('.vd-report-cover-kpis');
+
+      if (grid) {
+        grid.classList.add('vd-dq-cover-grid');
+
+        const overall = [
+          {
+            label: 'ملاحظات الجودة',
+            value: heroIssues,
+            note: heroAffected,
+            issue: Number(
+              String(heroIssues).replace(/[^0-9.-]/g, '')
+            ) > 0
+          },
+          {
+            label: 'نسبة جودة البيانات',
+            value: heroRate,
+            note: 'النسبة الإجمالية لاكتمال قواعد الجودة',
+            ok: true
+          },
+          ...overview.map(dataQualityCardData)
+        ];
+
+        appendDataQualityCards(grid, overall);
+      }
+    }
+
+    const sections = [
+      ...root.querySelectorAll('.dq-section')
+    ].map(section => {
+      const metrics =
+        [...section.querySelectorAll(
+          '.dq-section-metrics > div'
+        )].map(metric => ({
+          value:
+            metric.querySelector('b')?.textContent?.trim()
+            || '',
+          label:
+            metric.querySelector('small')?.textContent?.trim()
+            || '',
+          note:
+            metric.querySelector('em')?.textContent?.trim()
+            || ''
+        }));
+
+      return {
+        title:
+          section.querySelector('.dq-section-head h3')
+            ?.textContent?.trim()
+          || 'قسم جودة',
+        subtitle:
+          section.querySelector('.dq-section-head span')
+            ?.textContent?.trim()
+          || '',
+        metrics,
+        cards:
+          [...section.querySelectorAll('.dq-card')]
+            .map(dataQualityCardData)
+      };
+    });
+
+    const makeSectionBlock = section => {
+      const block = document.createElement('section');
+      block.className = 'vd-dq-section-block';
+
+      const metricsHtml = section.metrics
+        .map(metric => `
+          <div class="vd-dq-metric">
+            <b>${escapeHtml(metric.value)}</b>
+            <span>${escapeHtml(metric.label)}</span>
+            ${metric.note
+              ? `<small>${escapeHtml(metric.note)}</small>`
+              : ''}
+          </div>
+        `)
+        .join('');
+
+      block.innerHTML = `
+        <div class="vd-dq-section-head">
+          <div>
+            <span>${escapeHtml(section.subtitle)}</span>
+            <h3>${escapeHtml(section.title)}</h3>
+          </div>
+          <div class="vd-dq-section-metrics">
+            ${metricsHtml}
+          </div>
+        </div>
+        <div class="vd-dq-rule-grid"></div>
+      `;
+
+      appendDataQualityCards(
+        block.querySelector('.vd-dq-rule-grid'),
+        section.cards
+      );
+
+      return block;
+    };
+
+    /*
+      توزيع الأقسام على صفحات ثابتة لمنع التزاحم:
+      المشاريع + التوصيلات / التصاريح + الأصول / الطوارئ.
+    */
+    const sectionGroups = [
+      sections.slice(0, 2),
+      sections.slice(2, 4),
+      sections.slice(4, 5)
+    ].filter(group => group.length);
+
+    sectionGroups.forEach((group, index) => {
+      const titles =
+        group.map(item => item.title).join(' + ');
+
+      const page = createPage(
+        'قواعد جودة البيانات',
+        titles,
+        'vd-report-data-quality-page'
+      );
+
+      const body =
+        page.querySelector('.vd-report-section-body');
+
+      group.forEach(section => {
+        body.appendChild(
+          makeSectionBlock(section)
+        );
+      });
+
+      report.appendChild(page);
+    });
+
+    /*
+      وكيل جودة الإفادات.
+    */
+    const ai = root.querySelector('.dq-ai-advice');
+
+    if (ai) {
+      const page = createPage(
+        'وكيل الذكاء الاصطناعي لجودة الإفادات',
+        'AI ADVICE QUALITY AGENT',
+        'vd-report-data-quality-page vd-report-dq-ai-page'
+      );
+
+      const body =
+        page.querySelector('.vd-report-section-body');
+
+      const intro = document.createElement('section');
+      intro.className = 'vd-dq-ai-intro';
+
+      const status =
+        ai.querySelector('.dq-ai-status b')
+          ?.textContent?.trim()
+        || '';
+
+      const statusNote =
+        ai.querySelector('.dq-ai-status small')
+          ?.textContent?.trim()
+        || '';
+
+      const description =
+        ai.querySelector('.dq-ai-head p')
+          ?.textContent?.trim()
+        || '';
+
+      intro.innerHTML = `
+        <div>
+          <h3>وكيل الذكاء الاصطناعي لتحليل جودة الإفادات</h3>
+          <p>${escapeHtml(description)}</p>
+        </div>
+        <aside>
+          <b>${escapeHtml(status)}</b>
+          <small>${escapeHtml(statusNote)}</small>
+        </aside>
+      `;
+
+      body.appendChild(intro);
+
+      const grid = document.createElement('div');
+      grid.className = 'vd-dq-rule-grid vd-dq-ai-grid';
+
+      appendDataQualityCards(
+        grid,
+        [...ai.querySelectorAll('.dq-ai-cards > *')]
+          .map(dataQualityCardData)
+      );
+
+      body.appendChild(grid);
+      report.appendChild(page);
+    }
+
+    /*
+      التدقيق الذكي المتقدم.
+    */
+    const audit =
+      root.querySelector('.dq-smart-audit');
+
+    if (audit) {
+      const page = createPage(
+        'التدقيق الذكي المتقدم',
+        'SMART DATA AUDIT',
+        'vd-report-data-quality-page vd-report-dq-audit-page'
+      );
+
+      const body =
+        page.querySelector('.vd-report-section-body');
+
+      const intro = document.createElement('section');
+      intro.className = 'vd-dq-audit-intro';
+
+      const total =
+        audit.querySelector('.dq-smart-total b')
+          ?.textContent?.trim()
+        || '0';
+
+      const note =
+        audit.querySelector('.dq-smart-head p')
+          ?.textContent?.trim()
+        || '';
+
+      intro.innerHTML = `
+        <div>
+          <h3>التدقيق الذكي المتقدم</h3>
+          <p>${escapeHtml(note)}</p>
+        </div>
+        <aside>
+          <b>${escapeHtml(total)}</b>
+          <small>ملاحظة ذكية</small>
+        </aside>
+      `;
+
+      body.appendChild(intro);
+
+      const grid = document.createElement('div');
+      grid.className = 'vd-dq-rule-grid vd-dq-audit-grid';
+
+      appendDataQualityCards(
+        grid,
+        [...audit.querySelectorAll('.dq-smart-card')]
+          .map(dataQualityCardData)
+      );
+
+      body.appendChild(grid);
+      report.appendChild(page);
+    }
+
+    /*
+      إذا كان المستخدم فتح Drilldown قبل التصدير،
+      نضيف الجدول الظاهر كملحق أخير بدل تجاهله.
+    */
+    const details =
+      root.querySelector('#dqIssueDetails');
+
+    if (
+      details &&
+      !details.querySelector('.dq-detail-placeholder') &&
+      details.textContent.trim()
+    ) {
+      const page = createPage(
+        details.querySelector('h3')
+          ?.textContent?.trim()
+          || 'تفاصيل حالات الجودة',
+        'CURRENT DRILLDOWN',
+        'vd-report-data-quality-detail-page'
+      );
+
+      const body =
+        page.querySelector('.vd-report-section-body');
+
+      const cloned =
+        details.cloneNode(true);
+
+      cloned
+        .querySelectorAll('button')
+        .forEach(button => button.remove());
+
+      cloned.classList.add('vd-dq-detail-clone');
+      body.appendChild(cloned);
+      report.appendChild(page);
+    }
+
+    return true;
+  }
+
   function buildReport(type = 'executive') {
     const source = getActivePage();
 
@@ -711,6 +1087,16 @@
 
     report.id = REPORT_ID;
     report.className = 'vd-report-v2';
+
+    if (getActivePageKey() === 'dataQuality') {
+      if (!buildDataQualityReport(report)) {
+        alert('تعذر تجهيز بيانات جودة البيانات للتقرير.');
+        return null;
+      }
+
+      document.body.appendChild(report);
+      return report;
+    }
 
     const kpis = findKpis(source);
     const panels = getPanels(source);
