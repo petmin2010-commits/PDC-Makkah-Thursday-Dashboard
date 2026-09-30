@@ -780,50 +780,74 @@
       || '';
 
     /*
-      الغلاف: نفس هوية بقية التقارير ولكن مع مؤشرات جودة حقيقية،
-      بدل صفحة غلاف فارغة.
+      غلاف جودة البيانات يبنى كصفحة تقرير عادية،
+      وليس عبر buildCover العام. هذا يمنع Chrome من
+      إنشاء صفحة بيضاء إضافية بين الغلاف وأول صفحة بيانات.
     */
-    buildCover(report, 'full', []);
+    const brand = getBrandInfo();
+    const now = new Date();
+    const filters = getAppliedFilters();
 
-    const cover =
-      report.querySelector('.vd-report-cover');
+    const cover = createPage(
+      'جودة البيانات',
+      brand.city,
+      'vd-report-data-quality-cover'
+    );
 
-    if (cover) {
-      cover.classList.add('vd-dq-cover-page');
+    const coverBody =
+      cover.querySelector('.vd-report-section-body');
 
-      /*
-        منع Chrome من ترحيل Footer الغلاف إلى صفحة منفصلة فارغة.
-        هوية الغلاف مكتملة بالفعل بالشعار والزخرفة السفلية.
-      */
-      cover.querySelector('.vd-report-cover-footer')?.remove();
+    coverBody.innerHTML = `
+      <section class="vd-dq-cover-meta">
+        <div>
+          <span>المشروع</span>
+          <b>${escapeHtml(brand.project)}</b>
+        </div>
+        <div>
+          <span>رقم العقد</span>
+          <b>${escapeHtml(brand.contract || brand.contractText || '')}</b>
+        </div>
+        <div>
+          <span>تاريخ التقرير</span>
+          <b>${escapeHtml(now.toLocaleDateString('ar-SA'))}</b>
+        </div>
+        <div>
+          <span>وقت الإصدار</span>
+          <b>${escapeHtml(now.toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'}))}</b>
+        </div>
+        <div>
+          <span>الفلاتر</span>
+          <b>${filters.length ? filters.length + ' فلتر مطبق' : 'جميع البيانات'}</b>
+        </div>
+      </section>
+      <section class="vd-dq-cover-summary">
+        <div class="vd-dq-cover-grid"></div>
+      </section>
+    `;
 
-      const grid =
-        cover.querySelector('.vd-report-cover-kpis');
+    const grid =
+      coverBody.querySelector('.vd-dq-cover-grid');
 
-      if (grid) {
-        grid.classList.add('vd-dq-cover-grid');
+    const overall = [
+      {
+        label: 'ملاحظات الجودة',
+        value: heroIssues,
+        note: heroAffected,
+        issue: Number(
+          String(heroIssues).replace(/[^0-9.-]/g, '')
+        ) > 0
+      },
+      {
+        label: 'نسبة جودة البيانات',
+        value: heroRate,
+        note: 'النسبة الإجمالية لاكتمال قواعد الجودة',
+        ok: true
+      },
+      ...overview.map(dataQualityCardData)
+    ];
 
-        const overall = [
-          {
-            label: 'ملاحظات الجودة',
-            value: heroIssues,
-            note: heroAffected,
-            issue: Number(
-              String(heroIssues).replace(/[^0-9.-]/g, '')
-            ) > 0
-          },
-          {
-            label: 'نسبة جودة البيانات',
-            value: heroRate,
-            note: 'النسبة الإجمالية لاكتمال قواعد الجودة',
-            ok: true
-          },
-          ...overview.map(dataQualityCardData)
-        ];
-
-        appendDataQualityCards(grid, overall);
-      }
-    }
+    appendDataQualityCards(grid, overall);
+    report.appendChild(cover);
 
     const sections = [
       ...root.querySelectorAll('.dq-section')

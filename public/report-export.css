@@ -483,3 +483,58 @@ body.vd-report-v2-mode #vdReportV2{display:block!important}
     page-break-after:always!important;
   }
 }
+
+/* Data Quality dedicated first page (normal report page, no generic cover wrapper) */
+.vd-report-data-quality-cover .vd-report-section-body{
+  margin-top:2mm;
+}
+.vd-dq-cover-meta{
+  display:grid;
+  grid-template-columns:1.4fr 1fr 1fr 1fr .9fr;
+  border:1.2px solid #26396f;
+  border-radius:4px;
+  overflow:hidden;
+  background:#fff;
+  margin-bottom:4mm;
+}
+.vd-dq-cover-meta>div{
+  min-width:0;
+  padding:3mm 2.5mm;
+  text-align:center;
+  background:#f8f9fb;
+  border-left:1px solid #d1d7e0;
+}
+.vd-dq-cover-meta>div:nth-child(even){
+  background:#eef0f4;
+}
+.vd-dq-cover-meta>div:last-child{
+  border-left:0;
+}
+.vd-dq-cover-meta span{
+  display:block;
+  color:#707a88;
+  font-size:6.2px;
+  margin-bottom:1mm;
+}
+.vd-dq-cover-meta b{
+  display:block;
+  color:#172b5f;
+  font-size:8.5px;
+  line-height:1.45;
+  overflow-wrap:anywhere;
+}
+.vd-dq-cover-summary{
+  border:1.2px solid #26396f;
+  border-radius:4px;
+  background:#fff;
+  padding:3mm;
+}
+.vd-report-data-quality-cover .vd-dq-cover-grid{
+  margin-top:0!important;
+}
+@media print{
+  .vd-report-data-quality-cover{
+    break-after:page!important;
+    page-break-after:always!important;
+  }
+}
