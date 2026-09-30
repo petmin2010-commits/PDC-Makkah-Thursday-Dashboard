@@ -98,6 +98,54 @@ function drawCharts(){
  drawBreakdownTrend('stpProjectsStageStatusTrend','projects','stageStatus');
  drawBreakdownTrend('stpConnectionsStageStatusTrend','connections','stageStatus');
 }
+
+function exportDateLabel(){
+ try{return new Intl.DateTimeFormat('ar-SA',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date())}catch{return new Date().toLocaleString('ar-SA')}
+}
+function exportRowsTable(){
+ const rows=P.portfolio?.sections||[];
+ const body=rows.map(x=>'<tr><td>'+e(x.label)+'</td><td>'+r1(x.rate)+'%</td><td>'+Number(x.total||0).toLocaleString('ar-SA')+'</td><td>'+Number(x.completed||0).toLocaleString('ar-SA')+'</td><td>'+Math.max(0,Number(x.total||0)-Number(x.completed||0)).toLocaleString('ar-SA')+'</td></tr>').join('');
+ return '<section class="x-section"><h2>ملخص المؤشرات الحالية</h2><table><thead><tr><th>المتابعة</th><th>النسبة الحالية</th><th>الإجمالي</th><th>المكتمل</th><th>المتبقي</th></tr></thead><tbody>'+body+'</tbody></table></section>';
+}
+function exportHistoryTable(){
+ const h=P.history?.trend||[];
+ const cols=['projects','connections','permits','emergency'];
+ const labels={projects:'المشاريع',connections:'التوصيلات',permits:'التصاريح',emergency:'الطوارئ'};
+ const head='<th>الخميس</th>'+cols.map(k=>'<th>'+labels[k]+' %</th>').join('');
+ const body=h.map(x=>'<tr><td>'+e(x.label||x.date||'')+'</td>'+cols.map(k=>{const m=(x.sections||[]).find(z=>z.key===k);return '<td>'+(m?r1(m.rate)+'%':'—')+'</td>'}).join('')+'</tr>').join('');
+ return '<section class="x-section"><h2>اللقطات الأسبوعية</h2><table><thead><tr>'+head+'</tr></thead><tbody>'+(body||'<tr><td colspan="5">لا توجد لقطات خميس محفوظة بعد.</td></tr>')+'</tbody></table></section>';
+}
+function exportBreakdownTable(title,data){
+ const entries=Object.entries(data||{}).sort((a,b)=>Number(b[1]||0)-Number(a[1]||0));
+ return '<section class="x-section"><h2>'+e(title)+'</h2><table><thead><tr><th>الحالة</th><th>العدد</th></tr></thead><tbody>'+(entries.length?entries.map(([k,v])=>'<tr><td>'+e(k)+'</td><td>'+Number(v||0).toLocaleString('ar-SA')+'</td></tr>').join(''):'<tr><td colspan="2">لا توجد بيانات.</td></tr>')+'</tbody></table></section>';
+}
+async function exportThursdayHtml(){
+ const host=document.getElementById('stPortfolio'); if(!host||!P.loaded)return;
+ const clone=host.cloneNode(true);
+ clone.querySelectorAll('button').forEach(x=>x.remove());
+ host.querySelectorAll('canvas').forEach(c=>{
+  const cc=clone.querySelector('#'+c.id); if(!cc)return;
+  try{const im=document.createElement('img');im.src=c.toDataURL('image/png',1);im.alt=c.id;im.className='x-chart-img';cc.replaceWith(im)}catch{}
+ });
+ let css='';
+ try{css+=(await fetch('/smart-thursday-portfolio.css').then(r=>r.text()))+'\n'}catch{}
+ try{css+=(await fetch('/smart-thursday.css').then(r=>r.text()))+'\n'}catch{}
+ const pRows=P.pages.projects?.rows||[],cRows=P.pages.connections?.rows||[];
+ const appendix=exportRowsTable()+exportHistoryTable()+
+  exportBreakdownTable('مرحلة الإنجاز — المشاريع',breakdown(pRows,'stage'))+
+  exportBreakdownTable('حالة المرحلة — المشاريع',breakdown(pRows,'stageStatus'))+
+  exportBreakdownTable('مرحلة الإنجاز — التوصيلات',breakdown(cRows,'stage'))+
+  exportBreakdownTable('حالة المرحلة — التوصيلات',breakdown(cRows,'stageStatus'));
+ const title='تقرير الخميس الفني — '+(document.title||'PDC');
+ const html='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+e(title)+'</title><style>'+
+ 'html,body{margin:0;background:#071d34;color:#e8f1fb;font-family:Cairo,Tahoma,Arial,sans-serif}body{padding:28px}.x-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-end;margin-bottom:22px;padding:18px 20px;border:1px solid rgba(84,162,255,.25);border-radius:18px;background:#0a2a49}.x-head h1{margin:0 0 7px;font-size:26px}.x-head p{margin:0;color:#8ea4bd}.x-stamp{color:#72b0ff;font-weight:700;white-space:nowrap}.x-chart-img{width:100%;height:auto;display:block}.x-section{margin-top:22px;padding:16px;border:1px solid rgba(255,255,255,.09);border-radius:16px;background:#09213b}.x-section h2{font-size:17px;margin:0 0 12px}.x-section table{width:100%;border-collapse:collapse;font-size:12px}.x-section th,.x-section td{padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.08);text-align:right}.x-section th{color:#8fb4db;background:#0d2d4d}.x-note{margin-top:18px;color:#8097b1;font-size:11px}.stp-section-card{cursor:default!important}.stp-section-card:hover{transform:none!important}.stp-title button{display:none!important}@media print{body{padding:10px}.x-section,.stp-panel,.stp-section-card{break-inside:avoid}}'+css+'</style></head><body>'+
+ '<header class="x-head"><div><h1>'+e(title)+'</h1><p>نسخة HTML ثابتة من بيانات الداشبورد وقت التصدير.</p></div><div class="x-stamp">تاريخ التصدير: '+e(exportDateLabel())+'</div></header>'+
+ clone.outerHTML+appendix+'<div class="x-note">هذا التقرير لا يتصل بالشيت بعد التصدير؛ الأرقام والشارتات تمثل لحظة إنشاء الملف.</div></body></html>';
+ const blob=new Blob(['\ufeff'+html],{type:'text/html;charset=utf-8'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');
+ const date=new Date().toISOString().slice(0,10);
+ a.href=url;a.download='Thursday-Technical-Report-'+date+'.html';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
 function render(root,legacy){
  if(!root)return;
  let host=document.getElementById('stPortfolio');
@@ -107,7 +155,7 @@ function render(root,legacy){
  if(P.error&&!P.loaded){host.innerHTML='<div class="stp-error">تعذر بناء الملخص التنفيذي: '+e(P.error)+'</div><button class="stp-retry" id="stpRetry">إعادة المحاولة</button>';document.getElementById('stpRetry').onclick=()=>{P.error='';load(root,legacy,true)};return}
  if(!P.loaded){host.innerHTML='<div class="stp-loading"><b>تهيئة الملخص التنفيذي...</b></div>';load(root,legacy);return}
  const x=P.portfolio,h=P.history||{},s=x.summary,trend=h.trend||[],latest=trend.length?trend[trend.length-1]:null,previous=trend.length>1?trend[trend.length-2]:null;
- host.innerHTML='<div class="stp-title"><div><span>TECHNICAL WEEKLY PULSE</span><h2>الملخص التنفيذي للإنجاز الفني</h2><p>المشاريع والتوصيلات والتصاريح والطوارئ تُعرض كلٌ على حدة. لا يوجد متوسط يجمع المسارات المختلفة.</p></div><button id="stpRefresh">↻ تحديث شامل</button></div>'+
+ host.innerHTML='<div class="stp-title"><div><span>TECHNICAL WEEKLY PULSE</span><h2>الملخص التنفيذي للإنجاز الفني</h2><p>المشاريع والتوصيلات والتصاريح والطوارئ تُعرض كلٌ على حدة. لا يوجد متوسط يجمع المسارات المختلفة.</p></div><div class="stp-actions"><button id="stpExportHtml" class="stp-export-btn">⇩ تصدير HTML</button><button id="stpRefresh">↻ تحديث شامل</button></div></div>'+
  '<div class="stp-section-head"><div><span>LIVE STATUS</span><h3>الوضع الحالي</h3></div><small>قراءة حية من الشيتات أياً كان اليوم — لا تعتمد على لقطة الخميس</small></div>'+
  '<div class="stp-section-grid stp-live-grid">'+x.sections.filter(v=>v.total).map(liveCard).join('')+'</div>'+
  '<div class="stp-section-head"><div><span>THURSDAY BASELINE DELTA</span><h3>الفرق بين خطي الأساس الأسبوعيين</h3></div><small>'+(previous&&latest?('مقارنة إغلاق '+previous.label+' مع '+latest.label):'تظهر الفروق بعد توفر لقطتي خميس رسميتين')+'</small></div>'+
@@ -120,6 +168,7 @@ function render(root,legacy){
  '<article class="stp-panel"><div><span>CONNECTIONS • STAGE STATUS</span><h3>تريند أعداد حالة المرحلة — التوصيلات</h3></div><canvas id="stpConnectionsStageStatusTrend"></canvas></article>'+
  '</div>';
  document.getElementById('stpRefresh').onclick=()=>load(root,legacy,true);
+ document.getElementById('stpExportHtml').onclick=()=>exportThursdayHtml();
  host.querySelectorAll('[data-stp-page]').forEach(c=>c.onclick=()=>{try{if(typeof openPage==='function')openPage(c.dataset.stpPage)}catch{}});
  setTimeout(()=>drawCharts(),20);
 }
