@@ -59,6 +59,10 @@ function group(rows,key,limit=10){const m=new Map();rows.forEach(x=>{const v=t(x
 function delayProfile(rows){const b={'ضمن المدة':0,'أوشكت المدة':0,'تأخير بسيط':0,'تأخير متوسط':0,'تأخير شديد':0,'موقوف/محول':0,'غير محدد':0};rows.forEach(x=>{const s=norm(x.delay);let k='غير محدد';if(s.includes('موقوف')||s.includes('محول'))k='موقوف/محول';else if(s.includes('ضمن المده'))k='ضمن المدة';else if(s.includes('اوشك'))k='أوشكت المدة';else if(s.includes('شديد')||s.includes('عالي'))k='تأخير شديد';else if(s.includes('متوسط'))k='تأخير متوسط';else if(s.includes('بسيط'))k='تأخير بسيط';b[k]++});return Object.entries(b).map(x=>({name:x[0],count:x[1]})).filter(x=>x.count)}
 function baselineSection(snap,key){return (snap?.sections||[]).find(s=>s.key===key)||null}
 function signed(v,dec=0){const x=Number(v||0),z=dec?r1(x):Math.round(x);return (z>0?'+':'')+z.toLocaleString('ar-SA')}
+function liveCard(x){
+ const pending=Math.max(0,Number(x.total||0)-Number(x.completed||0));
+ return '<article class="stp-section-card stp-live-card" data-stp-page="'+e(x.page)+'"><div class="stp-card-head"><span>'+e(x.label)+'</span><span class="stp-delta live">مباشر</span></div><strong>'+r1(x.rate)+'%</strong><div class="stp-baseline-values stp-live-source"><span>قراءة حية من الشيتات</span></div><div class="stp-mini"><span><b>'+Number(x.total||0).toLocaleString('ar-SA')+'</b>إجمالي</span><span><b>'+Number(x.completed||0).toLocaleString('ar-SA')+'</b>مكتمل</span><span><b>'+pending.toLocaleString('ar-SA')+'</b>متبقي</span></div><small>الوضع الحالي أياً كان اليوم</small></article>'
+}
 function baselineCard(x,latest,previous){
  const a=baselineSection(previous,x.key),b=baselineSection(latest,x.key),has=!!(a&&b);
  const pair=has?(previous.label+' → '+latest.label):(latest?(latest.label+' • بانتظار خميس سابق'):'بانتظار أول لقطة خميس');
@@ -102,12 +106,7 @@ function render(root,legacy){
  const x=P.portfolio,h=P.history||{},s=x.summary,activityRows=activity(legacy.period,legacy.previousPeriod),trend=h.trend||[],latest=trend.length?trend[trend.length-1]:null,previous=trend.length>1?trend[trend.length-2]:null;
  host.innerHTML='<div class="stp-title"><div><span>TECHNICAL WEEKLY PULSE</span><h2>الملخص التنفيذي للإنجاز الفني</h2><p>المشاريع والتوصيلات والتصاريح والطوارئ تُعرض كلٌ على حدة. لا يوجد متوسط يجمع المسارات المختلفة.</p></div><button id="stpRefresh">↻ تحديث شامل</button></div>'+
  '<div class="stp-section-head"><div><span>LIVE STATUS</span><h3>الوضع الحالي</h3></div><small>قراءة حية من الشيتات أياً كان اليوم — لا تعتمد على لقطة الخميس</small></div>'+
- '<div class="stp-top-kpis">'+[
- ['متابعة المشاريع',s.projects.rate+'%','<span class="stp-tag">إجمالي '+s.projects.total.toLocaleString('ar-SA')+'</span>','مكتمل '+s.projects.completed.toLocaleString('ar-SA')+' • متبقي '+s.projects.pending.toLocaleString('ar-SA')],
- ['متابعة التوصيلات',s.connections.rate+'%','<span class="stp-tag">إجمالي '+s.connections.total.toLocaleString('ar-SA')+'</span>','مكتمل '+s.connections.completed.toLocaleString('ar-SA')+' • متبقي '+s.connections.pending.toLocaleString('ar-SA')],
- ['متابعة التصاريح',s.permits.rate+'%','<span class="stp-tag">إجمالي '+s.permits.total.toLocaleString('ar-SA')+'</span>','مكتمل '+s.permits.completed.toLocaleString('ar-SA')+' • متبقي '+s.permits.pending.toLocaleString('ar-SA')],
- ['متابعة الطوارئ',s.emergency.rate+'%','<span class="stp-tag">إجمالي '+s.emergency.total.toLocaleString('ar-SA')+'</span>','منجز '+s.emergency.completed.toLocaleString('ar-SA')+' • متبقي '+s.emergency.pending.toLocaleString('ar-SA')]
- ].map(v=>'<article><span>'+v[0]+'</span><strong>'+v[1]+'</strong>'+v[2]+'<small>'+v[3]+'</small></article>').join('')+'</div>'+
+ '<div class="stp-section-grid stp-live-grid">'+x.sections.filter(v=>v.total).map(liveCard).join('')+'</div>'+
  '<div class="stp-section-head"><div><span>THURSDAY BASELINE DELTA</span><h3>الفرق بين خطي الأساس الأسبوعيين</h3></div><small>'+(previous&&latest?('مقارنة إغلاق '+previous.label+' مع '+latest.label):'تظهر الفروق بعد توفر لقطتي خميس رسميتين')+'</small></div>'+
  '<div class="stp-section-grid">'+x.sections.filter(v=>v.total||baselineSection(latest,v.key)||baselineSection(previous,v.key)).map(v=>baselineCard(v,latest,previous)).join('')+'</div>'+
  '<div class="stp-chart-grid">'+
