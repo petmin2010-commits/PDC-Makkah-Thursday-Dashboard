@@ -351,6 +351,130 @@ async function saveSmartHistory(payload){
   };
 }
 
+const THURSDAY_PROGRESS_SHEET='VD Thursday Progress';
+const THURSDAY_PROGRESS_HEADERS=[
+  'date','timestamp','project','overallRate','totalOrders','completed','sectionMetricsJson','summaryJson','version'
+];
+
+function thursdayProgressNum_(v){
+  const n=Number(v);
+  return Number.isFinite(n)?Math.max(0,Math.min(100,Math.round(n*10)/10)):0;
+}
+
+async function ensureThursdayProgressSheet_(){
+  assertConfig();
+  const sheets=await getSheets();
+  const meta=await sheets.spreadsheets.get({
+    spreadsheetId:SPREADSHEET_ID,
+    fields:'sheets.properties(sheetId,title,gridProperties(columnCount))'
+  });
+  const found=(meta.data.sheets||[]).find(s=>s.properties?.title===THURSDAY_PROGRESS_SHEET);
+  if(!found){
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId:SPREADSHEET_ID,
+      requestBody:{requests:[{addSheet:{properties:{
+        title:THURSDAY_PROGRESS_SHEET,
+        gridProperties:{rowCount:2500,columnCount:9},
+        rightToLeft:true
+      }}}]}
+    });
+  }else if(Number(found.properties?.gridProperties?.columnCount||0)<9){
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId:SPREADSHEET_ID,
+      requestBody:{requests:[{updateSheetProperties:{
+        properties:{sheetId:found.properties.sheetId,gridProperties:{columnCount:9}},
+        fields:'gridProperties.columnCount'
+      }}]}
+    });
+  }
+  await sheets.spreadsheets.values.update({
+    spreadsheetId:SPREADSHEET_ID,
+    range:`${qSheet(THURSDAY_PROGRESS_SHEET)}!A1:I1`,
+    valueInputOption:'RAW',
+    requestBody:{values:[THURSDAY_PROGRESS_HEADERS]}
+  });
+  return sheets;
+}
+
+function thursdayWeekStart_(dateStr){
+  const zone=APP.TZ||'Asia/Riyadh';
+  const d=DateTime.fromISO(String(dateStr||''),{zone}).startOf('day');
+  if(!d.isValid)return '';
+  return d.minus({days:(d.weekday-5+7)%7}).toISODate();
+}
+
+async function syncThursdayProgressHistory(payload){
+  const sheets=await ensureThursdayProgressSheet_();
+  const zone=APP.TZ||'Asia/Riyadh';
+  const now=DateTime.now().setZone(zone);
+  const today=now.toISODate();
+  const timestamp=now.toFormat('yyyy-LL-dd HH:mm:ss');
+  const sections=Array.isArray(payload?.sections)?payload.sections.slice(0,30).map(x=>({
+    key:clean_(x?.key),label:clean_(x?.label),
+    rate:thursdayProgressNum_(x?.rate),
+    total:Math.max(0,Number(x?.total||0)),
+    completed:Math.max(0,Number(x?.completed||0))
+  })):[];
+  const summary=payload?.summary&&typeof payload.summary==='object'?payload.summary:{};
+  const overallRate=thursdayProgressNum_(payload?.overallRate);
+  const totalOrders=Math.max(0,Number(payload?.totalOrders||0));
+  const completed=Math.max(0,Number(payload?.completed||0));
+  const range=`${qSheet(THURSDAY_PROGRESS_SHEET)}!A2:I2500`;
+  const raw=(await sheets.spreadsheets.values.get({
+    spreadsheetId:SPREADSHEET_ID,range,valueRenderOption:'UNFORMATTED_VALUE'
+  })).data.values||[];
+  const rows=raw.map((r,i)=>({
+    row:i+2,date:String(r[0]||''),timestamp:String(r[1]||''),project:String(r[2]||''),
+    overallRate:thursdayProgressNum_(r[3]),
+    totalOrders:Number(r[4]||0),completed:Number(r[5]||0),
+    sections:safeJsonParse_(r[6],[]),summary:safeJsonParse_(r[7],{})
+  })).filter(x=>x.date);
+  const outRow=[today,timestamp,APP.TITLE,overallRate,totalOrders,completed,JSON.stringify(sections),JSON.stringify(summary),'v1'];
+  const current=rows.find(x=>x.date===today);
+  if(current){
+    await sheets.spreadsheets.values.update({
+      spreadsheetId:SPREADSHEET_ID,
+      range:`${qSheet(THURSDAY_PROGRESS_SHEET)}!A${current.row}:I${current.row}`,
+      valueInputOption:'RAW',requestBody:{values:[outRow]}
+    });
+  }else{
+    await sheets.spreadsheets.values.append({
+      spreadsheetId:SPREADSHEET_ID,
+      range:`${qSheet(THURSDAY_PROGRESS_SHEET)}!A:I`,
+      valueInputOption:'RAW',insertDataOption:'INSERT_ROWS',
+      requestBody:{values:[outRow]}
+    });
+  }
+  const currentObj={row:current?.row||rows.length+2,date:today,timestamp,project:APP.TITLE,overallRate,totalOrders,completed,sections,summary};
+  const full=[...rows.filter(x=>x.date!==today),currentObj].sort((a,b)=>a.date.localeCompare(b.date));
+  const byWeek=new Map();
+  full.forEach(x=>{
+    const week=thursdayWeekStart_(x.date);
+    if(!week)return;
+    const old=byWeek.get(week);
+    if(!old||String(x.timestamp).localeCompare(String(old.timestamp))>0)byWeek.set(week,x);
+  });
+  const trend=[...byWeek.entries()].sort((a,b)=>a[0].localeCompare(b[0])).slice(-16).map(([week,x])=>({
+    week,date:x.date,label:DateTime.fromISO(week,{zone}).toFormat('dd/LL'),
+    overallRate:x.overallRate,totalOrders:x.totalOrders,completed:x.completed,
+    sections:x.sections||[],summary:x.summary||{}
+  }));
+  const previous=trend.length>1?trend[trend.length-2]:null;
+  const prevMap=new Map((previous?.sections||[]).map(x=>[x.key,x]));
+  const sectionChanges=sections.map(x=>({
+    key:x.key,label:x.label,current:x.rate,
+    previous:prevMap.has(x.key)?thursdayProgressNum_(prevMap.get(x.key).rate):null,
+    delta:prevMap.has(x.key)?Math.round((x.rate-thursdayProgressNum_(prevMap.get(x.key).rate))*10)/10:null
+  }));
+  return {
+    ok:true,sheet:THURSDAY_PROGRESS_SHEET,updatedAt:timestamp,
+    trend,previousWeek:previous,
+    overallDelta:previous?Math.round((overallRate-previous.overallRate)*10)/10:null,
+    sectionChanges
+  };
+}
+
+
 const WO360_HEADER_SCAN_ROWS=40;
 const WO360_SYSTEM_SHEETS=['dp users','dashboard history','🔒 سجل الافادات التاريخي'];
 
@@ -1748,7 +1872,7 @@ async function getProjectNews(){
 }
 
 
-const METHODS={getBootData,getSecondaryMasterKpis,getWorkOrderMasterEnrichment,getPageData,getWednesdayMeetingData,getMonitorData,getFullMonitorData,getProjectNews,saveSmartHistory,getWorkOrder360,clearDashboardCache};
+const METHODS={getBootData,getSecondaryMasterKpis,getWorkOrderMasterEnrichment,getPageData,getWednesdayMeetingData,getMonitorData,getFullMonitorData,getProjectNews,saveSmartHistory,syncThursdayProgressHistory,getWorkOrder360,clearDashboardCache};
 
 const app=express();
 const PUBLIC_DIR=path.join(__dirname,'public');
