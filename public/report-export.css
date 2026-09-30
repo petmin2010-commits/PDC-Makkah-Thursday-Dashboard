@@ -458,3 +458,28 @@ body.vd-report-v2-mode #vdReportV2{display:block!important}
 .vd-dq-detail-clone td{
   padding:.7mm!important;
 }
+
+/* Data Quality cover: prevent accidental blank second print page */
+.vd-dq-cover-page{
+  height:188mm!important;
+  min-height:188mm!important;
+  max-height:188mm!important;
+  overflow:hidden!important;
+}
+.vd-dq-cover-page .vd-report-cover-top,
+.vd-dq-cover-page .vd-report-cover-title,
+.vd-dq-cover-page .vd-report-cover-meta,
+.vd-dq-cover-page .vd-report-cover-kpis{
+  break-inside:avoid!important;
+  page-break-inside:avoid!important;
+}
+@media print{
+  .vd-dq-cover-page{
+    height:188mm!important;
+    min-height:188mm!important;
+    max-height:188mm!important;
+    overflow:hidden!important;
+    break-after:page!important;
+    page-break-after:always!important;
+  }
+}

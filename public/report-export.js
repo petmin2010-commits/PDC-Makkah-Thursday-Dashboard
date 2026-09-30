@@ -789,6 +789,14 @@
       report.querySelector('.vd-report-cover');
 
     if (cover) {
+      cover.classList.add('vd-dq-cover-page');
+
+      /*
+        منع Chrome من ترحيل Footer الغلاف إلى صفحة منفصلة فارغة.
+        هوية الغلاف مكتملة بالفعل بالشعار والزخرفة السفلية.
+      */
+      cover.querySelector('.vd-report-cover-footer')?.remove();
+
       const grid =
         cover.querySelector('.vd-report-cover-kpis');
 
