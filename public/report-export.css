@@ -538,3 +538,47 @@ body.vd-report-v2-mode #vdReportV2{display:block!important}
     page-break-after:always!important;
   }
 }
+
+/* Makkah-only hard print guard for Data Quality cover.
+   The first page is intentionally kept well below the printable A4 landscape height.
+   The next data-quality page starts on a fresh sheet via break-before, avoiding any
+   overflow fragment/blank sheet even when Makkah card text is taller. */
+@media print{
+  .vd-report-data-quality-cover{
+    box-sizing:border-box!important;
+    height:172mm!important;
+    min-height:172mm!important;
+    max-height:172mm!important;
+    padding:5mm 7mm 7mm!important;
+    overflow:hidden!important;
+    break-after:auto!important;
+    page-break-after:auto!important;
+  }
+  .vd-report-data-quality-cover + .vd-report-data-quality-page{
+    break-before:page!important;
+    page-break-before:always!important;
+  }
+  .vd-report-data-quality-cover .vd-report-section-header{
+    min-height:20mm!important;
+    padding:0 30mm 2mm!important;
+  }
+  .vd-report-data-quality-cover .vd-report-section-body{
+    margin-top:1mm!important;
+  }
+  .vd-report-data-quality-cover .vd-dq-cover-meta{
+    margin-bottom:2.5mm!important;
+  }
+  .vd-report-data-quality-cover .vd-dq-cover-meta>div{
+    padding:2mm 2mm!important;
+  }
+  .vd-report-data-quality-cover .vd-dq-cover-summary{
+    padding:2mm!important;
+  }
+  .vd-report-data-quality-cover .vd-dq-cover-grid{
+    gap:1.6mm!important;
+  }
+  .vd-report-data-quality-cover .vd-dq-rule-card{
+    min-height:16mm!important;
+    padding:1.5mm 1.8mm!important;
+  }
+}
