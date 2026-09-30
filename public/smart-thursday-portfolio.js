@@ -204,6 +204,89 @@ function reportChartSrc(id){
  const c=document.getElementById(id); if(!c)return '';
  try{return c.toDataURL('image/png',1)}catch{return ''}
 }
+function reportLightChartSrc(id,percentAxis=false){
+ const source=P.charts?.[id];
+ const original=document.getElementById(id);
+ if(!source||typeof Chart==='undefined'){
+  try{return original?.toDataURL('image/png',1)||''}catch{return ''}
+ }
+ const canvas=document.createElement('canvas');
+ canvas.width=1500;canvas.height=560;
+ const ctx=canvas.getContext('2d');
+ ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);
+ const labels=[...(source.data?.labels||[])];
+ const datasets=(source.data?.datasets||[]).map((ds,i)=>{
+  let style={};
+  try{style=source.getDatasetMeta(i)?.controller?.getStyle?.(0,false)||{}}catch{}
+  const color=ds.borderColor||style.borderColor||STP_TREND_COLORS[i%STP_TREND_COLORS.length];
+  return {
+   label:ds.label,
+   data:[...(ds.data||[])],
+   borderColor:color,
+   backgroundColor:color,
+   borderWidth:3,
+   tension:.28,
+   pointRadius:6,
+   pointHoverRadius:6,
+   pointBackgroundColor:color,
+   pointBorderColor:'#ffffff',
+   pointBorderWidth:2,
+   spanGaps:true,
+   fill:false
+  };
+ });
+ const labelPlugin={
+  id:'reportPointLabels',
+  afterDatasetsDraw(chart){
+   const c=chart.ctx,occupied=[];
+   c.save();c.font='700 16px Tahoma, Arial, sans-serif';c.textBaseline='middle';
+   chart.data.datasets.forEach((ds,di)=>{
+    const meta=chart.getDatasetMeta(di);if(meta.hidden)return;
+    meta.data.forEach((pt,pi)=>{
+     const showAll=(chart.data.labels?.length||0)<=5;
+     if(!showAll&&pi!==meta.data.length-1)return;
+     const raw=Number(ds.data?.[pi]);if(!Number.isFinite(raw))return;
+     const txt=percentAxis?(raw.toFixed(1)+'%'):String(Math.round(raw));
+     const tw=c.measureText(txt).width+16,th=24;
+     let x=pt.x+10,y=pt.y-14,tries=0;
+     while(occupied.some(r=>Math.abs(r.x-x)<58&&Math.abs(r.y-y)<23)&&tries<10){y+=24;tries++}
+     if(y>chart.chartArea.bottom-12)y=pt.y-16-(tries*18);
+     if(x+tw>chart.chartArea.right)x=pt.x-tw-10;
+     occupied.push({x,y});
+     c.fillStyle='#ffffff';c.strokeStyle=ds.borderColor;c.lineWidth=1.5;
+     const rx=x-5,ry=y-th/2,r=6;
+     c.beginPath();c.roundRect(rx,ry,tw,th,r);c.fill();c.stroke();
+     c.fillStyle='#172b5f';c.fillText(txt,x+3,y);
+    });
+   });
+   c.restore();
+  }
+ };
+ const opts={
+  responsive:false,
+  animation:false,
+  maintainAspectRatio:false,
+  layout:{padding:{top:28,right:48,left:18,bottom:8}},
+  plugins:{
+   legend:{position:'bottom',labels:{color:'#324a67',usePointStyle:true,boxWidth:10,padding:14,font:{family:'Tahoma',size:13}}},
+   tooltip:{enabled:false}
+  },
+  scales:{
+   x:{ticks:{color:'#5e6d7f',font:{size:13}},grid:{display:false},border:{color:'#b9c4cf'}},
+   y:{beginAtZero:true,max:percentAxis?100:undefined,ticks:{color:'#5e6d7f',font:{size:13},callback:percentAxis?(v=>v+'%'):undefined},grid:{color:'#e8edf2'},border:{color:'#b9c4cf'}}
+  }
+ };
+ let tmp;
+ try{
+  tmp=new Chart(ctx,{type:'line',data:{labels,datasets},options:opts,plugins:[labelPlugin]});
+  tmp.update('none');
+  const out=canvas.toDataURL('image/png',1);
+  tmp.destroy();return out;
+ }catch(err){
+  try{tmp?.destroy()}catch{}
+  try{return original?.toDataURL('image/png',1)||''}catch{return ''}
+ }
+}
 function reportBreakdown(title,data){
  const entries=Object.entries(data||{}).sort((a,b)=>Number(b[1]||0)-Number(a[1]||0));
  const total=entries.reduce((sum,[,v])=>sum+Number(v||0),0);
@@ -236,7 +319,14 @@ function exportThursdayReport(){
  const cRows=P.pages.connections?.rows||[];
  const pageTitle='التقرير الأسبوعي لمتابعة الأداء الفني';
  const baselineText=previous&&latest?('مقارنة '+previous.label+' مع '+latest.label):'بانتظار اكتمال خط الأساس الأسبوعي';
- const weeklySrc=trend.length?reportChartSrc('stpTrend'):'';
+
+ const chartSources={
+  weekly:reportLightChartSrc('stpTrend',true),
+  pStage:reportLightChartSrc('stpProjectsStageTrend',false),
+  cStage:reportLightChartSrc('stpConnectionsStageTrend',false),
+  pStatus:reportLightChartSrc('stpProjectsStageStatusTrend',false),
+  cStatus:reportLightChartSrc('stpConnectionsStageStatusTrend',false)
+ };
 
  function entries(rows,key){
   return Object.entries(breakdown(rows,key)||{})
@@ -265,30 +355,29 @@ function exportThursdayReport(){
  function page(body,pageNo,total,sub){
   return '<main class="page">'+header(pageNo,total,sub)+body+footer(pageNo,total)+'</main>';
  }
- function barPanel(title,data){
-  const list=Array.isArray(data)?data:[];
+ function chartCard(title,src,emptyText){
+  return '<section class="chart-card"><h3>'+e(title)+'</h3>'+
+   (src?'<div class="chart-image"><img src="'+src+'" alt="'+e(title)+'"></div>':'<div class="chart-empty">'+e(emptyText||'لا توجد بيانات كافية للرسم بعد')+'</div>')+
+   '</section>';
+ }
+ function miniBars(title,data,limit=6){
+  const list=(Array.isArray(data)?data:[]).slice(0,limit);
   const max=Math.max(1,...list.map(function(v){return Number(v[1]||0)}));
   const total=list.reduce(function(s,v){return s+Number(v[1]||0)},0);
   const rows=list.length?list.map(function(v){
-    const value=Number(v[1]||0);
-    const share=total?(value/total*100):0;
-    const width=Math.max(1,Math.min(100,value/max*100));
-    return '<div class="bar-row">'+
-      '<div class="bar-label"><span>'+e(v[0])+'</span><b>'+value.toLocaleString('ar-SA')+' <small>'+share.toFixed(1)+'%</small></b></div>'+
-      '<div class="bar-track"><i style="width:'+width.toFixed(1)+'%"></i></div>'+
-     '</div>';
-   }).join(''):'<div class="empty">لا توجد بيانات</div>';
-  return '<section class="bar-card"><h3>'+e(title)+'</h3><div class="bar-list">'+rows+'</div></section>';
+   const value=Number(v[1]||0),width=Math.max(2,Math.min(100,value/max*100));
+   return '<div class="mini-row"><span>'+e(v[0])+'</span><div class="mini-track"><i style="width:'+width.toFixed(1)+'%"></i></div><b>'+value.toLocaleString('ar-SA')+'</b></div>';
+  }).join(''):'<div class="empty">لا توجد بيانات</div>';
+  return '<section class="mini-card"><h3>'+e(title)+'</h3><div class="mini-list">'+rows+'</div></section>';
  }
- function tablePanel(title,data){
+ function tablePanel(title,data,compact=false){
   const list=Array.isArray(data)?data:[];
   const total=list.reduce(function(s,v){return s+Number(v[1]||0)},0);
   const rows=list.length?list.map(function(v){
-    const value=Number(v[1]||0);
-    const share=total?(value/total*100):0;
-    return '<tr><td>'+e(v[0])+'</td><td>'+value.toLocaleString('ar-SA')+'</td><td>'+share.toFixed(1)+'%</td></tr>';
+   const value=Number(v[1]||0),share=total?(value/total*100):0;
+   return '<tr><td>'+e(v[0])+'</td><td>'+value.toLocaleString('ar-SA')+'</td><td>'+share.toFixed(1)+'%</td></tr>';
   }).join(''):'<tr><td colspan="3">لا توجد بيانات</td></tr>';
-  return '<section class="table-card"><h3>'+e(title)+'</h3><table><thead><tr><th>التصنيف</th><th>العدد</th><th>النسبة</th></tr></thead><tbody>'+rows+'</tbody></table></section>';
+  return '<section class="table-card '+(compact?'compact':'')+'"><h3>'+e(title)+'</h3><table><thead><tr><th>التصنيف</th><th>العدد</th><th>النسبة</th></tr></thead><tbody>'+rows+'</tbody></table></section>';
  }
 
  const kpis=(x.sections||[]).map(function(v){
@@ -303,16 +392,13 @@ function exportThursdayReport(){
   '</article>';
  }).join('');
 
- const deltas=(x.sections||[]).map(function(v){
-  return reportBaselineCard(v,latest,previous);
- }).join('');
-
+ const deltas=(x.sections||[]).map(function(v){return reportBaselineCard(v,latest,previous)}).join('');
  const pStage=entries(pRows,'stage');
  const cStage=entries(cRows,'stage');
  const pStatus=entries(pRows,'stageStatus');
  const cStatus=entries(cRows,'stageStatus');
 
- const hist=trend.slice(-12);
+ const hist=trend.slice(-8);
  const histRows=hist.length?hist.map(function(z){
   return '<tr><td>'+e(z.label||z.date||'')+'</td>'+
    ['projects','connections','permits','emergency'].map(function(k){
@@ -322,7 +408,7 @@ function exportThursdayReport(){
    '</tr>';
  }).join(''):'<tr><td colspan="5">لا توجد لقطات خميس محفوظة بعد.</td></tr>';
 
- const totalPages=5;
+ const totalPages=4;
 
  const page1=
   section('1. الوضع الحالي','LIVE STATUS')+
@@ -330,42 +416,41 @@ function exportThursdayReport(){
   section('2. التغير الأسبوعي مقارنة بخط الأساس','THURSDAY BASELINE DELTA')+
   '<div class="delta-grid">'+deltas+'</div>'+
   section('3. الاتجاه الأسبوعي لنسبة الإنجاز','WEEKLY TREND')+
-  '<section class="trend-card">'+
-   (weeklySrc?'<div class="trend-image-wrap"><img src="'+weeklySrc+'" alt="Weekly trend"></div>':'<div class="trend-empty">سيظهر الاتجاه الأسبوعي بعد توفر أول لقطة خميس رسمية.</div>')+
-  '</section>';
+  chartCard('التغير الأسبوعي لنسب الإنجاز — المشاريع والتوصيلات والتصاريح والطوارئ',chartSources.weekly,'سيظهر الاتجاه الأسبوعي بعد توفر أول لقطة خميس رسمية');
 
  const page2=
-  section('4. توزيع مرحلة الإنجاز الحالي','CURRENT STAGE DISTRIBUTION')+
-  '<div class="two-cols">'+
-   barPanel('مرحلة الإنجاز — المشاريع',pStage)+
-   barPanel('مرحلة الإنجاز — التوصيلات',cStage)+
+  section('4. تريند مرحلة الإنجاز','STAGE TREND')+
+  '<div class="charts-row">'+
+   chartCard('تريند أعداد مرحلة الإنجاز — المشاريع',chartSources.pStage)+
+   chartCard('تريند أعداد مرحلة الإنجاز — التوصيلات',chartSources.cStage)+
   '</div>'+
-  '<div class="two-cols tables-top">'+
-   tablePanel('تفاصيل مرحلة الإنجاز — المشاريع',pStage)+
-   tablePanel('تفاصيل مرحلة الإنجاز — التوصيلات',cStage)+
+  '<div class="summary-row">'+
+   miniBars('الوضع الحالي — مرحلة الإنجاز بالمشاريع',pStage,5)+
+   miniBars('الوضع الحالي — مرحلة الإنجاز بالتوصيلات',cStage,5)+
   '</div>';
 
  const page3=
-  section('5. توزيع حالة المرحلة الحالي','CURRENT STAGE STATUS')+
-  '<div class="two-cols status-cols">'+
-   barPanel('حالة المرحلة — المشاريع',pStatus)+
-   barPanel('حالة المرحلة — التوصيلات',cStatus)+
+  section('5. تريند حالة المرحلة','STAGE STATUS TREND')+
+  '<div class="charts-row">'+
+   chartCard('تريند أعداد حالة المرحلة — المشاريع',chartSources.pStatus)+
+   chartCard('تريند أعداد حالة المرحلة — التوصيلات',chartSources.cStatus)+
+  '</div>'+
+  '<div class="summary-row">'+
+   miniBars('أعلى حالات المرحلة — المشاريع',pStatus,7)+
+   miniBars('أعلى حالات المرحلة — التوصيلات',cStatus,7)+
   '</div>';
 
  const page4=
-  section('6. الجداول التفصيلية — المشاريع','PROJECTS DETAIL TABLES')+
-  '<div class="two-cols detail-cols">'+
-   tablePanel('مرحلة الإنجاز — المشاريع',pStage)+
-   tablePanel('حالة المرحلة — المشاريع',pStatus)+
-  '</div>';
-
- const page5=
-  section('7. الجداول التفصيلية — التوصيلات','CONNECTIONS DETAIL TABLES')+
-  '<div class="two-cols detail-cols">'+
-   tablePanel('مرحلة الإنجاز — التوصيلات',cStage)+
-   tablePanel('حالة المرحلة — التوصيلات',cStatus)+
+  section('6. الجداول التفصيلية','DETAIL TABLES')+
+  '<div class="detail-stage-row">'+
+   tablePanel('مرحلة الإنجاز — المشاريع',pStage,true)+
+   tablePanel('مرحلة الإنجاز — التوصيلات',cStage,true)+
   '</div>'+
-  section('8. ملخص آخر اللقطات الأسبوعية','THURSDAY SNAPSHOTS')+
+  '<div class="detail-status-row">'+
+   tablePanel('حالة المرحلة — المشاريع',pStatus,true)+
+   tablePanel('حالة المرحلة — التوصيلات',cStatus,true)+
+  '</div>'+
+  section('7. ملخص آخر اللقطات الأسبوعية','THURSDAY SNAPSHOTS')+
   '<section class="snapshot-card"><table><thead><tr><th>الخميس</th><th>المشاريع</th><th>التوصيلات</th><th>التصاريح</th><th>الطوارئ</th></tr></thead><tbody>'+histRows+'</tbody></table></section>';
 
  const css=
@@ -373,54 +458,44 @@ function exportThursdayReport(){
  '*{box-sizing:border-box}'+
  'html,body{margin:0;padding:0;background:#fff;color:#172b5f;font-family:Tahoma,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
  'body{font-size:9px}'+
- '.page{width:297mm;height:210mm;position:relative;padding:7mm 10mm 15mm;overflow:hidden;background:#fff;break-after:page;page-break-after:always}'+
+ '.page{width:297mm;height:210mm;position:relative;padding:6mm 9mm 14mm;overflow:hidden;background:#fff;break-after:page;page-break-after:always}'+
  '.page:last-child{break-after:auto;page-break-after:auto}'+
  '.page>*{position:relative;z-index:2}'+
- '.page:before{content:"";position:absolute;z-index:0;left:-20mm;bottom:-27mm;width:345mm;height:54mm;border-top:8mm solid #232d70;border-radius:50% 50% 0 0/100% 100% 0 0;transform:rotate(-1deg)}'+
- '.page:after{content:"";position:absolute;z-index:0;left:-18mm;bottom:-19mm;width:340mm;height:43mm;border-top:4.5mm solid #d9dde3;border-radius:50% 50% 0 0/100% 100% 0 0;transform:rotate(-1deg)}'+
- '.header{position:relative;min-height:23mm;text-align:center;padding-top:1mm;margin-bottom:1mm}'+
- '.logo{position:absolute;left:0;top:0;width:28mm;height:18mm;object-fit:contain;object-position:left top}'+
- '.title{padding:0 40mm}'+
- '.title h1{position:relative;margin:0;color:#172b5f;font-size:19px;font-weight:900}'+
- '.title h1:after{content:"";display:block;width:74mm;height:1px;background:#f2a31b;margin:3mm auto 0}'+
- '.title h1:before{content:"";position:absolute;left:50%;top:10mm;width:3.8mm;height:3.8mm;background:#f2a31b;transform:translateX(-50%) rotate(45deg)}'+
- '.title p{margin:1mm 0 0;color:#6e737b;font-size:8.5px;font-weight:700}'+
- '.meta{position:absolute;right:0;top:0;text-align:right;color:#172b5f;font-size:7px;min-width:48mm}'+
- '.meta b{display:block;font-size:8px;margin-bottom:.8mm}'+
- '.report-info{position:relative;margin:0 0 3mm;border:1px solid #26396f;border-radius:2px;display:grid;grid-template-columns:repeat(4,1fr);overflow:visible}'+
- '.report-info:before{content:"بيانات التقرير";position:absolute;right:-1px;top:-6.2mm;background:#172b5f;color:#fff;padding:1.6mm 4mm;border-radius:2px 2px 0 0;font-weight:900;font-size:8px}'+
- '.report-info span{display:flex;align-items:center;justify-content:center;gap:1.5mm;min-height:8mm;border-left:1px solid #c8ced9;background:#f7f8fa}'+
- '.report-info span:nth-child(even){background:#eef0f4}.report-info span:last-child{border-left:0}.report-info b{font-size:7px}.report-info em{font-style:normal;color:#273f6d;font-size:7.5px}'+
- '.section-title{display:flex;width:max-content;max-width:95%;align-items:center;gap:3mm;margin:2.5mm 0 0 auto;padding:1.5mm 3.5mm;border-radius:3px 3px 0 0;background:#172b5f;color:#fff}'+
- '.section-title h2{margin:0;font-size:9.5px}.section-title span{font-size:6px;color:#dce5f1}'+
- '.section-title+*{border-top:1px solid #26396f;padding-top:1.5mm}'+
- '.kpi-grid,.delta-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2.5mm}'+
- '.kpi,.r-delta-card{border:1px solid #26396f;border-radius:3px;padding:2mm;background:#fff;min-height:25mm}'+
- '.kpi-head{display:flex;flex-direction:column-reverse;align-items:center;gap:.8mm;font-weight:800}.kpi-head span{font-size:8px}.kpi-head b{font-size:17px;color:#f19500}'+
- '.kpi-mini,.r-delta-mini{display:grid;grid-template-columns:repeat(3,1fr);gap:1mm;margin-top:1.3mm}.kpi-mini span,.r-delta-mini span{background:#f4f5f7;border:1px solid #d9dde3;border-radius:2px;padding:1mm;text-align:center;color:#667184;font-size:6px}.kpi-mini b,.r-delta-mini b{display:block;color:#172b5f;font-size:8.5px;margin-bottom:.3mm}'+
- '.r-delta-title{text-align:center;font-weight:900;font-size:8px}.r-delta-main{text-align:center;font-size:13px;font-weight:900;margin:1.2mm 0}.r-delta-main.pos{color:#148a5b}.r-delta-main.neg{color:#c64f58}.r-delta-main.flat{color:#f19500}'+
- '.r-pair{display:grid;grid-template-columns:1fr auto 1fr;gap:1mm;align-items:center;background:#f4f5f7;border:1px solid #d9dde3;border-radius:2px;padding:.8mm;margin-bottom:1mm}.r-pair span{text-align:center}.r-pair small{display:block;color:#7a808a;font-size:5.8px}.r-pair b{display:block;font-size:8px}.r-pair i{font-style:normal;color:#f19500}'+
- '.r-wait{height:9mm;display:flex;align-items:center;justify-content:center;color:#7a808a;background:#f4f5f7;border:1px solid #d9dde3;border-radius:2px;margin:1.3mm 0;font-size:6px}'+
- '.trend-card{border:1px solid #26396f;border-radius:3px;padding:1.5mm;background:#fff;height:49mm}'+
- '.trend-image-wrap{height:100%;background:#071d34;border-radius:2px;overflow:hidden;display:flex;align-items:center;justify-content:center}.trend-image-wrap img{width:100%;height:100%;object-fit:contain}.trend-empty{height:100%;display:flex;align-items:center;justify-content:center;background:#f7f8fa;color:#7a808a;border:1px dashed #c8ced7;border-radius:2px}'+
- '.two-cols{display:grid;grid-template-columns:1fr 1fr;gap:3mm}.tables-top{margin-top:3mm}.status-cols{height:143mm}.detail-cols{height:147mm}'+
- '.bar-card,.table-card,.snapshot-card{border:1px solid #26396f;border-radius:3px;background:#fff;overflow:hidden;min-width:0}'+
- '.bar-card h3,.table-card h3{margin:0;padding:1.8mm 2.5mm;background:#172b5f;color:#fff;font-size:8.5px}'+
- '.bar-list{padding:2mm 2.5mm}.bar-row{margin-bottom:1.4mm}.bar-row:last-child{margin-bottom:0}.bar-label{display:flex;justify-content:space-between;gap:3mm;align-items:center;margin-bottom:.6mm;font-size:6.8px}.bar-label span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:72%}.bar-label b{white-space:nowrap;color:#172b5f}.bar-label small{font-size:5.8px;color:#7a808a;font-weight:400}.bar-track{height:2.3mm;background:#eceff3;border-radius:10px;overflow:hidden}.bar-track i{display:block;height:100%;background:linear-gradient(90deg,#172b5f,#2f66a5,#f2a31b);border-radius:10px}'+
- 'table{width:100%;border-collapse:collapse;table-layout:auto;font-size:6.7px}th{background:#eef0f4;color:#172b5f;padding:1.2mm;text-align:right;border:1px solid #c8ced9;font-weight:900}td{padding:1.05mm 1.2mm;border:1px solid #d5d9e0;color:#263b64;line-height:1.2}tbody tr:nth-child(even){background:#fbfbfc}'+
- '.detail-cols .table-card{height:100%}.detail-cols table{font-size:6.4px}.detail-cols td,.detail-cols th{padding:.92mm 1mm}'+
- '.snapshot-card{margin-top:0}.snapshot-card table{font-size:6.5px}.snapshot-card td,.snapshot-card th{padding:1mm}'+
- '.empty{padding:8mm;text-align:center;color:#7a808a}'+
- '.footer{position:absolute;z-index:3;bottom:2.8mm;right:10mm;left:10mm;display:flex;justify-content:space-between;color:#777f8a;font-size:6px}'+
+ '.page:before{content:"";position:absolute;z-index:0;left:-20mm;bottom:-28mm;width:345mm;height:54mm;border-top:8mm solid #232d70;border-radius:50% 50% 0 0/100% 100% 0 0;transform:rotate(-1deg)}'+
+ '.page:after{content:"";position:absolute;z-index:0;left:-18mm;bottom:-20mm;width:340mm;height:43mm;border-top:4.5mm solid #d9dde3;border-radius:50% 50% 0 0/100% 100% 0 0;transform:rotate(-1deg)}'+
+ '.header{position:relative;min-height:22mm;text-align:center;padding-top:.5mm;margin-bottom:.5mm}'+
+ '.logo{position:absolute;left:0;top:0;width:27mm;height:17mm;object-fit:contain;object-position:left top}'+
+ '.title{padding:0 40mm}.title h1{position:relative;margin:0;color:#172b5f;font-size:18px;font-weight:900}'+
+ '.title h1:after{content:"";display:block;width:72mm;height:1px;background:#f2a31b;margin:2.5mm auto 0}'+
+ '.title h1:before{content:"";position:absolute;left:50%;top:9.6mm;width:3.6mm;height:3.6mm;background:#f2a31b;transform:translateX(-50%) rotate(45deg)}'+
+ '.title p{margin:.8mm 0 0;color:#6e737b;font-size:8px;font-weight:700}'+
+ '.meta{position:absolute;right:0;top:0;text-align:right;color:#172b5f;font-size:6.8px;min-width:48mm}.meta b{display:block;font-size:7.8px;margin-bottom:.6mm}'+
+ '.report-info{position:relative;margin:0 0 2.5mm;border:1px solid #26396f;border-radius:2px;display:grid;grid-template-columns:repeat(4,1fr)}'+
+ '.report-info:before{content:"بيانات التقرير";position:absolute;right:-1px;top:-5.7mm;background:#172b5f;color:#fff;padding:1.4mm 3.8mm;border-radius:2px 2px 0 0;font-weight:900;font-size:7.5px}'+
+ '.report-info span{display:flex;align-items:center;justify-content:center;gap:1.3mm;min-height:7.5mm;border-left:1px solid #c8ced9;background:#f7f8fa}.report-info span:nth-child(even){background:#eef0f4}.report-info span:last-child{border-left:0}.report-info b{font-size:6.6px}.report-info em{font-style:normal;color:#273f6d;font-size:7px}'+
+ '.section-title{display:flex;width:max-content;max-width:96%;align-items:center;gap:2.5mm;margin:2.2mm 0 0 auto;padding:1.35mm 3.2mm;border-radius:3px 3px 0 0;background:#172b5f;color:#fff}.section-title h2{margin:0;font-size:9px}.section-title span{font-size:5.7px;color:#dce5f1}.section-title+*{border-top:1px solid #26396f;padding-top:1.3mm}'+
+ '.kpi-grid,.delta-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2.3mm}.kpi,.r-delta-card{border:1px solid #26396f;border-radius:3px;padding:1.8mm;background:#fff;min-height:23mm}'+
+ '.kpi-head{display:flex;flex-direction:column-reverse;align-items:center;gap:.6mm;font-weight:800}.kpi-head span{font-size:7.5px}.kpi-head b{font-size:16px;color:#f19500}'+
+ '.kpi-mini,.r-delta-mini{display:grid;grid-template-columns:repeat(3,1fr);gap:.8mm;margin-top:1.1mm}.kpi-mini span,.r-delta-mini span{background:#f4f5f7;border:1px solid #d9dde3;border-radius:2px;padding:.8mm;text-align:center;color:#667184;font-size:5.7px}.kpi-mini b,.r-delta-mini b{display:block;color:#172b5f;font-size:8px;margin-bottom:.2mm}'+
+ '.r-delta-title{text-align:center;font-weight:900;font-size:7.5px}.r-delta-main{text-align:center;font-size:12px;font-weight:900;margin:1mm 0}.r-delta-main.pos{color:#148a5b}.r-delta-main.neg{color:#c64f58}.r-delta-main.flat{color:#f19500}.r-pair{display:grid;grid-template-columns:1fr auto 1fr;gap:.8mm;align-items:center;background:#f4f5f7;border:1px solid #d9dde3;border-radius:2px;padding:.7mm;margin-bottom:.8mm}.r-pair span{text-align:center}.r-pair small{display:block;color:#7a808a;font-size:5.4px}.r-pair b{display:block;font-size:7.6px}.r-pair i{font-style:normal;color:#f19500}.r-wait{height:8mm;display:flex;align-items:center;justify-content:center;color:#7a808a;background:#f4f5f7;border:1px solid #d9dde3;border-radius:2px;margin:1.1mm 0;font-size:5.7px}'+
+ '.chart-card{border:1px solid #26396f;border-radius:3px;background:#fff;overflow:hidden;min-width:0}.chart-card h3{margin:0;padding:1.6mm 2.3mm;background:#172b5f;color:#fff;font-size:8.2px}.chart-image{height:58mm;padding:1.5mm;background:#fff}.chart-image img{width:100%;height:100%;object-fit:contain;display:block}.chart-empty{height:58mm;display:flex;align-items:center;justify-content:center;background:#f7f8fa;color:#7a808a;font-size:7px}'+
+ '.page:first-of-type .chart-image,.page:first-of-type .chart-empty{height:43mm}'+
+ '.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:3mm}.summary-row{display:grid;grid-template-columns:1fr 1fr;gap:3mm;margin-top:3mm}'+
+ '.mini-card,.table-card,.snapshot-card{border:1px solid #26396f;border-radius:3px;background:#fff;overflow:hidden;min-width:0}.mini-card h3,.table-card h3{margin:0;padding:1.5mm 2.2mm;background:#172b5f;color:#fff;font-size:7.8px}.mini-list{padding:1.7mm 2.2mm}.mini-row{display:grid;grid-template-columns:32% 1fr auto;gap:1.5mm;align-items:center;margin-bottom:1mm;font-size:6.4px}.mini-row:last-child{margin-bottom:0}.mini-row>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mini-track{height:2.4mm;background:#eceff3;border-radius:10px;overflow:hidden}.mini-track i{display:block;height:100%;background:linear-gradient(90deg,#172b5f,#2f66a5,#f2a31b);border-radius:10px}.mini-row b{min-width:10mm;text-align:left;color:#172b5f;font-size:6.8px}'+
+ '.detail-stage-row,.detail-status-row{display:grid;grid-template-columns:1fr 1fr;gap:3mm}.detail-status-row{margin-top:2.5mm}'+
+ 'table{width:100%;border-collapse:collapse;table-layout:auto;font-size:6.3px}th{background:#eef0f4;color:#172b5f;padding:1mm;text-align:right;border:1px solid #c8ced9;font-weight:900}td{padding:.82mm 1mm;border:1px solid #d5d9e0;color:#263b64;line-height:1.15}tbody tr:nth-child(even){background:#fbfbfc}'+
+ '.table-card.compact h3{padding:1.2mm 2mm;font-size:7.2px}.table-card.compact table{font-size:5.8px}.table-card.compact th,.table-card.compact td{padding:.62mm .8mm}.detail-stage-row .table-card{max-height:33mm}.detail-stage-row .table-card tbody tr:nth-child(n+7){display:none}.detail-status-row .table-card{height:82mm;overflow:hidden}'+
+ '.snapshot-card{margin-top:0}.snapshot-card table{font-size:5.8px}.snapshot-card th,.snapshot-card td{padding:.65mm .8mm}'+
+ '.empty{padding:5mm;text-align:center;color:#7a808a}'+
+ '.footer{position:absolute;z-index:3;bottom:2.4mm;right:9mm;left:9mm;display:flex;justify-content:space-between;color:#777f8a;font-size:5.8px}'+
  '@media print{html,body{width:297mm}body{margin:0}.page{break-inside:avoid}}';
 
  const html='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+e(pageTitle)+'</title><style>'+css+'</style></head><body>'+
   page(page1,1,totalPages,city)+
   page(page2,2,totalPages,city+' — مرحلة الإنجاز')+
   page(page3,3,totalPages,city+' — حالة المرحلة')+
-  page(page4,4,totalPages,city+' — تفاصيل المشاريع')+
-  page(page5,5,totalPages,city+' — تفاصيل التوصيلات')+
-  '<script>window.addEventListener("load",function(){setTimeout(function(){window.print()},900)});<\/script>'+
+  page(page4,4,totalPages,city+' — التفاصيل واللقطات')+
+  '<script>window.addEventListener("load",function(){setTimeout(function(){window.print()},950)});<\/script>'+
   '</body></html>';
 
  win.document.open();
