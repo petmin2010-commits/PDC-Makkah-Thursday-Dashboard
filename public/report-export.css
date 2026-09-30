@@ -69,3 +69,139 @@ body.vd-report-v2-mode #vdReportV2{display:block!important}
   body.vd-report-v2-mode #vdReportV2{display:block!important}
   .vd-report-v2-page{min-height:190mm}
 }
+
+/* Unified in-tab report action + print-fit refinements */
+.vd-tab-report-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:10px;
+  margin:0 0 12px;
+  padding:0;
+  direction:rtl;
+}
+.vd-tab-report-btn{
+  border:0;
+  border-radius:9px;
+  background:#d92d20;
+  color:#fff;
+  padding:9px 15px;
+  font-family:Cairo,Tahoma,Arial,sans-serif;
+  font-size:10px;
+  font-weight:900;
+  cursor:pointer;
+  white-space:nowrap;
+  box-shadow:0 5px 14px rgba(217,45,32,.2);
+}
+.vd-tab-report-btn:hover{
+  filter:brightness(.96);
+  transform:translateY(-1px);
+}
+#printBtn{display:none!important}
+
+/* A4 landscape spacing refinement */
+.vd-report-v2-page{
+  min-height:194mm;
+  padding:6mm 7mm 16mm;
+}
+.vd-report-section-header{
+  min-height:25mm;
+  padding:1mm 32mm 3.5mm;
+}
+.vd-report-section-body{
+  margin-top:2.5mm;
+}
+.vd-report-footer{
+  right:7mm;
+  left:7mm;
+  bottom:2.6mm;
+}
+
+/* Trees get a dedicated compact page and are scaled from their real dashboard size. */
+.vd-report-tree-page{
+  padding:5mm 6mm 14mm;
+}
+.vd-report-tree-page .vd-report-section-header{
+  min-height:20mm;
+  padding:0 30mm 2.5mm;
+}
+.vd-report-tree-page .vd-report-section-header h2{
+  font-size:16px;
+}
+.vd-report-tree-page .vd-report-section-header h2:before{
+  top:11mm;
+}
+.vd-report-tree-page .vd-report-section-header p{
+  margin-top:1.2mm;
+}
+.vd-report-tree-page .vd-report-section-body{
+  margin-top:1mm;
+}
+.vd-report-tree-wrapper{
+  width:100%;
+  margin:0;
+  padding:2mm;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  overflow:hidden!important;
+  border:1.2px solid #24366d;
+  border-radius:4px;
+  background:#fff;
+}
+.vd-report-tree-fit{
+  flex:0 0 auto;
+  margin:0 auto!important;
+  overflow:visible!important;
+  box-shadow:none!important;
+}
+.vd-report-tree-fit .meeting-kpis,
+.vd-report-tree-fit .emergency-status-tree,
+.vd-report-tree-fit .emergency-type-tree{
+  overflow:visible!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+}
+.vd-report-tree-fit .kpi-story,
+.vd-report-tree-fit .emergency-tree-canvas,
+.vd-report-tree-fit .emergency-type-tree-canvas{
+  margin-left:auto!important;
+  margin-right:auto!important;
+}
+.vd-report-tree-fit .panel-head,
+.vd-report-tree-fit>.panel-title{
+  margin-bottom:4px!important;
+}
+.vd-report-tree-wrapper-large{
+  font-size:100%;
+}
+
+/* Keep report sections inside printable width without crowding. */
+.vd-report-chart-grid,
+.vd-report-kpi-grid,
+.vd-report-cover-kpis{
+  gap:3mm;
+}
+.vd-report-chart-card,
+.vd-report-summary-table,
+.vd-report-detail-panel{
+  min-width:0;
+  overflow:hidden;
+}
+.vd-report-v2 table{
+  table-layout:auto;
+  max-width:100%;
+}
+.vd-report-v2 th,
+.vd-report-v2 td{
+  overflow-wrap:anywhere;
+  word-break:normal;
+}
+@page{
+  size:A4 landscape;
+  margin:5mm;
+}
+@media print{
+  .vd-tab-report-actions{display:none!important}
+  .vd-report-v2-page{overflow:hidden}
+}

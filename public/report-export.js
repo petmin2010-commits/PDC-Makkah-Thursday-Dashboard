@@ -13,8 +13,20 @@
       .replace(/'/g, '&#039;');
   }
 
+  function getActivePageKey() {
+    return document.querySelector('.nav-item.active')?.dataset?.page || '';
+  }
+
   function getActivePage() {
-    return document.querySelector('.page.active');
+    const key = getActivePageKey();
+
+    if (key === 'master') return document.getElementById('masterPage');
+    if (key === 'wednesdayMeeting') return document.getElementById('meetingPage');
+    if (key) return document.getElementById('dataPage');
+
+    return [...document.querySelectorAll('.page')]
+      .find(page => isDisplayedWithin(page, document.body))
+      || document.querySelector('.page.active');
   }
 
   function getActivePageName() {
@@ -38,37 +50,87 @@
     return { project, city, contract, contractText };
   }
 
+  function isDisplayedWithin(el, boundary = document.body) {
+    if (!el) return false;
+
+    let node = el;
+
+    while (node) {
+      if (node.hidden) return false;
+      if (node.getAttribute?.('aria-hidden') === 'true') return false;
+
+      const style = window.getComputedStyle(node);
+
+      if (
+        style.display === 'none' ||
+        style.visibility === 'hidden'
+      ) {
+        return false;
+      }
+
+      if (node === boundary) break;
+      node = node.parentElement;
+    }
+
+    return true;
+  }
+
   function getAppliedFilters() {
     const result = [];
+    const seen = new Set();
+    const source = getActivePage();
 
-    document.querySelectorAll('#filterBar .filter').forEach(box => {
-      const label = box.querySelector('label')?.textContent?.trim();
-      const select = box.querySelector('select');
-
+    const addSelect = (select, label, boundary) => {
       if (!select || !select.value) return;
+      if (!isDisplayedWithin(select, boundary || document.body)) return;
+
+      const id =
+        select.id || select.name || label || select.value;
+
+      if (seen.has(id)) return;
+      seen.add(id);
 
       const value =
-        select.options[select.selectedIndex]?.textContent?.trim()
+        select.options?.[select.selectedIndex]?.textContent?.trim()
         || select.value;
 
       result.push({
         label: label || 'فلتر',
         value
       });
+    };
+
+    document.querySelectorAll('#filterBar .filter').forEach(box => {
+      if (!isDisplayedWithin(box, document.body)) return;
+
+      addSelect(
+        box.querySelector('select'),
+        box.querySelector('label')?.textContent?.trim(),
+        document.body
+      );
     });
+
+    if (source) {
+      source.querySelectorAll('select').forEach(select => {
+        const box =
+          select.closest('.filter,.meeting-filter,.wm-filter,.toolbar-field,.field');
+
+        const label =
+          box?.querySelector('label')?.textContent?.trim()
+          || select.getAttribute('aria-label')
+          || select.name
+          || 'فلتر';
+
+        addSelect(select, label, source);
+      });
+    }
 
     return result;
   }
 
   function isVisible(el) {
-    if (!el) return false;
-
-    const style = window.getComputedStyle(el);
-
-    return (
-      style.display !== 'none' &&
-      style.visibility !== 'hidden'
-    );
+    const page = getActivePage();
+    return isDisplayedWithin(el, page || document.body);
   }
 
   function cleanupClone(root) {
@@ -100,6 +162,29 @@
     });
   }
 
+  function pruneHiddenClone(source, clone) {
+    const sourceNodes =
+      [source, ...source.querySelectorAll('*')];
+
+    const cloneNodes =
+      [clone, ...clone.querySelectorAll('*')];
+
+    for (
+      let i = sourceNodes.length - 1;
+      i > 0;
+      i -= 1
+    ) {
+      const sourceNode = sourceNodes[i];
+      const cloneNode = cloneNodes[i];
+
+      if (!cloneNode?.parentNode) continue;
+
+      if (!isDisplayedWithin(sourceNode, source)) {
+        cloneNode.remove();
+      }
+    }
+  }
+
   function cloneWithCanvases(source) {
     const clone = source.cloneNode(true);
 
@@ -110,6 +195,11 @@
       const clonedCanvas = cloneCanvases[index];
 
       if (!clonedCanvas) return;
+
+      if (!isDisplayedWithin(canvas, source)) {
+        clonedCanvas.remove();
+        return;
+      }
 
       try {
         const img = document.createElement('img');
@@ -124,6 +214,7 @@
       }
     });
 
+    pruneHiddenClone(source, clone);
     cleanupClone(clone);
 
     return clone;
@@ -420,6 +511,45 @@
     });
   }
 
+  function fitTreeClone(sourcePanel, clonedPanel, wrapper) {
+    const rect = sourcePanel.getBoundingClientRect();
+
+    const width = Math.max(
+      1,
+      Math.ceil(sourcePanel.scrollWidth || 0),
+      Math.ceil(rect.width || 0)
+    );
+
+    const height = Math.max(
+      1,
+      Math.ceil(sourcePanel.scrollHeight || 0),
+      Math.ceil(rect.height || 0)
+    );
+
+    const maxWidth = 1000;
+    const maxHeight = 575;
+
+    const scale = Math.min(
+      1,
+      maxWidth / width,
+      maxHeight / height
+    );
+
+    clonedPanel.classList.add('vd-report-tree-fit');
+    clonedPanel.style.width = width + 'px';
+    clonedPanel.style.maxWidth = 'none';
+    clonedPanel.style.transformOrigin = 'top center';
+    clonedPanel.style.transform =
+      'scale(' + scale + ')';
+
+    wrapper.style.height =
+      (Math.ceil(height * scale) + 8) + 'px';
+
+    wrapper.style.minHeight = '0';
+    wrapper.style.overflow = 'hidden';
+    wrapper.dataset.treeScale = scale.toFixed(3);
+  }
+
   function buildTreePages(report, trees) {
     trees.forEach((panel, index) => {
       const title =
@@ -452,9 +582,11 @@
         );
       }
 
-      wrapper.appendChild(
-        cloneWithCanvases(panel)
-      );
+      const clonedTree =
+        cloneWithCanvases(panel);
+
+      wrapper.appendChild(clonedTree);
+      fitTreeClone(panel, clonedTree, wrapper);
 
       body.appendChild(wrapper);
       report.appendChild(page);
@@ -820,40 +952,81 @@
     modal.classList.add('open');
   }
 
-  function install() {
-    const btn =
-      document.getElementById('printBtn');
+  function hideLegacyExportButtons() {
+    [
+      'printBtn',
+      'exportSafetyPdfBtn',
+      'exportExecutionPdfBtn',
+      'stpExportReport',
+      'stpExportHtml'
+    ].forEach(id => {
+      const button = document.getElementById(id);
 
-    if (!btn) return;
+      if (!button) return;
 
-    btn.textContent =
-      '📄 تصدير تقرير';
-
-    btn.title =
-      'إنشاء تقرير PDF للتاب الحالي';
-
-    const newBtn =
-      btn.cloneNode(true);
-
-    btn.parentNode.replaceChild(
-      newBtn,
-      btn
-    );
-
-    newBtn.addEventListener(
-      'click',
-      showModal
-    );
-
-    ['exportSafetyPdfBtn','exportExecutionPdfBtn'].forEach(id => {
-      const special = document.getElementById(id);
-      if (!special) return;
-      const replacement = special.cloneNode(true);
-      replacement.textContent = '⤓ تصدير تقرير';
-      replacement.title = 'إنشاء تقرير موحد للتاب الحالي';
-      special.parentNode.replaceChild(replacement, special);
-      replacement.addEventListener('click', showModal);
+      button.style.display = 'none';
+      button.setAttribute('aria-hidden', 'true');
+      button.tabIndex = -1;
     });
+  }
+
+  function ensurePageReportButton(page) {
+    if (!page) return;
+
+    let bar =
+      page.querySelector(':scope > .vd-tab-report-actions');
+
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.className = 'vd-tab-report-actions';
+
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'vd-tab-report-btn';
+      button.title = 'إنشاء تقرير للتاب الحالي فقط';
+      button.textContent = '⤓ تصدير تقرير';
+
+      bar.appendChild(button);
+      page.insertBefore(bar, page.firstChild);
+    }
+
+    const button =
+      bar.querySelector('.vd-tab-report-btn');
+
+    if (button && !button.dataset.bound) {
+      button.dataset.bound = '1';
+      button.addEventListener('click', showModal);
+    }
+  }
+
+  function installPageReportButtons() {
+    [
+      'masterPage',
+      'meetingPage',
+      'dataPage'
+    ].forEach(id => {
+      ensurePageReportButton(
+        document.getElementById(id)
+      );
+    });
+  }
+
+  function install() {
+    hideLegacyExportButtons();
+    installPageReportButtons();
+
+    const observer = new MutationObserver(() => {
+      hideLegacyExportButtons();
+      installPageReportButtons();
+    });
+
+    observer.observe(
+      document.body,
+      {
+        childList: true,
+        subtree: true
+      }
+    );
   }
 
   window.VDReportExport = {
