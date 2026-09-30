@@ -202,6 +202,16 @@
       }
 
       try {
+        const liveChart =
+          window.Chart?.getChart?.(canvas);
+
+        if (liveChart) {
+          try {
+            liveChart.stop?.();
+            liveChart.update?.('none');
+          } catch (_) {}
+        }
+
         const img = document.createElement('img');
 
         img.className = 'vd-report-chart-image';
