@@ -75,17 +75,70 @@ function baselineCard(x,latest,previous){
 }
 function breakdown(rows,key){const out={};(rows||[]).forEach(x=>{const v=t(x?.[key])||'غير محدد';out[v]=(out[v]||0)+1});return out}
 const STP_TREND_COLORS=['#43a5ff','#ff5f7d','#f6a33b','#f4ca4d','#55d6a9','#9b7cff','#5ed1e8','#ff8f5c','#95a7bd','#c56cff','#7ddc6f','#e9a3ff'];
+const STP_VALUE_LABELS={
+ id:'stpValueLabels',
+ afterDatasetsDraw(chart,args,opts){
+  if(!opts||opts.enabled!==true)return;
+  const ctx=chart.ctx;
+  const occupied=[];
+  ctx.save();
+  ctx.font='700 11px Cairo, Arial, sans-serif';
+  ctx.textAlign='left';
+  ctx.textBaseline='middle';
+  chart.data.datasets.forEach((ds,di)=>{
+   const meta=chart.getDatasetMeta(di);
+   if(meta.hidden)return;
+   meta.data.forEach((pt,pi)=>{
+    const showAll=(chart.data.labels?.length||0)<=Number(opts.maxAllPoints||5);
+    if(!showAll&&pi!==meta.data.length-1)return;
+    const raw=ds.data?.[pi];
+    if(raw===null||raw===undefined||raw==='')return;
+    const value=Number(raw);
+    if(!Number.isFinite(value))return;
+    let x=pt.x+7,y=pt.y-9;
+    const label=String(Math.round(value));
+    const w=ctx.measureText(label).width+8,h=16;
+    // منع تداخل أرقام الحالات المتقاربة عند نفس لقطة الخميس
+    let tries=0;
+    while(occupied.some(r=>Math.abs(r.x-x)<42&&Math.abs(r.y-y)<15)&&tries<10){
+      y+=15; tries++;
+    }
+    if(y>chart.chartArea.bottom-8)y=pt.y-12-(tries*12);
+    if(x+w>chart.chartArea.right)x=pt.x-w-7;
+    occupied.push({x,y});
+    const color=ds.borderColor||ds.backgroundColor||'#ffffff';
+    ctx.fillStyle='rgba(5,24,43,.88)';
+    ctx.strokeStyle=color;
+    ctx.lineWidth=1;
+    ctx.beginPath();
+    const rx=x-3,ry=y-h/2,rw=w,rh=h,rr=5;
+    ctx.moveTo(rx+rr,ry);
+    ctx.arcTo(rx+rw,ry,rx+rw,ry+rh,rr);
+    ctx.arcTo(rx+rw,ry+rh,rx,ry+rh,rr);
+    ctx.arcTo(rx,ry+rh,rx,ry,rr);
+    ctx.arcTo(rx,ry,rx+rw,ry,rr);
+    ctx.closePath();
+    ctx.fill();ctx.stroke();
+    ctx.fillStyle='#ffffff';
+    ctx.fillText(label,x+1,y);
+   });
+  });
+  ctx.restore();
+ }
+};
 function drawBreakdownTrend(id,sectionKey,fieldKey){
  const h=P.history?.trend||[],maps=h.map(z=>z.summary?.stageBreakdowns?.[sectionKey]?.[fieldKey]||{});
  const cats=[...new Set(maps.flatMap(o=>Object.keys(o)))].sort((a,b)=>maps.reduce((n,o)=>n+Number(o[b]||0),0)-maps.reduce((n,o)=>n+Number(o[a]||0),0));
  const ds=cats.map((c,i)=>({label:c,data:maps.map(o=>Number(o[c]||0)),borderColor:STP_TREND_COLORS[i%STP_TREND_COLORS.length],backgroundColor:STP_TREND_COLORS[i%STP_TREND_COLORS.length],borderWidth:2,tension:.25,pointRadius:4,pointHoverRadius:6,fill:false}));
- chart(id,'line',h.map(z=>z.label),ds,{scales:{y:{beginAtZero:true,ticks:{color:'#91a7bf',precision:0},grid:{color:'rgba(255,255,255,.05)'}},x:{ticks:{color:'#91a7bf'},grid:{display:false}}}})
+ chart(id,'line',h.map(z=>z.label),ds,{layout:{padding:{top:18,right:34,left:8,bottom:4}},plugins:{stpValueLabels:{enabled:true,maxAllPoints:5}},scales:{y:{beginAtZero:true,ticks:{color:'#91a7bf',precision:0},grid:{color:'rgba(255,255,255,.05)'}},x:{ticks:{color:'#91a7bf'},grid:{display:false}}}})
 }
 function destroyCharts(){Object.values(P.charts).forEach(c=>{try{c.destroy()}catch{}});P.charts={}}
 function chart(id,type,labels,datasets,options={}){
  const el=document.getElementById(id);if(!el||typeof Chart==='undefined')return;
  const base={responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#b9c9dc',usePointStyle:true,font:{family:'Cairo',size:9}}},tooltip:{rtl:true}}};
- P.charts[id]=new Chart(el,{type,data:{labels,datasets},options:Object.assign(base,options)});
+ const merged=Object.assign({},base,options);
+ merged.plugins=Object.assign({},base.plugins,options.plugins||{});
+ P.charts[id]=new Chart(el,{type,data:{labels,datasets},options:merged,plugins:[STP_VALUE_LABELS]});
 }
 function trendSeries(key,label){const h=P.history?.trend||[];return {label,data:h.map(x=>{if(key==='overall')return Number(x.overallRate||0);const m=(x.sections||[]).find(s=>s.key===key);return m?Number(m.rate||0):null}),borderWidth:2,tension:.3,spanGaps:true}}
 function drawCharts(){
