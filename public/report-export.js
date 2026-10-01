@@ -1132,18 +1132,27 @@
     const taskCount = root.querySelector('.ee-actions strong')?.textContent?.trim() || '—';
     const kpis = [...root.querySelectorAll('.ee-kpi')].filter(isVisible);
     const findKpi = label => kpis.find(k => k.querySelector('span')?.textContent?.trim() === label);
-    const overallCard = findKpi('متوسط التقييم');
-    const overallText = overallCard?.querySelector('strong')?.textContent?.trim() || '—';
+    const overallText = findKpi('متوسط التقييم')?.querySelector('strong')?.textContent?.trim() || '—';
     const overallNum = Number(overallText.replace('%','').replace(',','.'));
     const overallBand = Number.isFinite(overallNum)
       ? overallNum >= 90 ? 'ممتاز' : overallNum >= 80 ? 'جيد جدًا' : overallNum >= 70 ? 'جيد' : 'يحتاج تحسين'
       : '—';
     const metricCards = kpis.filter(k => !['مهندسو المواقع','إجمالي المهام','متوسط التقييم'].includes(k.querySelector('span')?.textContent?.trim() || ''));
+    const formalLabels = {'السلامة الإلكتروني':'السلامة الإلكترونية','السلامة الورقي':'السلامة الورقية','As-Built':'اكتمال As-Built'};
+    const metricData = metricCards.map(card => {
+      const rawLabel = card.querySelector('span')?.textContent?.trim() || 'مؤشر';
+      const rawValue = card.querySelector('strong')?.textContent?.trim() || '0';
+      const value = Number(rawValue.replace('%','').replace(',','.'));
+      return {label: formalLabels[rawLabel] || rawLabel, value: Number.isFinite(value) ? value : 0};
+    });
+    const strongest = [...metricData].sort((a,b) => b.value - a.value);
+    const weakest = [...metricData].sort((a,b) => a.value - b.value);
     const extraFilters = [
       ['المقاول', document.getElementById('eeContractor')?.value || 'الكل'],
       ['نوع أمر العمل', document.getElementById('eeWorkType')?.value || 'الكل'],
       ['الجهة', document.getElementById('eeOwner')?.value || 'الكل']
     ].filter(x => x[1] && x[1] !== 'الكل');
+
     const overview = createPage('تقرير تقييم أداء المهندس','EMPLOYEE PERFORMANCE EVALUATION','vd-report-safety-overview vd-report-employee-overview');
     const body = overview.querySelector('.vd-report-section-body');
     const meta = document.createElement('div');
@@ -1153,18 +1162,38 @@
       <div><span>المشروع / الإدارة</span><b>${escapeHtml([brand.project,brand.city].filter(Boolean).join(' — '))}</b></div>
       <div><span>الفترة</span><b>${escapeHtml(period)}</b></div>
       <div><span>المهام</span><b>${escapeHtml(taskCount)}</b></div>
-      <div class="vd-safety-meta-wide"><span>الفلاتر الإضافية</span><b>${escapeHtml(extraFilters.length ? extraFilters.map(x=>x[0]+': '+x[1]).join(' • ') : 'لا توجد')}</b></div>
+      <div class="vd-safety-meta-wide"><span>الفلاتر الإضافية</span><b>${escapeHtml(extraFilters.length ? extraFilters.map(x => x[0]+': '+x[1]).join(' • ') : 'لا توجد')}</b></div>
     `;
     body.appendChild(meta);
     const hero = document.createElement('div');
     hero.className = 'vd-employee-score-hero';
     hero.innerHTML = `<div><span>التقييم الإجمالي</span><strong>${escapeHtml(overallText)}</strong><small>${escapeHtml(overallBand)}</small></div><p>التقييم الآلي مبني على مؤشرات ورقة «المهام والإفادات» وفق الفلاتر الحالية، ولا يشمل تقييم مدير المشروع الفني لعدم وجوده في الورقة المصدر.</p>`;
     body.appendChild(hero);
+
     if (metricCards.length) {
       const grid = document.createElement('div');
       grid.className = 'vd-safety-kpi-grid vd-employee-kpi-grid';
-      metricCards.slice(0,8).forEach(kpi => { const c = kpi.cloneNode(true); cleanupClone(c); c.classList.add('vd-report-kpi-clone'); grid.appendChild(c); });
+      metricCards.slice(0,8).forEach(kpi => {
+        const c = kpi.cloneNode(true);
+        cleanupClone(c);
+        c.querySelector('small')?.remove();
+        const labelEl = c.querySelector('span');
+        if (labelEl && formalLabels[labelEl.textContent.trim()]) labelEl.textContent = formalLabels[labelEl.textContent.trim()];
+        c.classList.add('vd-report-kpi-clone');
+        grid.appendChild(c);
+      });
       body.appendChild(grid);
+    }
+
+    if (metricData.length) {
+      const insights = document.createElement('div');
+      insights.className = 'vd-employee-summary-insights';
+      const fmt = list => list.map(x => `${x.label} ${x.value}%`).join(' • ');
+      insights.innerHTML = `
+        <article><span>نقاط القوة</span><b>${escapeHtml(fmt(strongest.slice(0,3)))}</b></article>
+        <article><span>أولويات التحسين</span><b>${escapeHtml(fmt(weakest.slice(0,3)))}</b></article>
+      `;
+      body.appendChild(insights);
     }
     const sign = document.createElement('div');
     sign.className = 'vd-employee-signature';
@@ -1172,50 +1201,56 @@
     body.appendChild(sign);
     report.appendChild(overview);
 
-    const charts = [...root.querySelectorAll('.ee-chart')].filter(isVisible);
-    if (charts.length) {
+    const metricPanel = root.querySelector('#eeMetricChart')?.closest('.ee-chart');
+    if (metricPanel && isVisible(metricPanel)) {
       const chartPage = createPage('التحليل البياني لتقييم المهندس','PERFORMANCE ANALYTICS','vd-report-safety-chart-page vd-report-employee-chart-page');
+      const chartBody = chartPage.querySelector('.vd-report-section-body');
       const grid = document.createElement('div');
       grid.className = 'vd-report-chart-grid vd-employee-chart-grid';
-      charts.forEach(panel => { const c = cloneWithCanvases(panel); c.classList.add('vd-report-chart-card'); grid.appendChild(c); });
-      chartPage.querySelector('.vd-report-section-body').appendChild(grid);
+      const c = cloneWithCanvases(metricPanel);
+      c.classList.add('vd-report-chart-card');
+      grid.appendChild(c);
+      chartBody.appendChild(grid);
+
+      if (metricData.length) {
+        const highlights = document.createElement('div');
+        highlights.className = 'vd-employee-analysis-grid';
+        const best = strongest[0], low = weakest[0];
+        highlights.innerHTML = `
+          <article><span>التقييم الإجمالي</span><strong>${escapeHtml(overallText)}</strong><small>${escapeHtml(overallBand)}</small></article>
+          <article><span>أعلى مؤشر</span><strong>${escapeHtml(best?.label || '—')}</strong><small>${escapeHtml(best ? best.value+'%' : '—')}</small></article>
+          <article><span>أقل مؤشر</span><strong>${escapeHtml(low?.label || '—')}</strong><small>${escapeHtml(low ? low.value+'%' : '—')}</small></article>
+          <article><span>عدد المهام</span><strong>${escapeHtml(taskCount)}</strong><small>${escapeHtml(period)}</small></article>
+        `;
+        chartBody.appendChild(highlights);
+      }
       report.appendChild(chartPage);
     }
-
-    const matrixTable = root.querySelector('.ee-table:not(.compact)');
-    if (matrixTable) {
-      const page = createPage('مصفوفة تقييم المهندس','EMPLOYEE SCORECARD','vd-report-employee-scorecard-page');
-      const copy = matrixTable.cloneNode(true);
-      copy.className = 'vd-report-employee-scorecard';
-      copy.querySelectorAll('button').forEach(button => {
-        const span = document.createElement('span');
-        span.textContent = button.textContent || '';
-        button.replaceWith(span);
-      });
-      cleanupClone(copy);
-      page.querySelector('.vd-report-section-body').appendChild(copy);
-      report.appendChild(page);
-    }
-
     const taskTable = root.querySelector('.ee-table.compact');
-    const taskRows = taskTable ? [...taskTable.querySelectorAll('tbody tr')].slice(0,24) : [];
+    const taskRows = taskTable ? [...taskTable.querySelectorAll('tbody tr')].slice(0,16) : [];
     if (taskTable && taskRows.length) {
-      chunk(taskRows,6).forEach((group,index,groups) => {
+      chunk(taskRows,8).forEach((group,index,groups) => {
         const page = createPage('ملخص مهام وإفادات المهندس',`أحدث ${taskRows.length} مهمة مطابقة • صفحة ${index+1} من ${groups.length}`,'vd-report-employee-detail-page');
         const copy = taskTable.cloneNode(false);
         copy.className = 'vd-report-employee-table';
-        const head = taskTable.querySelector('thead')?.cloneNode(true); if (head) copy.appendChild(head);
+        const head = taskTable.querySelector('thead')?.cloneNode(true);
+        if (head) {
+          head.querySelectorAll('tr').forEach(tr => tr.lastElementChild?.remove());
+          copy.appendChild(head);
+        }
         const tbody = document.createElement('tbody');
         group.forEach(row => {
           const clonedRow = row.cloneNode(true);
+          clonedRow.lastElementChild?.remove();
           const adviceCell = clonedRow.children?.[4];
           if (adviceCell) {
             const text = (adviceCell.textContent || '').trim();
-            if (text.length > 220) adviceCell.textContent = text.slice(0,220) + '…';
+            if (text.length > 180) adviceCell.textContent = text.slice(0,180) + '…';
           }
           tbody.appendChild(clonedRow);
         });
-        copy.appendChild(tbody); cleanupClone(copy);
+        copy.appendChild(tbody);
+        cleanupClone(copy);
         page.querySelector('.vd-report-section-body').appendChild(copy);
         report.appendChild(page);
       });
