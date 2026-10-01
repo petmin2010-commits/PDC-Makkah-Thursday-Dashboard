@@ -160,11 +160,6 @@ function advancedChecks(q){
  });
  checks.push({key:'assetSequence',label:'تسلسل أصول غير منطقي',note:'إجراء 207 لا يُعتبر صحيحًا إلا بعد أن يكون الاستلام الميداني = «تم».',rows:assetSequence});
 
- const missingLinks=[];
- safety.forEach(r=>{if((t(r.violation1)||t(r.violation2))&&blank(r,'link'))missingLinks.push(dqAdvancedRow('مخالفات السلامة',r,'مخالفة مسجلة بدون رابط','الرابط فارغ'))});
- execution.forEach(r=>{if(t(r.violation)&&blank(r,'link'))missingLinks.push(dqAdvancedRow('مخالفات التنفيذ',r,'مخالفة مسجلة بدون رابط','الرابط فارغ'))});
- checks.push({key:'missingLink',label:'رابط مفقود',note:'مخالفة مسجلة ولكن رابط المستند/المخالفة غير موجود.',rows:missingLinks});
-
  const duplicateRows=[],seen=new Map();
  const fullRowSignature=(source,r)=>{
   // Prefer the server-side signature of the COMPLETE physical sheet row.
