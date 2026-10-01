@@ -27,7 +27,11 @@ function custom(label,col,header,note,predicate,value,applicable){
  return {label,col,header,note,issue:predicate,value:value||(()=> '—'),applicable:applicable||(()=>true)};
 }
 const assetExecuted=r=>exact(r&&r.orderFollowStatus,'تم التنفيذ');
-const assetHasNote=r=>!!t(r&&r.notes)&&!/لا\s*(يوجد|توجد).*ملاحظ/i.test(t(r&&r.notes));
+const assetFieldReceiptDone=r=>exact(r&&r.fieldReceipt,'تم');
+const assetHasNote=r=>{
+ const s=norm(r&&r.notes);
+ return !!s&&!s.includes('لا يوجد ملاحظات حتي الان');
+};
 
 function definitions(q){
  return [
@@ -54,18 +58,17 @@ function definitions(q){
     r=>'T: '+(t(r.evaluation)||'فارغ')+' | R: '+(checked(r.actionTaken)?'✓':'غير محدد / غير مفعّل'))
   ]},
   {key:'assets',title:'الأصول',subtitle:'🏭 الأصول',rows:q.assets||[],cards:[
-   missing('بدون تاريخ تركيب المعدة','J','installDate','تاريخ تركيب المعدة','العمود J — مطلوب عندما تكون حالة الأمر «تم التنفيذ»',assetExecuted),
-   missing('بدون رقم المعدة','K','equipmentNo','رقم المعدة','العمود K — مطلوب لكل أمر حالته «تم التنفيذ»',assetExecuted),
-   missing('بدون نوع الاختبار','L','testType','نوع الاختبار','العمود L — مطلوب لكل أمر حالته «تم التنفيذ»',assetExecuted),
-   missing('بدون الجهة المنفذة','M','executingEntity','الجهة المنفذة','العمود M — مطلوب عندما تكون حالة الأمر «تم التنفيذ»',assetExecuted),
-   missing('بدون اسم مهندس التركيب','N','engineer','اسم المهندس المسئول عن التركيب','العمود N — مطلوب عندما تكون حالة الأمر «تم التنفيذ»',assetExecuted),
-   missing('بدون مراجعة بيانات الزراعة','O','plantingReview','مراجعة بيانات الزراعه','العمود O — «لا يتطلب» قيمة صحيحة ومكتملة'),
-   missing('بدون حالة الزراعة','P','plantingStatus','حالة الزاعة','العمود P — «لا يتطلب» قيمة صحيحة ومكتملة'),
-   missing('بدون نموذج الأصول','Q','assetForm','نموذج الأصول','العمود Q — «لا يتطلب» قيمة صحيحة ومكتملة'),
-   missing('بدون الاستلام الميداني','R','fieldReceipt','الإستلام الميداني'),
-   missing('بدون إجراء 207','S','procedure207','إجراء 207'),
-   custom('بدون بيان هل تم تلافيها','U','هل تم تلافيها','العمود U — مطلوب فقط عند وجود ملاحظة فعلية في العمود T',r=>blank(r,'resolved'),()=> 'فارغ',assetHasNote),
-   missing('بدون استلام الأصول على النظام 211','V','systemReceipt','استلام الأصول على النظام اجراء 211')
+   missing('بدون تاريخ تركيب المعدة','J','installDate','تاريخ تركيب المعدة','العمود J — يُفحص فقط عندما يكون الاستلام الميداني S = «تم»',assetFieldReceiptDone),
+   missing('بدون رقم المعدة','K','equipmentNo','رقم المعدة','العمود K — يُفحص فقط عندما يكون الاستلام الميداني S = «تم»',assetFieldReceiptDone),
+   missing('بدون نوع الاختبار','L','testType','نوع الاختبار','العمود L — يُفحص فقط عندما يكون الاستلام الميداني S = «تم»',assetFieldReceiptDone),
+   missing('بدون الجهة المنفذة','M','executingEntity','الجهة المنفذة','العمود M — يُفحص فقط عندما يكون الاستلام الميداني S = «تم»',assetFieldReceiptDone),
+   missing('بدون اسم مهندس التركيب','N','engineer','اسم المهندس المسئول عن التركيب','العمود N — يُفحص فقط عندما يكون الاستلام الميداني S = «تم»',assetFieldReceiptDone),
+   missing('بدون مراجعة بيانات الزراعة','O','plantingReview','مراجعة بيانات الزراعه','العمود O — يُفحص فقط عندما يكون الاستلام الميداني S = «تم»',assetFieldReceiptDone),
+   missing('بدون حالة الزراعة','P','plantingStatus','حالة الزاعة','العمود P — يُفحص فقط عندما يكون الاستلام الميداني S = «تم»',assetFieldReceiptDone),
+   missing('بدون نموذج الأصول','Q','assetForm','نموذج الأصول','العمود Q — يُفحص فقط عندما يكون الاستلام الميداني S = «تم»',assetFieldReceiptDone),
+   missing('بدون إجراء 207','T','procedure207','إجراء 207','العمود T — يتم التحقق من وجود فراغات'),
+   custom('بدون بيان هل تم تلافيها','V','هل تم تلافيها','العمود V مطلوب فقط عندما يحتوي U على ملاحظة فعلية بخلاف «لا يوجد ملاحظات حتي الان»',r=>blank(r,'resolved'),()=> 'فارغ',assetHasNote),
+   missing('بدون استلام الأصول على النظام 211','W','systemReceipt','استلام الأصول على النظام اجراء 211','العمود W — يتم التحقق من وجود فراغات')
   ]},
   {key:'emergency',title:'الطوارئ',subtitle:'⚠ إشعارات الطوارئ',rows:q.emergency||[],cards:[
    missing('بدون رقم إشعار','B','noticeNo','رقم الإشعار'),
@@ -142,7 +145,7 @@ function advancedChecks(q){
  inspectDates('المشاريع',projects,[['assignedDate','تاريخ الإسناد'],['permitStart','بداية التصريح'],['permitEnd','نهاية التصريح']],[['permitStart','permitEnd','نهاية التصريح أسبق من البداية']],['assignedDate']);
  inspectDates('التوصيلات',connections,[['assignedDate','تاريخ الإسناد'],['permitStart','بداية التصريح'],['permitEnd','نهاية التصريح']],[['permitStart','permitEnd','نهاية التصريح أسبق من البداية']],['assignedDate']);
  inspectDates('التصاريح',permits,[['assignedDate','تاريخ الإسناد'],['permitStart','بداية التصريح'],['permitEnd','نهاية التصريح']],[['permitStart','permitEnd','نهاية التصريح أسبق من البداية']],['assignedDate']);
- inspectDates('الأصول',assets,[['installDate','تاريخ تركيب المعدة']],[],['installDate']);
+ inspectDates('الأصول',assets.filter(assetFieldReceiptDone),[['installDate','تاريخ تركيب المعدة']],[],['installDate']);
  inspectDates('الطوارئ',emergency,[['assignedDate','تاريخ الإسناد'],['startDate','تاريخ مباشرة العمل'],['endDate','تاريخ انتهاء العمل']],[['startDate','endDate','تاريخ انتهاء العمل أسبق من المباشرة']]);
  inspectDates('مخالفات السلامة',safety,[['date','تاريخ المخالفة']],[],['date']);
  inspectDates('مخالفات التنفيذ',execution,[['date','تاريخ المخالفة']],[],['date']);
@@ -152,7 +155,7 @@ function advancedChecks(q){
  const assetSequence=[];
  assets.forEach(r=>{
   if(exact(r.procedure207,'تم')&&!exact(r.fieldReceipt,'تم')){
-   assetSequence.push(dqAdvancedRow('الأصول',r,'إجراء 207 تم قبل الاستلام الميداني','R: '+(t(r.fieldReceipt)||'فارغ')+' | S: '+(t(r.procedure207)||'فارغ')));
+   assetSequence.push(dqAdvancedRow('الأصول',r,'إجراء 207 تم قبل الاستلام الميداني','S: '+(t(r.fieldReceipt)||'فارغ')+' | T: '+(t(r.procedure207)||'فارغ')));
   }
  });
  checks.push({key:'assetSequence',label:'تسلسل أصول غير منطقي',note:'إجراء 207 لا يُعتبر صحيحًا إلا بعد أن يكون الاستلام الميداني = «تم».',rows:assetSequence});
