@@ -1128,6 +1128,18 @@
       ? filters.map(x => `${x.label}: ${x.value}`).join(' • ')
       : 'جميع البيانات';
 
+    const chartTop = id => {
+      const chart = window.Chart?.getChart?.(id);
+      const labels = chart?.data?.labels || [];
+      const data = chart?.data?.datasets?.[0]?.data || [];
+      if (!labels.length || !data.length) return ['—', '—'];
+      let best = 0;
+      data.forEach((value, i) => {
+        if (Number(value || 0) > Number(data[best] || 0)) best = i;
+      });
+      return [String(labels[best] ?? '—'), String(data[best] ?? '—')];
+    };
+
     const overview = createPage(
       'تقرير مخالفات السلامة',
       'SAFETY MASTER REPORT',
@@ -1157,8 +1169,34 @@
       overviewBody.appendChild(grid);
     }
 
+    const topContractor = chartTop('safetyContractorChart');
+    const topViolation = chartTop('safetyViolationChart');
+    const topSupervisor = chartTop('safetySupervisorChart');
+    const topType = chartTop('safetyTypeChart');
+    const insights = document.createElement('div');
+    insights.className = 'vd-safety-insights';
+    insights.innerHTML = [
+      ['أعلى مقاول بالمخالفات', topContractor[0], topContractor[1] + ' مخالفة'],
+      ['أكثر مخالفة تكرارًا', topViolation[0], topViolation[1] + ' مخالفة'],
+      ['أعلى مشرف حسب السجلات', topSupervisor[0], topSupervisor[1] + ' مخالفة'],
+      ['أكثر أنواع أوامر العمل', topType[0], topType[1] + ' مخالفة']
+    ].map(x => `
+      <article>
+        <span>${escapeHtml(x[0])}</span>
+        <strong>${escapeHtml(x[1])}</strong>
+        <small>${escapeHtml(x[2])}</small>
+      </article>
+    `).join('');
+    overviewBody.appendChild(insights);
+    report.appendChild(overview);
+
     const ranks = [...safety.querySelectorAll('.safety-rank-grid .panel')].filter(isVisible);
     if (ranks.length) {
+      const rankPage = createPage(
+        'التصنيفات الرئيسية لمخالفات السلامة',
+        'أوامر العمل المتكررة وترتيب المقاولين',
+        'vd-report-safety-ranking-page'
+      );
       const rankGrid = document.createElement('div');
       rankGrid.className = 'vd-safety-rank-grid';
       ranks.forEach(panel => {
@@ -1166,9 +1204,9 @@
         cloned.classList.add('vd-report-summary-table');
         rankGrid.appendChild(cloned);
       });
-      overviewBody.appendChild(rankGrid);
+      rankPage.querySelector('.vd-report-section-body').appendChild(rankGrid);
+      report.appendChild(rankPage);
     }
-    report.appendChild(overview);
 
     const charts = [...safety.querySelectorAll('.safety-master-grid .panel')].filter(isVisible);
     chunk(charts, 4).forEach((group, index) => {
@@ -1193,7 +1231,7 @@
     const table = document.querySelector('#dataTable table');
     const rows = table ? [...table.querySelectorAll('tbody tr')] : [];
     if (table && rows.length) {
-      chunk(rows, 12).forEach((group, index, groups) => {
+      chunk(rows, 8).forEach((group, index, groups) => {
         const page = createPage(
           'السجل التفصيلي لمخالفات السلامة',
           `صفحة ${index + 1} من ${groups.length} • ${rows.length} سجل`,
@@ -1207,6 +1245,7 @@
         group.forEach(row => bodyRows.appendChild(row.cloneNode(true)));
         copy.appendChild(bodyRows);
         cleanupClone(copy);
+        copy.querySelectorAll('th,td').forEach(cell => cell.setAttribute('dir', 'auto'));
         page.querySelector('.vd-report-section-body').appendChild(copy);
         report.appendChild(page);
       });
