@@ -120,32 +120,7 @@ const plugin={
     }
   }
 };
-const contrastPlugin={
-  id:'vdLightDashboardTextContrast',
-  beforeUpdate(chart){
-    if(document.body?.classList?.contains('vd-report-dark'))return;
-    const ink='#000';
-    chart.options.plugins=chart.options.plugins||{};
-    if(chart.options.plugins.legend){
-      chart.options.plugins.legend.labels={
-        ...(chart.options.plugins.legend.labels||{}),
-        color:ink
-      };
-    }
-    if(chart.options.plugins.title){
-      chart.options.plugins.title={
-        ...(chart.options.plugins.title||{}),
-        color:ink
-      };
-    }
-    Object.values(chart.options.scales||{}).forEach(scale=>{
-      if(!scale)return;
-      scale.ticks={...(scale.ticks||{}),color:ink};
-      if(scale.title)scale.title={...(scale.title||{}),color:ink};
-    });
-  }
-};
-Chart.register(plugin,contrastPlugin);
+Chart.register(plugin);
 Chart.defaults.color='#000';
 Chart.defaults.font.family='Cairo, Tahoma, Arial, sans-serif';
 Chart.defaults.plugins.vdGlobalValueLabels={display:true};
