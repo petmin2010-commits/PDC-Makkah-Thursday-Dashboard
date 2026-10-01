@@ -94,22 +94,32 @@ function definitions(q){
 
 function dqDate(v){
  const raw=t(v);if(!raw)return null;
- const s=raw.replace(/[٠-٩]/g,d=>'0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]).replace(/[۰-۹]/g,d=>'0123456789'['۰۱۲۳۴۵۶۷۸۹'.indexOf(d)]);
+ const s=raw
+  .replace(/[٠-٩]/g,d=>'0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)])
+  .replace(/[۰-۹]/g,d=>'0123456789'['۰۱۲۳۴۵۶۷۸۹'.indexOf(d)])
+  .replace(/[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/g,'')
+  .replace(/\s*([\/\-.])\s*/g,'$1')
+  .trim();
  const make=(y,m,d)=>{const x=new Date(y,m-1,d);return x.getFullYear()===y&&x.getMonth()===m-1&&x.getDate()===d?x:null};
- let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:\s.*)?$/);
+ let m=s.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})(?:\s.*)?$/);
  if(m)return make(Number(m[1]),Number(m[2]),Number(m[3]));
  m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s.*)?$/);
- if(m)return make(Number(m[3]),Number(m[2]),Number(m[1]));
+ if(m){
+  const y=Number(m[3]),a=Number(m[1]),b=Number(m[2]);
+  return make(y,b,a)||make(y,a,b);
+ }
  m=s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})(?:\s.*)?$/);
  if(m){
-  // Google Sheets API returns the project permit dates as MM-DD-YYYY
-  // (e.g. 07-03-2026 = 3 July 2026). Fall back to DD-MM-YYYY
-  // only when the US interpretation is impossible.
+  // بعض أعمدة التصاريح تصل من Google بصيغة MM-DD-YYYY.
+  // نفضلها مع الشرطة، ثم نقبل DD-MM-YYYY إذا كانت الأولى غير ممكنة.
   const y=Number(m[3]),a=Number(m[1]),b=Number(m[2]);
   return make(y,a,b)||make(y,b,a);
  }
  m=s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s.*)?$/);
- if(m)return make(Number(m[3]),Number(m[2]),Number(m[1]));
+ if(m){
+  const y=Number(m[3]),a=Number(m[1]),b=Number(m[2]);
+  return make(y,b,a)||make(y,a,b);
+ }
  const d=new Date(s);return isNaN(d)?null:d;
 }
 function dqDateLabel(v){

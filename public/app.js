@@ -3967,21 +3967,28 @@ function renderMonthlyExecutionViolationsChart(rows){
 }
 
 function parseDashboardDate(v){
- const s=String(v||'').trim();
- if(!s)return null;
-
- // dd/MM/yyyy أو d/M/yyyy، وكذلك الشرطات والنقاط.
- let m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})(?:\s.*)?$/);
- if(m){
-   const d=new Date(Number(m[3]),Number(m[2])-1,Number(m[1]));
-   return isNaN(d)?null:d;
- }
+ const raw=String(v||'').trim();
+ if(!raw)return null;
+ const s=raw
+  .replace(/[٠-٩]/g,d=>'0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)])
+  .replace(/[۰-۹]/g,d=>'0123456789'['۰۱۲۳۴۵۶۷۸۹'.indexOf(d)])
+  .replace(/[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/g,'')
+  .replace(/\s*([\/\-.])\s*/g,'$1')
+  .trim();
+ const make=(y,m,d)=>{
+  const x=new Date(y,m-1,d);
+  return x.getFullYear()===y&&x.getMonth()===m-1&&x.getDate()===d?x:null;
+ };
 
  // yyyy/MM/dd
- m=s.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})(?:\s.*)?$/);
+ let m=s.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})(?:\s.*)?$/);
+ if(m)return make(Number(m[1]),Number(m[2]),Number(m[3]));
+
+ // الصيغة الأساسية في الشيت DD/MM/YYYY، مع قبول MM/DD/YYYY عند استحالة الأولى.
+ m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})(?:\s.*)?$/);
  if(m){
-   const d=new Date(Number(m[1]),Number(m[2])-1,Number(m[3]));
-   return isNaN(d)?null:d;
+  const y=Number(m[3]),a=Number(m[1]),b=Number(m[2]);
+  return make(y,b,a)||make(y,a,b);
  }
 
  const d=new Date(s);
