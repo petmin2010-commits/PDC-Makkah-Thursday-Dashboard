@@ -1,0 +1,119 @@
+/* Vision Dimensions — high-contrast light dashboard text
+   Neutral content is black for readability.
+   Semantic status colors remain red/orange/green. */
+
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main{
+  --ink:#000;
+  --muted:#000;
+  --text:#000;
+}
+
+html[data-theme]:not([data-theme="charcoal"]):not([data-theme="navy"])
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main{
+  --ti:#000;
+  --tm:#000;
+}
+
+/* Core neutral typography on light content */
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .page,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .panel,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .master-card,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .mini-kpi,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .filters,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .table-wrap{
+  color:#000;
+}
+
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .topbar h1,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .section-title h2,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .section-title p,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .section-title span,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .panel-title h3,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .panel-title span,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .filter label,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .filter select,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .filter select option,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .workorder-option-search,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .search input,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .theme-select,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .master-card span,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .master-card small,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .mini-kpi span,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .emergency-kpi-group-head h3,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .emergency-kpi-group-head span,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .emergency-mini-kpi span,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .emergency-mini-kpi strong,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .emergency-mini-kpi small,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .subtle,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .empty{
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+  opacity:1!important;
+}
+
+/* Tables: maximum reading contrast, but status cells/classes below can override */
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main table th{
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+  opacity:1!important;
+}
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main table td:not(.bad):not(.danger):not(.warning):not(.warn):not(.success):not(.good):not(.done):not(.critical):not(.late):not(.overdue){
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+  opacity:1!important;
+}
+
+/* Neutral chips */
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .pill:not(.bad):not(.done):not(.warning):not(.warn):not(.danger):not(.success):not(.good){
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+}
+
+/* Inputs and placeholders */
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main input,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main select,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main textarea{
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+  opacity:1!important;
+}
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main input::placeholder,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main textarea::placeholder{
+  color:#444!important;
+  opacity:1!important;
+}
+
+/* Preserve semantic warning / alert colors */
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .pill.bad,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .meeting-rate.low,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .text-danger,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .status-danger,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main td.bad,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main td.danger,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main td.critical,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main td.late,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main td.overdue{
+  color:#c83d49!important;
+  -webkit-text-fill-color:#c83d49!important;
+}
+
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .meeting-rate.mid,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .text-warning,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .status-warning,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main td.warning,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main td.warn{
+  color:#a86b05!important;
+  -webkit-text-fill-color:#a86b05!important;
+}
+
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .pill.done,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .meeting-rate.good,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .text-success,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main .status-success,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main td.success,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main td.good,
+body:not(.vd-report-v2-mode):not(.vd-report-dark) main td.done{
+  color:#16865f!important;
+  -webkit-text-fill-color:#16865f!important;
+}
