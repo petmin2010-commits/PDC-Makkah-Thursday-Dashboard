@@ -1226,35 +1226,6 @@
       }
       report.appendChild(chartPage);
     }
-    const taskTable = root.querySelector('.ee-table.compact');
-    const taskRows = taskTable ? [...taskTable.querySelectorAll('tbody tr')].slice(0,16) : [];
-    if (taskTable && taskRows.length) {
-      chunk(taskRows,8).forEach((group,index,groups) => {
-        const page = createPage('ملخص مهام وإفادات المهندس',`أحدث ${taskRows.length} مهمة مطابقة • صفحة ${index+1} من ${groups.length}`,'vd-report-employee-detail-page');
-        const copy = taskTable.cloneNode(false);
-        copy.className = 'vd-report-employee-table';
-        const head = taskTable.querySelector('thead')?.cloneNode(true);
-        if (head) {
-          head.querySelectorAll('tr').forEach(tr => tr.lastElementChild?.remove());
-          copy.appendChild(head);
-        }
-        const tbody = document.createElement('tbody');
-        group.forEach(row => {
-          const clonedRow = row.cloneNode(true);
-          clonedRow.lastElementChild?.remove();
-          const adviceCell = clonedRow.children?.[4];
-          if (adviceCell) {
-            const text = (adviceCell.textContent || '').trim();
-            if (text.length > 180) adviceCell.textContent = text.slice(0,180) + '…';
-          }
-          tbody.appendChild(clonedRow);
-        });
-        copy.appendChild(tbody);
-        cleanupClone(copy);
-        page.querySelector('.vd-report-section-body').appendChild(copy);
-        report.appendChild(page);
-      });
-    }
     return true;
   }
 
