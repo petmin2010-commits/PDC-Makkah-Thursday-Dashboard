@@ -22,6 +22,7 @@
 
     if (key === 'master') return document.getElementById('masterPage');
     if (key === 'wednesdayMeeting') return document.getElementById('meetingPage');
+    if (key === 'employeeEvaluation') return document.getElementById('employeeEvaluationPage');
     if (key) return document.getElementById('dataPage');
 
     return [...document.querySelectorAll('.page')]
@@ -1114,6 +1115,114 @@
     return true;
   }
 
+  function buildEmployeeEvaluationReport(report) {
+    const source = document.getElementById('employeeEvaluationPage');
+    const root = document.getElementById('employeeEvaluationRoot');
+    const engineerSelect = document.getElementById('eeEngineer');
+    if (!source || !root || !engineerSelect) return false;
+    const engineer = engineerSelect.value?.trim() || '';
+    if (!engineer || engineer === 'الكل') {
+      alert('يرجى اختيار مهندس من فلتر «المهندس» أولًا ثم تصدير التقرير.');
+      return false;
+    }
+    const brand = getBrandInfo();
+    const from = document.getElementById('eeFrom')?.value || '';
+    const to = document.getElementById('eeTo')?.value || '';
+    const period = from && to ? `${from} — ${to}` : from ? `من ${from}` : to ? `حتى ${to}` : 'كامل المدة';
+    const taskCount = root.querySelector('.ee-actions strong')?.textContent?.trim() || '—';
+    const kpis = [...root.querySelectorAll('.ee-kpi')].filter(isVisible);
+    const findKpi = label => kpis.find(k => k.querySelector('span')?.textContent?.trim() === label);
+    const overallCard = findKpi('متوسط التقييم');
+    const overallText = overallCard?.querySelector('strong')?.textContent?.trim() || '—';
+    const overallNum = Number(overallText.replace('%','').replace(',','.'));
+    const overallBand = Number.isFinite(overallNum)
+      ? overallNum >= 90 ? 'ممتاز' : overallNum >= 80 ? 'جيد جدًا' : overallNum >= 70 ? 'جيد' : 'يحتاج تحسين'
+      : '—';
+    const metricCards = kpis.filter(k => !['مهندسو المواقع','إجمالي المهام','متوسط التقييم'].includes(k.querySelector('span')?.textContent?.trim() || ''));
+    const extraFilters = [
+      ['المقاول', document.getElementById('eeContractor')?.value || 'الكل'],
+      ['نوع أمر العمل', document.getElementById('eeWorkType')?.value || 'الكل'],
+      ['الجهة', document.getElementById('eeOwner')?.value || 'الكل']
+    ].filter(x => x[1] && x[1] !== 'الكل');
+    const overview = createPage('تقرير تقييم أداء المهندس','EMPLOYEE PERFORMANCE EVALUATION','vd-report-safety-overview vd-report-employee-overview');
+    const body = overview.querySelector('.vd-report-section-body');
+    const meta = document.createElement('div');
+    meta.className = 'vd-safety-meta vd-employee-meta';
+    meta.innerHTML = `
+      <div><span>اسم المهندس</span><b>${escapeHtml(engineer)}</b></div>
+      <div><span>المشروع / الإدارة</span><b>${escapeHtml([brand.project,brand.city].filter(Boolean).join(' — '))}</b></div>
+      <div><span>الفترة</span><b>${escapeHtml(period)}</b></div>
+      <div><span>المهام</span><b>${escapeHtml(taskCount)}</b></div>
+      <div class="vd-safety-meta-wide"><span>الفلاتر الإضافية</span><b>${escapeHtml(extraFilters.length ? extraFilters.map(x=>x[0]+': '+x[1]).join(' • ') : 'لا توجد')}</b></div>
+    `;
+    body.appendChild(meta);
+    const hero = document.createElement('div');
+    hero.className = 'vd-employee-score-hero';
+    hero.innerHTML = `<div><span>التقييم الإجمالي</span><strong>${escapeHtml(overallText)}</strong><small>${escapeHtml(overallBand)}</small></div><p>التقييم الآلي مبني على مؤشرات ورقة «المهام والإفادات» وفق الفلاتر الحالية، ولا يشمل تقييم مدير المشروع الفني لعدم وجوده في الورقة المصدر.</p>`;
+    body.appendChild(hero);
+    if (metricCards.length) {
+      const grid = document.createElement('div');
+      grid.className = 'vd-safety-kpi-grid vd-employee-kpi-grid';
+      metricCards.slice(0,8).forEach(kpi => { const c = kpi.cloneNode(true); cleanupClone(c); c.classList.add('vd-report-kpi-clone'); grid.appendChild(c); });
+      body.appendChild(grid);
+    }
+    const sign = document.createElement('div');
+    sign.className = 'vd-employee-signature';
+    sign.innerHTML = '<div><b>مدير العقد</b><span></span><small>التوقيع</small></div>';
+    body.appendChild(sign);
+    report.appendChild(overview);
+
+    const charts = [...root.querySelectorAll('.ee-chart')].filter(isVisible);
+    if (charts.length) {
+      const chartPage = createPage('التحليل البياني لتقييم المهندس','PERFORMANCE ANALYTICS','vd-report-safety-chart-page vd-report-employee-chart-page');
+      const grid = document.createElement('div');
+      grid.className = 'vd-report-chart-grid vd-employee-chart-grid';
+      charts.forEach(panel => { const c = cloneWithCanvases(panel); c.classList.add('vd-report-chart-card'); grid.appendChild(c); });
+      chartPage.querySelector('.vd-report-section-body').appendChild(grid);
+      report.appendChild(chartPage);
+    }
+
+    const matrixTable = root.querySelector('.ee-table:not(.compact)');
+    if (matrixTable) {
+      const page = createPage('مصفوفة تقييم المهندس','EMPLOYEE SCORECARD','vd-report-employee-scorecard-page');
+      const copy = matrixTable.cloneNode(true);
+      copy.className = 'vd-report-employee-scorecard';
+      copy.querySelectorAll('button').forEach(button => {
+        const span = document.createElement('span');
+        span.textContent = button.textContent || '';
+        button.replaceWith(span);
+      });
+      cleanupClone(copy);
+      page.querySelector('.vd-report-section-body').appendChild(copy);
+      report.appendChild(page);
+    }
+
+    const taskTable = root.querySelector('.ee-table.compact');
+    const taskRows = taskTable ? [...taskTable.querySelectorAll('tbody tr')].slice(0,24) : [];
+    if (taskTable && taskRows.length) {
+      chunk(taskRows,6).forEach((group,index,groups) => {
+        const page = createPage('ملخص مهام وإفادات المهندس',`أحدث ${taskRows.length} مهمة مطابقة • صفحة ${index+1} من ${groups.length}`,'vd-report-employee-detail-page');
+        const copy = taskTable.cloneNode(false);
+        copy.className = 'vd-report-employee-table';
+        const head = taskTable.querySelector('thead')?.cloneNode(true); if (head) copy.appendChild(head);
+        const tbody = document.createElement('tbody');
+        group.forEach(row => {
+          const clonedRow = row.cloneNode(true);
+          const adviceCell = clonedRow.children?.[4];
+          if (adviceCell) {
+            const text = (adviceCell.textContent || '').trim();
+            if (text.length > 220) adviceCell.textContent = text.slice(0,220) + '…';
+          }
+          tbody.appendChild(clonedRow);
+        });
+        copy.appendChild(tbody); cleanupClone(copy);
+        page.querySelector('.vd-report-section-body').appendChild(copy);
+        report.appendChild(page);
+      });
+    }
+    return true;
+  }
+
   function buildSafetyReport(report) {
     const source = document.getElementById('dataPage');
     const safety = document.getElementById('safetyMasterAnalytics');
@@ -1471,6 +1580,14 @@
     report.id = REPORT_ID;
     report.className = 'vd-report-v2';
 
+    if (getActivePageKey() === 'employeeEvaluation') {
+      if (!buildEmployeeEvaluationReport(report)) {
+        return null;
+      }
+      document.body.appendChild(report);
+      return report;
+    }
+
     if (getActivePageKey() === 'safety') {
       if (!buildSafetyReport(report)) {
         alert('تعذر تجهيز تقرير مخالفات السلامة.');
@@ -1738,7 +1855,8 @@
     [
       'masterPage',
       'meetingPage',
-      'dataPage'
+      'dataPage',
+      'employeeEvaluationPage'
     ].forEach(id => {
       ensurePageReportButton(
         document.getElementById(id)
