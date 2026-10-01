@@ -4,6 +4,15 @@ const DQ={sections:[],selected:null};
 const t=v=>String(v==null?'':v).replace(/\s+/g,' ').trim();
 const esc=v=>t(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=v=>new Intl.NumberFormat('ar-SA',{maximumFractionDigits:0}).format(Number(v||0));
+const fmtAdviceDate=v=>{
+ const s=t(v);if(!s)return '—';
+ const iso=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+ if(iso)return iso[3]+'/'+iso[2]+'/'+iso[1];
+ const dmy=s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
+ if(dmy)return String(dmy[1]).padStart(2,'0')+'/'+String(dmy[2]).padStart(2,'0')+'/'+dmy[3];
+ const d=new Date(s);
+ return isNaN(d)?s:d.toLocaleDateString('ar-EG',{day:'2-digit',month:'2-digit',year:'numeric'});
+};
 const norm=v=>t(v).normalize('NFKD').replace(/[\u064B-\u065F\u0670]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي');
 const blank=(r,k)=>!t(r&&r[k]);
 const checked=v=>v===true||/^(true|نعم|تم|yes|1)$/i.test(t(v));
@@ -267,8 +276,8 @@ function renderAdviceAiDetails(ai,type){
  const staleMode=type==='stale'||type==='severe';
  root.innerHTML=`
   <div class="dq-detail-head"><div><span>AI ADVICE AGENT</span><h3>${esc(title)}</h3><small>${esc(note)}</small></div><div class="dq-detail-count">${fmt(rows.length)} حالة</div></div>
-  ${rows.length?`<div class="dq-table-wrap"><table><thead><tr><th>#</th><th>المصدر</th><th>أمر العمل</th><th>المهندس</th><th>المرحلة</th><th>${staleMode?'آخر متابعة جوهرية':'التصنيف'}</th><th>${staleMode?'العمر':'الدرجة'}</th><th>الإفادة السابقة</th><th>الإفادة الحالية</th><th>تحليل الوكيل</th></tr></thead><tbody>
-   ${rows.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.source)}</td><td><b>${esc(r.workOrder)}</b></td><td>${esc(r.engineer||'—')}</td><td>${esc(r.stage||'—')}</td><td>${esc(staleMode?(r.lastSubstantiveAt||'—'):(r.classification||'—'))}</td><td>${staleMode?(Number(r.daysSinceSubstantive||0).toFixed(1)+' يوم'):(r.score==null?'—':esc(r.score)+'/100')}</td><td class="dq-advice-text">${esc(r.previousAdvice||'—')}</td><td class="dq-advice-text">${esc(r.currentAdvice||'—')}</td><td class="dq-advice-text">${esc(r.reason||'—')}</td></tr>`).join('')}
+  ${rows.length?`<div class="dq-table-wrap"><table><thead><tr><th>#</th><th>المصدر</th><th>أمر العمل</th><th>المهندس</th><th>المرحلة</th><th>${staleMode?'آخر متابعة جوهرية':'التصنيف'}</th><th>${staleMode?'العمر':'الدرجة'}</th><th>الإفادة السابقة</th><th>الإفادة الحالية</th><th>تاريخ الإفادة الجديدة</th><th>تحليل الوكيل</th></tr></thead><tbody>
+   ${rows.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.source)}</td><td><b>${esc(r.workOrder)}</b></td><td>${esc(r.engineer||'—')}</td><td>${esc(r.stage||'—')}</td><td>${esc(staleMode?(r.lastSubstantiveAt||'—'):(r.classification||'—'))}</td><td>${staleMode?(Number(r.daysSinceSubstantive||0).toFixed(1)+' يوم'):(r.score==null?'—':esc(r.score)+'/100')}</td><td class="dq-advice-text">${esc(r.previousAdvice||'—')}</td><td class="dq-advice-text">${esc(r.currentAdvice||'—')}</td><td class="dq-advice-date">${esc(fmtAdviceDate(r.currentTimestamp))}</td><td class="dq-advice-text">${esc(r.reason||'—')}</td></tr>`).join('')}
   </tbody></table></div>`:'<div class="dq-empty">لا توجد حالات ضمن هذا التصنيف حاليًا.</div>'}`;
  root.scrollIntoView({behavior:'smooth',block:'start'});
 }
