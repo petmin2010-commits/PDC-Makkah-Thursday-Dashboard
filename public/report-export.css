@@ -587,7 +587,7 @@ body.vd-report-v2-mode #vdReportV2{display:block!important}
 .vd-report-safety-overview,
 .vd-report-safety-ranking-page,
 .vd-report-safety-chart-page,
-.vd-report-safety-detail-page{box-sizing:border-box!important;height:188mm!important;min-height:188mm!important;max-height:188mm!important;overflow:hidden!important;padding:5mm 6mm 13mm!important}
+.vd-report-safety-detail-page{box-sizing:border-box!important;height:176mm!important;min-height:176mm!important;max-height:176mm!important;overflow:hidden!important;padding:5mm 6mm 13mm!important;margin:0!important;break-inside:avoid!important;page-break-inside:avoid!important}
 .vd-report-safety-overview .vd-report-section-header,
 .vd-report-safety-ranking-page .vd-report-section-header,
 .vd-report-safety-chart-page .vd-report-section-header,
@@ -636,7 +636,6 @@ body.vd-report-v2-mode #vdReportV2{display:block!important}
 .vd-report-safety-table th:nth-child(10),.vd-report-safety-table td:nth-child(10){width:23.5%}
 .vd-report-safety-table th:nth-child(11),.vd-report-safety-table td:nth-child(11){width:5%}
 .vd-report-safety-table a{display:inline-block!important;color:#075985!important;background:#eaf7fb!important;border:1px solid #9ed5e6!important;border-radius:3px!important;padding:.8mm 1mm!important;text-decoration:none!important;font-weight:900!important;white-space:nowrap!important}
-@media print{.vd-report-safety-overview,.vd-report-safety-ranking-page,.vd-report-safety-chart-page,.vd-report-safety-detail-page{break-after:page!important;page-break-after:always!important}.vd-report-safety-detail-page:last-child{break-after:auto!important;page-break-after:auto!important}}
 
 /* Safety PDF readability fix — force black text on light backgrounds */
 .vd-report-safety-overview *,
