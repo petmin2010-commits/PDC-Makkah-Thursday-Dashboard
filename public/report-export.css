@@ -684,3 +684,41 @@ body.vd-report-v2-mode #vdReportV2{display:block!important}
   background:#f5f7fa!important;
   border-color:#b9c2cf!important;
 }
+
+/* Safety PDF hard override against dashboard dark-theme table colors */
+body.vd-report-dark #vdReportV2 .vd-report-safety-ranking-page .safety-rank-table td,
+body.vd-report-dark #vdReportV2 .vd-report-safety-ranking-page .safety-rank-table td *,
+body.vd-report-dark #vdReportV2 .vd-report-safety-detail-page .vd-report-safety-table td,
+body.vd-report-dark #vdReportV2 .vd-report-safety-detail-page .vd-report-safety-table td *{
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+  opacity:1!important;
+  visibility:visible!important;
+}
+body.vd-report-dark #vdReportV2 .vd-report-safety-ranking-page .safety-rank-table td,
+body.vd-report-dark #vdReportV2 .vd-report-safety-detail-page .vd-report-safety-table td{
+  background:#fff!important;
+  border-color:#d5d9e0!important;
+}
+body.vd-report-dark #vdReportV2 .vd-report-safety-ranking-page .safety-rank-table tbody tr:nth-child(even) td,
+body.vd-report-dark #vdReportV2 .vd-report-safety-detail-page .vd-report-safety-table tbody tr:nth-child(even) td{
+  background:#f7f9fc!important;
+}
+body.vd-report-dark #vdReportV2 .vd-report-safety-ranking-page .safety-rank-table th,
+body.vd-report-dark #vdReportV2 .vd-report-safety-detail-page .vd-report-safety-table th{
+  background:#143d67!important;
+  color:#fff!important;
+  -webkit-text-fill-color:#fff!important;
+  opacity:1!important;
+}
+body.vd-report-dark #vdReportV2 .vd-report-safety-ranking-page .safety-rank-no{
+  color:#8a5200!important;
+  -webkit-text-fill-color:#8a5200!important;
+  opacity:1!important;
+}
+body.vd-report-dark #vdReportV2 .vd-report-safety-detail-page .table-link,
+body.vd-report-dark #vdReportV2 .vd-report-safety-detail-page .table-link *{
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+  opacity:1!important;
+}
