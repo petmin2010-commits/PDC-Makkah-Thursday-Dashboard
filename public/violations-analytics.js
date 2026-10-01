@@ -10,20 +10,21 @@ const count=(rows,key)=>{const m=new Map();rows.forEach(r=>{const x=t(r[key])||'
 const sumBy=(rows,key,valueKey)=>{const m=new Map();rows.forEach(r=>{const x=t(r[key])||'غير محدد';m.set(x,(m.get(x)||0)+n(r[valueKey]))});return [...m].sort((a,b)=>b[1]-a[1])};
 const monthKey=v=>{const d=typeof parseDashboardDate==='function'?parseDashboardDate(v):null;return d&&!isNaN(d)?d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'):''};
 const monthLabel=k=>{const [y,m]=k.split('-');return new Date(Number(y),Number(m)-1,1).toLocaleDateString('ar-SA',{month:'short',year:'numeric'})};
-const REPORT_KEYS=new Set(['safety','executionViolations','minutes']);
+const REPORT_KEYS=new Set(['master','projects','connections','assets','emergency','safety','executionViolations','minutes']);
 VX.periods=VX.periods||{};
 const periodState=key=>VX.periods[key]||(VX.periods[key]={from:'',to:'',preset:'all'});
 const isoDate=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const inputDate=v=>{if(!v)return null;const m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!m)return null;const d=new Date(Number(m[1]),Number(m[2])-1,Number(m[3]));return isNaN(d)?null:d};
-const rowDate=r=>{if(typeof parseDashboardDate==='function'){const d=parseDashboardDate(r?.date);if(d&&!isNaN(d))return d}const d=new Date(r?.date||'');return isNaN(d)?null:d};
-const reportBasis=key=>key==='minutes'?'الأساس: تاريخ المحضر':key==='safety'||key==='executionViolations'?'الأساس: تاريخ المخالفة':'الأساس: تاريخ السجل';
+const reportDateField=key=>key==='assets'?'installDate':['master','projects','connections','emergency'].includes(key)?'assignedDate':'date';
+const rowDate=(r,key)=>{const field=reportDateField(key);if(typeof parseDashboardDate==='function'){const d=parseDashboardDate(r?.[field]);if(d&&!isNaN(d))return d}const d=new Date(r?.[field]||'');return isNaN(d)?null:d};
+const reportBasis=key=>key==='assets'?'الأساس: تاريخ تركيب المعدة':['master','projects','connections','emergency'].includes(key)?'الأساس: تاريخ الإسناد':key==='minutes'?'الأساس: تاريخ المحضر':key==='safety'||key==='executionViolations'?'الأساس: تاريخ المخالفة':'الأساس: تاريخ السجل';
 function filterPeriodRows(rows,key){
  if(!REPORT_KEYS.has(key))return rows;
  const st=periodState(key),from=inputDate(st.from),to=inputDate(st.to);
  if(!from&&!to)return rows;
  const start=from?new Date(from.getFullYear(),from.getMonth(),from.getDate(),0,0,0,0):null;
  const end=to?new Date(to.getFullYear(),to.getMonth(),to.getDate(),23,59,59,999):null;
- return rows.filter(r=>{const d=rowDate(r);if(!d)return false;if(start&&d<start)return false;if(end&&d>end)return false;return true});
+ return rows.filter(r=>{const d=rowDate(r,key);if(!d)return false;if(start&&d<start)return false;if(end&&d>end)return false;return true});
 }
 function fmtPeriodDate(v){
  const d=inputDate(v);return d?d.toLocaleDateString('ar-SA',{day:'2-digit',month:'2-digit',year:'numeric'}):'';
@@ -32,13 +33,20 @@ function updatePeriodSlicer(){
  const key=typeof S!=='undefined'?S.current:'',box=document.getElementById('violationPeriodSlicer');
  if(!box)return;
  const on=REPORT_KEYS.has(key);box.style.display=on?'block':'none';if(!on)return;
+ const anchor=key==='master'?document.getElementById('masterKpis'):document.getElementById('pageKpis');
+ if(anchor?.parentNode)anchor.parentNode.insertBefore(box,anchor);
  const st=periodState(key),from=document.getElementById('vpsFrom'),to=document.getElementById('vpsTo'),basis=document.getElementById('vpsBasis'),summary=document.getElementById('vpsSummary');
  if(from&&from.value!==st.from)from.value=st.from;
  if(to&&to.value!==st.to)to.value=st.to;
  if(basis)basis.textContent=reportBasis(key);
  box.querySelectorAll('[data-period]').forEach(b=>b.classList.toggle('active',b.dataset.period===st.preset));
  const label=!st.from&&!st.to?'كامل المدة':(st.from&&st.to?fmtPeriodDate(st.from)+' — '+fmtPeriodDate(st.to):st.from?'من '+fmtPeriodDate(st.from):'حتى '+fmtPeriodDate(st.to));
- const count=Array.isArray(S?.filtered)?S.filtered.length:0,total=Array.isArray(S?.raw)?S.raw.length:0;
+ const count=key==='master'
+  ?(Array.isArray(S?.masterFilteredRows)?S.masterFilteredRows.length:Array.isArray(S?.masterBaseRows)?S.masterBaseRows.length:0)
+  :(Array.isArray(S?.filtered)?S.filtered.length:0);
+ const total=key==='master'
+  ?(Array.isArray(S?.masterRows)?S.masterRows.length:0)
+  :(Array.isArray(S?.raw)?S.raw.length:0);
  if(summary)summary.innerHTML='<b>'+e(label)+'</b><small>'+fm(count)+' من '+fm(total)+' سجل</small>';
 }
 function setPreset(preset){
@@ -185,6 +193,25 @@ if(typeof renderDataPage==='function'){
   applyPeriodToState();
   base.apply(this,arguments);
   sync();
+ };
+}
+if(typeof applyMasterFilters==='function'){
+ const baseMaster=applyMasterFilters;
+ applyMasterFilters=function(){
+  ensure();
+  const originalRows=Array.isArray(S?.masterRows)?S.masterRows:null;
+  if(originalRows)S.masterRows=filterPeriodRows(originalRows,'master');
+  let result;
+  try{
+   result=baseMaster.apply(this,arguments);
+   S.masterFilteredRows=typeof applyChartFilters==='function'
+    ?applyChartFilters(Array.isArray(S.masterBaseRows)?S.masterBaseRows:[],null,'master')
+    :(Array.isArray(S.masterBaseRows)?S.masterBaseRows:[]);
+  }finally{
+   if(originalRows)S.masterRows=originalRows;
+  }
+  updatePeriodSlicer();
+  return result;
  };
 }
 window.renderViolationAnalytics=sync;
