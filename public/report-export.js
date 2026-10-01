@@ -1253,6 +1253,167 @@
     return true;
   }
 
+  function buildViolationFamilyReport(report, config) {
+    const source = document.getElementById('dataPage');
+    const root = document.getElementById(config.rootId);
+    if (!source || !root) return false;
+
+    const kpis = findKpis(source).slice(0, 8);
+    const filters = getAppliedFilters();
+    const brand = getBrandInfo();
+    const period = document.querySelector('#vpsSummary b')?.textContent?.trim() || 'كامل المدة';
+    const countText = document.getElementById('dataCount')?.textContent?.trim() || '';
+    const filterText = filters.length
+      ? filters.map(x => `${x.label}: ${x.value}`).join(' • ')
+      : 'جميع البيانات';
+
+    const overview = createPage(
+      config.title,
+      config.eyebrow,
+      'vd-report-safety-overview vd-report-violations-overview'
+    );
+    const overviewBody = overview.querySelector('.vd-report-section-body');
+
+    const meta = document.createElement('div');
+    meta.className = 'vd-safety-meta';
+    meta.innerHTML = `
+      <div><span>الإدارة</span><b>${escapeHtml(brand.city)}</b></div>
+      <div><span>رقم العقد</span><b>${escapeHtml(brand.contract || '—')}</b></div>
+      <div><span>الفترة</span><b>${escapeHtml(period)}</b></div>
+      <div><span>النتائج</span><b>${escapeHtml(countText || '—')}</b></div>
+      <div class="vd-safety-meta-wide"><span>الفلاتر المطبقة</span><b>${escapeHtml(filterText)}</b></div>
+    `;
+    overviewBody.appendChild(meta);
+
+    if (kpis.length) {
+      const grid = document.createElement('div');
+      grid.className = 'vd-safety-kpi-grid';
+      kpis.forEach(kpi => {
+        const cloned = kpi.cloneNode(true);
+        cleanupClone(cloned);
+        cloned.classList.add('vd-report-kpi-clone');
+        grid.appendChild(cloned);
+      });
+      overviewBody.appendChild(grid);
+    }
+
+    const insightRoot = config.insightId
+      ? document.getElementById(config.insightId)
+      : null;
+    const insightCards = insightRoot
+      ? [...insightRoot.querySelectorAll('.vx-insight')].filter(isVisible)
+      : [];
+
+    if (insightCards.length) {
+      const insightGrid = document.createElement('div');
+      insightGrid.className = 'vd-report-violation-insights';
+      insightCards.forEach(card => {
+        const cloned = card.cloneNode(true);
+        cleanupClone(cloned);
+        insightGrid.appendChild(cloned);
+      });
+      overviewBody.appendChild(insightGrid);
+    }
+    report.appendChild(overview);
+
+    const rankPanels = [
+      ...document.querySelectorAll(config.rankSelector)
+    ].filter(isVisible);
+
+    if (rankPanels.length) {
+      const rankPage = createPage(
+        config.rankTitle,
+        config.rankSubtitle,
+        'vd-report-safety-ranking-page vd-report-violations-ranking-page'
+      );
+      const rankGrid = document.createElement('div');
+      rankGrid.className = 'vd-safety-rank-grid vd-report-violations-rank-grid';
+      rankPanels.forEach(panel => {
+        const cloned = cloneWithCanvases(panel);
+        cloned.classList.add('vd-report-summary-table');
+        cleanupClone(cloned);
+        rankGrid.appendChild(cloned);
+      });
+      rankPage.querySelector('.vd-report-section-body').appendChild(rankGrid);
+      report.appendChild(rankPage);
+    }
+
+    const chartPanels = [];
+    config.chartSelectors.forEach(selector => {
+      document.querySelectorAll(selector).forEach(panel => {
+        if (isVisible(panel) && !chartPanels.includes(panel)) chartPanels.push(panel);
+      });
+    });
+
+    chunk(chartPanels, 4).forEach((group, index) => {
+      const page = createPage(
+        config.chartTitle,
+        `الصفحة ${index + 1} من ${Math.ceil(chartPanels.length / 4)}`,
+        'vd-report-safety-chart-page vd-report-violations-chart-page'
+      );
+      if (group.length <= 2) {
+        page.classList.add('vd-report-safety-chart-page-last');
+      }
+
+      const body = page.querySelector('.vd-report-section-body');
+      const grid = document.createElement('div');
+      grid.className = 'vd-report-chart-grid vd-safety-chart-grid';
+
+      group.forEach(panel => {
+        const cloned = cloneWithCanvases(panel);
+        cleanupClone(cloned);
+        cloned.classList.add('vd-report-chart-card');
+        grid.appendChild(cloned);
+      });
+
+      body.appendChild(grid);
+      report.appendChild(page);
+    });
+
+    const table = document.querySelector('#dataTable table');
+    const rows = table ? [...table.querySelectorAll('tbody tr')] : [];
+
+    if (table && rows.length) {
+      const columnCount = table.querySelectorAll('thead th').length;
+      const rowsPerPage = columnCount >= 15 ? 5 : columnCount >= 12 ? 6 : 8;
+      const fontSize = columnCount >= 15 ? '4.8px' : columnCount >= 12 ? '5.3px' : '6px';
+
+      chunk(rows, rowsPerPage).forEach((group, index, groups) => {
+        const page = createPage(
+          config.detailTitle,
+          `صفحة ${index + 1} من ${groups.length} • ${rows.length} سجل`,
+          'vd-report-safety-detail-page vd-report-violations-detail-page'
+        );
+
+        const copy = table.cloneNode(false);
+        copy.className = 'vd-report-violations-table';
+        copy.style.fontSize = fontSize;
+
+        const head = table.querySelector('thead')?.cloneNode(true);
+        if (head) copy.appendChild(head);
+
+        const bodyRows = document.createElement('tbody');
+        group.forEach(row => bodyRows.appendChild(row.cloneNode(true)));
+        copy.appendChild(bodyRows);
+
+        cleanupClone(copy);
+        copy.querySelectorAll('th,td').forEach(cell => {
+          cell.setAttribute('dir', 'auto');
+          cell.style.opacity = '1';
+          if (!cell.closest('thead')) {
+            cell.style.color = '#000';
+            cell.style.webkitTextFillColor = '#000';
+          }
+        });
+
+        page.querySelector('.vd-report-section-body').appendChild(copy);
+        report.appendChild(page);
+      });
+    }
+
+    return true;
+  }
+
   function buildReport(type = 'executive') {
     const source = getActivePage();
 
@@ -1272,6 +1433,53 @@
     if (getActivePageKey() === 'safety') {
       if (!buildSafetyReport(report)) {
         alert('تعذر تجهيز تقرير مخالفات السلامة.');
+        return null;
+      }
+
+      document.body.appendChild(report);
+      return report;
+    }
+
+    if (getActivePageKey() === 'executionViolations') {
+      if (!buildViolationFamilyReport(report, {
+        rootId: 'executionMasterAnalytics',
+        title: 'تقرير مخالفات التنفيذ',
+        eyebrow: 'EXECUTION VIOLATIONS MASTER REPORT',
+        insightId: 'vxExecutionInsights',
+        rankSelector: '#executionMasterAnalytics .safety-rank-grid .panel',
+        rankTitle: 'التصنيفات الرئيسية لمخالفات التنفيذ',
+        rankSubtitle: 'أوامر العمل المتكررة وترتيب المقاولين',
+        chartSelectors: [
+          '#executionMasterAnalytics .safety-master-grid .panel',
+          '#vxExecutionExtra .vx-grid .panel'
+        ],
+        chartTitle: 'التحليلات الرسومية لمخالفات التنفيذ',
+        detailTitle: 'السجل التفصيلي لمخالفات التنفيذ'
+      })) {
+        alert('تعذر تجهيز تقرير مخالفات التنفيذ.');
+        return null;
+      }
+
+      document.body.appendChild(report);
+      return report;
+    }
+
+    if (getActivePageKey() === 'minutes') {
+      if (!buildViolationFamilyReport(report, {
+        rootId: 'minutesMasterAnalytics',
+        title: 'تقرير محاضر مخالفة إثبات الحالة',
+        eyebrow: 'CASE VIOLATION MINUTES MASTER REPORT',
+        insightId: 'vxMinutesInsights',
+        rankSelector: '#minutesMasterAnalytics .vx-ranks .panel',
+        rankTitle: 'التصنيفات الرئيسية لمحاضر إثبات الحالة',
+        rankSubtitle: 'ترتيب المقاولين وأعلى أوامر العمل بالغرامات',
+        chartSelectors: [
+          '#minutesMasterAnalytics .vx-grid .panel'
+        ],
+        chartTitle: 'التحليلات الرسومية لمحاضر إثبات الحالة',
+        detailTitle: 'السجل التفصيلي لمحاضر إثبات الحالة'
+      })) {
+        alert('تعذر تجهيز تقرير محاضر إثبات الحالة.');
         return null;
       }
 

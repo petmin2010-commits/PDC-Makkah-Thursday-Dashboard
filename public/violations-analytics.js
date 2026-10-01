@@ -75,12 +75,12 @@ function destroy(id){if(VX.charts[id]){try{VX.charts[id].destroy()}catch{}delete
 function draw(id,type,labels,data,opt={}){
  const el=document.getElementById(id);if(!el)return;destroy(id);
  const palette=['#2878e8','#18a875','#f0a126','#7757d7','#e4505b','#22a8c5','#667ca8','#b26abc','#63b35e','#d68942'];
- const dark=document.body.classList.contains('vd-report-dark'),ink=dark?'#eaf2ff':'#40506a',grid=dark?'rgba(255,255,255,.08)':'#edf1f6';
+ const dark=document.body.classList.contains('vd-report-dark'),ink=dark?'#eaf2ff':'#000',grid=dark?'rgba(255,255,255,.08)':'rgba(0,0,0,.09)';
  VX.charts[id]=new Chart(el,{type,data:{labels,datasets:[{label:opt.label||'العدد',data,backgroundColor:type==='line'?'rgba(40,120,232,.14)':labels.map((_,i)=>palette[i%palette.length]),borderColor:type==='line'?'#2878e8':labels.map((_,i)=>palette[i%palette.length]),borderWidth:type==='line'?3:1,fill:type==='line',tension:.34,borderRadius:type==='bar'?8:0,maxBarThickness:24}]},
- options:{responsive:true,maintainAspectRatio:false,indexAxis:opt.horizontal?'y':'x',cutout:type==='doughnut'?'64%':undefined,
+ options:{responsive:true,maintainAspectRatio:false,devicePixelRatio:2,indexAxis:opt.horizontal?'y':'x',cutout:type==='doughnut'?'64%':undefined,
  onClick:(evt,els)=>{if(!els.length||!opt.field||typeof toggleChartFilter!=='function')return;const v=labels[els[0].index];toggleChartFilter(id,opt.field,v,(typeof LABELS!=='undefined'&&LABELS[opt.field])||opt.field,'exact',v)},
- plugins:{legend:{display:type==='doughnut',position:'bottom',rtl:true,labels:{color:ink,font:{family:'Cairo',size:9},boxWidth:10,usePointStyle:true}},tooltip:{rtl:true,callbacks:{label:c=>' '+fm(c.raw)+(opt.money?' ر.س':'')}}},
- scales:type==='doughnut'?{}:{x:{beginAtZero:true,grid:{display:!opt.horizontal,color:grid},ticks:{color:ink,font:{family:'Cairo',size:9}}},y:{beginAtZero:true,grid:{display:false},ticks:{color:ink,font:{family:'Cairo',size:9},autoSkip:false}}}}});
+ plugins:{legend:{display:type==='doughnut',position:'bottom',rtl:true,labels:{color:ink,font:{family:'Cairo',size:10,weight:'700'},boxWidth:10,usePointStyle:true}},tooltip:{rtl:true,callbacks:{label:c=>' '+fm(c.raw)+(opt.money?' ر.س':'')}}},
+ scales:type==='doughnut'?{}:{x:{beginAtZero:true,grid:{display:!opt.horizontal,color:grid},ticks:{color:ink,font:{family:'Cairo',size:10,weight:'700'}}},y:{beginAtZero:true,grid:{display:false},ticks:{color:ink,font:{family:'Cairo',size:10,weight:'700'},autoSkip:false}}}}});
 }
 function ensure(){
  const generic=document.getElementById('genericPageCharts');if(!generic)return;

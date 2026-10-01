@@ -721,3 +721,113 @@ body.vd-report-dark #vdReportV2 .vd-report-safety-detail-page .table-link *{
   -webkit-text-fill-color:#000!important;
   opacity:1!important;
 }
+
+/* Execution violations + proof-of-condition reports — aligned with Safety report */
+.vd-report-violation-insights{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(38mm,1fr));
+  gap:2mm;
+  margin-top:.5mm;
+}
+.vd-report-violation-insights .vx-insight{
+  min-width:0;
+  min-height:24mm!important;
+  padding:2.2mm!important;
+  border:1.2px solid #26396f!important;
+  border-radius:4px!important;
+  background:#f8f9fb!important;
+  box-shadow:none!important;
+  text-align:center;
+}
+.vd-report-violation-insights .vx-insight span{
+  display:block!important;
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+  font-size:6.2px!important;
+}
+.vd-report-violation-insights .vx-insight strong{
+  display:block!important;
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+  font-size:9px!important;
+  line-height:1.35!important;
+  margin:1mm 0!important;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.vd-report-violation-insights .vx-insight small{
+  display:block!important;
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+  font-size:6.3px!important;
+  font-weight:800!important;
+}
+.vd-report-violations-ranking-page .vx-table{
+  max-height:none!important;
+  height:auto!important;
+  overflow:visible!important;
+}
+.vd-report-violations-ranking-page .vd-report-summary-table{
+  background:#fff!important;
+  overflow:visible!important;
+}
+.vd-report-violations-ranking-page table{
+  width:100%!important;
+  table-layout:auto!important;
+  font-size:6.3px!important;
+}
+.vd-report-violations-ranking-page th,
+.vd-report-violations-ranking-page td{
+  padding:1.2mm 1mm!important;
+  line-height:1.35!important;
+}
+.vd-report-violations-chart-page .vx-chart{
+  height:auto!important;
+  min-height:0!important;
+}
+.vd-report-violations-table{
+  width:100%!important;
+  table-layout:fixed!important;
+  direction:rtl!important;
+  border-collapse:collapse!important;
+  background:#fff!important;
+}
+.vd-report-violations-table th,
+.vd-report-violations-table td{
+  padding:.9mm .75mm!important;
+  line-height:1.38!important;
+  vertical-align:top!important;
+  overflow-wrap:anywhere!important;
+  word-break:break-word!important;
+  opacity:1!important;
+}
+.vd-report-violations-table th{
+  background:#eef0f4!important;
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+  border-color:#b9c2cf!important;
+  font-weight:900!important;
+  text-align:center!important;
+}
+.vd-report-violations-table td,
+.vd-report-violations-table td *{
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+  opacity:1!important;
+}
+.vd-report-violations-table tbody tr:nth-child(even) td{
+  background:#f7f9fc!important;
+}
+.vd-report-violations-table a{
+  display:inline-block!important;
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+  background:#f5f7fa!important;
+  border:1px solid #b9c2cf!important;
+  border-radius:3px!important;
+  padding:.7mm 1mm!important;
+  text-decoration:none!important;
+  font-weight:900!important;
+  white-space:nowrap!important;
+}
