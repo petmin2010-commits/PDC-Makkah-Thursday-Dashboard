@@ -637,3 +637,50 @@ body.vd-report-v2-mode #vdReportV2{display:block!important}
 .vd-report-safety-table th:nth-child(11),.vd-report-safety-table td:nth-child(11){width:5%}
 .vd-report-safety-table a{display:inline-block!important;color:#075985!important;background:#eaf7fb!important;border:1px solid #9ed5e6!important;border-radius:3px!important;padding:.8mm 1mm!important;text-decoration:none!important;font-weight:900!important;white-space:nowrap!important}
 @media print{.vd-report-safety-overview,.vd-report-safety-ranking-page,.vd-report-safety-chart-page,.vd-report-safety-detail-page{break-after:page!important;page-break-after:always!important}.vd-report-safety-detail-page:last-child{break-after:auto!important;page-break-after:auto!important}}
+
+/* Safety PDF readability fix — force black text on light backgrounds */
+.vd-report-safety-overview *,
+.vd-report-safety-ranking-page *,
+.vd-report-safety-chart-page *,
+.vd-report-safety-detail-page *{
+  color:#000!important;
+  text-shadow:none!important;
+}
+.vd-report-safety-ranking-page .panel-title,
+.vd-report-safety-chart-page .panel-title,
+.vd-report-safety-ranking-page .vd-report-summary-table .panel-title,
+.vd-report-safety-chart-page .vd-report-chart-card .panel-title{
+  background:#fff!important;
+  color:#000!important;
+  border-bottom:1.2px solid #24366d!important;
+}
+.vd-report-safety-ranking-page .panel-title h3,
+.vd-report-safety-ranking-page .panel-title span,
+.vd-report-safety-chart-page .panel-title h3,
+.vd-report-safety-chart-page .panel-title span,
+.vd-report-safety-ranking-page .vd-report-summary-table .panel-title h3,
+.vd-report-safety-ranking-page .vd-report-summary-table .panel-title span,
+.vd-report-safety-chart-page .vd-report-chart-card .panel-title h3,
+.vd-report-safety-chart-page .vd-report-chart-card .panel-title span{
+  color:#000!important;
+}
+.vd-report-safety-table th{
+  background:#eef0f4!important;
+  color:#000!important;
+  border-color:#b9c2cf!important;
+}
+.vd-report-safety-table td,
+.vd-safety-rank-grid th,
+.vd-safety-rank-grid td,
+.vd-safety-meta span,
+.vd-safety-meta b,
+.vd-safety-insights span,
+.vd-safety-insights strong,
+.vd-safety-insights small,
+.vd-report-safety-table a{
+  color:#000!important;
+}
+.vd-report-safety-table a{
+  background:#f5f7fa!important;
+  border-color:#b9c2cf!important;
+}
