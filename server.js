@@ -656,6 +656,59 @@ async function getHrStaffData_(){
   cachePut(cacheKey,out,60); return out;
 }
 
+async function getEmployeeEvaluationData_(){
+  const cacheKey='EMPLOYEE_EVALUATION_V1';
+  const hit=cacheGet(cacheKey);if(hit)return hit;
+  const sheet='📌المهام والافادات';
+  const vals=await valuesGet(qSheet(sheet)+'!A:AN');
+  if(!Array.isArray(vals)||!vals.length)return {updatedAt:now_(),sheet,available:{},rows:[]};
+  const headers=(vals[0]||[]).map(clean_);
+  const defs={
+    workOrder:['أمر العمل','امر العمل'],
+    workType:['نوع امر العمل','نوع أمر العمل'],
+    contractor:['المقاول المنفذ للمهمة','المقاول'],
+    description:['وصف المهمة'],
+    location:['موقع المهمة','الموقع'],
+    taskDate:['تاريخ المهمة'],
+    engineer:['اسم المهندس المسئول عن المهمة','اسم المهندس المسؤول عن المهمة'],
+    advice:['افادة المهندس المشرف من الموقع','إفادة المهندس المشرف من الموقع'],
+    owner:['pdc OR sec','PDC OR SEC'],
+    attachments:['حالة المرفقات'],
+    attachmentsFix:['هل تم معالجة مشكلة عدم رفع المرفقات'],
+    safetyElectronic:['حالة ملئ نموذج السلامة الالكتروني','حالة ملء نموذج السلامة الالكتروني'],
+    safetyElectronicFix:['هل تم معالجة مشكلة عدم ملئ نموذج السلامة الالكتروني','هل تم معالجة مشكلة عدم ملء نموذج السلامة الالكتروني'],
+    safetyElectronicRate:['نسبة نموذج السلامة الالكتروني'],
+    safetyPaper:['حالة رفع نماذج السلامة الورقية'],
+    safetyPaperFix:['هل تم معالجة مشكلة عدم رفع نماذج السلامة الورقية'],
+    photos:['حالة رفع الصور','حالة  رفع الصور'],
+    photosFix:['هل تم معالجة مشكلة عدم رفع الصور'],
+    supervision:['حالة رفع نماذج الاشراف','حالة رفع نماذج الإشراف'],
+    supervisionFix:['هل تم معالجة مشكلة عدم رفع نماذج الاشراف','هل تم معالجة مشكلة عدم رفع نماذج الإشراف'],
+    asBuilt:['حالة رفع صورة ال As-built','حالة رفع صورة الـ As-built'],
+    asBuiltFix:['هل تم معالجة مشكلة عد م رفع صورة ال As-built','هل تم معالجة مشكلة عدم رفع صورة ال As-built'],
+    assets:['حالة رفع نماذج اختبارات الاصول','حالة رفع نماذج اختبارات الأصول'],
+    assetsFix:['هل تم معالجة مشكلة عدم رفع نماذج اختبارات الاصول','هل تم معالجة مشكلة عدم رفع نماذج اختبارات الأصول'],
+    unclassified:['حالة رفع مرفقات غير مصنفة'],
+    unclassifiedFix:['هل تم معالجة مشكلة عدم رفع مرفقات غير مصنفة']
+  };
+  const map={};Object.entries(defs).forEach(([k,c])=>map[k]=findHeader_(headers,c));
+  const available={};Object.keys(defs).forEach(k=>available[k]=map[k]>=0);
+  const rows=[];
+  vals.slice(1,APP.MAX_ROWS+1).forEach((r,i)=>{
+    const get=k=>map[k]>=0?clean_(r[map[k]]):'';
+    const engineer=get('engineer'),workOrder=cleanWorkOrder_(get('workOrder'));
+    if(!engineer)return;
+    rows.push({_row:i+2,workOrder,workType:get('workType'),contractor:get('contractor'),
+      description:get('description'),location:get('location'),taskDate:get('taskDate'),engineer,
+      advice:get('advice'),owner:get('owner'),attachments:get('attachments'),attachmentsFix:get('attachmentsFix'),
+      safetyElectronic:get('safetyElectronic'),safetyElectronicFix:get('safetyElectronicFix'),safetyElectronicRate:get('safetyElectronicRate'),
+      safetyPaper:get('safetyPaper'),safetyPaperFix:get('safetyPaperFix'),photos:get('photos'),photosFix:get('photosFix'),
+      supervision:get('supervision'),supervisionFix:get('supervisionFix'),asBuilt:get('asBuilt'),asBuiltFix:get('asBuiltFix'),
+      assets:get('assets'),assetsFix:get('assetsFix'),unclassified:get('unclassified'),unclassifiedFix:get('unclassifiedFix')});
+  });
+  const out={updatedAt:now_(),sheet,available,rows};cachePut(cacheKey,out,60);return out;
+}
+
 function cacheGet(key){
   const x=memoryCache.get(key); if(!x) return null;
   if(Date.now()>x.exp){memoryCache.delete(key);return null}
@@ -2169,6 +2222,18 @@ app.get('/api/health',(req,res)=>res.json({
 app.get('/api/hr/staff',requireAuth_,async(req,res)=>{
   try{
     const result=await getHrStaffData_();
+    res.set('Cache-Control','no-store');
+    res.json({ok:true,...result});
+  }catch(e){
+    console.error(e);
+    res.status(500).json({ok:false,error:e.message||String(e)});
+  }
+});
+
+app.get('/api/hr/employee-evaluation',requireAuth_,async(req,res)=>{
+  try{
+    if(req.query&&req.query.t)memoryCache.delete('EMPLOYEE_EVALUATION_V1');
+    const result=await getEmployeeEvaluationData_();
     res.set('Cache-Control','no-store');
     res.json({ok:true,...result});
   }catch(e){
