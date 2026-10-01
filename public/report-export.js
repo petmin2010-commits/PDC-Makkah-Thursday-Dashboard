@@ -1374,9 +1374,26 @@
     const rows = table ? [...table.querySelectorAll('tbody tr')] : [];
 
     if (table && rows.length) {
-      const columnCount = table.querySelectorAll('thead th').length;
+      const allHeaders = [...table.querySelectorAll('thead th')];
+      const endHeaderText = String(config.detailEndHeader || '').trim();
+      const endColumnIndex = endHeaderText
+        ? allHeaders.findIndex(th =>
+            (th.textContent || '').replace(/\s+/g, ' ').trim().includes(endHeaderText)
+          )
+        : -1;
+      const columnCount = endColumnIndex >= 0
+        ? endColumnIndex + 1
+        : allHeaders.length;
       const rowsPerPage = columnCount >= 15 ? 5 : columnCount >= 12 ? 6 : 8;
       const fontSize = columnCount >= 15 ? '4.8px' : columnCount >= 12 ? '5.3px' : '6px';
+
+      const trimToDetailEnd = row => {
+        if (endColumnIndex < 0 || !row) return row;
+        [...row.children].forEach((cell, cellIndex) => {
+          if (cellIndex > endColumnIndex) cell.remove();
+        });
+        return row;
+      };
 
       chunk(rows, rowsPerPage).forEach((group, index, groups) => {
         const page = createPage(
@@ -1390,10 +1407,17 @@
         copy.style.fontSize = fontSize;
 
         const head = table.querySelector('thead')?.cloneNode(true);
-        if (head) copy.appendChild(head);
+        if (head) {
+          head.querySelectorAll('tr').forEach(trimToDetailEnd);
+          copy.appendChild(head);
+        }
 
         const bodyRows = document.createElement('tbody');
-        group.forEach(row => bodyRows.appendChild(row.cloneNode(true)));
+        group.forEach(row => {
+          const clonedRow = row.cloneNode(true);
+          trimToDetailEnd(clonedRow);
+          bodyRows.appendChild(clonedRow);
+        });
         copy.appendChild(bodyRows);
 
         cleanupClone(copy);
@@ -1454,7 +1478,8 @@
           '#vxExecutionExtra .vx-grid .panel'
         ],
         chartTitle: 'التحليلات الرسومية لمخالفات التنفيذ',
-        detailTitle: 'السجل التفصيلي لمخالفات التنفيذ'
+        detailTitle: 'السجل التفصيلي لمخالفات التنفيذ',
+        detailEndHeader: 'رابط المخالفة'
       })) {
         alert('تعذر تجهيز تقرير مخالفات التنفيذ.');
         return null;
