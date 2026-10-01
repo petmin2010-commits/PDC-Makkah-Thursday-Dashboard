@@ -3274,8 +3274,7 @@ function renderDataPage(){
  const genericPageCharts=document.getElementById('genericPageCharts');
  const safetyAnalytics=document.getElementById('safetyMasterAnalytics');
  const executionAnalytics=document.getElementById('executionMasterAnalytics');
- const isCorporateViolationReport=key==='safety'||key==='executionViolations'||key==='minutes';
- document.body.classList.toggle('vd-report-dark',isCorporateViolationReport);
+ document.body.classList.remove('vd-report-dark');
 
  if(emergencyTreeSection) emergencyTreeSection.style.display=key==='emergency'?'block':'none';
 
@@ -3869,7 +3868,7 @@ function renderEmergencyKpis(rows,root){
 function pickDimensions(key){
  const m={
  workorders:['section','status'],projects:['contractor','delay'],connections:['contractor','category'],permits:['permitStatus','contractor'],
- operations:['contractor','executionStatus'],closures:['section','payment'],assets:['group','approval'],emergency:['region','faultType'],
+ operations:['contractor','executionStatus'],closures:['section','payment'],assets:['contractor','location'],emergency:['region','faultType'],
  tasks:['engineer','attachments'],attachments:['status','contractor'],safety:['contractor','violation1'],
  executionViolations:['contractor','violationSection'],minutes:['contractor','minuteType'],violationsCombined:['contractor','date'],finance:['paymentStatus','type']
  }; return m[key]||['contractor','status'];
