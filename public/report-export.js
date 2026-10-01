@@ -1128,61 +1128,6 @@
       ? filters.map(x => `${x.label}: ${x.value}`).join(' • ')
       : 'جميع البيانات';
 
-    const safetyChartIds = [
-      'safetyTrendChart',
-      'safetyContractorChart',
-      'safetyViolationChart',
-      'safetySupervisorChart',
-      'safetyTypeChart',
-      'safetyEditorChart'
-    ];
-
-    const normalizeSafetyChart = id => {
-      const chart = window.Chart?.getChart?.(id);
-      if (!chart) return;
-      const ink = '#172b5f';
-      const grid = 'rgba(23,43,95,.10)';
-
-      chart.options.devicePixelRatio = 2;
-      chart.options.plugins = chart.options.plugins || {};
-      chart.options.plugins.legend = chart.options.plugins.legend || {};
-      chart.options.plugins.legend.labels = {
-        ...(chart.options.plugins.legend.labels || {}),
-        color: ink,
-        font: {
-          ...(chart.options.plugins.legend.labels?.font || {}),
-          family: 'Cairo',
-          size: 10,
-          weight: '700'
-        }
-      };
-
-      const scales = chart.options.scales || {};
-      Object.values(scales).forEach(scale => {
-        if (!scale) return;
-        scale.ticks = {
-          ...(scale.ticks || {}),
-          color: ink,
-          font: {
-            ...(scale.ticks?.font || {}),
-            family: 'Cairo',
-            size: 10,
-            weight: '700'
-          }
-        };
-        if (scale.grid?.display !== false) {
-          scale.grid = { ...(scale.grid || {}), color: grid };
-        }
-      });
-
-      try {
-        chart.resize?.();
-        chart.update?.('none');
-      } catch (_) {}
-    };
-
-    safetyChartIds.forEach(normalizeSafetyChart);
-
     const chartTop = id => {
       const chart = window.Chart?.getChart?.(id);
       const labels = chart?.data?.labels || [];
@@ -1479,7 +1424,13 @@
       يتم إنشاء التقرير الكامل للتاب النشط فقط.
     */
     document.getElementById(MODAL_ID)?.remove();
-    printReport('full');
+    try {
+      printReport('full');
+    } catch (error) {
+      console.error('VD report export failed:', error);
+      cleanupReport();
+      alert('تعذر تجهيز التقرير. يرجى إعادة تحميل الصفحة والمحاولة مرة أخرى.');
+    }
   }
 
   function hideLegacyExportButtons() {
@@ -1522,9 +1473,13 @@
     const button =
       bar.querySelector('.vd-tab-report-btn');
 
-    if (button && !button.dataset.bound) {
+    if (button) {
       button.dataset.bound = '1';
-      button.addEventListener('click', showModal);
+      button.onclick = event => {
+        event.preventDefault();
+        event.stopPropagation();
+        showModal();
+      };
     }
   }
 
