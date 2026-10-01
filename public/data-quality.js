@@ -162,14 +162,6 @@ function advancedChecks(q){
  inspectDates('محاضر إثبات الحالة',minutes,[['date','تاريخ المحضر']],[],['date']);
  checks.push({key:'badDate',label:'تاريخ غير منطقي',note:'تنسيق تاريخ غير صالح، تاريخ مستقبلي، أو نهاية أسبق من البداية.',rows:badDates});
 
- const assetSequence=[];
- assets.forEach(r=>{
-  if(exact(r.procedure207,'تم')&&!exact(r.fieldReceipt,'تم')){
-   assetSequence.push(dqAdvancedRow('الأصول',r,'إجراء 207 تم قبل الاستلام الميداني','S: '+(t(r.fieldReceipt)||'فارغ')+' | T: '+(t(r.procedure207)||'فارغ')));
-  }
- });
- checks.push({key:'assetSequence',label:'تسلسل أصول غير منطقي',note:'إجراء 207 لا يُعتبر صحيحًا إلا بعد أن يكون الاستلام الميداني = «تم».',rows:assetSequence});
-
  const duplicateRows=[],seen=new Map();
  const fullRowSignature=(source,r)=>{
   // Prefer the server-side signature of the COMPLETE physical sheet row.
