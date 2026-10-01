@@ -582,3 +582,26 @@ body.vd-report-v2-mode #vdReportV2{display:block!important}
     padding:1.5mm 1.8mm!important;
   }
 }
+
+/* Safety report — dedicated print layout */
+.vd-report-safety-overview .vd-report-section-body{display:flex;flex-direction:column;gap:3mm}
+.vd-safety-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1.2px solid #26396f;border-radius:4px;overflow:hidden;background:#fff}
+.vd-safety-meta>div{min-width:0;padding:2.3mm;text-align:center;background:#f8f9fb;border-left:1px solid #d1d7e0}
+.vd-safety-meta>div:nth-child(even){background:#eef0f4}.vd-safety-meta>div:last-child{border-left:0}
+.vd-safety-meta .vd-safety-meta-wide{grid-column:1/-1;border-top:1px solid #d1d7e0;border-left:0!important;text-align:right}
+.vd-safety-meta span{display:block;color:#707a88;font-size:6px;margin-bottom:.7mm}.vd-safety-meta b{display:block;color:#172b5f;font-size:8px;line-height:1.5;overflow-wrap:anywhere}
+.vd-safety-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2.4mm}
+.vd-safety-kpi-grid .vd-report-kpi-clone{min-height:20mm!important;padding:2.4mm!important}
+.vd-safety-rank-grid{display:grid;grid-template-columns:1fr 1fr;gap:3mm;min-height:0}
+.vd-safety-rank-grid .vd-report-summary-table{padding:2mm!important;overflow:hidden!important}
+.vd-safety-rank-grid table{font-size:5.6px!important}.vd-safety-rank-grid th,.vd-safety-rank-grid td{padding:.8mm 1mm!important}
+.vd-safety-chart-grid{grid-template-columns:1fr 1fr;gap:3mm}
+.vd-report-safety-chart-page .vd-report-chart-card{min-height:0!important;height:72mm!important;padding:2.4mm!important}
+.vd-report-safety-chart-page .vd-report-chart-image{width:100%!important;height:61mm!important;max-height:61mm!important;object-fit:contain!important}
+.vd-report-safety-chart-page-last .vd-report-chart-card{height:132mm!important}
+.vd-report-safety-chart-page-last .vd-report-chart-image{height:119mm!important;max-height:119mm!important}
+.vd-report-safety-detail-page .vd-report-section-body{margin-top:1.5mm!important;overflow:hidden}
+.vd-report-safety-table{width:100%!important;table-layout:fixed!important;font-size:5.1px!important}
+.vd-report-safety-table th,.vd-report-safety-table td{padding:.7mm .8mm!important;line-height:1.3!important;vertical-align:top!important}
+.vd-report-safety-table a{color:#0b68a5!important;text-decoration:none!important;font-weight:800!important}
+@media print{.vd-report-safety-overview,.vd-report-safety-chart-page,.vd-report-safety-detail-page{overflow:hidden!important}}

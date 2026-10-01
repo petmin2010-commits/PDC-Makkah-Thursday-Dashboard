@@ -1114,6 +1114,106 @@
     return true;
   }
 
+  function buildSafetyReport(report) {
+    const source = document.getElementById('dataPage');
+    const safety = document.getElementById('safetyMasterAnalytics');
+    if (!source || !safety) return false;
+
+    const kpis = findKpis(source).slice(0, 8);
+    const filters = getAppliedFilters();
+    const brand = getBrandInfo();
+    const period = document.querySelector('#vpsSummary b')?.textContent?.trim() || 'كامل المدة';
+    const countText = document.getElementById('dataCount')?.textContent?.trim() || '';
+    const filterText = filters.length
+      ? filters.map(x => `${x.label}: ${x.value}`).join(' • ')
+      : 'جميع البيانات';
+
+    const overview = createPage(
+      'تقرير مخالفات السلامة',
+      'SAFETY MASTER REPORT',
+      'vd-report-safety-overview'
+    );
+    const overviewBody = overview.querySelector('.vd-report-section-body');
+    const meta = document.createElement('div');
+    meta.className = 'vd-safety-meta';
+    meta.innerHTML = `
+      <div><span>الإدارة</span><b>${escapeHtml(brand.city)}</b></div>
+      <div><span>رقم العقد</span><b>${escapeHtml(brand.contract || '—')}</b></div>
+      <div><span>الفترة</span><b>${escapeHtml(period)}</b></div>
+      <div><span>النتائج</span><b>${escapeHtml(countText || '—')}</b></div>
+      <div class="vd-safety-meta-wide"><span>الفلاتر المطبقة</span><b>${escapeHtml(filterText)}</b></div>
+    `;
+    overviewBody.appendChild(meta);
+
+    if (kpis.length) {
+      const grid = document.createElement('div');
+      grid.className = 'vd-safety-kpi-grid';
+      kpis.forEach(kpi => {
+        const cloned = kpi.cloneNode(true);
+        cleanupClone(cloned);
+        cloned.classList.add('vd-report-kpi-clone');
+        grid.appendChild(cloned);
+      });
+      overviewBody.appendChild(grid);
+    }
+
+    const ranks = [...safety.querySelectorAll('.safety-rank-grid .panel')].filter(isVisible);
+    if (ranks.length) {
+      const rankGrid = document.createElement('div');
+      rankGrid.className = 'vd-safety-rank-grid';
+      ranks.forEach(panel => {
+        const cloned = cloneWithCanvases(panel);
+        cloned.classList.add('vd-report-summary-table');
+        rankGrid.appendChild(cloned);
+      });
+      overviewBody.appendChild(rankGrid);
+    }
+    report.appendChild(overview);
+
+    const charts = [...safety.querySelectorAll('.safety-master-grid .panel')].filter(isVisible);
+    chunk(charts, 4).forEach((group, index) => {
+      const page = createPage(
+        'التحليلات الرسومية لمخالفات السلامة',
+        `الصفحة ${index + 1} من ${Math.ceil(charts.length / 4)}`,
+        'vd-report-safety-chart-page'
+      );
+      if (group.length <= 2) page.classList.add('vd-report-safety-chart-page-last');
+      const body = page.querySelector('.vd-report-section-body');
+      const grid = document.createElement('div');
+      grid.className = 'vd-report-chart-grid vd-safety-chart-grid';
+      group.forEach(panel => {
+        const cloned = cloneWithCanvases(panel);
+        cloned.classList.add('vd-report-chart-card');
+        grid.appendChild(cloned);
+      });
+      body.appendChild(grid);
+      report.appendChild(page);
+    });
+
+    const table = document.querySelector('#dataTable table');
+    const rows = table ? [...table.querySelectorAll('tbody tr')] : [];
+    if (table && rows.length) {
+      chunk(rows, 12).forEach((group, index, groups) => {
+        const page = createPage(
+          'السجل التفصيلي لمخالفات السلامة',
+          `صفحة ${index + 1} من ${groups.length} • ${rows.length} سجل`,
+          'vd-report-safety-detail-page'
+        );
+        const copy = table.cloneNode(false);
+        copy.className = 'vd-report-safety-table';
+        const head = table.querySelector('thead')?.cloneNode(true);
+        if (head) copy.appendChild(head);
+        const bodyRows = document.createElement('tbody');
+        group.forEach(row => bodyRows.appendChild(row.cloneNode(true)));
+        copy.appendChild(bodyRows);
+        cleanupClone(copy);
+        page.querySelector('.vd-report-section-body').appendChild(copy);
+        report.appendChild(page);
+      });
+    }
+    return true;
+  }
+
   function buildReport(type = 'executive') {
     const source = getActivePage();
 
@@ -1129,6 +1229,16 @@
 
     report.id = REPORT_ID;
     report.className = 'vd-report-v2';
+
+    if (getActivePageKey() === 'safety') {
+      if (!buildSafetyReport(report)) {
+        alert('تعذر تجهيز تقرير مخالفات السلامة.');
+        return null;
+      }
+
+      document.body.appendChild(report);
+      return report;
+    }
 
     if (getActivePageKey() === 'dataQuality') {
       if (!buildDataQualityReport(report)) {
