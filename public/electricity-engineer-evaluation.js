@@ -155,8 +155,7 @@ function renderDrilldown(rows){
 function destroyCharts(){Object.values(state.charts).forEach(c=>{try{c.destroy()}catch{}});state.charts={}}
 function draw(id,type,labels,data,opts={}){const el=document.getElementById(id);if(!el||typeof Chart==='undefined')return;state.charts[id]=new Chart(el,{type,data:{labels,datasets:[{label:opts.label||'',data,borderWidth:1,backgroundColor:type==='doughnut'?['#2878e8','#13a36d','#e6a500','#dc3d4b','#7a5af8','#00a6a6']:'#2878e8'}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:opts.horizontal?'y':'x',plugins:{legend:{display:type==='doughnut'}},scales:type==='doughnut'?{}:(opts.horizontal?{x:{beginAtZero:true,max:opts.max||undefined},y:{}}:{x:{},y:{beginAtZero:true,max:opts.max||undefined}})}})}
 function renderCharts(summary,stats,rows,ai,completion,engineer){
- destroyCharts();const top=[...stats].sort((a,b)=>(b.score??-1)-(a.score??-1)).slice(0,15);
- draw('eeeEngineerQuality','bar',top.map(x=>x.name),top.map(x=>x.score??0),{label:'التقييم النهائي',horizontal:true,max:100});
+ destroyCharts();
  const components=[['جودة البيانات',summary.quality],['التدقيق الذكي',summary.smartScore],['تقييم الوكيل',ai.score],['متوسط الإنجاز',completion]].filter(x=>x[1]!=null);
  draw('eeeComponentChart','bar',components.map(x=>x[0]),components.map(x=>x[1]),{label:'نسبة المكون',max:100});
  const sec=['projects','connections','assets'],sectionScores=sec.map(s=>sectionEvaluation(rows,summary,engineer,s).score);
@@ -188,8 +187,7 @@ function render(){
  '<label><span>من تاريخ</span><input id="eeeFrom" type="date" value="'+esc(f.from)+'"></label><label><span>إلى تاريخ</span><input id="eeeTo" type="date" value="'+esc(f.to)+'"></label>'+
  '<label class="wide"><span>بحث</span><input id="eeeSearch" value="'+esc(f.search)+'" placeholder="أمر عمل، مقاول، موقع، حالة، إفادة..."></label></div><div class="eee-actions"><button id="eeeReset" class="ghost-btn">مسح الفلاتر</button><button id="eeeRefresh" class="primary-btn">↻ تحديث البيانات</button><strong>'+rows.length+' سجل مطابق</strong></div></section>'+
  '<div class="eee-kpis">'+cards.join('')+'</div><section class="eee-section-grid">'+sectionCards(summary,rows,state.filters.engineer)+'</section>'+
- '<section class="eee-analysis-grid"><article class="panel"><div class="panel-title"><span>FINAL SCORE RANKING</span><h3>التقييم النهائي حسب المهندس</h3></div><div class="eee-canvas tall"><canvas id="eeeEngineerQuality"></canvas></div></article>'+
- '<article class="panel"><div class="panel-title"><span>SCORE COMPONENTS</span><h3>مكونات التقييم</h3></div><div class="eee-canvas"><canvas id="eeeComponentChart"></canvas></div></article>'+
+ '<section class="eee-analysis-grid"><article class="panel"><div class="panel-title"><span>SCORE COMPONENTS</span><h3>مكونات التقييم</h3></div><div class="eee-canvas"><canvas id="eeeComponentChart"></canvas></div></article>'+
  '<article class="panel"><div class="panel-title"><span>SECTION SCORE</span><h3>التقييم المركب حسب السكشن</h3></div><div class="eee-canvas"><canvas id="eeeSectionQuality"></canvas></div></article>'+
  '<article class="panel"><div class="panel-title"><span>EVALUATION ISSUES</span><h3>أكثر الملاحظات المؤثرة على التقييم</h3></div><div class="eee-canvas tall"><canvas id="eeeIssuesChart"></canvas></div></article></section>'+
  '<section class="eee-head"><div><span>EVALUATION DIAGNOSTICS</span><h3>تفصيل ملاحظات الجودة والتدقيق الذكي</h3></div><p>هذه التفاصيل تفسر أسباب انخفاض النسب ولا تضيف خصمًا مستقلًا فوق مكونات التقييم.</p></section><article class="panel eee-issues-panel">'+issueTable(summary)+'</article>'+
