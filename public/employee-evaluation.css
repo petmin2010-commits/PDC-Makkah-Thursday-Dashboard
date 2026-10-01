@@ -10,3 +10,9 @@
 .ee-loading,.ee-error{min-height:260px;display:flex;align-items:center;justify-content:center;gap:12px;border:1px solid var(--line,#dfe6ef);border-radius:18px;background:var(--panel,#fff);font-weight:700}.ee-error{color:#bd2433}
 body.vd-report-dark .ee-hero,body.vd-report-dark .ee-filter-panel,body.vd-report-dark .ee-kpi{background:#0d233d;border-color:rgba(117,177,238,.25)}body.vd-report-dark .ee-meta{background:rgba(13,35,61,.75)}body.vd-report-dark .ee-filter-grid select,body.vd-report-dark .ee-filter-grid input{background:#0d233d;border-color:rgba(117,177,238,.25)}
 @media(max-width:1200px){.ee-kpis{grid-template-columns:repeat(3,1fr)}.ee-charts{grid-template-columns:1fr 1fr}.ee-filter-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:760px){.ee-hero{flex-direction:column;align-items:stretch}.ee-filter-grid,.ee-kpis,.ee-charts{grid-template-columns:1fr}.ee-search{grid-column:auto}.ee-actions{flex-wrap:wrap}.ee-actions strong{margin:0;width:100%}}
+
+/* Safety enforcement indicator in employee evaluation */
+.ee-kpi.safety-audit{grid-column:span 2;background:linear-gradient(135deg,rgba(13,163,109,.10),rgba(40,120,232,.06));border-color:rgba(13,163,109,.38)}
+.ee-kpi.safety-audit:before{background:#0da36d}.ee-kpi.safety-audit strong{color:#08784f}.ee-kpi.safety-audit small{line-height:1.65}
+.ee-mini-score.safety{background:#e7f7f0;color:#08784f;min-width:68px}
+@media(max-width:760px){.ee-kpi.safety-audit{grid-column:auto}}

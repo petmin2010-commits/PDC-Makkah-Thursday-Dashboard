@@ -1137,7 +1137,8 @@
     const overallBand = Number.isFinite(overallNum)
       ? overallNum >= 90 ? 'ممتاز' : overallNum >= 80 ? 'جيد جدًا' : overallNum >= 70 ? 'جيد' : 'يحتاج تحسين'
       : '—';
-    const metricCards = kpis.filter(k => !['مهندسو المواقع','إجمالي المهام','متوسط التقييم'].includes(k.querySelector('span')?.textContent?.trim() || ''));
+    const safetyAuditCard = findKpi('الرقابة وفرض متطلبات السلامة');
+    const metricCards = kpis.filter(k => !['مهندسو المواقع','إجمالي المهام','متوسط التقييم','الرقابة وفرض متطلبات السلامة'].includes(k.querySelector('span')?.textContent?.trim() || ''));
     const formalLabels = {'السلامة الإلكتروني':'السلامة الإلكترونية','السلامة الورقي':'السلامة الورقية','As-Built':'اكتمال As-Built'};
     const metricData = metricCards.map(card => {
       const rawLabel = card.querySelector('span')?.textContent?.trim() || 'مؤشر';
@@ -1169,6 +1170,19 @@
     hero.className = 'vd-employee-score-hero';
     hero.innerHTML = `<div><span>التقييم الإجمالي</span><strong>${escapeHtml(overallText)}</strong><small>${escapeHtml(overallBand)}</small></div><p>التقييم الآلي مبني على مؤشرات ورقة «المهام والإفادات» وفق الفلاتر الحالية، ولا يشمل تقييم مدير المشروع الفني لعدم وجوده في الورقة المصدر.</p>`;
     body.appendChild(hero);
+
+    if (safetyAuditCard) {
+      const safetyBox = document.createElement('div');
+      safetyBox.className = 'vd-employee-safety-audit';
+      const clonedSafety = safetyAuditCard.cloneNode(true);
+      cleanupClone(clonedSafety);
+      clonedSafety.classList.add('vd-report-kpi-clone');
+      safetyBox.appendChild(clonedSafety);
+      const safetyNote = document.createElement('p');
+      safetyNote.textContent = 'مؤشر رقابي مستقل من العمود AB: إجمالي المخالفات، معدلها لكل 100 مهمة، ونسبة المهام التي تم رصد مخالفة سلامة بها. لا يدخل في متوسط التقييم العام.';
+      safetyBox.appendChild(safetyNote);
+      body.appendChild(safetyBox);
+    }
 
     if (metricCards.length) {
       const grid = document.createElement('div');
