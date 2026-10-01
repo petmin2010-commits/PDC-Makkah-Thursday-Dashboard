@@ -39,7 +39,7 @@ function renderShell(rows,stats,benchmarkRows){
  const safetySub=safety.per100+' مخالفة لكل 100 مهمة • مهام بها مخالفة '+safety.interventionPct+'% • متوسط النطاق '+benchmark.per100+comparison;
  const cards=[card('مهندسو المواقع',stats.length,'ضمن الفلاتر الحالية','primary'),card('إجمالي المهام',rows.length,'صف من شيت المهام والإفادات','primary'),card('متوسط التقييم',overall+'%',band(overall),tone(overall)),...(state.available.safetyViolations?[card('الرقابة وفرض متطلبات السلامة',safety.total+' مخالفة',safetySub,'safety-audit')]:[]),...ms.map(m=>card(m.label,metricAvg(rows,m)+'%','المصدر '+m.source,tone(metricAvg(rows,m))))];
  const note=(ms.length===8?'التقييم الآلي = متوسط متساوي الوزن لثمانية مؤشرات مستخرجة من الشيت، ولا يشمل تقييم مدير المشروع الفني.':'التقييم يعتمد فقط على المؤشرات المتاحة فعليًا في ورقة المشروع الحالية ('+ms.length+' مؤشرات)، ولا يشمل تقييم مدير المشروع الفني.')+(state.available.safetyViolations?' مؤشر الرقابة على السلامة من العمود AB مستقل ولا يدخل في المتوسط العام.':'');
- return '<div class="ee-wrap"><section class="ee-hero"><div><span>EMPLOYEE PERFORMANCE • SITE ENGINEERS</span><h2>تقييم الموظفين</h2><p>تقييم آلي لمهندسي المواقع من ورقة «'+esc(state.sheet||'المهام والإفادات')+'» مع تحليل الإفادات ومتطلبات التوثيق.</p></div><div class="ee-meta"><small>آخر قراءة</small><b>'+esc(state.updatedAt||'—')+'</b></div></section>'+
+ return '<div class="ee-wrap"><section class="ee-hero"><div><span>EMPLOYEE PERFORMANCE • SITE ENGINEERS</span><h2>تقييم مهندسي المواقع</h2><p>تقييم آلي لمهندسي المواقع من ورقة «'+esc(state.sheet||'المهام والإفادات')+'» مع تحليل الإفادات ومتطلبات التوثيق.</p></div><div class="ee-meta"><small>آخر قراءة</small><b>'+esc(state.updatedAt||'—')+'</b></div></section>'+
  '<section class="ee-note"><b>منهجية الاحتساب</b><span>'+esc(note)+'</span></section>'+
  '<section class="ee-filter-panel"><div class="ee-filter-grid">'+
  '<label><span>المهندس</span><select id="eeEngineer">'+optionList(state.rows.map(r=>r.engineer),f.engineer)+'</select></label>'+
@@ -89,7 +89,7 @@ function activate(){
  document.getElementById('employeeEvaluationPage')?.classList.add('active');
  const fb=document.getElementById('filterBar');if(fb)fb.style.display='none';
  const topSearch=document.querySelector('.top-actions .search');if(topSearch)topSearch.style.display='none';
- const title=document.getElementById('pageTitle');if(title)title.textContent='تقييم الموظفين';
+ const title=document.getElementById('pageTitle');if(title)title.textContent='تقييم مهندسي المواقع';
  load(false);
 }
 if(typeof openPage==='function'){

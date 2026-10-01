@@ -713,6 +713,23 @@ async function getEmployeeEvaluationData_(){
   const out={updatedAt:now_(),sheet,available,rows};cachePut(cacheKey,out,60);return out;
 }
 
+async function getElectricityEngineerEvaluationData_(){
+  const cacheKey='ELECTRICITY_ENGINEER_EVALUATION_V1';
+  const hit=cacheGet(cacheKey);if(hit)return hit;
+  const [projects,connections,assets,adviceIntelligence]=await Promise.all([
+    readConfiguredSheet_(APP.PAGES.projects,'projects'),
+    readConfiguredSheet_(APP.PAGES.connections,'connections'),
+    readConfiguredSheet_(APP.PAGES.assets,'assets'),
+    getAdviceIntelligence_().catch(e=>({error:e.message||String(e),currentOrders:[],counts:{},age:{}}))
+  ]);
+  const keep=(rows,keys)=>rows.map(r=>{const o={_row:r._row};keys.forEach(k=>o[k]=r[k]??'');return o});
+  const projectKeys=['workOrder','type','description','contractor','section','location','assignedDate','days','duration','delay','permit','permitStart','permitEnd','engineer','stage','stageStatus','excavationTarget','excavationDone','extensionTarget','extensionDone','detail','advice','adviceDate','adviceAge','consultant155Date','timeRatio','excavationProgress','extensionProgress','progress','spi','executionStatus','closure'];
+  const connectionKeys=['workOrder','type','description','contractor','section','location','assignedDate','days','contractorAction','category','duration','delay','permit','permitStart','permitEnd','engineer','stage','stageStatus','office','detail','advice','adviceDate','adviceAge','consultant155CompletionDate','timeRatio','excavationProgress','extensionProgress','progress','spi','executionStatus'];
+  const assetKeys=['workOrder','type','workOrderCode','contractor','location','ageDays','orderFollowStatus','installDate','equipmentNo','testType','executingEntity','engineer','plantingReview','plantingStatus','assetForm','fieldReceipt','procedure207','notes','resolved','systemReceipt','specialNote'];
+  const out={updatedAt:now_(),projects:keep(projects,projectKeys),connections:keep(connections,connectionKeys),assets:keep(assets,assetKeys),adviceIntelligence};
+  cachePut(cacheKey,out,90);return out;
+}
+
 function cacheGet(key){
   const x=memoryCache.get(key); if(!x) return null;
   if(Date.now()>x.exp){memoryCache.delete(key);return null}
@@ -2238,6 +2255,18 @@ app.get('/api/hr/employee-evaluation',requireAuth_,async(req,res)=>{
   try{
     if(req.query&&req.query.t)memoryCache.delete('EMPLOYEE_EVALUATION_V1');
     const result=await getEmployeeEvaluationData_();
+    res.set('Cache-Control','no-store');
+    res.json({ok:true,...result});
+  }catch(e){
+    console.error(e);
+    res.status(500).json({ok:false,error:e.message||String(e)});
+  }
+});
+
+app.get('/api/hr/electricity-engineer-evaluation',requireAuth_,async(req,res)=>{
+  try{
+    if(req.query&&req.query.t)memoryCache.delete('ELECTRICITY_ENGINEER_EVALUATION_V1');
+    const result=await getElectricityEngineerEvaluationData_();
     res.set('Cache-Control','no-store');
     res.json({ok:true,...result});
   }catch(e){
