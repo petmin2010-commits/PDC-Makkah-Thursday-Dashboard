@@ -3344,7 +3344,7 @@ function renderSafetyMasterAnalytics(rows){
  const mlabels=mkeys.map(monthLabelAr);
  const mvalues=mkeys.map(k=>monthly[k]);
 
- const VD={navy:'#1c2868',blue:'#19b8e6',cyan:'#00a0c6',orange:'#f6a21a',ink:'#f5f9ff',muted:'#b8c9df'};
+ const VD={navy:'#1c2868',blue:'#19b8e6',cyan:'#00a0c6',orange:'#f6a21a',ink:'#172b5f',muted:'#667085'};
  const palette=[VD.navy,VD.blue,VD.orange,VD.cyan,'#2f57a6','#ee8b19','#4e79a7','#59a14f','#af7aa1','#9c755f'];
  const makeChart=(id,type,labels,data,opts={})=>{
    if(S.charts[id])S.charts[id].destroy();
@@ -3365,17 +3365,17 @@ function renderSafetyMasterAnalytics(rows){
        hoverOffset:isDoughnut?8:undefined
      }]},
      options:{
-       responsive:true,maintainAspectRatio:false,indexAxis:opts.horizontal?'y':'x',cutout:isDoughnut?'66%':undefined,
+       responsive:true,maintainAspectRatio:false,devicePixelRatio:2,indexAxis:opts.horizontal?'y':'x',cutout:isDoughnut?'66%':undefined,
        interaction:{mode:isDoughnut?'nearest':'index',intersect:false},
        layout:{padding:{top:10,right:12,bottom:5,left:10}},
        plugins:{
-         legend:{display:isDoughnut,position:'bottom',rtl:true,labels:{font:{family:'Cairo',size:9},boxWidth:10,boxHeight:10,usePointStyle:true,padding:12,color:VD.ink}},
+         legend:{display:isDoughnut,position:'bottom',rtl:true,labels:{font:{family:'Cairo',size:10,weight:'700'},boxWidth:10,boxHeight:10,usePointStyle:true,padding:12,color:VD.ink}},
          tooltip:{rtl:true,backgroundColor:VD.ink,titleFont:{family:'Cairo',size:11,weight:'700'},bodyFont:{family:'Cairo',size:10},padding:11,cornerRadius:10,displayColors:true,callbacks:{label:c=>' '+fmt(c.raw)+' مخالفة'}},
          title:{display:false}
        },
        scales:isDoughnut?{}:{
-         x:{beginAtZero:true,grid:{display:!opts.horizontal,color:'rgba(255,255,255,.08)'},border:{display:false},ticks:{font:{family:'Cairo',size:9},color:VD.muted,maxRotation:isLine?0:30,minRotation:0}},
-         y:{beginAtZero:true,grid:{display:false},border:{display:false},ticks:{font:{family:'Cairo',size:9,weight:opts.horizontal?'600':'400'},color:VD.ink,autoSkip:false,callback:function(v){const t=this.getLabelForValue(v);return String(t).length>36?String(t).slice(0,36)+'…':t;}}}
+         x:{beginAtZero:true,grid:{display:!opts.horizontal,color:'rgba(23,43,95,.10)'},border:{display:false},ticks:{font:{family:'Cairo',size:10,weight:'600'},color:VD.ink,maxRotation:isLine?0:30,minRotation:0}},
+         y:{beginAtZero:true,grid:{display:false},border:{display:false},ticks:{font:{family:'Cairo',size:10,weight:'700'},color:VD.ink,autoSkip:false,callback:function(v){const t=this.getLabelForValue(v);return String(t).length>36?String(t).slice(0,36)+'…':t;}}}
        }
      }
    });
@@ -3403,12 +3403,12 @@ function renderExecutionMasterAnalytics(rows){
  const monthly={};
  rows.forEach(r=>{const d=parseDashboardDate(r.date);if(!d)return;const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');monthly[k]=(monthly[k]||0)+1});
  const mkeys=Object.keys(monthly).sort(),mlabels=mkeys.map(monthLabelAr),mvalues=mkeys.map(k=>monthly[k]);
- const VD={navy:'#1c2868',blue:'#19b8e6',cyan:'#00a0c6',orange:'#f6a21a',ink:'#f5f9ff',muted:'#b8c9df'};
+ const VD={navy:'#1c2868',blue:'#19b8e6',cyan:'#00a0c6',orange:'#f6a21a',ink:'#172b5f',muted:'#667085'};
  const palette=[VD.blue,VD.orange,VD.cyan,'#4d7cff','#8f6cff','#40c98a','#f05a5a','#7ac7ff','#ffd166','#7e8aa6'];
  const makeChart=(id,type,labels,data,opts={})=>{
    if(S.charts[id])S.charts[id].destroy(); const el=document.getElementById(id);if(!el)return;
    const isBar=type==='bar',isLine=type==='line',isDoughnut=type==='doughnut';
-   S.charts[id]=new Chart(el,{type,data:{labels,datasets:[{label:'عدد المخالفات',data,backgroundColor:isLine?'rgba(25,184,230,.18)':labels.map((_,i)=>palette[i%palette.length]),borderColor:isLine?VD.blue:labels.map((_,i)=>palette[i%palette.length]),borderWidth:isLine?3:(isDoughnut?2:0),borderRadius:isBar?9:0,borderSkipped:false,pointRadius:isLine?4:0,pointHoverRadius:isLine?7:0,pointBackgroundColor:isLine?'#fff':undefined,pointBorderColor:isLine?VD.blue:undefined,pointBorderWidth:isLine?2:0,fill:isLine,tension:.34,barThickness:isBar?18:undefined,maxBarThickness:isBar?22:undefined,hoverOffset:isDoughnut?8:undefined}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:opts.horizontal?'y':'x',cutout:isDoughnut?'66%':undefined,interaction:{mode:isDoughnut?'nearest':'index',intersect:false},layout:{padding:{top:10,right:12,bottom:5,left:10}},plugins:{legend:{display:isDoughnut,position:'bottom',rtl:true,labels:{font:{family:'Cairo',size:9},boxWidth:10,boxHeight:10,usePointStyle:true,padding:12,color:VD.ink}},tooltip:{rtl:true,backgroundColor:'#071e38',titleFont:{family:'Cairo',size:11,weight:'700'},bodyFont:{family:'Cairo',size:10},padding:11,cornerRadius:10,callbacks:{label:c=>' '+fmt(c.raw)+' مخالفة'}}},scales:isDoughnut?{}:{x:{beginAtZero:true,grid:{display:!opts.horizontal,color:'rgba(255,255,255,.08)'},border:{display:false},ticks:{font:{family:'Cairo',size:9},color:VD.muted,maxRotation:isLine?0:30,minRotation:0}},y:{beginAtZero:true,grid:{display:false},border:{display:false},ticks:{font:{family:'Cairo',size:9,weight:opts.horizontal?'600':'400'},color:VD.ink,autoSkip:false,callback:function(v){const t=this.getLabelForValue(v);return String(t).length>36?String(t).slice(0,36)+'…':t;}}}}}});
+   S.charts[id]=new Chart(el,{type,data:{labels,datasets:[{label:'عدد المخالفات',data,backgroundColor:isLine?'rgba(25,184,230,.18)':labels.map((_,i)=>palette[i%palette.length]),borderColor:isLine?VD.blue:labels.map((_,i)=>palette[i%palette.length]),borderWidth:isLine?3:(isDoughnut?2:0),borderRadius:isBar?9:0,borderSkipped:false,pointRadius:isLine?4:0,pointHoverRadius:isLine?7:0,pointBackgroundColor:isLine?'#fff':undefined,pointBorderColor:isLine?VD.blue:undefined,pointBorderWidth:isLine?2:0,fill:isLine,tension:.34,barThickness:isBar?18:undefined,maxBarThickness:isBar?22:undefined,hoverOffset:isDoughnut?8:undefined}]},options:{responsive:true,maintainAspectRatio:false,devicePixelRatio:2,indexAxis:opts.horizontal?'y':'x',cutout:isDoughnut?'66%':undefined,interaction:{mode:isDoughnut?'nearest':'index',intersect:false},layout:{padding:{top:10,right:12,bottom:5,left:10}},plugins:{legend:{display:isDoughnut,position:'bottom',rtl:true,labels:{font:{family:'Cairo',size:10,weight:'700'},boxWidth:10,boxHeight:10,usePointStyle:true,padding:12,color:VD.ink}},tooltip:{rtl:true,backgroundColor:'#071e38',titleFont:{family:'Cairo',size:11,weight:'700'},bodyFont:{family:'Cairo',size:10},padding:11,cornerRadius:10,callbacks:{label:c=>' '+fmt(c.raw)+' مخالفة'}}},scales:isDoughnut?{}:{x:{beginAtZero:true,grid:{display:!opts.horizontal,color:'rgba(23,43,95,.10)'},border:{display:false},ticks:{font:{family:'Cairo',size:10,weight:'600'},color:VD.ink,maxRotation:isLine?0:30,minRotation:0}},y:{beginAtZero:true,grid:{display:false},border:{display:false},ticks:{font:{family:'Cairo',size:10,weight:'700'},color:VD.ink,autoSkip:false,callback:function(v){const t=this.getLabelForValue(v);return String(t).length>36?String(t).slice(0,36)+'…':t;}}}}}});
  };
  makeChart('executionTrendChart','line',mlabels,mvalues);
  makeChart('executionContractorChart','bar',topContractors.map(x=>x[0]),topContractors.map(x=>x[1]),{horizontal:true});
