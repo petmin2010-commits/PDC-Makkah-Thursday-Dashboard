@@ -1381,16 +1381,33 @@
             (th.textContent || '').replace(/\s+/g, ' ').trim().includes(endHeaderText)
           )
         : -1;
-      const columnCount = endColumnIndex >= 0
+      const excludedHeaderPattern = config.detailExcludeHeaderPattern
+        ? new RegExp(config.detailExcludeHeaderPattern, 'u')
+        : null;
+      const excludedColumnIndexes = new Set();
+      if (excludedHeaderPattern) {
+        allHeaders.forEach((th, index) => {
+          const headerText = (th.textContent || '').replace(/\s+/g, ' ').trim();
+          if (excludedHeaderPattern.test(headerText)) excludedColumnIndexes.add(index);
+        });
+      }
+
+      const baseColumnCount = endColumnIndex >= 0
         ? endColumnIndex + 1
         : allHeaders.length;
+      const columnCount = Math.max(
+        1,
+        baseColumnCount - [...excludedColumnIndexes].filter(i => i < baseColumnCount).length
+      );
       const rowsPerPage = columnCount >= 15 ? 5 : columnCount >= 12 ? 6 : 8;
       const fontSize = columnCount >= 15 ? '4.8px' : columnCount >= 12 ? '5.3px' : '6px';
 
       const trimToDetailEnd = row => {
-        if (endColumnIndex < 0 || !row) return row;
+        if (!row) return row;
         [...row.children].forEach((cell, cellIndex) => {
-          if (cellIndex > endColumnIndex) cell.remove();
+          const afterEnd = endColumnIndex >= 0 && cellIndex > endColumnIndex;
+          const excluded = excludedColumnIndexes.has(cellIndex);
+          if (afterEnd || excluded) cell.remove();
         });
         return row;
       };
@@ -1502,7 +1519,8 @@
           '#minutesMasterAnalytics .vx-grid .panel'
         ],
         chartTitle: 'التحليلات الرسومية لمحاضر إثبات الحالة',
-        detailTitle: 'السجل التفصيلي لمحاضر إثبات الحالة'
+        detailTitle: 'السجل التفصيلي لمحاضر إثبات الحالة',
+        detailExcludeHeaderPattern: '\\s*[2-5\\u0662-\\u0665]$'
       })) {
         alert('تعذر تجهيز تقرير محاضر إثبات الحالة.');
         return null;
