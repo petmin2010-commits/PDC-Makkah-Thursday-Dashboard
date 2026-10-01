@@ -23,6 +23,7 @@
     if (key === 'master') return document.getElementById('masterPage');
     if (key === 'wednesdayMeeting') return document.getElementById('meetingPage');
     if (key === 'employeeEvaluation') return document.getElementById('employeeEvaluationPage');
+    if (key === 'electricityEngineerEvaluation') return document.getElementById('electricityEngineerEvaluationPage');
     if (key) return document.getElementById('dataPage');
 
     return [...document.querySelectorAll('.page')]
@@ -1115,6 +1116,101 @@
     return true;
   }
 
+  function buildElectricityEngineerEvaluationReport(report) {
+    const root = document.getElementById('electricityEngineerEvaluationRoot');
+    const engineerSelect = document.getElementById('eeeEngineer');
+    if (!root || !engineerSelect) return false;
+    const engineer = engineerSelect.value?.trim() || '';
+    if (!engineer || engineer === 'الكل') {
+      alert('يرجى اختيار مهندس من فلتر «المهندس المسؤول» أولًا ثم تصدير تقرير التقييم.');
+      return false;
+    }
+    const brand = getBrandInfo();
+    const from = document.getElementById('eeeFrom')?.value || '';
+    const to = document.getElementById('eeeTo')?.value || '';
+    const period = from && to ? `${from} — ${to}` : from ? `من ${from}` : to ? `حتى ${to}` : 'كامل المدة';
+    const section = document.getElementById('eeeSection')?.selectedOptions?.[0]?.textContent?.trim() || 'الكل';
+    const contractor = document.getElementById('eeeContractor')?.value || 'الكل';
+    const kpis = [...root.querySelectorAll('.eee-kpi')].filter(isVisible);
+    const findKpi = label => kpis.find(k => k.querySelector('span')?.textContent?.trim() === label);
+    const finalText = findKpi('التقييم النهائي')?.querySelector('strong')?.textContent?.trim() || '—';
+    const overview = createPage('تقرير تقييم مهندس شركة الكهرباء','SEC ENGINEER COMPOSITE EVALUATION','vd-report-sec-engineer-overview');
+    const body = overview.querySelector('.vd-report-section-body');
+    const meta = document.createElement('div');
+    meta.className = 'vd-safety-meta vd-sec-engineer-meta';
+    meta.innerHTML = `
+      <div><span>اسم المهندس</span><b>${escapeHtml(engineer)}</b></div>
+      <div><span>المشروع / الإدارة</span><b>${escapeHtml([brand.project,brand.city].filter(Boolean).join(' — '))}</b></div>
+      <div><span>الفترة</span><b>${escapeHtml(period)}</b></div>
+      <div><span>السكشن</span><b>${escapeHtml(section)}</b></div>
+      <div class="vd-safety-meta-wide"><span>المقاول</span><b>${escapeHtml(contractor)}</b></div>
+    `;
+    body.appendChild(meta);
+
+    const hero = document.createElement('div');
+    hero.className = 'vd-sec-engineer-score-hero';
+    hero.innerHTML = `
+      <div><span>التقييم النهائي</span><strong>${escapeHtml(finalText)}</strong></div>
+      <p>التقييم النهائي هو متوسط متساوي للعوامل المتاحة: جودة البيانات، التدقيق الذكي، تقييم وكيل الإفادات، ومتوسط نسبة الإنجاز. عند توفر العوامل الأربعة يكون وزن كل عامل 25%.</p>
+    `;
+    body.appendChild(hero);
+    const componentLabels = ['جودة البيانات','التدقيق الذكي','تقييم وكيل الإفادات','متوسط الإنجاز'];
+    const componentGrid = document.createElement('div');
+    componentGrid.className = 'vd-sec-engineer-component-grid';
+    componentLabels.forEach(label => {
+      const src = findKpi(label);
+      if (!src) return;
+      const clone = src.cloneNode(true);
+      cleanupClone(clone);
+      clone.classList.add('vd-report-kpi-clone');
+      componentGrid.appendChild(clone);
+    });
+    body.appendChild(componentGrid);
+
+    const sectionGrid = document.createElement('div');
+    sectionGrid.className = 'vd-sec-engineer-section-grid';
+    [...root.querySelectorAll('.eee-section-card')].filter(isVisible).forEach(card => {
+      const clone = card.cloneNode(true);
+      [...clone.querySelectorAll('dl > div')].slice(4).forEach(node => node.remove());
+      cleanupClone(clone);
+      sectionGrid.appendChild(clone);
+    });
+    body.appendChild(sectionGrid);
+
+    const sign = document.createElement('div');
+    sign.className = 'vd-employee-signature';
+    sign.innerHTML = '<div><b>مدير العقد</b><span></span><small>التوقيع</small></div>';
+    body.appendChild(sign);
+    report.appendChild(overview);
+    const analysisPage = createPage('تحليل مكونات تقييم المهندس','EVALUATION COMPONENT ANALYSIS','vd-report-sec-engineer-analysis');
+    const analysisBody = analysisPage.querySelector('.vd-report-section-body');
+    const chartGrid = document.createElement('div');
+    chartGrid.className = 'vd-sec-engineer-chart-grid';
+    ['eeeComponentChart','eeeSectionQuality','eeeIssuesChart'].forEach(id => {
+      const panel = root.querySelector('#' + id)?.closest('.panel');
+      if (!panel || !isVisible(panel)) return;
+      const clone = cloneWithCanvases(panel);
+      clone.classList.add('vd-report-chart-card');
+      chartGrid.appendChild(clone);
+    });
+    analysisBody.appendChild(chartGrid);
+
+    const diagnostics = root.querySelector('.eee-issue-list');
+    if (diagnostics) {
+      const wrap = document.createElement('div');
+      wrap.className = 'vd-sec-engineer-diagnostics';
+      const title = document.createElement('h3');
+      title.textContent = 'أبرز الملاحظات المؤثرة على التقييم';
+      wrap.appendChild(title);
+      const clone = diagnostics.cloneNode(true);
+      cleanupClone(clone);
+      wrap.appendChild(clone);
+      analysisBody.appendChild(wrap);
+    }
+    report.appendChild(analysisPage);
+    return true;
+  }
+
   function buildEmployeeEvaluationReport(report) {
     const source = document.getElementById('employeeEvaluationPage');
     const root = document.getElementById('employeeEvaluationRoot');
@@ -1600,6 +1696,14 @@
     report.id = REPORT_ID;
     report.className = 'vd-report-v2';
 
+    if (getActivePageKey() === 'electricityEngineerEvaluation') {
+      if (!buildElectricityEngineerEvaluationReport(report)) {
+        return null;
+      }
+      document.body.appendChild(report);
+      return report;
+    }
+
     if (getActivePageKey() === 'employeeEvaluation') {
       if (!buildEmployeeEvaluationReport(report)) {
         return null;
@@ -1876,7 +1980,8 @@
       'masterPage',
       'meetingPage',
       'dataPage',
-      'employeeEvaluationPage'
+      'employeeEvaluationPage',
+      'electricityEngineerEvaluationPage'
     ].forEach(id => {
       ensurePageReportButton(
         document.getElementById(id)
