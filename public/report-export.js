@@ -746,6 +746,17 @@
       if (dataPanel && isVisible(dataPanel)) {
         const page = createPage('البيانات التفصيلية', getActivePageName(), 'vd-report-detail-page vd-report-projects-detail-page');
         const clone = cloneWithCanvases(dataPanel); clone.classList.add('vd-report-detail-panel');
+
+        // تقرير المشاريع لا يحتاج عمود «القسم» لأنه ثابت ومعلوم مسبقًا.
+        const detailTable = clone.querySelector('table');
+        if (detailTable) {
+          const headers = [...detailTable.querySelectorAll('thead th')];
+          const sectionIndex = headers.findIndex(th => th.textContent.trim() === 'القسم');
+          if (sectionIndex >= 0) {
+            [...detailTable.querySelectorAll('tr')].forEach(row => row.children[sectionIndex]?.remove());
+          }
+        }
+
         page.querySelector('.vd-report-section-body').appendChild(clone); report.appendChild(page);
       }
     }
