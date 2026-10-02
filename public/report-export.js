@@ -2776,15 +2776,30 @@
     });
   }
 
+  const COMPACT_REPORT_KEYS = new Set([
+    'master',
+    'projects',
+    'connections',
+    'assets',
+    'emergency',
+    'safety',
+    'executionViolations',
+    'minutes'
+  ]);
+
   function ensurePageReportButton(page) {
     if (!page) return;
 
     let bar =
-      page.querySelector(':scope > .vd-tab-report-actions');
+      document.querySelector(
+        '.vd-tab-report-actions[data-page-id="' + page.id + '"]'
+      )
+      || page.querySelector(':scope > .vd-tab-report-actions');
 
     if (!bar) {
       bar = document.createElement('div');
       bar.className = 'vd-tab-report-actions';
+      bar.dataset.pageId = page.id;
 
       const button = document.createElement('button');
       button.type = 'button';
@@ -2794,6 +2809,8 @@
 
       bar.appendChild(button);
       page.insertBefore(bar, page.firstChild);
+    } else {
+      bar.dataset.pageId = page.id;
     }
 
     const button =
@@ -2825,15 +2842,60 @@
 
   function syncPageReportButton() {
     const key = getActivePageKey();
+    const activePage =
+      document.querySelector('.page.active');
+    const activeBar = activePage
+      ? document.querySelector(
+          '.vd-tab-report-actions[data-page-id="' + activePage.id + '"]'
+        )
+      : null;
+    const compact =
+      COMPACT_REPORT_KEYS.has(key);
+    const exportSlot =
+      document.querySelector(
+        '#vdUnifiedControls .vd-unified-export-slot'
+      );
 
     document
       .querySelectorAll('.vd-tab-report-actions')
       .forEach(bar => {
-        bar.style.display =
-          key === 'smartThursday'
-            ? 'none'
-            : 'flex';
+        bar.style.display = 'none';
       });
+
+    if (
+      key !== 'smartThursday'
+      && activeBar
+    ) {
+      if (compact && exportSlot) {
+        if (activeBar.parentNode !== exportSlot) {
+          exportSlot.appendChild(activeBar);
+        }
+        activeBar.classList.add('is-unified');
+      } else {
+        if (
+          activePage
+          && activeBar.parentNode !== activePage
+        ) {
+          activePage.insertBefore(
+            activeBar,
+            activePage.firstChild
+          );
+        }
+        activeBar.classList.remove('is-unified');
+      }
+
+      activeBar.style.display = 'flex';
+    }
+
+    const dock =
+      document.getElementById('vdUnifiedControls');
+
+    if (dock) {
+      dock.classList.toggle(
+        'has-export',
+        !!(compact && activeBar)
+      );
+    }
 
     const thursdayButton =
       document.getElementById('stpExportReport');

@@ -11,6 +11,25 @@ const sumBy=(rows,key,valueKey)=>{const m=new Map();rows.forEach(r=>{const x=t(r
 const monthKey=v=>{const d=typeof parseDashboardDate==='function'?parseDashboardDate(v):null;return d&&!isNaN(d)?d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'):''};
 const monthLabel=k=>{const [y,m]=k.split('-');return new Date(Number(y),Number(m)-1,1).toLocaleDateString('ar-SA',{month:'short',year:'numeric'})};
 const REPORT_KEYS=new Set(['master','projects','connections','assets','emergency','safety','executionViolations','minutes']);
+
+function ensureUnifiedControls(){
+ let dock=document.getElementById('vdUnifiedControls');
+ const filterBar=document.getElementById('filterBar');
+ if(!filterBar)return null;
+
+ if(!dock){
+  dock=document.createElement('section');
+  dock.id='vdUnifiedControls';
+  dock.className='vd-unified-controls';
+  dock.innerHTML='<div class="vd-unified-filter-slot"></div><div class="vd-unified-export-slot"></div><div class="vd-unified-period-slot"></div>';
+  filterBar.parentNode.insertBefore(dock,filterBar);
+ }
+
+ const filterSlot=dock.querySelector('.vd-unified-filter-slot');
+ if(filterSlot&&filterBar.parentNode!==filterSlot)filterSlot.appendChild(filterBar);
+
+ return dock;
+}
 VX.periods=VX.periods||{};
 const periodState=key=>VX.periods[key]||(VX.periods[key]={from:'',to:'',preset:'all'});
 const isoDate=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -32,9 +51,13 @@ function fmtPeriodDate(v){
 function updatePeriodSlicer(){
  const key=typeof S!=='undefined'?S.current:'',box=document.getElementById('violationPeriodSlicer');
  if(!box)return;
- const on=REPORT_KEYS.has(key);box.style.display=on?'block':'none';if(!on)return;
- const anchor=key==='master'?document.getElementById('masterKpis'):document.getElementById('pageKpis');
- if(anchor?.parentNode)anchor.parentNode.insertBefore(box,anchor);
+ const dock=ensureUnifiedControls();
+ const periodSlot=dock?.querySelector('.vd-unified-period-slot');
+ const on=REPORT_KEYS.has(key);
+ box.style.display=on?'block':'none';
+ if(dock)dock.classList.toggle('has-period',on);
+ if(!on)return;
+ if(periodSlot&&box.parentNode!==periodSlot)periodSlot.appendChild(box);
  const st=periodState(key),from=document.getElementById('vpsFrom'),to=document.getElementById('vpsTo'),basis=document.getElementById('vpsBasis'),summary=document.getElementById('vpsSummary');
  if(from&&from.value!==st.from)from.value=st.from;
  if(to&&to.value!==st.to)to.value=st.to;
@@ -92,6 +115,7 @@ function draw(id,type,labels,data,opt={}){
 }
 function ensure(){
  const generic=document.getElementById('genericPageCharts');if(!generic)return;
+ const dock=ensureUnifiedControls();
  const pageKpis=document.getElementById('pageKpis');
  if(pageKpis&&!document.getElementById('violationPeriodSlicer')){
   const slicer=document.createElement('section');
@@ -120,7 +144,9 @@ function ensure(){
       </div>
       <button type="button" id="vpsClear" class="vps-clear">إعادة ضبط</button>
     </div>`;
-  pageKpis.parentNode.insertBefore(slicer,pageKpis);
+  const periodSlot=dock?.querySelector('.vd-unified-period-slot');
+  if(periodSlot)periodSlot.appendChild(slicer);
+  else pageKpis.parentNode.insertBefore(slicer,pageKpis);
   bindPeriodSlicer();
  }
  const ex=document.getElementById('executionMasterAnalytics');
