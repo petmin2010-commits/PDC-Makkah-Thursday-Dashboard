@@ -31,6 +31,7 @@
 <link rel="stylesheet" href="/smart-thursday-portfolio.css?v=separate-followup-20260930-3">
   <link rel="stylesheet" href="/report-export.css?v=control-reports-20261002-1">
   <link rel="stylesheet" href="/readability.css?v=black-text-20261001-1">
+  <link rel="stylesheet" href="/standard-report-controls.css?v=standard-report-controls-20261002-1">
 </head>
 <body>
 <div id="dashboardUserProfile" class="dashboard-user-profile" hidden>
@@ -98,7 +99,7 @@
 
   <main>
     <header class="topbar">
-      <div><small>VISION DIMENSIONS</small><h1 id="pageTitle">لوحة المتابعة الرئيسية</h1></div>
+      <div class="topbar-page-name" aria-hidden="true"><small>VISION DIMENSIONS</small><h1 id="pageTitle">لوحة المتابعة الرئيسية</h1></div>
       <div class="top-actions">
         <div class="search"><span>⌕</span><input id="globalSearch" placeholder="بحث في الصفحة الحالية..."></div>
 
@@ -114,6 +115,11 @@
       <div class="news-label"><i></i><div><b>الأخبار الذكية</b><small>SMART NEWS FEED</small></div></div>
       <div class="news-viewport"><div id="projectNewsTrack" class="news-track"><span>جاري تحميل الأخبار المهمة...</span></div></div>
       <button id="projectNewsPause" class="news-control" type="button" aria-label="إيقاف شريط الأخبار">❚❚</button>
+    </section>
+
+    <section id="globalPageHeading" class="global-page-heading" aria-live="polite">
+      <span>VISION DIMENSIONS</span>
+      <h1 id="globalPageHeadingTitle">لوحة المتابعة الرئيسية</h1>
     </section>
 
     <section id="filterBar" class="filters">
@@ -512,7 +518,7 @@
 <script src="/master-executive.js"></script>
 <script src="/closures-trees.js"></script>
 <script src="/site-followup.js"></script>
-<script src="/violations-analytics.js?v=compact-unified-controls-20261002-1"></script>
+<script src="/violations-analytics.js?v=standard-report-controls-20261002-1"></script>
 <script src="/smart-thursday.js?v=light-tabs-20261001-1"></script>
 <script src="/smart-thursday-portfolio.js?v=thursday-report-v3-20260930"></script>
 <script src="/important-links.js"></script>
@@ -521,7 +527,7 @@
 <script src="/electricity-engineer-evaluation.js?v=elec-engineer-eval-20261002-3"></script>
 <script src="/dashboard-assist.js"></script>
 <script src="/project-news.js?v=smartnews-20260927-4"></script>
-<script src="/report-export.js?v=merge-specialized-kpis-20261002-3"></script>
+<script src="/report-export.js?v=standard-report-controls-20261002-1"></script>
 <script src="/smart-center.js?v=nav-sections-3"></script>
 <script src="/workorder-360.js?v=smart-section-2"></script>
 

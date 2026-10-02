@@ -1,0 +1,194 @@
+/* VD STANDARD REPORT FILTER BAR — 2026-10-02 */
+#vdUnifiedControls.vd-unified-controls{
+  display:grid!important;grid-template-columns:1fr!important;
+  grid-template-areas:"filters" "period" "summary"!important;gap:12px!important;
+  margin:0 0 16px!important;padding:16px!important;border:1px solid #dbe5f2!important;
+  border-radius:20px!important;background:#fff!important;
+  box-shadow:0 12px 30px rgba(25,55,95,.07)!important;
+  direction:rtl!important;position:relative!important;color:#14213d!important;
+}
+#vdUnifiedControls .vd-unified-filter-slot{grid-area:filters!important;min-width:0!important}
+#vdUnifiedControls #filterBar.filters{
+  display:grid!important;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))!important;
+  gap:10px 12px!important;margin:0!important;padding:0!important;border:0!important;
+  background:transparent!important;box-shadow:none!important;
+}
+#vdUnifiedControls #filterBar .filter{min-width:0!important}
+#vdUnifiedControls #filterBar .filter label{
+  display:block!important;margin:0 4px 6px!important;font-size:9px!important;
+  line-height:1.2!important;font-weight:800!important;color:#182640!important;
+}
+#vdUnifiedControls #filterBar .filter select{
+  width:100%!important;height:46px!important;min-height:46px!important;padding:0 12px!important;
+  border:1px solid #d9e4f1!important;border-radius:12px!important;background:#fbfdff!important;
+  color:#14213d!important;font-size:10px!important;font-weight:600!important;box-shadow:none!important;
+}
+#vdUnifiedControls #filterBar .filter.active-filter select{
+  border-color:#2878e8!important;background:#f2f7ff!important;
+  box-shadow:0 0 0 3px rgba(40,120,232,.08)!important;color:#174f9d!important;
+}
+#vdUnifiedControls .vd-unified-period-slot{
+  grid-area:period!important;min-width:0!important;border-top:1px solid #e7edf5!important;padding-top:12px!important;
+}
+#vdUnifiedControls .violation-period-slicer{
+  display:grid!important;grid-template-columns:160px minmax(0,1fr)!important;gap:12px!important;
+  align-items:end!important;margin:0!important;padding:0!important;border:0!important;
+  background:transparent!important;box-shadow:none!important;
+}
+#vdUnifiedControls .violation-period-slicer[style*="display: none"]{display:none!important}
+#vdUnifiedControls .vps-head{display:flex!important;align-items:flex-end!important;margin:0!important}
+#vdUnifiedControls .vps-head h3{margin:0 0 4px!important;font-size:11px!important;line-height:1.2!important;color:#14213d!important}
+#vdUnifiedControls .vps-head small{font-size:8px!important;line-height:1.2!important;color:#71819a!important;font-weight:700!important}
+#vdUnifiedControls .vps-controls{
+  display:grid!important;grid-template-columns:150px 150px minmax(0,1fr)!important;
+  gap:10px!important;align-items:end!important;min-width:0!important;
+}
+#vdUnifiedControls .vps-controls label{display:flex!important;flex-direction:column!important;gap:5px!important;min-width:0!important}
+#vdUnifiedControls .vps-controls label>span{font-size:8px!important;font-weight:800!important;color:#24344f!important;margin:0 3px!important}
+#vdUnifiedControls .vps-controls input[type="date"]{
+  width:100%!important;height:44px!important;min-height:44px!important;padding:0 11px!important;
+  border:1px solid #d9e4f1!important;border-radius:12px!important;background:#fbfdff!important;
+  color:#14213d!important;font-size:10px!important;color-scheme:light!important;
+}
+#vdUnifiedControls .vps-presets{display:flex!important;flex-wrap:nowrap!important;gap:7px!important;align-items:center!important;min-width:0!important;overflow-x:auto!important;padding-bottom:1px!important;scrollbar-width:thin!important}
+#vdUnifiedControls .vps-presets button{
+  height:44px!important;min-height:44px!important;padding:0 14px!important;
+  border:1px solid #d9e4f1!important;border-radius:12px!important;background:#fff!important;
+  color:#17243b!important;font-size:9px!important;font-weight:800!important;
+  white-space:nowrap!important;cursor:pointer!important;flex:0 0 auto!important;
+}
+#vdUnifiedControls .vps-presets button:hover{border-color:#2878e8!important;background:#f4f8ff!important}
+#vdUnifiedControls .vps-presets button.active{
+  background:#2878e8!important;color:#fff!important;border-color:#2878e8!important;
+  box-shadow:0 7px 16px rgba(40,120,232,.20)!important;
+}
+#vdUnifiedControls .vps-clear{display:none!important}
+#vdUnifiedControls .vd-unified-summary-slot{
+  grid-area:summary!important;display:grid!important;
+  grid-template-columns:minmax(245px,1.15fr) 175px minmax(300px,1.35fr) auto!important;
+  gap:10px!important;align-items:stretch!important;border-top:1px solid #e7edf5!important;
+  padding-top:12px!important;min-width:0!important;
+}
+#vdUnifiedControls .vd-summary-card,#vdUnifiedControls .vd-active-filter-box{
+  min-width:0!important;border:1px solid #edf1f6!important;border-radius:13px!important;
+  background:#f8fbff!important;padding:9px 12px!important;
+}
+#vdUnifiedControls .vd-summary-card>span,#vdUnifiedControls .vd-active-filter-title{
+  display:block!important;font-size:8px!important;font-weight:800!important;color:#687991!important;margin-bottom:3px!important;
+}
+#vdUnifiedControls .vps-summary{
+  width:auto!important;min-width:0!important;margin:0!important;padding:0!important;
+  border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;
+}
+#vdUnifiedControls .vps-summary b,#vdUnifiedControls #vdUnifiedResultCount b{
+  display:block!important;font-size:10.5px!important;line-height:1.3!important;font-weight:800!important;color:#14213d!important;
+}
+#vdUnifiedControls .vps-summary small,#vdUnifiedControls #vdUnifiedResultCount small{
+  display:block!important;margin-top:2px!important;font-size:7.5px!important;line-height:1.2!important;color:#7b8aa0!important;font-weight:700!important;
+}
+#vdUnifiedControls #vdUnifiedResultCount{display:block!important}
+#vdUnifiedControls .vd-filter-chips{display:flex!important;align-items:center!important;gap:6px!important;flex-wrap:wrap!important;min-height:26px!important}
+#vdUnifiedControls .vd-filter-chip{
+  display:inline-flex!important;align-items:center!important;gap:6px!important;max-width:100%!important;
+  min-height:28px!important;padding:0 9px!important;border:1px solid #d6e4f6!important;
+  border-radius:999px!important;background:#eef5ff!important;color:#1e5fae!important;
+  font-size:8px!important;font-weight:800!important;cursor:pointer!important;
+}
+#vdUnifiedControls .vd-filter-chip span{overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;max-width:190px!important}
+#vdUnifiedControls .vd-filter-chip b{font-size:12px!important;line-height:1!important;color:#60758f!important}
+#vdUnifiedControls .vd-no-active-filters{font-size:8px!important;color:#8a98ab!important;font-weight:700!important}
+#vdUnifiedControls .vd-unified-actions{display:flex!important;align-items:flex-end!important;justify-content:flex-start!important;gap:8px!important;white-space:nowrap!important}
+#vdUnifiedControls .vd-unified-reset-slot,#vdUnifiedControls .vd-unified-export-slot{
+  position:static!important;display:flex!important;width:auto!important;min-width:0!important;
+  pointer-events:auto!important;align-items:flex-end!important;
+}
+#vdUnifiedControls #clearFilters.clear-btn,#vdUnifiedControls .vd-preview-btn,#vdUnifiedControls #vdUnifiedReportAction .vd-tab-report-btn{
+  height:42px!important;min-height:42px!important;margin:0!important;padding:0 14px!important;
+  border-radius:11px!important;font-size:8.5px!important;line-height:1!important;font-weight:800!important;
+  white-space:nowrap!important;cursor:pointer!important;box-shadow:none!important;
+}
+#vdUnifiedControls #clearFilters.clear-btn{border:1px solid #d8e1ed!important;background:#fff!important;color:#34435b!important}
+#vdUnifiedControls #clearFilters.clear-btn:hover{border-color:#9badc2!important;background:#f8fafc!important}
+#vdUnifiedControls .vd-preview-btn{border:1px solid #a9c9f5!important;background:#f5f9ff!important;color:#1766c4!important}
+#vdUnifiedControls .vd-preview-btn:hover{background:#eaf3ff!important;border-color:#2878e8!important}
+#vdUnifiedControls #vdUnifiedReportAction{display:flex!important;height:auto!important;margin:0!important;padding:0!important}
+#vdUnifiedControls #vdUnifiedReportAction .vd-tab-report-btn{
+  border:1px solid #e53227!important;background:#e53227!important;color:#fff!important;
+  box-shadow:0 8px 18px rgba(229,50,39,.18)!important;
+}
+#vdUnifiedControls #vdUnifiedReportAction .vd-tab-report-btn:hover{background:#cf281f!important;border-color:#cf281f!important}
+#vdUnifiedControls:not(.has-period) .vd-unified-period-slot{display:none!important}
+#vdUnifiedControls:not(.has-period) .vd-period-card{opacity:.88!important}
+#vdUnifiedControls:not(.has-period):not(.has-export):has(#filterBar.meeting-filter-hidden){display:none!important}
+body .page>.vd-tab-report-actions,body .panel>.vd-tab-report-actions{display:none!important}
+body.vd-report-dark #vdUnifiedControls.vd-unified-controls{background:#fff!important;color:#14213d!important;border-color:#dbe5f2!important}
+body.vd-report-dark #vdUnifiedControls #filterBar .filter label,
+body.vd-report-dark #vdUnifiedControls .vps-head h3,
+body.vd-report-dark #vdUnifiedControls .vps-controls label>span,
+body.vd-report-dark #vdUnifiedControls .vps-summary b,
+body.vd-report-dark #vdUnifiedControls #vdUnifiedResultCount b{color:#14213d!important}
+body.vd-report-dark #vdUnifiedControls #filterBar .filter select,
+body.vd-report-dark #vdUnifiedControls .vps-controls input[type="date"]{
+  background:#fbfdff!important;color:#14213d!important;border-color:#d9e4f1!important;color-scheme:light!important;
+}
+@media(max-width:1250px){
+  #vdUnifiedControls .vd-unified-summary-slot{grid-template-columns:1fr 160px 1.2fr!important}
+  #vdUnifiedControls .vd-unified-actions{grid-column:1/-1!important;justify-content:flex-start!important}
+  #vdUnifiedControls .vps-controls{grid-template-columns:140px 140px minmax(0,1fr)!important}
+}
+@media(max-width:900px){
+  #vdUnifiedControls.vd-unified-controls{padding:12px!important}
+  #vdUnifiedControls #filterBar.filters{grid-template-columns:repeat(2,minmax(130px,1fr))!important}
+  #vdUnifiedControls .violation-period-slicer{grid-template-columns:1fr!important}
+  #vdUnifiedControls .vps-controls{grid-template-columns:1fr 1fr!important}
+  #vdUnifiedControls .vps-presets{grid-column:1/-1!important}
+  #vdUnifiedControls .vd-unified-summary-slot{grid-template-columns:1fr 1fr!important}
+  #vdUnifiedControls .vd-active-filter-box,#vdUnifiedControls .vd-unified-actions{grid-column:1/-1!important}
+}
+@media(max-width:560px){
+  #vdUnifiedControls #filterBar.filters,#vdUnifiedControls .vps-controls,#vdUnifiedControls .vd-unified-summary-slot{grid-template-columns:1fr!important}
+  #vdUnifiedControls .vd-summary-card,#vdUnifiedControls .vd-active-filter-box,#vdUnifiedControls .vd-unified-actions{grid-column:auto!important}
+  #vdUnifiedControls .vd-unified-actions{flex-wrap:wrap!important}
+  #vdUnifiedControls .vps-presets{grid-column:auto!important}
+}
+@media print{#vdUnifiedControls{display:none!important}}
+
+/* Apply the same visual standard to tabs that own their filter panels. */
+.hr-filter-panel,.ee-filter-panel,.eee-filter{
+  padding:16px!important;margin-bottom:18px!important;border:1px solid #dbe5f2!important;
+  border-radius:20px!important;background:#fff!important;box-shadow:0 12px 30px rgba(25,55,95,.07)!important;
+}
+.hr-filter-grid,.ee-filter-grid,.eee-filter-grid{gap:10px 12px!important}
+.hr-filter-grid label,.ee-filter-grid label,.eee-filter-grid label{gap:6px!important}
+.hr-filter-grid label span,.ee-filter-grid label span,.eee-filter-grid label span{
+  font-size:9px!important;font-weight:800!important;line-height:1.2!important;color:#182640!important;
+}
+.hr-filter-grid select,.hr-filter-grid input,.ee-filter-grid select,.ee-filter-grid input,.eee-filter-grid select,.eee-filter-grid input{
+  height:46px!important;min-height:46px!important;padding:0 12px!important;border:1px solid #d9e4f1!important;
+  border-radius:12px!important;background:#fbfdff!important;color:#14213d!important;
+  font-family:Cairo,Arial,sans-serif!important;font-size:10px!important;font-weight:600!important;box-shadow:none!important;
+}
+.hr-filter-grid select:focus,.hr-filter-grid input:focus,.ee-filter-grid select:focus,.ee-filter-grid input:focus,.eee-filter-grid select:focus,.eee-filter-grid input:focus{
+  border-color:#2878e8!important;box-shadow:0 0 0 3px rgba(40,120,232,.08)!important;outline:none!important;
+}
+.hr-filter-actions,.ee-actions,.eee-actions{
+  display:flex!important;align-items:center!important;gap:8px!important;margin-top:12px!important;
+  padding-top:12px!important;border-top:1px solid #e7edf5!important;
+}
+.hr-filter-actions .ghost-btn,.ee-actions .ghost-btn,.eee-actions .ghost-btn,
+.hr-filter-actions .primary-btn,.ee-actions .primary-btn,.eee-actions .primary-btn{
+  height:42px!important;min-height:42px!important;padding:0 14px!important;border-radius:11px!important;
+  font-size:8.5px!important;font-weight:800!important;
+}
+.hr-filter-actions strong,.ee-actions strong,.eee-actions strong{
+  display:inline-flex!important;align-items:center!important;min-height:38px!important;padding:0 12px!important;
+  border:1px solid #edf1f6!important;border-radius:11px!important;background:#f8fbff!important;
+  color:#2878e8!important;font-size:9px!important;font-weight:800!important;
+}
+body.vd-report-dark .hr-filter-panel,body.vd-report-dark .ee-filter-panel,body.vd-report-dark .eee-filter{background:#fff!important;border-color:#dbe5f2!important}
+body.vd-report-dark .hr-filter-grid label span,body.vd-report-dark .ee-filter-grid label span,body.vd-report-dark .eee-filter-grid label span{color:#182640!important}
+body.vd-report-dark .hr-filter-grid select,body.vd-report-dark .hr-filter-grid input,
+body.vd-report-dark .ee-filter-grid select,body.vd-report-dark .ee-filter-grid input,
+body.vd-report-dark .eee-filter-grid select,body.vd-report-dark .eee-filter-grid input{
+  background:#fbfdff!important;color:#14213d!important;border-color:#d9e4f1!important;color-scheme:light!important;
+}

@@ -21,13 +21,17 @@ function ensureUnifiedControls(){
   dock=document.createElement('section');
   dock.id='vdUnifiedControls';
   dock.className='vd-unified-controls';
-  dock.innerHTML='<div class="vd-unified-filter-slot"></div><div class="vd-unified-export-slot"></div><div class="vd-unified-period-slot"></div>';
+  dock.innerHTML='<div class="vd-unified-filter-slot"></div><div class="vd-unified-period-slot"></div><div class="vd-unified-summary-slot"><div class="vd-summary-card vd-period-card"><span>الفترة المختارة</span><div id="vpsSummary" class="vps-summary"><b>كامل المدة</b><small>بدون تقييد زمني</small></div></div><div class="vd-summary-card vd-results-card"><span>النتائج المطابقة</span><strong id="vdUnifiedResultCount"><b>0 سجل</b><small>من 0 إجمالي</small></strong></div><div class="vd-active-filter-box"><div class="vd-active-filter-title">⌯ الفلاتر النشطة</div><div id="vdUnifiedFilterChips" class="vd-filter-chips"><span class="vd-no-active-filters">لا توجد فلاتر نشطة</span></div></div><div class="vd-unified-actions"><div class="vd-unified-reset-slot"></div><button type="button" id="vdUnifiedPreviewBtn" class="vd-preview-btn">◉ معاينة التقرير</button><div class="vd-unified-export-slot"></div></div></div>';
   filterBar.parentNode.insertBefore(dock,filterBar);
  }
 
  const filterSlot=dock.querySelector('.vd-unified-filter-slot');
  if(filterSlot&&filterBar.parentNode!==filterSlot)filterSlot.appendChild(filterBar);
-
+ const resetSlot=dock.querySelector('.vd-unified-reset-slot'),clearBtn=document.getElementById('clearFilters');
+ if(resetSlot&&clearBtn&&clearBtn.parentNode!==resetSlot){resetSlot.appendChild(clearBtn);clearBtn.textContent='↻ إعادة ضبط الكل';}
+ if(clearBtn&&clearBtn.dataset.vdPeriodReset!=='1'){clearBtn.dataset.vdPeriodReset='1';clearBtn.addEventListener('click',()=>{const key=typeof S!=='undefined'?S.current:'';if(REPORT_KEYS.has(key)){const st=periodState(key);st.from='';st.to='';st.preset='all';setTimeout(()=>{if(typeof applyFilters==='function'){if(key==='master'&&typeof applyMasterFilters==='function')applyMasterFilters();else applyFilters();}},0);}});}
+ const preview=dock.querySelector('#vdUnifiedPreviewBtn');
+ if(preview&&preview.dataset.bound!=='1'){preview.dataset.bound='1';preview.onclick=()=>document.querySelector('#vdUnifiedReportAction .vd-tab-report-btn')?.click();}
  return dock;
 }
 VX.periods=VX.periods||{};
@@ -46,7 +50,20 @@ function filterPeriodRows(rows,key){
  return rows.filter(r=>{const d=rowDate(r,key);if(!d)return false;if(start&&d<start)return false;if(end&&d>end)return false;return true});
 }
 function fmtPeriodDate(v){
- const d=inputDate(v);return d?d.toLocaleDateString('ar-SA',{day:'2-digit',month:'2-digit',year:'numeric'}):'';
+ const d=inputDate(v);return d?String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear():'';
+}
+function updateUnifiedSummary(){
+ const dock=document.getElementById('vdUnifiedControls');if(!dock)return;
+ const key=typeof S!=='undefined'?S.current:'';
+ const rows=key==='master'?(Array.isArray(S?.masterFilteredRows)?S.masterFilteredRows:Array.isArray(S?.masterBaseRows)?S.masterBaseRows:[]):(Array.isArray(S?.filtered)?S.filtered:[]);
+ const totalRows=key==='master'?(Array.isArray(S?.masterRows)?S.masterRows:[]):(Array.isArray(S?.raw)?S.raw:[]);
+ const result=document.getElementById('vdUnifiedResultCount');
+ if(result)result.innerHTML='<b>'+fm(rows.length)+' سجل</b><small>من '+fm(totalRows.length)+' إجمالي</small>';
+ const chips=document.getElementById('vdUnifiedFilterChips'),items=[];
+ for(let i=1;i<=6;i++){const s=document.getElementById('f'+i),l=document.getElementById('fl'+i);if(!s||!s.value)continue;items.push({id:s.id,label:t(l?.textContent)||('فلتر '+i),value:t(s.options[s.selectedIndex]?.textContent)||t(s.value)});}
+ const q=t(document.getElementById('globalSearch')?.value);if(q)items.push({id:'globalSearch',label:'بحث',value:q});
+ if(chips){chips.innerHTML=items.length?items.map(x=>'<button type="button" class="vd-filter-chip" data-filter-id="'+e(x.id)+'"><span>'+e(x.label)+': '+e(x.value)+'</span><b>×</b></button>').join(''):'<span class="vd-no-active-filters">لا توجد فلاتر نشطة</span>';chips.querySelectorAll('[data-filter-id]').forEach(btn=>btn.onclick=()=>{const el=document.getElementById(btn.dataset.filterId);if(!el)return;el.value='';el.dispatchEvent(new Event(el.tagName==='INPUT'?'input':'change',{bubbles:true}));});}
+ const clear=document.getElementById('clearFilters');if(clear)clear.classList.toggle('has-active',items.length>0||(REPORT_KEYS.has(key)&&periodState(key).preset!=='all'));
 }
 function updatePeriodSlicer(){
  const key=typeof S!=='undefined'?S.current:'',box=document.getElementById('violationPeriodSlicer');
@@ -56,7 +73,7 @@ function updatePeriodSlicer(){
  const on=REPORT_KEYS.has(key);
  box.style.display=on?'block':'none';
  if(dock)dock.classList.toggle('has-period',on);
- if(!on)return;
+ if(!on){const summary=document.getElementById('vpsSummary');if(summary)summary.innerHTML='<b>كامل البيانات</b><small>بدون فلتر زمني</small>';updateUnifiedSummary();return;}
  if(periodSlot&&box.parentNode!==periodSlot)periodSlot.appendChild(box);
  const st=periodState(key),from=document.getElementById('vpsFrom'),to=document.getElementById('vpsTo'),basis=document.getElementById('vpsBasis'),summary=document.getElementById('vpsSummary');
  if(from&&from.value!==st.from)from.value=st.from;
@@ -70,7 +87,8 @@ function updatePeriodSlicer(){
  const total=key==='master'
   ?(Array.isArray(S?.masterRows)?S.masterRows.length:0)
   :(Array.isArray(S?.raw)?S.raw.length:0);
- if(summary)summary.innerHTML='<b>'+e(label)+'</b><small>'+fm(count)+' من '+fm(total)+' سجل</small>';
+ if(summary)summary.innerHTML='<b>'+e(label)+'</b><small>'+e(reportBasis(key).replace('الأساس: ',''))+'</small>';
+ updateUnifiedSummary();
 }
 function setPreset(preset){
  const key=typeof S!=='undefined'?S.current:'';if(!REPORT_KEYS.has(key))return;
@@ -125,15 +143,13 @@ function ensure(){
   slicer.innerHTML=`
     <div class="vps-head">
       <div>
-        <span>REPORT PERIOD</span>
         <h3>الفترة الزمنية للتقرير</h3>
-        <small id="vpsBasis">يعتمد على تاريخ السجل</small>
+        <small id="vpsBasis">الأساس: تاريخ السجل</small>
       </div>
-      <div id="vpsSummary" class="vps-summary">كامل المدة</div>
     </div>
     <div class="vps-controls">
-      <label><span>من تاريخ</span><input id="vpsFrom" type="date"></label>
-      <label><span>إلى تاريخ</span><input id="vpsTo" type="date"></label>
+      <label><span>من تاريخ</span><input id="vpsFrom" type="date" lang="en-GB"></label>
+      <label><span>إلى تاريخ</span><input id="vpsTo" type="date" lang="en-GB"></label>
       <div class="vps-presets" aria-label="اختيارات سريعة للفترة">
         <button type="button" data-period="all" class="active">كامل المدة</button>
         <button type="button" data-period="week" title="من الجمعة إلى الخميس">آخر أسبوع</button>
@@ -142,7 +158,7 @@ function ensure(){
         <button type="button" data-period="90">آخر 90 يوم</button>
         <button type="button" data-period="year">هذا العام</button>
       </div>
-      <button type="button" id="vpsClear" class="vps-clear">إعادة ضبط</button>
+      <button type="button" id="vpsClear" class="vps-clear">إعادة ضبط الفترة</button>
     </div>`;
   const periodSlot=dock?.querySelector('.vd-unified-period-slot');
   if(periodSlot)periodSlot.appendChild(slicer);
