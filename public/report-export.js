@@ -775,6 +775,16 @@
             return h.includes('تاريخ') && h.includes('افاد') && !h.includes('155');
           });
 
+          // في تقرير المشاريع فقط: أي أعمدة تأتي بعد «تاريخ آخر إفادة»
+          // في ترتيب الجدول الأصلي تُحذف من النسخة المطبوعة.
+          if (adviceIndex >= 0 && adviceDateIndex > adviceIndex) {
+            [...detailTable.querySelectorAll('tr')].forEach(row => {
+              for (let i = row.children.length - 1; i > adviceDateIndex; i--) {
+                row.children[i]?.remove();
+              }
+            });
+          }
+
           [...detailTable.querySelectorAll('tr')].forEach(row => {
             const cells = [...row.children];
             const adviceCell = adviceIndex >= 0 ? cells[adviceIndex] : null;
