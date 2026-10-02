@@ -78,6 +78,48 @@ const PAGE_META={
     subtitle:'قراءة المحاضر والغرامات والمقاولين وحالة الرفع ومصادر البيانات.',
     icon:'≡',
     from:'#3b2868',to:'#8551ce',accent:'#c7a6ff'
+  },
+  dataQuality:{
+    eyebrow:'DATA QUALITY • SMART VALIDATION',
+    title:'جودة البيانات',
+    subtitle:'قياس اكتمال البيانات وكشف الفجوات والتناقضات ومتابعة جودة السجلات.',
+    icon:'◆',
+    from:'#0d5448',to:'#24b89b',accent:'#86f1d8'
+  },
+  hrStaff:{
+    eyebrow:'HUMAN RESOURCES • STAFF CONTROL',
+    title:'الموارد البشرية للكادر',
+    subtitle:'متابعة الكادر والتوزيع والحالة الوظيفية والتدريب ومتطلبات المشروع.',
+    icon:'◆',
+    from:'#5a1f73',to:'#c03ce4',accent:'#eda7ff'
+  },
+  employeeEvaluation:{
+    eyebrow:'SITE ENGINEERS • PERFORMANCE VIEW',
+    title:'تقييم مهندسي المواقع',
+    subtitle:'تقييم الأداء الميداني وجودة المتابعة ونسب الإنجاز ومؤشرات الالتزام.',
+    icon:'★',
+    from:'#17467d',to:'#368cf4',accent:'#91c9ff'
+  },
+  electricityEngineerEvaluation:{
+    eyebrow:'UTILITY ENGINEERS • PERFORMANCE VIEW',
+    title:'تقييم مهندسي شركة الكهرباء',
+    subtitle:'تحليل أداء مهندسي شركة الكهرباء وفق مؤشرات المتابعة والإنجاز وجودة البيانات.',
+    icon:'◈',
+    from:'#153968',to:'#2878e8',accent:'#82c6ff'
+  },
+  wednesdayMeeting:{
+    eyebrow:'PDC MEETING • MANAGEMENT BRIEF',
+    title:'اجتماع الـ PDC',
+    subtitle:'ملخص إداري للمؤشرات والقرارات والملاحظات المطلوبة قبل اجتماع الـ PDC.',
+    icon:'▦',
+    from:'#6a4709',to:'#efa914',accent:'#ffe184'
+  },
+  importantLinks:{
+    eyebrow:'PROJECT RESOURCES • QUICK ACCESS',
+    title:'الروابط المهمة',
+    subtitle:'وصول سريع إلى الأنظمة والملفات والروابط التشغيلية المعتمدة للمشروع.',
+    icon:'↗',
+    from:'#3e2c6f',to:'#6958d9',accent:'#b9afff'
   }
 };
 
