@@ -143,6 +143,7 @@ function activate(){
   ['masterPage','meetingPage','dataPage'].forEach(id=>document.getElementById(id)?.classList.remove('active'));
   document.getElementById('importantLinksPage')?.classList.add('active');
   const fb=document.getElementById('filterBar');if(fb)fb.style.display='none';
+  const unified=document.getElementById('vdUnifiedControls');if(unified)unified.style.display='none';
   const topSearch=document.querySelector('.top-actions .search');if(topSearch)topSearch.style.display='none';
   const title=document.getElementById('pageTitle');if(title)title.textContent='الروابط المهمة';
   render('');
@@ -152,9 +153,11 @@ if(typeof openPage==='function'){
   openPage=function(key){
     const page=document.getElementById('importantLinksPage');
     const fb=document.getElementById('filterBar');
+    const unified=document.getElementById('vdUnifiedControls');
     const topSearch=document.querySelector('.top-actions .search');
     if(key==='importantLinks'){activate();return}
     if(page)page.classList.remove('active');
+    if(unified)unified.style.display='';
     if(fb)fb.style.display='';
     if(topSearch)topSearch.style.display='';
     return previous(key);
