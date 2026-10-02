@@ -3,7 +3,7 @@
 const t=v=>String(v==null?'':v).replace(/\s+/g,' ').trim(),r1=v=>Math.round(Number(v||0)*10)/10;
 const n=v=>{const m=t(v).replace(/,/g,'').match(/-?\d+(?:\.\d+)?/);return m?Number(m[0]):0},pct=(a,b)=>b?r1(Number(a||0)/Number(b)*100):0;
 const norm=v=>t(v).normalize('NFKD').replace(/[\u064B-\u065F\u0670]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').toLowerCase();
-const isDone=v=>{const s=norm(v);return s==='تم التنفيذ'||s==='منجز'||s==='مكتمل'||s.includes('تم التنفيذ')||s.includes('تم الانجاز')};
+const isDone=v=>{const s=norm(v);if(!s)return false;if(s.includes('لم يتم التنفيذ')||s.includes('غير منفذ')||s.includes('موقوف')||s.includes('محول'))return false;return s==='تم التنفيذ'||s==='منجز'||s==='مكتمل'||s.includes('تم الانجاز')||s.startsWith('تم التنفيذ')};
 const negative=v=>{const s=norm(v);return !!s&&['لم يتم','غير مكتمل','غير منجز','لا يوجد','لم يستلم','لم يرفع','قيد','معاد','ناقص','موقوف','محول','تحت المراجعه'].some(x=>s.includes(x))};
 const positive=v=>{const s=norm(v);return !!s&&!negative(v)&&['تم','نعم','مكتمل','منجز','معتمد','صدر','مرفوع','جاهز','استلم','انته'].some(x=>s.includes(x))};
 const pnum=v=>{const s=t(v);if(!s)return null;let x=n(s);if(!Number.isFinite(x))return null;if(!s.includes('%')&&x>0&&x<=1)x*=100;return Math.max(0,Math.min(100,r1(x)))};

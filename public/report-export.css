@@ -869,3 +869,29 @@ body.vd-report-dark #vdReportV2 .vd-report-safety-detail-page .table-link *{
 .vd-report-sec-engineer-analysis .vd-report-section-body{margin-top:1mm!important}.vd-sec-engineer-chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:2.5mm}.vd-sec-engineer-chart-grid .vd-report-chart-card{height:58mm!important;min-height:58mm!important;padding:2mm!important;overflow:hidden!important}.vd-sec-engineer-chart-grid .vd-report-chart-image{height:45mm!important;max-height:45mm!important;object-fit:contain!important}.vd-sec-engineer-chart-grid .panel-title{background:#fff!important;border-bottom:1px solid #26396f!important;margin:-2mm -2mm 1mm!important;padding:1.4mm 2mm!important}.vd-sec-engineer-chart-grid .panel-title h3,.vd-sec-engineer-chart-grid .panel-title span{color:#000!important}
 .vd-sec-engineer-diagnostics{margin-top:2.5mm}.vd-sec-engineer-diagnostics h3{font-size:8px;margin:0 0 1.5mm;color:#172b5f!important}.vd-sec-engineer-diagnostics .eee-issue-list{display:grid!important;grid-template-columns:repeat(3,1fr)!important;gap:1.2mm!important}.vd-sec-engineer-diagnostics .eee-issue-list>div{display:flex!important;justify-content:space-between!important;gap:2mm!important;border:1px solid #d5dbe3!important;border-radius:3px!important;padding:1.1mm 1.5mm!important;background:#f8f9fb!important;font-size:5.8px!important}.vd-sec-engineer-diagnostics .eee-issue-list b{color:#bd2433!important}
 .vd-report-sec-engineer-overview *,.vd-report-sec-engineer-analysis *{color:#000!important;text-shadow:none!important}
+
+
+/* Projects report — compact executive PDF layout */
+.vd-report-projects-cover .vd-report-cover-kpis{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:2.2mm!important}
+.vd-report-projects-cover .vd-report-kpi-clone{min-height:17mm!important;padding:1.8mm!important}
+.vd-report-projects-cover .vd-report-kpi-clone span{font-size:6.2px!important}.vd-report-projects-cover .vd-report-kpi-clone strong{font-size:13px!important}
+.vd-report-projects-chart-page{box-sizing:border-box!important;height:188mm!important;min-height:188mm!important;max-height:188mm!important;overflow:hidden!important}
+.vd-report-projects-chart-page .vd-report-section-body{margin-top:1mm!important}
+.vd-report-projects-chart-page .vd-report-chart-grid{grid-template-columns:1fr 1fr!important;grid-template-rows:repeat(2,67mm)!important;gap:3mm!important}
+.vd-report-projects-chart-page .vd-report-chart-card{height:67mm!important;min-height:67mm!important;max-height:67mm!important;padding:2mm!important;overflow:hidden!important}
+.vd-report-projects-chart-page .pa-wide{grid-column:auto!important}.vd-report-projects-chart-page .pa-chart-box{height:51mm!important;margin-top:1mm!important}
+.vd-report-projects-chart-page .vd-report-chart-image{height:49mm!important;max-height:49mm!important;width:100%!important;object-fit:contain!important}
+.vd-report-projects-chart-page .panel-title{margin:-2mm -2mm 1mm!important;padding:1.5mm 2mm!important;background:#172b5f!important}
+.vd-report-projects-chart-page .panel-title h3,.vd-report-projects-chart-page .panel-title span{color:#fff!important;-webkit-text-fill-color:#fff!important}
+.vd-report-projects-chart-page .panel-title h3{font-size:8px!important}.vd-report-projects-chart-page .panel-title span{font-size:5.4px!important}
+.vd-report-projects-action-page .vd-report-section-body{margin-top:1mm!important}.vd-report-projects-action-page .pa-wrap{max-height:none!important;overflow:visible!important}
+.vd-report-projects-action-page .panel-title>span{display:none!important}.vd-report-projects-action-page table{font-size:5.6px!important;table-layout:auto!important}
+.vd-report-projects-action-page th,.vd-report-projects-action-page td{padding:.85mm .7mm!important;line-height:1.35!important;color:#000!important;-webkit-text-fill-color:#000!important}
+.vd-report-projects-detail-page,.vd-report-projects-detail-page .vd-report-section-body,.vd-report-projects-detail-page .vd-report-detail-panel,.vd-report-projects-detail-page .table-wrap{height:auto!important;max-height:none!important;overflow:visible!important;break-inside:auto!important;page-break-inside:auto!important}
+.vd-report-projects-detail-page .vd-report-section-body{margin-top:1mm!important}.vd-report-projects-detail-page .vd-report-detail-panel{padding:1.5mm!important}
+.vd-report-projects-detail-page table{font-size:5.5px!important;table-layout:auto!important}.vd-report-projects-detail-page th,.vd-report-projects-detail-page td{padding:.75mm .6mm!important;line-height:1.3!important;color:#000!important;-webkit-text-fill-color:#000!important}
+@media print{.vd-report-projects-chart-page{break-after:page!important;page-break-after:always!important}.vd-report-projects-detail-page .vd-report-detail-panel{break-before:auto!important;page-break-before:auto!important}}
+
+.vd-report-projects-chart-page-last .vd-report-chart-grid{display:block!important}
+.vd-report-projects-chart-page-last .vd-report-chart-card{height:136mm!important;min-height:136mm!important;max-height:136mm!important}
+.vd-report-projects-chart-page-last .pa-chart-box{height:119mm!important}.vd-report-projects-chart-page-last .vd-report-chart-image{height:116mm!important;max-height:116mm!important}

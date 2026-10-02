@@ -685,6 +685,46 @@
     });
   }
 
+  function buildProjectsReport(report, type = 'executive') {
+    const root = document.getElementById('projectsAdvancedAnalytics');
+    if (!root || !isVisible(root)) return false;
+    const summary = [...root.querySelectorAll('.pa-group:first-child .pa-card')].filter(isVisible);
+    buildCover(report, type, summary);
+    const cover = report.lastElementChild;
+    cover?.classList.add('vd-report-projects-cover');
+    const coverGrid = cover?.querySelector('.vd-report-cover-kpis');
+    if (coverGrid) {
+      coverGrid.innerHTML = '';
+      summary.slice(0, 8).forEach(kpi => {
+        const clone = kpi.cloneNode(true); cleanupClone(clone);
+        clone.classList.add('vd-report-kpi-clone'); coverGrid.appendChild(clone);
+      });
+    }
+    const charts = [...root.querySelectorAll('.pa-charts .panel')].filter(isVisible);
+    chunk(charts, 4).forEach((group, index) => {
+      const page = createPage('التحليلات والرسوم البيانية', 'تحليل المشاريع ' + (index + 1), 'vd-report-chart-page vd-report-projects-chart-page');
+      if (group.length === 1) page.classList.add('vd-report-projects-chart-page-last');
+      const grid = document.createElement('div'); grid.className = 'vd-report-chart-grid';
+      group.forEach(panel => { const clone = cloneWithCanvases(panel); clone.classList.add('vd-report-chart-card'); grid.appendChild(clone); });
+      page.querySelector('.vd-report-section-body').appendChild(grid); report.appendChild(page);
+    });
+    [...root.querySelectorAll('.pa-actions .panel')].filter(isVisible).forEach((panel, index) => {
+      const title = panel.querySelector('.panel-title h3')?.textContent?.trim() || 'تحليل تنفيذي للمشاريع';
+      const page = createPage(title, index === 0 ? 'الأوامر ذات الأولوية للتدخل' : 'تشخيص الاختناقات للأوامر غير المنفذة', 'vd-report-projects-action-page');
+      const clone = cloneWithCanvases(panel); clone.classList.add('vd-report-summary-table');
+      page.querySelector('.vd-report-section-body').appendChild(clone); report.appendChild(page);
+    });
+    if (type === 'full') {
+      const dataPanel = document.getElementById('dataTable')?.closest('.panel');
+      if (dataPanel && isVisible(dataPanel)) {
+        const page = createPage('البيانات التفصيلية', getActivePageName(), 'vd-report-detail-page vd-report-projects-detail-page');
+        const clone = cloneWithCanvases(dataPanel); clone.classList.add('vd-report-detail-panel');
+        page.querySelector('.vd-report-section-body').appendChild(clone); report.appendChild(page);
+      }
+    }
+    return true;
+  }
+
   function buildMiscPages(report, panels) {
     if (!panels.length) return;
 
@@ -1774,6 +1814,16 @@
     if (getActivePageKey() === 'dataQuality') {
       if (!buildDataQualityReport(report)) {
         alert('تعذر تجهيز بيانات جودة البيانات للتقرير.');
+        return null;
+      }
+
+      document.body.appendChild(report);
+      return report;
+    }
+
+    if (getActivePageKey() === 'projects') {
+      if (!buildProjectsReport(report, type)) {
+        alert('تعذر تجهيز تقرير المشاريع.');
         return null;
       }
 
