@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const P={loaded:false,loading:false,loadedAt:0,pages:{},portfolio:null,history:null,charts:{}};
+const P={loaded:false,loading:false,loadedAt:0,pages:{},portfolio:null,history:null,charts:{},cross:{snapshot:'',chartId:'',series:''}};
 const KEYS=['projects','connections','permits','emergency'];
 const LABELS={projects:'المشاريع',connections:'التوصيلات',permits:'التصاريح',operations:'العمليات بالإنشاءات',closures:'الإغلاقات',assets:'الأصول',emergency:'الطوارئ',attachments:'المرفقات',tasks:'متابعة المواقع',finance:'الماليات'};
 const e=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -128,9 +128,14 @@ const STP_VALUE_LABELS={
   ctx.restore();
  }
 };
+function stpHistory(){
+ const h=P.history?.trend||[];
+ return P.cross.snapshot?h.filter(z=>t(z.label)===t(P.cross.snapshot)):h;
+}
 function drawBreakdownTrend(id,sectionKey,fieldKey){
- const h=P.history?.trend||[],maps=h.map(z=>z.summary?.stageBreakdowns?.[sectionKey]?.[fieldKey]||{});
- const cats=[...new Set(maps.flatMap(o=>Object.keys(o)))].sort((a,b)=>maps.reduce((n,o)=>n+Number(o[b]||0),0)-maps.reduce((n,o)=>n+Number(o[a]||0),0));
+ const h=stpHistory(),maps=h.map(z=>z.summary?.stageBreakdowns?.[sectionKey]?.[fieldKey]||{});
+ let cats=[...new Set(maps.flatMap(o=>Object.keys(o)))].sort((a,b)=>maps.reduce((n,o)=>n+Number(o[b]||0),0)-maps.reduce((n,o)=>n+Number(o[a]||0),0));
+ if(P.cross.chartId===id&&P.cross.series)cats=cats.filter(c=>t(c)===t(P.cross.series));
  const ds=cats.map((c,i)=>({label:c,data:maps.map(o=>Number(o[c]||0)),borderColor:STP_TREND_COLORS[i%STP_TREND_COLORS.length],backgroundColor:STP_TREND_COLORS[i%STP_TREND_COLORS.length],borderWidth:2,tension:.25,pointRadius:4,pointHoverRadius:6,fill:false}));
  chart(id,'line',h.map(z=>z.label),ds,{layout:{padding:{top:18,right:34,left:8,bottom:4}},plugins:{stpValueLabels:{enabled:true,maxAllPoints:5}},scales:{y:{beginAtZero:true,ticks:{color:'#91a7bf',precision:0},grid:{color:'rgba(255,255,255,.05)'}},x:{ticks:{color:'#91a7bf'},grid:{display:false}}}})
 }
@@ -142,16 +147,26 @@ function chart(id,type,labels,datasets,options={}){
  merged.plugins=Object.assign({},base.plugins,options.plugins||{});
  P.charts[id]=new Chart(el,{type,data:{labels,datasets},options:merged,plugins:[STP_VALUE_LABELS]});
 }
-function trendSeries(key,label){const h=P.history?.trend||[];return {label,data:h.map(x=>{if(key==='overall')return Number(x.overallRate||0);const m=(x.sections||[]).find(s=>s.key===key);return m?Number(m.rate||0):null}),borderWidth:2,tension:.3,spanGaps:true}}
+function trendSeries(key,label,h){return {label,data:h.map(x=>{if(key==='overall')return Number(x.overallRate||0);const m=(x.sections||[]).find(s=>s.key===key);return m?Number(m.rate||0):null}),borderWidth:2,tension:.3,spanGaps:true}}
+function renderCrossFilter(){
+ const box=document.getElementById('stpCrossFilter');if(!box)return;
+ const active=P.cross.snapshot||P.cross.series;
+ box.style.display=active?'flex':'none';
+ const txt=box.querySelector('span');if(txt)txt.textContent='فلتر الشارت: '+[P.cross.snapshot,P.cross.series].filter(Boolean).join(' • ');
+ const btn=box.querySelector('button');if(btn)btn.onclick=()=>{P.cross={snapshot:'',chartId:'',series:''};drawCharts();renderCrossFilter()};
+}
 function drawCharts(){
  destroyCharts();
  const yPct={min:0,max:100,ticks:{color:'#91a7bf',callback:v=>v+'%'},grid:{color:'rgba(255,255,255,.05)'}};
- const h=P.history?.trend||[];
- chart('stpTrend','line',h.map(z=>z.label),[trendSeries('projects','المشاريع'),trendSeries('connections','التوصيلات'),trendSeries('permits','التصاريح'),trendSeries('emergency','الطوارئ')],{scales:{y:yPct,x:{ticks:{color:'#91a7bf'},grid:{display:false}}}});
+ const h=stpHistory();
+ let main=[trendSeries('projects','المشاريع',h),trendSeries('connections','التوصيلات',h),trendSeries('permits','التصاريح',h),trendSeries('emergency','الطوارئ',h)];
+ if(P.cross.chartId==='stpTrend'&&P.cross.series)main=main.filter(ds=>t(ds.label)===t(P.cross.series));
+ chart('stpTrend','line',h.map(z=>z.label),main,{scales:{y:yPct,x:{ticks:{color:'#91a7bf'},grid:{display:false}}}});
  drawBreakdownTrend('stpProjectsStageTrend','projects','stage');
  drawBreakdownTrend('stpConnectionsStageTrend','connections','stage');
  drawBreakdownTrend('stpProjectsStageStatusTrend','projects','stageStatus');
  drawBreakdownTrend('stpConnectionsStageStatusTrend','connections','stageStatus');
+ renderCrossFilter();
 }
 
 function exportDateLabel(){
@@ -534,6 +549,7 @@ function render(root,legacy){
  if(!P.loaded){host.innerHTML='<div class="stp-loading"><b>تهيئة الملخص التنفيذي...</b></div>';load(root,legacy);return}
  const x=P.portfolio,h=P.history||{},s=x.summary,trend=h.trend||[],latest=trend.length?trend[trend.length-1]:null,previous=trend.length>1?trend[trend.length-2]:null;
  host.innerHTML='<div class="stp-title"><div><span>TECHNICAL WEEKLY PULSE</span><h2>الملخص التنفيذي للإنجاز الفني</h2><p>المشاريع والتوصيلات والتصاريح والطوارئ تُعرض كلٌ على حدة. لا يوجد متوسط يجمع المسارات المختلفة.</p></div><div class="stp-actions"><button id="stpExportReport" class="stp-export-btn">⇩ تصدير تقرير</button><button id="stpRefresh">↻ تحديث شامل</button></div></div>'+
+ '<div id="stpCrossFilter" style="display:none;align-items:center;gap:10px;margin:8px 0 14px;padding:8px 12px;border:1px solid rgba(67,165,255,.35);border-radius:12px;background:rgba(67,165,255,.08)"><span></span><button type="button" style="margin-inline-start:auto">× مسح فلتر الشارت</button></div>'+
  '<div class="stp-section-head"><div><span>LIVE STATUS</span><h3>الوضع الحالي</h3></div><small>قراءة حية من الشيتات أياً كان اليوم — لا تعتمد على لقطة الخميس</small></div>'+
  '<div class="stp-section-grid stp-live-grid">'+x.sections.filter(v=>v.total).map(liveCard).join('')+'</div>'+
  '<div class="stp-section-head"><div><span>THURSDAY BASELINE DELTA</span><h3>الفرق بين خطي الأساس الأسبوعيين</h3></div><small>'+(previous&&latest?('مقارنة إغلاق '+previous.label+' مع '+latest.label):'تظهر الفروق بعد توفر لقطتي خميس رسميتين')+'</small></div>'+
@@ -548,8 +564,16 @@ function render(root,legacy){
  document.getElementById('stpRefresh').onclick=()=>load(root,legacy,true);
  document.getElementById('stpExportReport').onclick=()=>exportThursdayReport();
  host.querySelectorAll('[data-stp-page]').forEach(c=>c.onclick=()=>{try{if(typeof openPage==='function')openPage(c.dataset.stpPage)}catch{}});
- setTimeout(()=>drawCharts(),20);
+ setTimeout(()=>{drawCharts();renderCrossFilter()},20);
 }
+window.SmartThursdayPortfolio={
+ filterFromChart(id,label,series){
+  const same=P.cross.snapshot===label&&P.cross.chartId===id&&P.cross.series===series;
+  P.cross=same?{snapshot:'',chartId:'',series:''}:{snapshot:label,chartId:id,series:series||''};
+  drawCharts();renderCrossFilter();return true;
+ },
+ clearInteractive(){P.cross={snapshot:'',chartId:'',series:''};drawCharts();renderCrossFilter()}
+};
 async function load(root,legacy,force=false){
  if(P.loading)return;
  P.loading=true;P.error='';

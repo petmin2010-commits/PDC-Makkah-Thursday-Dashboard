@@ -931,6 +931,33 @@ function monthKeyFromValue(v){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
 }
 
+function chartDayKey(v){
+  const d=parseDashboardDate(v);
+  if(!d)return '';
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function cfText(v){return String(v??'').replace(/\s+/g,' ').trim()}
+function cfNorm(v){return cfText(v).normalize('NFKD').replace(/[\u064B-\u065F\u0670]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').toLowerCase()}
+function cfRatio(v){const s=cfText(v);const m=s.replace(/,/g,'').match(/-?\d+(?:\.\d+)?/);if(!m)return null;const n=Number(m[0]);return s.includes('%')?n/100:n}
+function cfExecutionStatus(r){const s=cfNorm(r.executionStatus??r.status);if(s.includes('موقوف')||s.includes('محول'))return'موقوف/محول';if(s==='تم التنفيذ'||s==='منجز'||s==='مكتمل'||s.includes('تم التنفيذ'))return'تم التنفيذ';return'لم يتم التنفيذ'}
+function cfAdviceBucket(r){const s=cfNorm(r.adviceAge);if(s.includes('اهمال شديد'))return'إهمال شديد';if(s.includes('اهمال'))return'إهمال';if(s.includes('قديمه جدا')||s.includes('قديمة جدا'))return'قديمة جدًا';if(s.includes('قديمه')||s.includes('قديمة'))return'قديمة';if(s.includes('جديد'))return'جديدة';if(s.includes('لا يوجد'))return'لا يوجد إفادة';return'غير محدد'}
+function cfDelayBucket(r){const s=cfNorm(r.delay);if(s.includes('تم التنفيذ'))return'تم التنفيذ';if(s.includes('ضمن المده'))return'ضمن المدة';if(s.includes('اوشك'))return'أوشكت المدة';if(s.includes('بسيط'))return'تأخير بسيط';if(s.includes('متوسط'))return'تأخير متوسط';if(s.includes('عالي')||s.includes('عال'))return'تأخير عالي';if(s.includes('شديد'))return'تأخير شديد';if(s.includes('موقوف')||s.includes('محول'))return'موقوف/محول';return cfText(r.delay)||'غير محدد'}
+function cfPermitBucket(r){const raw=cfText(r.permitStatus),s=cfNorm(raw);if(!s)return'غير محدد';if(s==='لا يتطلب')return'لا يتطلب';if(s.includes('تم اصدار'))return'تم إصدار التصريح';if(s.includes('لم يتم ادخال'))return'لم يتم إدخال التصريح';if(s.includes('قيد التنسيق'))return'قيد التنسيق والاعتماد';if(s.includes('بانتظار السداد'))return'بانتظار السداد';if(s.includes('رفض'))return'رفض / انتهاء التنسيق';if(s==='ملغي')return'ملغي';if(s.includes('مدن'))return'تصريح مدن فقط';return raw}
+function cfEvalBucket(r){const raw=cfText(r.evaluation),s=cfNorm(raw);if(s.includes('متاخر جدا'))return'متأخر جدًا';if(s.includes('متاخر (3')||s==='متاخر')return'متأخر';if(s.includes('غير متاخر'))return'غير متأخر';return raw||'غير محدد'}
+function cfActionYes(r){const s=cfNorm(r.actionTaken);return ['true','نعم','تم','yes','1'].includes(s)}
+function cfYes(v){const s=cfNorm(v);return ['true','نعم','تم','yes','1','مكتمل','منجز','جاهز'].includes(s)}
+function cfProjectBlocker(r){const st=cfExecutionStatus(r),p=cfRatio(r.progress)||0,stage=cfNorm(r.stage),ss=cfNorm(r.stageStatus),a=cfAdviceBucket(r);if(st==='موقوف/محول')return'موقوف / محول';if(p>=1&&st!=='تم التنفيذ')return'100% ولم يغلق';if(stage.includes('التصاريح'))return'التصاريح';if(stage.includes('مرحله التشغيل')||ss.includes('برنامج')||ss.includes('حوكمه')||ss.includes('عوائق'))return'التشغيل / التحكم';if(stage.includes('مرحله الاغلاق')||ss.includes('ارفاق مستندات')||ss.includes('استلام اصول'))return'الإغلاق / المستندات';if(['إهمال','إهمال شديد'].includes(a))return'المتابعة';return st==='تم التنفيذ'?'مكتمل':'التنفيذ / المقاول'}
+function cfConnectionBlocker(r){const st=cfExecutionStatus(r),stage=cfNorm(r.stage),ss=cfNorm(r.stageStatus),a=cfAdviceBucket(r),d=cfDelayBucket(r);if(st==='موقوف/محول')return'موقوف / محول';if(stage.includes('التصاريح'))return'التصاريح';if(stage.includes('مرحله التشغيل')||ss.includes('برنامج')||ss.includes('حوكمه')||ss.includes('عوائق تشغيل'))return'التشغيل / التحكم';if(stage.includes('مرحله الاغلاق'))return'الإغلاق / 155';if(['إهمال','إهمال شديد'].includes(a))return'المتابعة';if(d.startsWith('تأخير'))return'التنفيذ / المقاول';return st==='تم التنفيذ'?'مكتمل':'التنفيذ / المقاول'}
+function cfSiteDue(row){
+  const d=parseDashboardDate(row.date);if(!d)return false;
+  const dk=chartDayKey(row.date);
+  const dp=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+  const tp=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Riyadh',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(new Date());
+  const o={};dp.concat(tp).forEach(p=>o[p.type]=p.value);
+  const todayKey=o.year+'-'+o.month+'-'+o.day,mins=(+o.hour||0)*60+(+o.minute||0);
+  return dk<todayKey||(dk===todayKey&&mins>=990);
+}
+
 function rowMatchesChartFilter(row,filter){
   if(!filter)return true;
 
@@ -952,6 +979,71 @@ function rowMatchesChartFilter(row,filter){
 
   if(filter.mode==='contains'){
     return String(row[filter.field]??'').trim().includes(String(filter.value??'').trim());
+  }
+
+  if(filter.mode==='day'){
+    return chartDayKey(row[filter.field])===String(filter.value||'');
+  }
+
+  if(filter.mode==='in-list'){
+    const values=Array.isArray(filter.values)?filter.values:[];
+    return values.map(String).includes(String(row[filter.field]??'').trim());
+  }
+
+  if(filter.mode==='date-state'){
+    const d=parseDashboardDate(row[filter.field]);
+    if(filter.value==='missing')return !d;
+    if(!d)return false;
+    d.setHours(0,0,0,0);
+    const today=new Date();today.setHours(0,0,0,0);
+    if(filter.value==='expired')return d<today;
+    if(filter.value==='active')return d>=today;
+    return true;
+  }
+
+  if(filter.mode==='date-diff-range'){
+    const a=parseDashboardDate(row[filter.fromField]),b=parseDashboardDate(row[filter.toField]);
+    if(!a||!b)return false;
+    const days=Math.round((b-a)/86400000);
+    if(filter.gt!=null&&!(days>filter.gt))return false;
+    if(filter.gte!=null&&!(days>=filter.gte))return false;
+    if(filter.lt!=null&&!(days<filter.lt))return false;
+    if(filter.lte!=null&&!(days<=filter.lte))return false;
+    return true;
+  }
+
+  if(filter.mode==='site-due-blank'){
+    return cfSiteDue(row)&&!cfText(row[filter.field]);
+  }
+
+  if(filter.mode==='site-outcome'){
+    const statement=cfText(row.statement),s=cfNorm(statement);
+    const noWork=/(no\s*work|no\s*answer|لم يتم العمل|لم يتم البدء|لم يبدأ|لم يباشر|تأجيل|التأجيل|التاجيل|مؤجل|تم التأجيل|تم التاجيل|عدم وجود|لا يوجد عمل|عدم توفر|عدم تواجد)/i.test(s);
+    const due=cfSiteDue(row);
+    if(filter.value==='productive')return !!statement&&!noWork;
+    if(filter.value==='nowork')return !!statement&&noWork;
+    if(filter.value==='due-missing')return due&&!statement;
+    if(filter.value==='notdue-missing')return !due&&!statement;
+    return true;
+  }
+
+  if(filter.mode==='derived'){
+    const kind=filter.kind,v=String(filter.value??'');
+    if(kind==='execution-status')return cfExecutionStatus(row)===v;
+    if(kind==='advice-bucket')return cfAdviceBucket(row)===v;
+    if(kind==='delay-bucket')return cfDelayBucket(row)===v;
+    if(kind==='permit-bucket')return cfPermitBucket(row)===v;
+    if(kind==='permit-eval')return cfEvalBucket(row)===v;
+    if(kind==='action-state')return cfActionYes(row)===(v==='yes');
+    if(kind==='yes-no')return cfYes(row[filter.field])===(v==='yes');
+    if(kind==='project-blocker')return cfProjectBlocker(row)===v;
+    if(kind==='connection-blocker')return cfConnectionBlocker(row)===v;
+    if(kind==='category-display')return (cfText(row[filter.field])||'غير مصنف')===v;
+    if(kind==='field-status')return (cfText(row[filter.field])||'غير محدد')===String(filter.dimensionValue||'')&&cfExecutionStatus(row)===String(filter.statusValue||'');
+    if(kind==='category-status')return (cfText(row[filter.field])||'غير مصنف')===String(filter.dimensionValue||'')&&cfExecutionStatus(row)===String(filter.statusValue||'');
+    if(kind==='field-permit')return (cfText(row[filter.field])||'غير محدد')===String(filter.dimensionValue||'')&&cfPermitBucket(row)===String(filter.statusValue||'');
+    if(kind==='field-eval')return (cfText(row[filter.field])||'غير محدد')===String(filter.dimensionValue||'')&&cfEvalBucket(row)===String(filter.statusValue||'');
+    return false;
   }
 
   if(filter.mode==='number-range'){

@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const SC={loaded:false,loading:false,pages:{},issues:[],quality:[],summary:null,charts:{},projectKey:'',lastUpdated:'',previous:null,centralHistory:null};
+const SC={loaded:false,loading:false,pages:{},issues:[],quality:[],summary:null,charts:{},projectKey:'',lastUpdated:'',previous:null,centralHistory:null,cross:{contractor:'',pageKey:''},temporalCross:{snapshot:'',chartId:'',series:''}};
 const PAGE_KEYS=['workorders','projects','connections','permits','assets','closures','emergency','attachments','tasks','safety','executionViolations','minutes'];
 const PAGE_TITLES={workorders:'أوامر العمل',projects:'المشاريع',connections:'التوصيلات',permits:'التصاريح',assets:'الأصول',closures:'الإغلاقات',emergency:'الطوارئ',attachments:'المرفقات',tasks:'متابعة المواقع',safety:'مخالفات السلامة',executionViolations:'مخالفات التنفيذ',minutes:'محاضر إثبات الحالة'};
 const SEV_LABELS={critical:'حرجة',high:'مرتفعة',medium:'متوسطة'};
@@ -365,7 +365,7 @@ function contentMarkup(){return `
 <article class="sc-panel sc-priority-wide"><div class="sc-panel-head"><div><span>PRIORITY RADAR</span><h3>أعلى نقاط التدخل الآن</h3></div><b class="sc-badge">حسب عدد الاستثناءات</b></div><div id="scPriorities" class="sc-priority-list"></div></article>
 <div class="sc-grid"><article class="sc-panel"><div class="sc-panel-head"><div><span>SMART ANALYST</span><h3>اسأل المحلل المجاني</h3></div><b class="sc-badge">Rule Engine</b></div><div class="sc-analyst"><div class="sc-question-row"><button class="sc-chip" data-q="ما الحالات الحرجة؟">الحالات الحرجة</button><button class="sc-chip" data-q="من أكثر المقاولين لديهم مشاكل؟">المقاولون</button><button class="sc-chip" data-q="أين مشاكل جودة البيانات؟">جودة البيانات</button><button class="sc-chip" data-q="ما مشاكل المستندات؟">المستندات</button><button class="sc-chip" data-q="ما مشاكل التصاريح؟">التصاريح</button></div><div class="sc-ask-box"><input id="scQuestion" placeholder="اكتب: أكثر المقاولين تأخيرًا، مشاكل الأصول، الحالات الحرجة..."><button id="scAsk">تحليل</button></div><div id="scAnswer" class="sc-answer">اختر سؤالًا جاهزًا أو اكتب سؤالك. الإجابات ناتجة من قواعد وأرقام الداشبورد مباشرة.</div></div></article><article class="sc-panel"><div class="sc-panel-head"><div><span>DATA COMPLETENESS</span><h3>نسبة اكتمال البيانات حسب التاب</h3></div><b class="sc-badge">حقول أساسية</b></div><div class="sc-chart compact"><canvas id="scQualityChart"></canvas></div></article></div>
 <div class="sc-grid"><article class="sc-panel"><div class="sc-panel-head"><div><span>ISSUE PROFILE</span><h3>توزيع الاستثناءات حسب النوع</h3></div></div><div class="sc-chart"><canvas id="scIssueChart"></canvas></div></article><article class="sc-panel"><div class="sc-panel-head"><div><span>CONTRACTOR EXPOSURE</span><h3>أعلى المقاولين في عدد الاستثناءات</h3></div></div><div class="sc-chart"><canvas id="scContractorChart"></canvas></div></article></div>
-<article class="sc-panel sc-exception-wrap"><div class="sc-panel-head"><div><span>EXCEPTION CENTER</span><h3>مركز الاستثناءات — الحالات التي تحتاج مراجعة</h3></div><b class="sc-badge" id="scIssueCount">0</b></div><div class="sc-toolbar"><select id="scSeverity"><option value="">كل درجات الأهمية</option><option value="critical">حرجة</option><option value="high">مرتفعة</option><option value="medium">متوسطة</option></select><select id="scCategory"><option value="">كل الأنواع</option></select><input id="scIssueSearch" placeholder="بحث بأمر العمل، الإشعار، المقاول، المهندس أو الوصف..."></div><div id="scExceptionTable" class="sc-table-wrap"></div></article>`}
+<article class="sc-panel sc-exception-wrap"><div class="sc-panel-head"><div><span>EXCEPTION CENTER</span><h3>مركز الاستثناءات — الحالات التي تحتاج مراجعة</h3></div><b class="sc-badge" id="scIssueCount">0</b></div><div class="sc-toolbar"><span id="scChartFilterBadge" class="sc-badge" style="display:none"></span><button id="scChartFilterClear" type="button" style="display:none">× مسح فلتر الشارت</button><select id="scSeverity"><option value="">كل درجات الأهمية</option><option value="critical">حرجة</option><option value="high">مرتفعة</option><option value="medium">متوسطة</option></select><select id="scCategory"><option value="">كل الأنواع</option></select><input id="scIssueSearch" placeholder="بحث بأمر العمل، الإشعار، المقاول، المهندس أو الوصف..."></div><div id="scExceptionTable" class="sc-table-wrap"></div></article>`}
 function renderKpis(){
  const s=SC.summary;const cards=[
   ['صحة المشروع',s.health.toFixed(1)+'%','تنفيذ 45% + جودة 30% + مستندات 25%',s.health>=80?'success':s.health>=65?'warning':'danger'],
@@ -682,24 +682,35 @@ function renderTemporalMemory(){
  renderTemporalCharts(h,weeks);
  const ans=el('tmAnswer');if(ans&&!ans.dataset.initialized){ans.dataset.initialized='1';ans.innerHTML=tmAnswerBlock('الذاكرة جاهزة',h.length>1?'يمكنك الآن سؤال النظام عن بداية التدهور وتسلسل المؤشرات.':'تم تسجيل خط الأساس المركزي؛ الأسئلة التي تعتمد على المقارنة ستتحسن مع اللقطات القادمة.',[],h.length?('التغطية الحالية من '+tmFmtDate(h[0].date)+' إلى '+tmFmtDate(h[h.length-1].date)+'.'):'')}
 }
+function temporalChartClick(id,label,series){
+ const same=SC.temporalCross.chartId===id&&SC.temporalCross.snapshot===label&&SC.temporalCross.series===series;
+ SC.temporalCross=same?{snapshot:'',chartId:'',series:''}:{snapshot:label,chartId:id,series:series||''};
+ renderTemporalMemory();
+}
 function renderTemporalCharts(history,weeks){
  if(typeof Chart==='undefined')return;
  ['tmHistoryChart','tmViolationChart'].forEach(id=>{try{if(SC.charts[id])SC.charts[id].destroy()}catch(e){}delete SC.charts[id]});
+ const h=SC.temporalCross.chartId==='tmHistoryChart'&&SC.temporalCross.snapshot?history.filter(x=>tmFmtDate(x.date)===SC.temporalCross.snapshot):history;
+ const w=SC.temporalCross.chartId==='tmViolationChart'&&SC.temporalCross.snapshot?weeks.filter(x=>tmFmtDate(x.start)===SC.temporalCross.snapshot):weeks;
  const hCanvas=el('tmHistoryChart');
- if(hCanvas&&history.length){
-  SC.charts.tmHistoryChart=new Chart(hCanvas,{type:'line',data:{labels:history.map(x=>tmFmtDate(x.date)),datasets:[
-   {label:'صحة المشروع %',data:history.map(x=>Number(x.health||0)),borderWidth:2,tension:.25,pointRadius:2},
-   {label:'اكتمال البيانات %',data:history.map(x=>Number(x.qualityAvg||0)),borderWidth:2,tension:.25,pointRadius:2},
-   {label:'نسبة التنفيذ %',data:history.map(x=>Number(x.executionRate||0)),borderWidth:2,tension:.25,pointRadius:2}
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{family:'Cairo',size:9}}},tooltip:{rtl:true}},scales:{y:{beginAtZero:true,max:100},x:{ticks:{font:{family:'Cairo',size:8},maxRotation:0,autoSkip:true}}}}});
+ if(hCanvas&&h.length){
+  let hds=[
+   {label:'صحة المشروع %',data:h.map(x=>Number(x.health||0)),borderWidth:2,tension:.25,pointRadius:2},
+   {label:'اكتمال البيانات %',data:h.map(x=>Number(x.qualityAvg||0)),borderWidth:2,tension:.25,pointRadius:2},
+   {label:'نسبة التنفيذ %',data:h.map(x=>Number(x.executionRate||0)),borderWidth:2,tension:.25,pointRadius:2}
+  ];
+  if(SC.temporalCross.chartId==='tmHistoryChart'&&SC.temporalCross.series)hds=hds.filter(x=>x.label===SC.temporalCross.series);
+  SC.charts.tmHistoryChart=new Chart(hCanvas,{type:'line',data:{labels:h.map(x=>tmFmtDate(x.date)),datasets:hds},options:{responsive:true,maintainAspectRatio:false,onHover:(e,els)=>{hCanvas.style.cursor=els.length?'pointer':'default'},onClick:(e,els,ch)=>{if(els.length){const x=els[0];temporalChartClick('tmHistoryChart',clean(ch.data.labels[x.index]),clean(ch.data.datasets[x.datasetIndex].label))}},plugins:{legend:{labels:{font:{family:'Cairo',size:9}}},tooltip:{rtl:true}},scales:{y:{beginAtZero:true,max:100},x:{ticks:{font:{family:'Cairo',size:8},maxRotation:0,autoSkip:true}}}}});
  }
  const vCanvas=el('tmViolationChart');
- if(vCanvas&&weeks.length){
-  SC.charts.tmViolationChart=new Chart(vCanvas,{type:'bar',data:{labels:weeks.map(w=>tmFmtDate(w.start)),datasets:[
-   {label:'السلامة',data:weeks.map(w=>w.sources.get('مخالفات السلامة')||0),borderWidth:0},
-   {label:'التنفيذ',data:weeks.map(w=>w.sources.get('مخالفات التنفيذ')||0),borderWidth:0},
-   {label:'محاضر إثبات الحالة',data:weeks.map(w=>w.sources.get('محاضر إثبات الحالة')||0),borderWidth:0}
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{family:'Cairo',size:9}}},tooltip:{rtl:true}},scales:{x:{stacked:true,ticks:{font:{family:'Cairo',size:8},maxRotation:0,autoSkip:true}},y:{stacked:true,beginAtZero:true}}}});
+ if(vCanvas&&w.length){
+  let vds=[
+   {label:'السلامة',data:w.map(z=>z.sources.get('مخالفات السلامة')||0),borderWidth:0},
+   {label:'التنفيذ',data:w.map(z=>z.sources.get('مخالفات التنفيذ')||0),borderWidth:0},
+   {label:'محاضر إثبات الحالة',data:w.map(z=>z.sources.get('محاضر إثبات الحالة')||0),borderWidth:0}
+  ];
+  if(SC.temporalCross.chartId==='tmViolationChart'&&SC.temporalCross.series)vds=vds.filter(x=>x.label===SC.temporalCross.series);
+  SC.charts.tmViolationChart=new Chart(vCanvas,{type:'bar',data:{labels:w.map(z=>tmFmtDate(z.start)),datasets:vds},options:{responsive:true,maintainAspectRatio:false,onHover:(e,els)=>{vCanvas.style.cursor=els.length?'pointer':'default'},onClick:(e,els,ch)=>{if(els.length){const x=els[0];temporalChartClick('tmViolationChart',clean(ch.data.labels[x.index]),clean(ch.data.datasets[x.datasetIndex].label))}},plugins:{legend:{labels:{font:{family:'Cairo',size:9}}},tooltip:{rtl:true}},scales:{x:{stacked:true,ticks:{font:{family:'Cairo',size:8},maxRotation:0,autoSkip:true}},y:{stacked:true,beginAtZero:true}}}});
  }
 }
 
@@ -893,16 +904,25 @@ function bindExceptionTools(){
  el('scCategory').innerHTML='<option value="">كل الأنواع</option>'+cats.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
  el('scSeverity').onchange=renderExceptions;el('scCategory').onchange=renderExceptions;
  let t;el('scIssueSearch').oninput=()=>{clearTimeout(t);t=setTimeout(renderExceptions,130)};
+ const clear=el('scChartFilterClear');if(clear)clear.onclick=()=>{SC.cross={contractor:'',pageKey:''};if(el('scCategory'))el('scCategory').value='';renderExceptions()};
 }
 function filteredIssues(){
  const sev=el('scSeverity')?.value||'',cat=el('scCategory')?.value||'',q=norm(el('scIssueSearch')?.value||'');
  return SC.issues.filter(x=>{
   if(sev&&x.severity!==sev)return false;if(cat&&x.category!==cat)return false;
+  if(SC.cross.contractor&&clean(x.contractor)!==clean(SC.cross.contractor))return false;
+  if(SC.cross.pageKey&&x.pageKey!==SC.cross.pageKey)return false;
   if(!q)return true;return norm([x.title,x.detail,x.id,x.contractor,x.engineer,x.section,PAGE_TITLES[x.pageKey]].join(' ')).includes(q);
  });
 }
+function syncSmartChartFilterBadge(){
+ const badge=el('scChartFilterBadge'),clear=el('scChartFilterClear'),cat=el('scCategory')?.value||'';
+ const parts=[];if(SC.cross.pageKey)parts.push(PAGE_TITLES[SC.cross.pageKey]||SC.cross.pageKey);if(SC.cross.contractor)parts.push(SC.cross.contractor);if(cat)parts.push(cat);
+ if(badge){badge.style.display=parts.length?'inline-flex':'none';badge.textContent=parts.length?'فلتر الشارت: '+parts.join(' • '):''}
+ if(clear)clear.style.display=parts.length?'inline-flex':'none';
+}
 function renderExceptions(){
- const data=filteredIssues(),root=el('scExceptionTable');el('scIssueCount').textContent=data.length.toLocaleString('ar-SA');
+ const data=filteredIssues(),root=el('scExceptionTable');el('scIssueCount').textContent=data.length.toLocaleString('ar-SA');syncSmartChartFilterBadge();
  if(!data.length){root.innerHTML='<div class="sc-empty">لا توجد حالات مطابقة للفلاتر الحالية.</div>';return}
  root.innerHTML=`<table class="sc-table"><thead><tr><th>الأهمية</th><th>النوع</th><th>الملاحظة</th><th>السجل</th><th>المقاول</th><th>المهندس</th><th>المصدر</th><th></th></tr></thead><tbody>${data.slice(0,500).map((x,i)=>`<tr><td><span class="sc-severity ${x.severity}">${SEV_LABELS[x.severity]||x.severity}</span></td><td>${esc(x.category)}</td><td><b>${esc(x.title)}</b><br><small>${esc(x.detail)}</small></td><td>${esc(x.id||'—')}</td><td>${esc(x.contractor||'—')}</td><td>${esc(x.engineer||'—')}</td><td>${esc(PAGE_TITLES[x.pageKey]||x.pageKey)}</td><td><button class="sc-source-btn" data-source-index="${SC.issues.indexOf(x)}">فتح المصدر</button></td></tr>`).join('')}</tbody></table>`;
  root.querySelectorAll('.sc-source-btn').forEach(b=>b.onclick=()=>openIssueSource(SC.issues[Number(b.dataset.sourceIndex)]));
@@ -914,9 +934,14 @@ function openIssueSource(issue){
  setTimeout(()=>{try{if(typeof applyFilters==='function')applyFilters()}catch(e){}},700);
 }
 function destroyChart(id){try{SC.charts[id]?.destroy()}catch(e){}delete SC.charts[id]}
+function smartChartClick(id,label){
+ if(id==='scQualityChart'){const q=SC.quality.find(x=>clean(x.title)===clean(label));if(q){SC.cross.pageKey=SC.cross.pageKey===q.pageKey?'':q.pageKey;renderExceptions()}return}
+ if(id==='scIssueChart'){const c=el('scCategory');if(c){c.value=c.value===label?'':label;renderExceptions()}return}
+ if(id==='scContractorChart'){SC.cross.contractor=SC.cross.contractor===label?'':label;renderExceptions()}
+}
 function barChart(id,labels,data,horizontal=false,max=100){
  destroyChart(id);const canvas=el(id);if(!canvas||typeof Chart==='undefined')return;
- SC.charts[id]=new Chart(canvas,{type:'bar',data:{labels,datasets:[{data,backgroundColor:'rgba(40,120,232,.72)',hoverBackgroundColor:'rgba(40,120,232,.9)',borderWidth:0,borderRadius:7,maxBarThickness:34}]},options:{indexAxis:horizontal?'y':'x',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{rtl:true,titleFont:{family:'Cairo'},bodyFont:{family:'Cairo'}}},scales:{x:{beginAtZero:true,max:horizontal&&max===100?100:undefined,grid:{display:false},ticks:{font:{family:'Cairo',size:8}}},y:{beginAtZero:true,max:!horizontal&&max===100?100:undefined,grid:{color:'rgba(120,140,165,.12)'},ticks:{font:{family:'Cairo',size:8}}}}}});
+ SC.charts[id]=new Chart(canvas,{type:'bar',data:{labels,datasets:[{data,backgroundColor:'rgba(40,120,232,.72)',hoverBackgroundColor:'rgba(40,120,232,.9)',borderWidth:0,borderRadius:7,maxBarThickness:34}]},options:{indexAxis:horizontal?'y':'x',responsive:true,maintainAspectRatio:false,onHover:(e,els)=>{canvas.style.cursor=els.length?'pointer':'default'},onClick:(e,els,ch)=>{if(els.length)smartChartClick(id,clean(ch.data.labels[els[0].index]))},plugins:{legend:{display:false},tooltip:{rtl:true,titleFont:{family:'Cairo'},bodyFont:{family:'Cairo'}}},scales:{x:{beginAtZero:true,max:horizontal&&max===100?100:undefined,grid:{display:false},ticks:{font:{family:'Cairo',size:8}}},y:{beginAtZero:true,max:!horizontal&&max===100?100:undefined,grid:{color:'rgba(120,140,165,.12)'},ticks:{font:{family:'Cairo',size:8}}}}}});
 }
 function renderCharts(){
  const quality=[...SC.quality].sort((a,b)=>a.score-b.score);barChart('scQualityChart',quality.map(x=>x.title),quality.map(x=>x.score),true,100);

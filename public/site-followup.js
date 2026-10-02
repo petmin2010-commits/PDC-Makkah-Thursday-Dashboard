@@ -348,6 +348,15 @@ function render(rows){
     }
   }
 }
+window.SiteFollowupDashboard={
+  supportWorkOrders(label){
+    const rows=Array.isArray(SF.supportRows)?SF.supportRows:[];
+    const map={'الصور':'photos','السلامة':'safetyForms','الإشراف':'supervisionForms','اختبارات الأصول':'assetTests','As-built':'asbuilt','أخرى':'other'};
+    const key=map[t(label)];
+    const matched=key?rows.filter(r=>t(r[key])):rows.filter(r=>(t(r.status)||'غير محدد')===t(label));
+    return [...new Set(matched.map(r=>t(r.workOrder)).filter(Boolean))];
+  }
+};
 function sync(){
   const x=root();if(!x)return;
   const on=typeof S!=='undefined'&&S.current==='tasks';x.style.display=on?'block':'none';

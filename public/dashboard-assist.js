@@ -69,28 +69,61 @@ function band(label){
  if(s.startsWith('<')&&n.length)return{lt:n[0]/100};if(s.startsWith('>')&&n.length)return{gt:n[0]/100};if(s==='0%')return{gte:0,lte:0};if(n.length===1&&s.includes('100%'))return{gte:1};if(n.length>=2)return{gte:n[0]/100,lte:n[1]/100};return null;
 }
 function exactField(label){const a=rows();if(!a.length)return null;let best=null,bn=0;Object.keys(a[0]).filter(k=>!k.startsWith('_')).forEach(k=>{let c=0;a.forEach(r=>{if(clean(r[k])===label)c++});if(c>bn){bn=c;best=k}});return bn?best:null}
+function setMeetingChartFilter(id,f){
+ const cur=S.meetingChartFilters[id],same=cur&&JSON.stringify(cur)===JSON.stringify(f);
+ if(same)delete S.meetingChartFilters[id];else S.meetingChartFilters[id]=f;
+ renderWednesdayMeeting();
+}
 function meetingClick(id,label){
- if(id==='wmExecutionChart'){const m={'أُنجز التنفيذ':'completed','متأخر تنفيذ':'delayed','قيد التنفيذ ضمن المدة':'within','أخرى':'other'};if(m[label]){S.meetingChartFilters[id]={mode:m[label],label};renderWednesdayMeeting()}return}
- if(id==='wmDelayChart'){S.meetingChartFilters[id]={field:'delayBucket',value:label,mode:'exact',label};renderWednesdayMeeting();return}
- if(MEETING[id]){S.meetingChartFilters[id]={field:MEETING[id],value:label,mode:'exact',label};renderWednesdayMeeting()}
+ if(id==='wmExecutionChart'){const m={'أُنجز التنفيذ':'completed','متأخر تنفيذ':'delayed','قيد التنفيذ ضمن المدة':'within','أخرى':'other'};if(m[label])setMeetingChartFilter(id,{mode:m[label],label});return}
+ if(id==='wmDelayChart'){setMeetingChartFilter(id,{field:'delayBucket',value:label,mode:'exact',label});return}
+ if(MEETING[id])setMeetingChartFilter(id,{field:MEETING[id],value:label,mode:'exact',label});
 }
 function chartClick(c,e,ch){
- const es=ch.getElementsAtEventForMode(e,'nearest',{intersect:true},true);if(!es.length)return;const x=es[0],i=x.index,di=x.datasetIndex||0,l=clean(ch.data.labels&&ch.data.labels[i]),raw=ch.data.datasets&&ch.data.datasets[di]&&ch.data.datasets[di].data[i];
- if(page()==='hrStaff'&&window.HRDashboard){window.HRDashboard.filterFromChart(c.id,l);return}
- if(page()==='wednesdayMeeting'){meetingClick(c.id,l);return}
- if(c.id==='paExec'||c.id==='caExec'||c.id==='meStatus'){const f=rows().some(r=>'executionStatus'in r)?'executionStatus':'status';toggleChartFilter(c.id,f,l.includes('موقوف')?'موقوف/محول':l,'حالة التنفيذ','contains',l);return}
- if(c.id==='paAdvice'||c.id==='caAdvice'){toggleChartFilter(c.id,'adviceAge',l,'حداثة الإفادة','contains',l);return}
- if(c.id==='pa155'||c.id==='ca155'){const f=rows().some(r=>'consultant155Date'in r)?'consultant155Date':'consultant155';setF(c.id,{field:f,value:l,label:'155',mode:l.includes('لم')?'blank':'notblank',displayValue:l});return}
+ const es=ch.getElementsAtEventForMode(e,'nearest',{intersect:true},true);if(!es.length)return;
+ const x=es[0],i=x.index,di=x.datasetIndex||0,l=clean(ch.data.labels&&ch.data.labels[i]),ds=clean(ch.data.datasets&&ch.data.datasets[di]&&ch.data.datasets[di].label),raw=ch.data.datasets&&ch.data.datasets[di]&&ch.data.datasets[di].data[i];
+ const pg=page();
+ if(pg==='hrStaff'&&window.HRDashboard){window.HRDashboard.filterFromChart(c.id,l,ds);return}
+ if(pg==='employeeEvaluation'&&window.EmployeeEvaluationDashboard){window.EmployeeEvaluationDashboard.filterFromChart(c.id,l,ds);return}
+ if(pg==='electricityEngineerEvaluation'&&window.ElectricityEngineerEvaluationDashboard){window.ElectricityEngineerEvaluationDashboard.filterFromChart(c.id,l,ds);return}
+ if(pg==='smartThursday'&&window.SmartThursdayPortfolio){window.SmartThursdayPortfolio.filterFromChart(c.id,l,ds,i,di);return}
+ if(pg==='wednesdayMeeting'){meetingClick(c.id,l);return}
+
+ if(c.id==='paExec'||c.id==='caExec'||c.id==='meStatus'){setF(c.id,{mode:'derived',kind:'execution-status',value:l.includes('موقوف')?'موقوف/محول':l,label:'حالة التنفيذ',displayValue:l});return}
+ if(c.id==='paAdvice'||c.id==='caAdvice'){setF(c.id,{mode:'derived',kind:'advice-bucket',value:l,label:'حداثة الإفادة',displayValue:l});return}
+ if(c.id==='pa155'||c.id==='ca155'){const a=rows(),f=a.some(r=>'consultant155Date'in r)?'consultant155Date':a.some(r=>'consultant155CompletionDate'in r)?'consultant155CompletionDate':'consultant155';setF(c.id,{field:f,value:l,label:'155',mode:l.includes('لم')?'blank':'notblank',displayValue:l});return}
  if(c.id==='paScatter'||c.id==='caScatter'){const wo=raw&&typeof raw==='object'?clean(raw.workOrder):'';if(wo)toggleChartFilter(c.id,'workOrder',wo,'أمر العمل','exact',wo);return}
- if(c.id==='peAction'){setF(c.id,{field:'actionTaken',value:'',label:l,mode:l.includes('لم')?'blank':'notblank',displayValue:l});return}
- if(c.id==='peExpiry'){const v=l.includes('بدون')?'missing':l.includes('منتهي')?'expired':'active';setF(c.id,{field:'permitEnd',value:v,label:l,mode:'date-state',displayValue:l});return}
- if(c.id==='peIssueLag'||c.id==='peValidity'){const s=l.replace(/[–—]/g,'-'),ns=[...s.matchAll(/\d+/g)].map(x=>Number(x[0]));const over=s.includes('>');const f=c.id==='peIssueLag'?['assignedDate','permitStart']:['permitStart','permitEnd'];const q={fromField:f[0],toField:f[1],label:l,displayValue:l,mode:'date-diff-range'};if(over&&ns.length)q.gt=ns[0];else if(ns.length>=2){q.gte=ns[0];q.lte=ns[1]}else if(ns.length===1){q.lte=ns[0]}setF(c.id,q);return}
- if(c.id==='pePendingAge'){const s=l.replace(/[–—]/g,'-'),ns=[...s.matchAll(/\d+/g)].map(x=>Number(x[0]));const q={field:'days',label:l,displayValue:l,mode:'number-range',scale:'raw'};if(s.includes('+')&&ns.length)q.gte=ns[0];else if(ns.length>=2){q.gte=ns[0];q.lte=ns[1]}setF(c.id,q);return}
- if(c.id==='sfOutcome'){const v=l.includes('بدون إفادة')?'due-missing':l.includes('غير مستحق')?'notdue-missing':l.includes('لم يتم')||l.includes('لا يوجد')?'nowork':'productive';setF(c.id,{field:'statement',value:v,label:l,mode:'site-outcome',displayValue:l});return}
- if(c.id==='sfQuality'){const map={'الإحداثيات':'coordinates','مشرف المقاول':'contractorSupervisor','هاتف المشرف':'contractorPhone','وقت الانتهاء':'endTime','مهندس الموقع':'engineer','الموقع':'location','المصدر':'source','إفادة الموقع':'statement'};const fld=map[l];if(fld)setF(c.id,{field:fld,value:'',label:l,mode:'blank',displayValue:l});return}
- if(c.id==='me155'){const fld=i===0?'consultant155':'contractor155',ds=clean(ch.data.datasets&&ch.data.datasets[di]&&ch.data.datasets[di].label),yes=!ds.includes('لا');setF(c.id,{field:fld,value:'',label:l+' - '+ds,mode:yes?'notblank':'blank',displayValue:l+' - '+ds});return}
- if(BANDS[c.id]){const b=band(l);if(b){setF(c.id,Object.assign({field:BANDS[c.id][0],label:l,displayValue:l,mode:'number-range',scale:BANDS[c.id][1]?'ratio':'raw'},b))}return}
- const r=RULES[c.id];if(r){toggleChartFilter(c.id,r[0],l,r[0],r[1]||'exact',l);return}
+ if(c.id==='paPhysical'){const f={'الحفر':'excavationProgress','التمديد':'extensionProgress','الإنجاز الكلي':'progress'}[l];if(f)setF(c.id,{field:f,value:'',label:l,mode:'notblank',displayValue:l});return}
+ if(c.id==='paBlocker'){setF(c.id,{mode:'derived',kind:'project-blocker',value:l,label:'الاختناق',displayValue:l});return}
+ if(c.id==='caBlocker'){setF(c.id,{mode:'derived',kind:'connection-blocker',value:l,label:'الاختناق',displayValue:l});return}
+ if(c.id==='caCategory'){setF(c.id,{field:'category',mode:'derived',kind:'category-display',value:l,label:'التصنيف',displayValue:l});return}
+ if(c.id==='paDelay'||c.id==='caDelay'||c.id==='meDelay'){let v=l;if(l.includes('أوشكت'))v='أوشكت المدة';if(l.includes('عال'))v='تأخير عالي';setF(c.id,{mode:'derived',kind:'delay-bucket',value:v,label:'التأخير',displayValue:l});return}
+
+ const stackedStatus={paContractor:'contractor',paEngineer:'engineer',caContractor:'contractor',caEngineer:'engineer',meSection:'section',meContractorStatus:'contractor'};
+ if(stackedStatus[c.id]){setF(c.id,{field:stackedStatus[c.id],mode:'derived',kind:'field-status',dimensionValue:l,statusValue:ds,label:stackedStatus[c.id],value:l+' / '+ds,displayValue:l+' • '+ds});return}
+ if(c.id==='caCatExec'){setF(c.id,{field:'category',mode:'derived',kind:'category-status',dimensionValue:l,statusValue:ds,label:'التصنيف / التنفيذ',value:l+' / '+ds,displayValue:l+' • '+ds});return}
+
+ if(c.id==='peStatus'){setF(c.id,{mode:'derived',kind:'permit-bucket',value:l,label:'حالة التصريح',displayValue:l});return}
+ if(c.id==='peEval'){setF(c.id,{mode:'derived',kind:'permit-eval',value:l,label:'تقييم الطلب',displayValue:l});return}
+ if(c.id==='peAction'){setF(c.id,{mode:'derived',kind:'action-state',value:l.includes('لم')?'no':'yes',label:'الإجراء',displayValue:l});return}
+ if(c.id==='peExpiry'){const v=l.includes('بدون')?'missing':l.includes('منتهي')?'expired':'active';setF(c.id,{field:'permitEnd',value:v,label:'صلاحية التصريح',mode:'date-state',displayValue:l});return}
+ if(c.id==='peTrend'){const f=di===1?'permitStart':'assignedDate';toggleChartFilter(c.id,f,l,'الشهر','month',l);return}
+ if(c.id==='peIssueLag'||c.id==='peValidity'){const s=l.replace(/[–—]/g,'-'),ns=[...s.matchAll(/\d+/g)].map(x=>Number(x[0]));const over=s.includes('>'),f=c.id==='peIssueLag'?['assignedDate','permitStart']:['permitStart','permitEnd'],q={fromField:f[0],toField:f[1],label:l,displayValue:l,mode:'date-diff-range'};if(over&&ns.length)q.gt=ns[0];else if(ns.length>=2){q.gte=ns[0];q.lte=ns[1]}else if(ns.length===1){q.lte=ns[0]}setF(c.id,q);return}
+ if(c.id==='pePendingAge'){const s=l.replace(/[–—]/g,'-'),ns=[...s.matchAll(/\d+/g)].map(x=>Number(x[0])),q={field:'days',label:l,displayValue:l,mode:'number-range',scale:'raw'};if(s.includes('+')&&ns.length)q.gte=ns[0];else if(ns.length>=2){q.gte=ns[0];q.lte=ns[1]}setF(c.id,q);return}
+ const stackedPermit={peContractor:'contractor',peSectionStatus:'section',peCategoryStatus:'category'};
+ if(stackedPermit[c.id]){setF(c.id,{field:stackedPermit[c.id],mode:'derived',kind:'field-permit',dimensionValue:l,statusValue:ds,label:'حالة التصريح',value:l+' / '+ds,displayValue:l+' • '+ds});return}
+ if(c.id==='peEvalSection'){setF(c.id,{field:'section',mode:'derived',kind:'field-eval',dimensionValue:l,statusValue:ds,label:'القسم / التقييم',value:l+' / '+ds,displayValue:l+' • '+ds});return}
+
+ if(c.id==='sfOutcome'){const v=l==='مستحق بلا إفادة'?'due-missing':l==='لم يحل موعده'?'notdue-missing':(l.includes('تأجيل')||l.includes('لا عمل'))?'nowork':'productive';setF(c.id,{field:'statement',value:v,label:'نتيجة المتابعة',mode:'site-outcome',displayValue:l});return}
+ if(c.id==='sfDaily'){setF(c.id,{field:'date',value:l,label:'تاريخ المهمة',mode:'day',displayValue:l});return}
+ if(c.id==='sfQuality'){const map={'إحداثيات':'coordinates','مشرف مقاول':'contractorSupervisor','جوال المشرف':'contractorPhone','وقت الانتهاء':'endTime','مسؤول الموقع':'engineer','الموقع':'location','المصدر':'source','إفادة مستحقة':'statement'},fld=map[l];if(fld)setF(c.id,{field:fld,value:'',label:l,mode:(l==='وقت الانتهاء'||l==='إفادة مستحقة')?'site-due-blank':'blank',displayValue:l});return}
+ if(c.id==='sfSupport'&&window.SiteFollowupDashboard){const values=window.SiteFollowupDashboard.supportWorkOrders(l);setF(c.id,{field:'workOrder',values,label:'المرفقات المساندة',value:l,mode:'in-list',displayValue:l});return}
+
+ if(c.id==='me155'){const fld=i===0?'consultant155':'contractor155',yes=!ds.includes('لا');setF(c.id,{field:fld,mode:'derived',kind:'yes-no',value:yes?'yes':'no',label:l+' - '+ds,displayValue:l+' - '+ds});return}
+
+ if(BANDS[c.id]){const b=band(l);if(b)setF(c.id,Object.assign({field:BANDS[c.id][0],label:l,displayValue:l,mode:'number-range',scale:BANDS[c.id][1]?'ratio':'raw'},b));return}
+ const r=RULES[c.id];
+ if(r){if(l==='غير محدد')setF(c.id,{field:r[0],value:'',label:r[0],mode:'blank',displayValue:l});else toggleChartFilter(c.id,r[0],l,r[0],r[1]||'exact',l);return}
  const f=exactField(l);if(f)toggleChartFilter(c.id,f,l,f,'exact',l);
 }
 function chartNative(ch){return typeof(ch&&ch.options&&ch.options.onClick)==='function'}
