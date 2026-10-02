@@ -56,8 +56,20 @@ function openInfo(el){
  '<div class="vd-info-row"><b>التفاعل</b><span>الفلاتر اليدوية والفلاتر الناتجة عن الضغط على الكروت والشارتات تعمل معًا، ويعاد احتساب بقية عناصر الصفحة على نفس النطاق.</span></div>';
  m.classList.add('show');m.setAttribute('aria-hidden','false');
 }
+function isControlSurface(el){
+ if(!el||!el.matches)return false;
+ if(el.matches('.xd-tools,.ir-control,.sc-toolbar,.filter-bar,.filters,[role="search"],[data-filter-panel]'))return true;
+ return !!el.querySelector(':scope > input,:scope > select,:scope > textarea,:scope > label > input,:scope > label > select');
+}
 function info(el){
- if(!el||el.dataset.vdInfoBound==='1'||el.closest('.vd-info-modal'))return;el.dataset.vdInfoBound='1';el.classList.add('vd-info-host');
+ if(!el||el.closest('.vd-info-modal'))return;
+ if(isControlSurface(el)){
+  el.querySelector(':scope > .vd-universal-info')?.remove();
+  el.classList.remove('vd-info-host');
+  delete el.dataset.vdInfoBound;
+  return;
+ }
+ if(el.dataset.vdInfoBound==='1')return;el.dataset.vdInfoBound='1';el.classList.add('vd-info-host');
  if(el.querySelector(':scope > .calc-help-btn'))return;
  const b=document.createElement('button');b.type='button';b.className='vd-universal-info';b.textContent='!';b.title='كيفية ومصدر الاحتساب';b.onclick=e=>{e.preventDefault();e.stopPropagation();openInfo(el)};el.appendChild(b);
 }

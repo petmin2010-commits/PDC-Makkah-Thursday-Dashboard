@@ -173,12 +173,19 @@ function explainableDecisionMarkup(){return `
   <div><b>العوامل السياقية لا تكفي وحدها</b><span>تكرار مخالفات المقاول يعزز حالة موجودة، ولا ينشئ أولوية بمفرده.</span></div>
   <div><b>جودة البيانات منفصلة عن نقاط الأولوية</b><span>نقص المهندس أو المقاول يخفض ثقة التغطية بدل رفع درجة المخاطر.</span></div>
  </article>
- <article class="xd-tools">
-  <input id="xdSearch" placeholder="ابحث بأمر العمل، المقاول، المهندس، السبب أو الإجراء...">
-  <select id="xdPriority"><option value="">كل مستويات الأولوية</option><option value="high">مرتفعة</option><option value="medium">متوسطة</option><option value="watch">مراقبة</option></select>
-  <select id="xdConfidence"><option value="">كل مستويات ثقة التغطية</option><option value="high">ثقة عالية ≥ 75%</option><option value="medium">ثقة متوسطة 50–74%</option><option value="low">ثقة محدودة &lt; 50%</option></select>
-  <select id="xdSource"><option value="">كل مصادر القرار</option></select>
-  <button id="xdClear" type="button">مسح</button>
+ <article class="xd-tools" aria-label="بحث وتصفية حالات القرار">
+  <div class="xd-search-field">
+   <span class="xd-search-icon" aria-hidden="true">⌕</span>
+   <div class="xd-search-body">
+    <label for="xdSearch">بحث سريع في حالات المتابعة</label>
+    <input id="xdSearch" type="search" autocomplete="off" placeholder="أمر العمل، المقاول، المهندس، السبب أو الإجراء...">
+   </div>
+  </div>
+  <label class="xd-filter-field"><span>مستوى الأولوية</span><select id="xdPriority"><option value="">كل مستويات الأولوية</option><option value="high">مرتفعة</option><option value="medium">متوسطة</option><option value="watch">مراقبة</option></select></label>
+  <label class="xd-filter-field"><span>ثقة التغطية</span><select id="xdConfidence"><option value="">كل مستويات ثقة التغطية</option><option value="high">ثقة عالية ≥ 75%</option><option value="medium">ثقة متوسطة 50–74%</option><option value="low">ثقة محدودة &lt; 50%</option></select></label>
+  <label class="xd-filter-field"><span>مصدر القرار</span><select id="xdSource"><option value="">كل مصادر القرار</option></select></label>
+  <button id="xdClear" class="xd-clear-btn" type="button"><span aria-hidden="true">↺</span> مسح الفلاتر</button>
+  <div class="xd-filter-summary" aria-live="polite"><strong id="xdFilterCount">0 حالة</strong><span id="xdFilterHint">كل الحالات</span></div>
  </article>
  <div id="xdCases" class="xd-cases"></div>
  <article id="xdEvidencePanel" class="xd-evidence-panel"><div class="xd-empty-evidence">اضغط على أي سبب داخل حالة متابعة لعرض الدليل، المصدر، الإجراء المقترح وفتح السجل الأصلي.</div></article>
@@ -861,9 +868,17 @@ function renderExplainableDecision(){
 function xdConfidenceMatch(c,f){if(!f)return true;if(f==='high')return c.confidence>=75;if(f==='medium')return c.confidence>=50&&c.confidence<75;if(f==='low')return c.confidence<50;return true}
 function renderDecisionCases(){
  if(!Array.isArray(SC.decisionCases))SC.decisionCases=xdBuildCases();
- const q=norm(el('xdSearch')&&el('xdSearch').value),p=el('xdPriority')&&el('xdPriority').value,cf=el('xdConfidence')&&el('xdConfidence').value,src=el('xdSource')&&el('xdSource').value;
+ const searchRaw=clean(el('xdSearch')&&el('xdSearch').value),q=norm(searchRaw),p=el('xdPriority')&&el('xdPriority').value,cf=el('xdConfidence')&&el('xdConfidence').value,src=el('xdSource')&&el('xdSource').value;
  const cases=SC.decisionCases.filter(c=>{if(p&&c.priority!==p)return false;if(!xdConfidenceMatch(c,cf))return false;if(src&&!c.sourceKeys.includes(src))return false;
   if(!q)return true;const hay=[c.workOrder,c.contractor,c.engineer,c.region,...c.reasons.flatMap(r=>[r.label,r.detail,r.action,r.source]),...c.qualityFlags.flatMap(x=>[x.label,x.detail])].join(' ');return norm(hay).includes(q)}).slice(0,80);
+ const count=el('xdFilterCount'),hint=el('xdFilterHint'),clearBtn=el('xdClear'),active=[];
+ if(searchRaw)active.push('بحث: '+searchRaw);
+ if(p)active.push('الأولوية: '+({high:'مرتفعة',medium:'متوسطة',watch:'مراقبة'}[p]||p));
+ if(cf)active.push('الثقة: '+({high:'عالية',medium:'متوسطة',low:'محدودة'}[cf]||cf));
+ if(src){const opt=el('xdSource')?.selectedOptions?.[0];active.push('المصدر: '+(opt?.textContent||src))}
+ if(count)count.textContent=cases.length.toLocaleString('ar-SA')+' حالة';
+ if(hint)hint.textContent=active.length?active.join(' • '):'كل الحالات بدون فلترة';
+ if(clearBtn){clearBtn.disabled=!active.length;clearBtn.classList.toggle('is-active',!!active.length)}
  const label={high:'مرتفعة',medium:'متوسطة',watch:'مراقبة'},root=el('xdCases');if(!cases.length){root.innerHTML='<div class="xd-empty">لا توجد حالات مطابقة للفلاتر الحالية.</div>';return}
  root.innerHTML=cases.map(c=>{const idx=SC.decisionCases.indexOf(c),sorted=c.reasons.slice().sort((a,b)=>b.points-a.points),kindLabel=c.hasWorkOrder?'أمر العمل':'السجل';
   return '<article class="xd-case '+c.priority+'"><div class="xd-case-head"><div><span>'+kindLabel+'</span><h3>'+esc(c.workOrder)+'</h3><small>'+esc(c.contractor||'مقاول غير محدد')+(c.engineer?' • '+esc(c.engineer):'')+(c.region?' • '+esc(c.region):'')+'</small></div><div class="xd-score"><b>'+c.score+'</b><span>نقاط أولوية</span><em>'+label[c.priority]+'</em></div></div>'+
