@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="/global-chart-labels.js?v=transparent-collision-safe-20261002-5"></script>
-  <link rel="stylesheet" href="/styles.css?v=unified-page-heading-20261002-4">
+  <link rel="stylesheet" href="/styles.css?v=themed-page-headings-20261002-5">
   <link rel="stylesheet" href="/projects-analytics.css?v=projects-parity-20261002-1">
   <link rel="stylesheet" href="/connections-analytics.css?v=merge-specialized-kpis-20261002-3">
   <link rel="stylesheet" href="/permits-analytics.css">
@@ -117,9 +117,15 @@
       <button id="projectNewsPause" class="news-control" type="button" aria-label="إيقاف شريط الأخبار">❚❚</button>
     </section>
 
-    <section id="globalPageHeading" class="global-page-heading" aria-live="polite">
-      <span>VISION DIMENSIONS</span>
-      <h1 id="globalPageHeadingTitle">لوحة المتابعة الرئيسية</h1>
+    <section id="globalPageHeading" class="global-page-heading" data-page="master" aria-live="polite">
+      <div class="gph-copy">
+        <span id="globalPageHeadingEyebrow" class="gph-eyebrow">MAIN DASHBOARD • CONTROL HUB</span>
+        <div class="gph-title-line">
+          <span id="globalPageHeadingIcon" class="gph-icon" aria-hidden="true">⌂</span>
+          <h1 id="globalPageHeadingTitle">لوحة المتابعة الرئيسية</h1>
+        </div>
+        <p id="globalPageHeadingSubtitle" class="gph-subtitle">ملخص تنفيذي موحد لحالة المشروع ومؤشرات الأداء الرئيسية.</p>
+      </div>
     </section>
 
     <section id="filterBar" class="filters">
@@ -529,7 +535,7 @@
 <script src="/project-news.js?v=smartnews-20260927-4"></script>
 <script src="/report-export.js?v=standard-report-controls-20261002-1"></script>
 <script src="/smart-center.js?v=hide-smart-filters-20261002-3"></script>
-<script src="/global-page-heading.js?v=unified-page-heading-20261002-1"></script>
+<script src="/global-page-heading.js?v=themed-page-headings-20261002-2"></script>
 <script src="/workorder-360.js?v=smart-section-2"></script>
 
 <div id="meetingInfoModal" class="meeting-info-modal" aria-hidden="true">

@@ -1,25 +1,92 @@
 (function(){
 'use strict';
 
-const TITLES={
-  master:'لوحة المتابعة الرئيسية',
-  projects:'لوحة متابعة المشاريع',
-  connections:'لوحة متابعة التوصيلات',
-  permits:'لوحة متابعة التصاريح',
-  assets:'لوحة متابعة الأصول',
-  closures:'لوحة متابعة الإغلاقات',
-  tasks:'لوحة متابعة أعمال المواقع',
-  emergency:'لوحة متابعة الطوارئ',
-  safety:'لوحة مخالفات السلامة',
-  executionViolations:'لوحة مخالفات التنفيذ',
-  minutes:'لوحة محاضر مخالفة إثبات الحالة',
-  dataQuality:'لوحة جودة البيانات',
-  hrStaff:'لوحة الموارد البشرية للكادر',
-  employeeEvaluation:'لوحة تقييم مهندسي المواقع',
-  electricityEngineerEvaluation:'لوحة تقييم مهندسي شركة الكهرباء',
-  wednesdayMeeting:'لوحة اجتماع الـ PDC',
-  smartThursday:'لوحة تقرير الخميس الذكي',
-  importantLinks:'لوحة الروابط المهمة'
+const PAGE_META={
+  master:{
+    eyebrow:'MAIN DASHBOARD • CONTROL HUB',
+    title:'لوحة المتابعة الرئيسية',
+    subtitle:'ملخص تنفيذي موحد لحالة المشروع ومؤشرات الأداء الرئيسية.',
+    icon:'⌂',
+    from:'#17355f',to:'#2b7de9',accent:'#76c7ff'
+  },
+  projects:{
+    eyebrow:'PROJECTS OPERATIONS • DELIVERY VIEW',
+    title:'متابعة المشاريع',
+    subtitle:'متابعة أوامر المشاريع ونسب الإنجاز والتقدم التنفيذي بالمواقع.',
+    icon:'⚡',
+    from:'#5f3a12',to:'#e79b24',accent:'#ffd06d'
+  },
+  connections:{
+    eyebrow:'CONNECTIONS TRACKER • FIELD DELIVERY',
+    title:'متابعة التوصيلات',
+    subtitle:'متابعة أوامر التوصيلات وحالة التنفيذ والإنجاز الميداني.',
+    icon:'◎',
+    from:'#143b66',to:'#3b8df3',accent:'#82c7ff'
+  },
+  permits:{
+    eyebrow:'PERMITS CONTROL ROOM • APPROVAL FLOW',
+    title:'متابعة التصاريح',
+    subtitle:'متابعة إصدار التصاريح وحالة الطلبات والتأخيرات والإغلاقات.',
+    icon:'▤',
+    from:'#0f4a61',to:'#1da9c9',accent:'#72e5f4'
+  },
+  assets:{
+    eyebrow:'ASSETS VERIFICATION • FIELD RECORDS',
+    title:'متابعة الأصول',
+    subtitle:'متابعة تسجيل الأصول واختبارات التركيب وجودة البيانات الفنية.',
+    icon:'⬡',
+    from:'#37265f',to:'#875fe0',accent:'#c4adff'
+  },
+  closures:{
+    eyebrow:'CLOSURES CONTROL • COMPLETION VIEW',
+    title:'متابعة الإغلاقات',
+    subtitle:'متابعة الأعمال في مرحلة الإغلاق ونسب الاكتمال والمتبقي.',
+    icon:'✓',
+    from:'#0c5034',to:'#1eb87c',accent:'#7ce1b6'
+  },
+  tasks:{
+    eyebrow:'SITE OPERATIONS • DAILY FOLLOW-UP',
+    title:'متابعة أعمال المواقع',
+    subtitle:'متابعة المهام اليومية وحالة التنفيذ والإفادات الميدانية.',
+    icon:'✦',
+    from:'#153e66',to:'#278fd1',accent:'#83d5ff'
+  },
+  emergency:{
+    eyebrow:'EMERGENCY RESPONSE • LIVE STATUS',
+    title:'متابعة إشعارات الطوارئ',
+    subtitle:'متابعة الإشعارات الطارئة والمجدولة وسرعة الاستجابة والإنجاز.',
+    icon:'⚠',
+    from:'#641729',to:'#ef4d69',accent:'#ff9aae'
+  },
+  safety:{
+    eyebrow:'SAFETY CONTROL • COMPLIANCE VIEW',
+    title:'مخالفات السلامة',
+    subtitle:'تحليل مخالفات السلامة والاتجاهات والإجراءات التصحيحية.',
+    icon:'⚠',
+    from:'#6c4211',to:'#ef9622',accent:'#ffd276'
+  },
+  executionViolations:{
+    eyebrow:'EXECUTION QUALITY • VIOLATIONS ANALYTICS',
+    title:'مخالفات التنفيذ',
+    subtitle:'تحليل مخالفات التنفيذ وتكرارها ومصادرها وحالة المعالجة.',
+    icon:'⊘',
+    from:'#5a1728',to:'#dc385d',accent:'#ff8ba1'
+  },
+  minutes:{
+    eyebrow:'CASE VIOLATION MINUTES • EVIDENCE VIEW',
+    title:'محاضر مخالفة إثبات الحالة',
+    subtitle:'قراءة المحاضر والغرامات والمقاولين وحالة الرفع ومصادر البيانات.',
+    icon:'≡',
+    from:'#3b2868',to:'#8551ce',accent:'#c7a6ff'
+  }
+};
+
+const DEFAULT_META={
+  eyebrow:'VISION DIMENSIONS • PROJECT CONTROL',
+  title:'لوحة المتابعة',
+  subtitle:'عرض تنفيذي موحد لبيانات المشروع.',
+  icon:'◆',
+  from:'#17355f',to:'#2b7de9',accent:'#76c7ff'
 };
 
 function navLabel(btn){
@@ -29,22 +96,53 @@ function navLabel(btn){
 }
 
 function fallbackTitle(label){
-  if(!label)return 'لوحة المتابعة';
+  if(!label)return DEFAULT_META.title;
   if(label.startsWith('لوحة'))return label;
   if(label.includes('تقييم')||label.includes('مخالفات')||label.includes('محاضر')||label.includes('جودة')||label.includes('الموارد البشرية')||label.includes('تقرير'))return 'لوحة '+label;
   return 'لوحة متابعة '+label;
 }
 
+function ensureStructure(root){
+  if(root.querySelector('.gph-copy'))return;
+  const currentTitle=String(root.querySelector('h1')?.textContent||DEFAULT_META.title).trim();
+  root.innerHTML=
+    '<div class="gph-copy">'+
+      '<span id="globalPageHeadingEyebrow" class="gph-eyebrow">'+DEFAULT_META.eyebrow+'</span>'+
+      '<div class="gph-title-line">'+
+        '<span id="globalPageHeadingIcon" class="gph-icon" aria-hidden="true">'+DEFAULT_META.icon+'</span>'+
+        '<h1 id="globalPageHeadingTitle">'+currentTitle+'</h1>'+
+      '</div>'+
+      '<p id="globalPageHeadingSubtitle" class="gph-subtitle">'+DEFAULT_META.subtitle+'</p>'+
+    '</div>';
+}
+
 function updateGlobalPageHeading(){
   const root=document.getElementById('globalPageHeading');
-  const title=document.getElementById('globalPageHeadingTitle');
-  if(!root||!title)return;
+  if(!root)return;
+  ensureStructure(root);
 
   const active=document.querySelector('#nav .nav-item.active');
   const key=active?.dataset?.page||'master';
   const label=navLabel(active);
-  title.textContent=TITLES[key]||fallbackTitle(label||key);
+  const meta=PAGE_META[key]||{
+    ...DEFAULT_META,
+    title:fallbackTitle(label||key)
+  };
+
+  const eyebrow=document.getElementById('globalPageHeadingEyebrow');
+  const title=document.getElementById('globalPageHeadingTitle');
+  const subtitle=document.getElementById('globalPageHeadingSubtitle');
+  const icon=document.getElementById('globalPageHeadingIcon');
+
+  if(eyebrow)eyebrow.textContent=meta.eyebrow;
+  if(title)title.textContent=meta.title;
+  if(subtitle)subtitle.textContent=meta.subtitle;
+  if(icon)icon.textContent=meta.icon;
+
   root.dataset.page=key;
+  root.style.setProperty('--gph-from',meta.from);
+  root.style.setProperty('--gph-to',meta.to);
+  root.style.setProperty('--gph-accent',meta.accent);
 }
 
 function bind(){
