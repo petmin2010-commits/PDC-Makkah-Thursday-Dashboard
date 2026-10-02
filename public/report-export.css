@@ -1022,65 +1022,91 @@ body.vd-report-dark #vdReportV2 .vd-report-safety-detail-page .table-link *{
 }
 
 
-/* Projects detail table — compact content-fit columns */
-.vd-report-projects-detail-page .vd-report-detail-panel{
-  width:max-content!important;
-  max-width:100%!important;
-  margin-inline:auto!important;
-}
+/* Projects detail table — compact but readable; never split Arabic words letter-by-letter */
+.vd-report-projects-detail-page .vd-report-detail-panel,
 .vd-report-projects-detail-page .table-wrap{
-  width:max-content!important;
+  width:100%!important;
   max-width:100%!important;
   margin-inline:auto!important;
 }
 .vd-report-projects-detail-page table{
-  width:auto!important;
+  width:100%!important;
   min-width:0!important;
   max-width:100%!important;
   table-layout:auto!important;
   margin:0 auto!important;
 }
 .vd-report-projects-detail-page th{
-  width:1%!important;
-  padding:.28mm .22mm!important;
-  font-size:3.9px!important;
-  line-height:1.02!important;
+  padding:.30mm .24mm!important;
+  font-size:4.0px!important;
+  line-height:1.05!important;
   white-space:nowrap!important;
+  word-break:normal!important;
+  overflow-wrap:normal!important;
   letter-spacing:0!important;
 }
 .vd-report-projects-detail-page td{
-  width:1%!important;
-  padding:.32mm .22mm!important;
-  font-size:4.35px!important;
-  line-height:1.05!important;
+  padding:.34mm .24mm!important;
+  font-size:4.45px!important;
+  line-height:1.08!important;
   white-space:nowrap!important;
+  word-break:normal!important;
+  overflow-wrap:normal!important;
 }
-/* Long text fields may wrap only when needed, preventing them from widening the whole table. */
+/* Text-heavy columns get controlled space and wrap only at natural word boundaries. */
 .vd-report-projects-detail-page th:nth-child(3),
 .vd-report-projects-detail-page td:nth-child(3){
-  width:auto!important;
-  max-width:24mm!important;
+  min-width:14mm!important;
+  max-width:22mm!important;
   white-space:normal!important;
 }
 .vd-report-projects-detail-page th:nth-child(4),
 .vd-report-projects-detail-page td:nth-child(4){
-  width:auto!important;
+  min-width:16mm!important;
   max-width:24mm!important;
   white-space:normal!important;
 }
 .vd-report-projects-detail-page th:nth-child(13),
 .vd-report-projects-detail-page td:nth-child(13){
-  width:auto!important;
+  min-width:15mm!important;
   max-width:22mm!important;
   white-space:normal!important;
 }
 .vd-report-projects-detail-page th:nth-child(14),
-.vd-report-projects-detail-page td:nth-child(14),
-.vd-report-projects-detail-page th:nth-child(15),
-.vd-report-projects-detail-page td:nth-child(15){
-  width:auto!important;
+.vd-report-projects-detail-page td:nth-child(14){
+  min-width:12mm!important;
   max-width:18mm!important;
   white-space:normal!important;
+}
+.vd-report-projects-detail-page th:nth-child(15),
+.vd-report-projects-detail-page td:nth-child(15){
+  min-width:12mm!important;
+  max-width:20mm!important;
+  white-space:normal!important;
+}
+.vd-report-projects-detail-page th:nth-child(20),
+.vd-report-projects-detail-page td:nth-child(20){
+  min-width:26mm!important;
+  max-width:36mm!important;
+  white-space:normal!important;
+}
+.vd-report-projects-detail-page th:nth-child(21),
+.vd-report-projects-detail-page td:nth-child(21){
+  min-width:34mm!important;
+  max-width:48mm!important;
+  white-space:normal!important;
+}
+/* Keep compact numeric/date/status columns to the exact content width. */
+.vd-report-projects-detail-page th:nth-child(1),
+.vd-report-projects-detail-page td:nth-child(1),
+.vd-report-projects-detail-page th:nth-child(2),
+.vd-report-projects-detail-page td:nth-child(2),
+.vd-report-projects-detail-page th:nth-child(n+5):nth-child(-n+12),
+.vd-report-projects-detail-page td:nth-child(n+5):nth-child(-n+12),
+.vd-report-projects-detail-page th:nth-child(n+16):nth-child(-n+19),
+.vd-report-projects-detail-page td:nth-child(n+16):nth-child(-n+19){
+  width:1%!important;
+  white-space:nowrap!important;
 }
 
 
