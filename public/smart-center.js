@@ -47,7 +47,7 @@ function syncSmartSectionTabs(){
  if(dock){if(key)dock.style.setProperty('display','none','important');else dock.style.removeProperty('display')}
  const showShared=key==='smartCenterNav';
  if(bar)bar.style.display=showShared?'block':'none';
- if(heading)heading.style.display=key?'none':'';
+ if(heading){if(key)heading.style.setProperty('display','none','important');else heading.style.removeProperty('display')}
  if(bar)bar.querySelectorAll('[data-smart-target]').forEach(b=>b.classList.toggle('active',b.dataset.smartTarget===key));
  if(host){
   host.style.display='none';

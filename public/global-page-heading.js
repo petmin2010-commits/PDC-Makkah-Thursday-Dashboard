@@ -184,7 +184,8 @@ function updateGlobalPageHeading(){
     smartSectionIds.has(active?.id||'')
     || active?.dataset?.page==='smartThursday';
 
-  root.style.display=hideForSmartSection?'none':'';
+  if(hideForSmartSection)root.style.setProperty('display','none','important');
+  else root.style.removeProperty('display');
 
   if(hideForSmartSection)return;
 
