@@ -1122,3 +1122,26 @@ body.vd-report-dark #vdReportV2 .vd-report-safety-detail-page .table-link *{
   content:none!important;
   display:none!important;
 }
+
+
+/* Projects detailed table: final columns and serial */
+.vd-report-projects-detail-page .vd-projects-serial-col{
+  width:1%!important;
+  min-width:4mm!important;
+  max-width:6mm!important;
+  white-space:nowrap!important;
+  text-align:center!important;
+}
+.vd-report-projects-detail-page .vd-projects-advice-col{
+  min-width:34mm!important;
+  max-width:48mm!important;
+  white-space:normal!important;
+  word-break:normal!important;
+  overflow-wrap:normal!important;
+}
+.vd-report-projects-detail-page .vd-projects-advice-date-col{
+  width:1%!important;
+  min-width:13mm!important;
+  max-width:18mm!important;
+  white-space:nowrap!important;
+}

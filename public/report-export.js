@@ -748,7 +748,8 @@
         const clone = cloneWithCanvases(dataPanel); clone.classList.add('vd-report-detail-panel');
 
         // تقرير المشاريع لا يحتاج عمود «القسم» لأنه ثابت ومعلوم مسبقًا.
-        // كذلك: «تاريخ آخر إفادة» يكون آخر عمود، مع مسلسل في أقصى اليمين.
+        // آخر عمودين فقط: «إفادة الاستشاري» ثم «تاريخ آخر إفادة»، مع مسلسل في أقصى اليمين.
+        clone.querySelector('.panel-head .panel-title')?.remove();
         const detailTable = clone.querySelector('table');
         if (detailTable) {
           let headers = [...detailTable.querySelectorAll('thead th')];
@@ -762,27 +763,40 @@
             .trim()
             .replace(/[إأآ]/g, 'ا')
             .replace(/\s+/g, ' ');
+          const adviceIndex = headers.findIndex(th => {
+            const h = normHeader(th.textContent);
+            return h.includes('افاد') && h.includes('استشار') && !h.includes('تاريخ');
+          });
           const adviceDateIndex = headers.findIndex(th => {
             const h = normHeader(th.textContent);
             return h.includes('تاريخ') && h.includes('اخر') && h.includes('افاد');
           });
 
-          if (adviceDateIndex >= 0) {
-            [...detailTable.querySelectorAll('tr')].forEach(row => {
-              const cell = row.children[adviceDateIndex];
-              if (cell) row.appendChild(cell);
-            });
-          }
+          [...detailTable.querySelectorAll('tr')].forEach(row => {
+            const cells = [...row.children];
+            const adviceCell = adviceIndex >= 0 ? cells[adviceIndex] : null;
+            const adviceDateCell = adviceDateIndex >= 0 ? cells[adviceDateIndex] : null;
+            if (adviceCell) {
+              adviceCell.classList.add('vd-projects-advice-col');
+              row.appendChild(adviceCell);
+            }
+            if (adviceDateCell) {
+              adviceDateCell.classList.add('vd-projects-advice-date-col');
+              row.appendChild(adviceDateCell);
+            }
+          });
 
           const headRow = detailTable.querySelector('thead tr');
           if (headRow) {
             const serialHead = document.createElement('th');
             serialHead.textContent = 'م';
+            serialHead.classList.add('vd-projects-serial-col');
             headRow.insertBefore(serialHead, headRow.firstElementChild);
           }
           [...detailTable.querySelectorAll('tbody tr')].forEach((row, rowIndex) => {
             const serialCell = document.createElement('td');
             serialCell.textContent = String(rowIndex + 1);
+            serialCell.classList.add('vd-projects-serial-col');
             row.insertBefore(serialCell, row.firstElementChild);
           });
         }
