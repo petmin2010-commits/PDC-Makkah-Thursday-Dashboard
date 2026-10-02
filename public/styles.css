@@ -3149,3 +3149,25 @@ body .panel > .vd-tab-report-actions{
 .dashboard-user-avatar .dashboard-user-photo{width:100%;height:100%;display:block;object-fit:cover;object-position:center;border-radius:inherit;}
 .dashboard-user-avatar .dashboard-user-photo[hidden],
 .dashboard-user-avatar #dashboardUserInitial[hidden]{display:none !important;}
+
+/* ===== Compact user profile spacing — 2026-10-03 ===== */
+@media (min-width:701px){
+  .dashboard-user-profile{
+    max-width:292px !important;
+    padding:5px 7px !important;
+    gap:5px !important;
+  }
+  .dashboard-user-avatar{
+    width:30px !important;
+    height:30px !important;
+    flex:0 0 30px !important;
+    border-radius:9px !important;
+  }
+  .dashboard-user-info{min-width:78px !important;}
+  .dashboard-user-info strong{max-width:102px !important;}
+  .dashboard-user-info span{max-width:102px !important;}
+  .dashboard-logout-button{
+    height:32px !important;
+    padding:0 8px !important;
+  }
+}
