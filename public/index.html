@@ -32,32 +32,9 @@
   <link rel="stylesheet" href="/report-export.css?v=control-reports-20261002-1">
   <link rel="stylesheet" href="/readability.css?v=black-text-20261001-1">
   <link rel="stylesheet" href="/standard-report-controls.css?v=standard-report-controls-20261002-1">
+  <link rel="stylesheet" href="/fixed-top-shell.css?v=fixed-toolbar-20261002-1">
 </head>
 <body>
-<div id="dashboardUserProfile" class="dashboard-user-profile" hidden>
-
-  <div class="dashboard-user-avatar" aria-hidden="true">
-    <span id="dashboardUserInitial">U</span>
-  </div>
-
-  <div class="dashboard-user-info">
-    <strong id="dashboardUserName">المستخدم</strong>
-    <span id="dashboardUserRole"></span>
-  </div>
-
-  <button
-    id="dashboardLogoutButton"
-    class="dashboard-logout-button"
-    type="button"
-    title="تسجيل الخروج"
-    aria-label="تسجيل الخروج">
-    <span class="dashboard-logout-icon">↪</span>
-    <span>تسجيل الخروج</span>
-  </button>
-
-</div>
-
-
 <div id="boot" class="boot boot-soft"><div class="boot-card"><div class="spinner"></div><b>جاري جلب البيانات</b><span>ستظهر الواجهة فورًا بينما تكتمل البيانات</span></div></div>
 
 <div class="app">
@@ -91,8 +68,8 @@
       <button class="nav-item meeting-nav-item" data-page="wednesdayMeeting">▥ <span>اجتماع الـ PDC</span></button>
       <button class="nav-item" data-page="smartThursday">▣ <span>تقرير الخميس الذكي</span></button>
       <button class="nav-item" data-page="importantLinks">🔗 <span>الروابط المهمة</span></button>
-      
-      
+
+
     </nav>
     <div class="side-foot"><i></i><div><b>LIVE SHEETS</b><span id="lastUpdate">—</span></div></div>
   </aside>
@@ -108,6 +85,29 @@
 </select></div>
         <button id="printBtn" class="ghost-btn">🖨 طباعة</button>
         <button id="refreshBtn" class="primary-btn">↻ تحديث</button>
+      </div>
+
+      <div id="dashboardUserProfile" class="dashboard-user-profile" hidden>
+
+        <div class="dashboard-user-avatar" aria-hidden="true">
+          <span id="dashboardUserInitial">U</span>
+        </div>
+
+        <div class="dashboard-user-info">
+          <strong id="dashboardUserName">المستخدم</strong>
+          <span id="dashboardUserRole"></span>
+        </div>
+
+        <button
+          id="dashboardLogoutButton"
+          class="dashboard-logout-button"
+          type="button"
+          title="تسجيل الخروج"
+          aria-label="تسجيل الخروج">
+          <span class="dashboard-logout-icon">↪</span>
+          <span>تسجيل الخروج</span>
+        </button>
+
       </div>
     </header>
 

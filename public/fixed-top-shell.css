@@ -1,0 +1,329 @@
+/* VD FIXED TOP TOOLBAR + NEWS — 2026-10-02 */
+:root{
+  --vd-sidebar-width:205px;
+  --vd-top-gap:10px;
+  --vd-toolbar-height:66px;
+  --vd-news-height:50px;
+  --vd-shell-left:18px;
+  --vd-shell-right-gap:14px;
+}
+
+/* Remove legacy body offset used by the old floating profile. */
+body{padding-top:0!important}
+
+/* The controls + authenticated user become one fixed toolbar. */
+.topbar{
+  position:fixed!important;
+  top:var(--vd-top-gap)!important;
+  right:calc(var(--vd-sidebar-width) + var(--vd-shell-right-gap))!important;
+  left:var(--vd-shell-left)!important;
+  z-index:5200!important;
+
+  height:var(--vd-toolbar-height)!important;
+  min-height:var(--vd-toolbar-height)!important;
+  margin:0!important;
+  padding:7px 10px!important;
+
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  direction:rtl!important;
+
+  background:rgba(255,255,255,.96)!important;
+  border:1px solid #dbe5f2!important;
+  border-radius:18px!important;
+  box-shadow:0 10px 26px rgba(24,53,92,.09)!important;
+  backdrop-filter:blur(12px)!important;
+  -webkit-backdrop-filter:blur(12px)!important;
+}
+
+.topbar .topbar-page-name{display:none!important}
+
+.topbar .top-actions{
+  order:1!important;
+  flex:1 1 auto!important;
+  min-width:0!important;
+  width:auto!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:10px!important;
+  flex-wrap:nowrap!important;
+  direction:rtl!important;
+}
+
+/* Keep the global search visible on every tab. */
+.topbar .top-actions .search{
+  display:flex!important;
+  flex:1 1 360px!important;
+  min-width:240px!important;
+  max-width:520px!important;
+  width:auto!important;
+  height:46px!important;
+  margin:0!important;
+  padding:0 13px!important;
+  border:1px solid #d9e4f1!important;
+  border-radius:13px!important;
+  background:#fbfdff!important;
+  box-shadow:none!important;
+}
+.topbar .top-actions .search span{
+  flex:0 0 auto!important;
+  color:#173d72!important;
+  font-size:18px!important;
+  line-height:1!important;
+}
+.topbar .top-actions .search input{
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  border:0!important;
+  outline:0!important;
+  background:transparent!important;
+  color:#14213d!important;
+  font-size:10px!important;
+  font-weight:600!important;
+}
+
+.topbar .theme-picker-wrap{
+  flex:0 0 205px!important;
+  width:205px!important;
+  height:46px!important;
+  margin:0!important;
+  padding:0 10px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  border:1px solid #d9e4f1!important;
+  border-radius:13px!important;
+  background:#fbfdff!important;
+  box-shadow:none!important;
+}
+.topbar .theme-select{
+  flex:1 1 auto!important;
+  min-width:0!important;
+  width:100%!important;
+  height:42px!important;
+  border:0!important;
+  outline:0!important;
+  background:transparent!important;
+  color:#14213d!important;
+  font-size:10px!important;
+  font-weight:800!important;
+}
+
+.topbar #refreshBtn{
+  flex:0 0 auto!important;
+  min-width:108px!important;
+  height:46px!important;
+  margin:0!important;
+  padding:0 15px!important;
+  border-radius:13px!important;
+  font-size:10px!important;
+  font-weight:800!important;
+  box-shadow:0 7px 16px rgba(36,119,232,.16)!important;
+}
+
+/* Printing is handled by report actions; keep the legacy top button out of this bar. */
+.topbar #printBtn{display:none!important}
+
+/* User identity is integrated in the same bar, after the controls. */
+.topbar .dashboard-user-profile{
+  order:2!important;
+  position:relative!important;
+  top:auto!important;
+  right:auto!important;
+  bottom:auto!important;
+  left:auto!important;
+
+  flex:0 0 auto!important;
+  width:auto!important;
+  max-width:350px!important;
+  height:50px!important;
+  min-height:50px!important;
+  margin:0!important;
+  padding:4px 6px!important;
+  gap:8px!important;
+
+  display:flex;
+  align-items:center!important;
+  direction:rtl!important;
+
+  background:#fff!important;
+  border:0!important;
+  border-left:1px solid #e4ebf4!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  z-index:auto!important;
+}
+.topbar .dashboard-user-profile[hidden]{display:none!important}
+.topbar .dashboard-user-avatar{
+  width:40px!important;
+  height:40px!important;
+  flex:0 0 40px!important;
+  border-radius:12px!important;
+  font-size:14px!important;
+}
+.topbar .dashboard-user-info{
+  min-width:105px!important;
+  max-width:155px!important;
+}
+.topbar .dashboard-user-info strong{
+  display:block!important;
+  max-width:155px!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  color:#14213d!important;
+  font-size:10px!important;
+}
+.topbar .dashboard-user-info span{
+  display:block!important;
+  max-width:155px!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  color:#74849b!important;
+  font-size:7px!important;
+}
+.topbar .dashboard-logout-button{
+  height:40px!important;
+  min-width:92px!important;
+  margin:0!important;
+  padding:0 11px!important;
+  border:1px solid #f4cfd4!important;
+  border-radius:11px!important;
+  background:#fff5f6!important;
+  color:#c92f3d!important;
+  font-size:8.5px!important;
+  font-weight:800!important;
+}
+
+/* News is the second fixed bar directly under the toolbar. */
+#projectNewsTicker.project-news{
+  position:fixed!important;
+  top:calc(var(--vd-top-gap) + var(--vd-toolbar-height) + 8px)!important;
+  right:calc(var(--vd-sidebar-width) + var(--vd-shell-right-gap))!important;
+  left:var(--vd-shell-left)!important;
+  z-index:5150!important;
+
+  min-height:var(--vd-news-height)!important;
+  height:var(--vd-news-height)!important;
+  margin:0!important;
+
+  border:1px solid #dbe5f2!important;
+  border-radius:14px!important;
+  background:rgba(255,255,255,.97)!important;
+  box-shadow:0 8px 20px rgba(24,53,92,.07)!important;
+  backdrop-filter:blur(10px)!important;
+  -webkit-backdrop-filter:blur(10px)!important;
+}
+
+/* Reserve content space for the two fixed bars. */
+main{
+  padding-top:calc(
+    var(--vd-top-gap) +
+    var(--vd-toolbar-height) +
+    8px +
+    var(--vd-news-height) +
+    20px
+  )!important;
+}
+
+/* Theme variants still keep toolbar controls readable. */
+html[data-theme] body .topbar,
+html[data-theme] body #projectNewsTicker.project-news{
+  background:color-mix(in srgb,var(--tc,#fff) 94%,#fff)!important;
+  border-color:var(--tl,#dbe5f2)!important;
+}
+html[data-theme] body .topbar .search,
+html[data-theme] body .topbar .theme-picker-wrap{
+  background:color-mix(in srgb,var(--tc,#fff) 88%,#fff)!important;
+  border-color:var(--tl,#d9e4f1)!important;
+}
+html[data-theme] body .topbar .search input,
+html[data-theme] body .topbar .theme-select,
+html[data-theme] body .topbar .dashboard-user-info strong{
+  color:var(--ti,#14213d)!important;
+}
+
+/* Tablet / compact sidebar */
+@media(max-width:850px){
+  :root{
+    --vd-sidebar-width:70px;
+    --vd-shell-left:10px;
+    --vd-shell-right-gap:10px;
+    --vd-toolbar-height:70px;
+  }
+  .topbar{gap:8px!important;padding:7px 8px!important}
+  .topbar .dashboard-user-info{display:none!important}
+  .topbar .dashboard-logout-button{
+    width:40px!important;
+    min-width:40px!important;
+    padding:0!important;
+  }
+  .topbar .dashboard-logout-button span:last-child{display:none!important}
+  .topbar .theme-picker-wrap{flex-basis:165px!important;width:165px!important}
+  .topbar #refreshBtn{min-width:88px!important;padding:0 10px!important}
+  .topbar .top-actions .search{min-width:180px!important}
+}
+
+/* Narrow mobile: toolbar can use two lines, while remaining fixed. */
+@media(max-width:620px){
+  :root{
+    --vd-sidebar-width:70px;
+    --vd-toolbar-height:118px;
+    --vd-news-height:44px;
+    --vd-top-gap:6px;
+    --vd-shell-left:6px;
+    --vd-shell-right-gap:6px;
+  }
+  .topbar{
+    height:var(--vd-toolbar-height)!important;
+    min-height:var(--vd-toolbar-height)!important;
+    flex-wrap:wrap!important;
+    align-content:center!important;
+  }
+  .topbar .dashboard-user-profile{
+    order:1!important;
+    flex:0 0 auto!important;
+    height:44px!important;
+    min-height:44px!important;
+  }
+  .topbar .dashboard-user-avatar{
+    width:36px!important;height:36px!important;flex-basis:36px!important;
+  }
+  .topbar .top-actions{
+    order:2!important;
+    flex:1 1 100%!important;
+    width:100%!important;
+    gap:6px!important;
+  }
+  .topbar .top-actions .search{
+    flex:1 1 auto!important;
+    min-width:110px!important;
+    height:40px!important;
+  }
+  .topbar .theme-picker-wrap{
+    flex:0 0 118px!important;
+    width:118px!important;
+    height:40px!important;
+  }
+  .topbar #refreshBtn{
+    min-width:72px!important;
+    height:40px!important;
+    padding:0 8px!important;
+    font-size:8px!important;
+  }
+  #projectNewsTicker.project-news{min-height:var(--vd-news-height)!important;height:var(--vd-news-height)!important}
+}
+
+/* Never print fixed UI chrome. */
+@media print{
+  .topbar,#projectNewsTicker.project-news{display:none!important}
+  main{padding-top:0!important}
+}
