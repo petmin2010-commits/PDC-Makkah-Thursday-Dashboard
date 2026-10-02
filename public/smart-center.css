@@ -446,7 +446,7 @@ body.theme-dark .xd-quality-flags span{background:#3b2f1d;border-color:#5d4826;c
   min-height:58px;
   display:flex;
   align-items:center;
-  gap:11px;
+  gap:8px;
   padding:8px 12px;
   border:1px solid #cfdbea;
   border-radius:13px;
@@ -460,16 +460,19 @@ body.theme-dark .xd-quality-flags span{background:#3b2f1d;border-color:#5d4826;c
   background:#fff;
 }
 .xd-search-icon{
-  width:32px;
-  height:32px;
-  flex:0 0 32px;
+  width:18px;
+  height:18px;
+  flex:0 0 18px;
   display:flex;
   align-items:center;
   justify-content:center;
-  border-radius:10px;
-  background:#f3edf8;
-  color:#7a4a92;
-  font:900 20px/1 Arial,sans-serif;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  color:#8a5aa1;
+  font:900 17px/1 Arial,sans-serif;
+  opacity:.9;
+  pointer-events:none;
 }
 .xd-search-body{min-width:0;flex:1}
 .xd-search-body label,
@@ -570,7 +573,7 @@ body.theme-dark .xd-search-field,
 body.theme-dark .xd-filter-field{background:#17243a;border-color:#30435f}
 body.theme-dark .xd-search-field:focus-within,
 body.theme-dark .xd-filter-field:focus-within{border-color:#8d63a2;box-shadow:0 0 0 3px rgba(157,103,184,.12)}
-body.theme-dark .xd-search-icon{background:#2a2037;color:#caa8da}
+body.theme-dark .xd-search-icon{background:transparent;color:#caa8da}
 body.theme-dark .xd-search-body input,
 body.theme-dark .xd-filter-field select{color:#dce6f2!important}
 body.theme-dark .xd-filter-summary{background:#17243a;border-color:#30435f}
