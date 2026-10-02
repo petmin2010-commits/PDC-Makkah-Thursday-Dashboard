@@ -2787,113 +2787,81 @@
     'minutes'
   ]);
 
-  function ensurePageReportButton(page) {
-    if (!page) return;
+  function ensureUnifiedReportButton() {
+    const dock =
+      document.getElementById('vdUnifiedControls');
+    const exportSlot =
+      dock?.querySelector('.vd-unified-export-slot');
+
+    /*
+      زر واحد فقط للتصدير في كامل التطبيق.
+      أي أزرار قديمة خاصة بالصفحات تُحذف لمنع التكرار.
+    */
+    document
+      .querySelectorAll('.vd-tab-report-actions')
+      .forEach(bar => {
+        if (bar.id !== 'vdUnifiedReportAction') {
+          bar.remove();
+        }
+      });
+
+    if (!exportSlot) return null;
 
     let bar =
-      document.querySelector(
-        '.vd-tab-report-actions[data-page-id="' + page.id + '"]'
-      )
-      || page.querySelector(':scope > .vd-tab-report-actions');
+      document.getElementById('vdUnifiedReportAction');
 
     if (!bar) {
       bar = document.createElement('div');
-      bar.className = 'vd-tab-report-actions';
-      bar.dataset.pageId = page.id;
+      bar.id = 'vdUnifiedReportAction';
+      bar.className =
+        'vd-tab-report-actions is-unified';
 
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'vd-tab-report-btn';
-      button.title = 'تصدير التقرير الكامل للتاب الحالي مباشرة';
+      button.title =
+        'تصدير التقرير الكامل للتاب الحالي مباشرة';
       button.textContent = '⤓ تصدير تقرير';
 
-      bar.appendChild(button);
-      page.insertBefore(bar, page.firstChild);
-    } else {
-      bar.dataset.pageId = page.id;
-    }
-
-    const button =
-      bar.querySelector('.vd-tab-report-btn');
-
-    if (button) {
-      button.dataset.bound = '1';
       button.onclick = event => {
         event.preventDefault();
         event.stopPropagation();
         showModal();
       };
+
+      bar.appendChild(button);
     }
+
+    if (bar.parentNode !== exportSlot) {
+      exportSlot.appendChild(bar);
+    }
+
+    return bar;
   }
 
   function installPageReportButtons() {
-    [
-      'masterPage',
-      'meetingPage',
-      'dataPage',
-      'employeeEvaluationPage',
-      'electricityEngineerEvaluationPage'
-    ].forEach(id => {
-      ensurePageReportButton(
-        document.getElementById(id)
-      );
-    });
+    ensureUnifiedReportButton();
   }
 
   function syncPageReportButton() {
     const key = getActivePageKey();
-    const activePage =
-      document.querySelector('.page.active');
-    const activeBar = activePage
-      ? document.querySelector(
-          '.vd-tab-report-actions[data-page-id="' + activePage.id + '"]'
-        )
-      : null;
-    const compact =
-      COMPACT_REPORT_KEYS.has(key);
-    const exportSlot =
-      document.querySelector(
-        '#vdUnifiedControls .vd-unified-export-slot'
-      );
-
-    document
-      .querySelectorAll('.vd-tab-report-actions')
-      .forEach(bar => {
-        bar.style.display = 'none';
-      });
-
-    if (
-      key !== 'smartThursday'
-      && activeBar
-    ) {
-      if (compact && exportSlot) {
-        if (activeBar.parentNode !== exportSlot) {
-          exportSlot.appendChild(activeBar);
-        }
-        activeBar.classList.add('is-unified');
-      } else {
-        if (
-          activePage
-          && activeBar.parentNode !== activePage
-        ) {
-          activePage.insertBefore(
-            activeBar,
-            activePage.firstChild
-          );
-        }
-        activeBar.classList.remove('is-unified');
-      }
-
-      activeBar.style.display = 'flex';
-    }
-
     const dock =
       document.getElementById('vdUnifiedControls');
+    const bar = ensureUnifiedReportButton();
+    const show =
+      key !== 'smartThursday'
+      && !!dock
+      && !!bar;
+
+    if (bar) {
+      bar.style.display =
+        show ? 'flex' : 'none';
+    }
 
     if (dock) {
       dock.classList.toggle(
         'has-export',
-        !!(compact && activeBar)
+        show
       );
     }
 

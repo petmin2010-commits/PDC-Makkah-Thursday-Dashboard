@@ -2644,3 +2644,73 @@ body.theme-purple #nav .nav-item::before{
     grid-column:1/-1;
   }
 }
+
+
+/* Single export action: bottom-left corner of the unified filters section only */
+#vdUnifiedControls.vd-unified-controls{
+  position:relative!important;
+  grid-template-columns:1fr!important;
+  grid-template-areas:
+    "filters"
+    "period"!important;
+  padding-left:122px!important;
+}
+#vdUnifiedControls .vd-unified-filter-slot,
+#vdUnifiedControls .vd-unified-period-slot{
+  min-width:0!important;
+}
+#vdUnifiedControls .vd-unified-export-slot{
+  position:absolute!important;
+  left:10px!important;
+  bottom:9px!important;
+  z-index:20!important;
+  width:auto!important;
+  min-width:0!important;
+  display:flex!important;
+  align-items:flex-end!important;
+  justify-content:flex-start!important;
+  pointer-events:none;
+}
+#vdUnifiedControls .vd-unified-export-slot:empty{
+  display:none!important;
+}
+#vdUnifiedControls #vdUnifiedReportAction{
+  display:flex;
+  margin:0!important;
+  padding:0!important;
+  height:31px!important;
+  pointer-events:auto;
+}
+#vdUnifiedControls #vdUnifiedReportAction .vd-tab-report-btn{
+  height:31px!important;
+  min-height:31px!important;
+  margin:0!important;
+  padding:0 13px!important;
+  border-radius:8px!important;
+  font-size:8.5px!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+}
+
+/* No page-level export actions may remain outside the filters dock. */
+body .page > .vd-tab-report-actions,
+body .panel > .vd-tab-report-actions{
+  display:none!important;
+}
+
+@media(max-width:850px){
+  #vdUnifiedControls.vd-unified-controls{
+    padding-left:104px!important;
+    grid-template-areas:
+      "filters"
+      "period"!important;
+  }
+  #vdUnifiedControls .vd-unified-export-slot{
+    left:8px!important;
+    bottom:8px!important;
+  }
+  #vdUnifiedControls #vdUnifiedReportAction .vd-tab-report-btn{
+    padding:0 9px!important;
+    font-size:7.8px!important;
+  }
+}
