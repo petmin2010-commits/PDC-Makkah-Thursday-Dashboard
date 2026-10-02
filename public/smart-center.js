@@ -42,8 +42,9 @@ function restoreSmartSpecialHeroes(){
  });
 }
 function syncSmartSectionTabs(){
- const bar=el('smartSectionTopTabs'),heading=el('globalPageHeading'),host=el('smartPageHeroHost'),key=smartSectionKey();
+ const bar=el('smartSectionTopTabs'),heading=el('globalPageHeading'),host=el('smartPageHeroHost'),dock=el('vdUnifiedControls'),key=smartSectionKey();
  restoreSmartSpecialHeroes();
+ if(dock){if(key)dock.style.setProperty('display','none','important');else dock.style.removeProperty('display')}
  const showShared=key==='smartCenterNav';
  if(bar)bar.style.display=showShared?'block':'none';
  if(heading)heading.style.display=key?'none':'';
