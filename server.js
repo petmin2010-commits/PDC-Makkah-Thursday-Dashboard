@@ -2011,6 +2011,46 @@ app.use(session({
    Authentication API
    ========================================== */
 
+app.get('/api/auth/photo',async(req,res)=>{
+
+  try{
+    res.set('Cache-Control','no-store, max-age=0');
+
+    if(!req.session || !req.session.user || !req.session.user.email){
+      return res.status(401).end();
+    }
+
+    const users=await readDashboardUsers_();
+    const email=String(req.session.user.email||'').trim().toLowerCase();
+    const user=users.find(u=>u.email===email);
+    const imageUrl=String(user?.image||'').trim();
+
+    if(!imageUrl){
+      return res.status(404).end();
+    }
+
+    const upstream=await fetch(imageUrl,{redirect:'follow'});
+    if(!upstream.ok){
+      return res.status(404).end();
+    }
+
+    const contentType=upstream.headers.get('content-type')||'image/jpeg';
+    if(!contentType.toLowerCase().startsWith('image/')){
+      return res.status(415).end();
+    }
+
+    const bytes=Buffer.from(await upstream.arrayBuffer());
+    res.set('Content-Type',contentType);
+    res.set('Content-Length',String(bytes.length));
+    return res.status(200).send(bytes);
+
+  }catch(error){
+    console.error('User photo proxy error:',error);
+    return res.status(500).end();
+  }
+
+});
+
 app.get('/api/auth/me',(req,res)=>{
 
   res.set('Cache-Control','no-store');

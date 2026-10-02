@@ -15,8 +15,7 @@
 
       const data=await response.json();
       const user=data && data.authenticated ? data.user : null;
-      const photoUrl=String(user && user.image || '').trim();
-      if(!photoUrl) return;
+      if(!user) return;
 
       let img=document.getElementById('dashboardUserPhoto');
       if(!img){
@@ -37,7 +36,7 @@
         initial.hidden=false;
         avatar.classList.remove('has-photo');
       };
-      img.src=photoUrl;
+      img.src='/api/auth/photo?v='+Date.now();
     }catch(error){
       console.warn('User photo could not be loaded',error);
     }
