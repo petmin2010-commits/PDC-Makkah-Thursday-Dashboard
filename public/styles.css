@@ -3171,3 +3171,10 @@ body .panel > .vd-tab-report-actions{
     padding:0 8px !important;
   }
 }
+
+/* Hide the unified report/filter controls completely on Important Links tab */
+body.important-links-active #vdUnifiedControls,
+body.important-links-active #filterBar,
+body.important-links-active #violationPeriodSlicer{
+  display:none !important;
+}

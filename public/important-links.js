@@ -138,6 +138,7 @@ function render(q=''){
 }
 
 function activate(){
+  document.body.classList.add('important-links-active');
   if(typeof S!=='undefined')S.current='importantLinks';
   document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.page==='importantLinks'));
   ['masterPage','meetingPage','dataPage'].forEach(id=>document.getElementById(id)?.classList.remove('active'));
@@ -156,6 +157,7 @@ if(typeof openPage==='function'){
     const unified=document.getElementById('vdUnifiedControls');
     const topSearch=document.querySelector('.top-actions .search');
     if(key==='importantLinks'){activate();return}
+    document.body.classList.remove('important-links-active');
     if(page)page.classList.remove('active');
     if(unified)unified.style.display='';
     if(fb)fb.style.display='';
