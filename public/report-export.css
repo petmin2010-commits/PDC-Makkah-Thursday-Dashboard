@@ -1145,3 +1145,21 @@ body.vd-report-dark #vdReportV2 .vd-report-safety-detail-page .table-link *{
   max-width:18mm!important;
   white-space:nowrap!important;
 }
+
+
+/* Projects PDF: slightly shrink doughnut charts so the lower arc/legend is never clipped */
+.vd-report-projects-chart-page .vd-report-doughnut-card .pa-chart-box{
+  height:48mm!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  overflow:visible!important;
+}
+.vd-report-projects-chart-page .vd-report-doughnut-card .vd-report-chart-image-doughnut{
+  width:92%!important;
+  height:44mm!important;
+  max-height:44mm!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+  margin:0 auto!important;
+}

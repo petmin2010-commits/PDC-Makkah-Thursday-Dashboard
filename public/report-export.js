@@ -220,6 +220,11 @@
         img.alt = 'Chart';
         img.src = canvas.toDataURL('image/png', 1);
 
+        if (liveChart?.config?.type === 'doughnut') {
+          img.classList.add('vd-report-chart-image-doughnut');
+          clone.classList.add('vd-report-doughnut-card');
+        }
+
         clonedCanvas.replaceWith(img);
       } catch (_) {
         clonedCanvas.remove();
