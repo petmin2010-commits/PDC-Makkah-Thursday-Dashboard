@@ -18,6 +18,60 @@ function projectIdentity(){
  const brand=clean(document.querySelector('.brand-copy strong')?.textContent)||clean(document.title);
  return {name:brand||'المشروع',key:(location.host+'|'+brand).replace(/\s+/g,'_')};
 }
+function smartSectionKey(){
+ const active=document.querySelector('#nav .nav-item.active');
+ if(!active)return '';
+ if(active.id==='smartCenterNav')return 'smartCenterNav';
+ if(active.id==='temporalMemoryNav')return 'temporalMemoryNav';
+ if(active.id==='investigationRoomNav')return 'investigationRoomNav';
+ if(active.id==='explainableDecisionNav')return 'explainableDecisionNav';
+ if(active.id==='workOrder360Nav')return 'workOrder360Nav';
+ if(active.dataset?.page==='smartThursday')return 'smartThursday';
+ return '';
+}
+function syncSmartSectionTabs(){
+ const bar=el('smartSectionTopTabs'),heading=el('globalPageHeading'),key=smartSectionKey();
+ const on=!!key;
+ if(bar)bar.style.display=on?'block':'none';
+ if(heading)heading.style.display=on?'none':'';
+ if(bar)bar.querySelectorAll('[data-smart-target]').forEach(b=>b.classList.toggle('active',b.dataset.smartTarget===key));
+}
+function installSmartSectionTabs(){
+ if(el('smartSectionTopTabs')){syncSmartSectionTabs();return}
+ const heading=el('globalPageHeading'),filter=el('filterBar');
+ if(!heading||!filter)return;
+ const bar=document.createElement('section');
+ bar.id='smartSectionTopTabs';
+ bar.className='smart-section-top-tabs';
+ bar.style.display='none';
+ bar.innerHTML=`
+  <div class="sst-top">
+   <div class="sst-head"><span>SMART PROJECT INTELLIGENCE • FREE ENGINE</span><strong>مركز التحليل الذكي</strong><small>تحليل مباشر لقواعد المشروع، جودة البيانات، التأخيرات والاستثناءات.</small></div>
+   <div class="sst-actions"><span class="sc-live"><i></i><span id="scUpdated">جاري التحليل...</span></span><button id="scRefresh" class="sc-refresh" type="button">↻ إعادة التحليل</button></div>
+  </div>
+  <div class="sst-tabs" role="tablist" aria-label="تبويبات التحليل الذكي">
+   <button type="button" data-smart-target="smartCenterNav">🧠 <span>مركز التحليل الذكي</span></button>
+   <button type="button" data-smart-target="temporalMemoryNav">◷ <span>ذاكرة المشروع الزمنية</span></button>
+   <button type="button" data-smart-target="investigationRoomNav">⌕ <span>غرفة التحقيق الذكية</span></button>
+   <button type="button" data-smart-target="explainableDecisionNav">⚖ <span>محرك القرار المفسر</span></button>
+   <button type="button" data-smart-target="workOrder360Nav">🔎 <span>Work Order 360°</span></button>
+   <button type="button" data-smart-target="smartThursday">▣ <span>تقرير الخميس الذكي</span></button>
+  </div>`;
+ heading.parentNode.insertBefore(bar,heading);
+ bar.addEventListener('click',ev=>{
+  const b=ev.target.closest('[data-smart-target]');if(!b)return;
+  const k=b.dataset.smartTarget;
+  const target=k==='smartThursday'?document.querySelector('#nav .nav-item[data-page="smartThursday"]'):el(k);
+  target?.click();
+  setTimeout(syncSmartSectionTabs,0);
+ });
+ const nav=el('nav');
+ nav?.addEventListener('click',()=>setTimeout(syncSmartSectionTabs,0),true);
+ if(nav){
+  new MutationObserver(syncSmartSectionTabs).observe(nav,{subtree:true,attributes:true,attributeFilter:['class']});
+ }
+ syncSmartSectionTabs();
+}
 function installUi(){
  if(el('smartCenterPage'))return;
  const nav=el('nav');if(!nav)return;
@@ -37,10 +91,10 @@ function installUi(){
  const main=document.querySelector('main');const firstPage=el('masterPage');main.insertBefore(page,firstPage||null);main.insertBefore(memoryPage,firstPage||null);main.insertBefore(investigationPage,firstPage||null);main.insertBefore(decisionPage,firstPage||null);
  btn.addEventListener('click',openSmartCenter);memoryBtn.addEventListener('click',openTemporalMemory);investigationBtn.addEventListener('click',openInvestigationRoom);decisionBtn.addEventListener('click',openExplainableDecision);
  nav.addEventListener('click',e=>{const item=e.target.closest('.nav-item');if(item&&!['smartCenterNav','temporalMemoryNav','investigationRoomNav','explainableDecisionNav'].includes(item.id))leaveSmartCenter()});
+ installSmartSectionTabs();
  bindSmartCenter();bindTemporalMemory();bindInvestigationRoom();bindExplainableDecision();
 }
 function smartCenterMarkup(){return `
-<div class="sc-hero"><div class="sc-hero-main"><div><span class="sc-eyebrow">SMART PROJECT INTELLIGENCE • FREE ENGINE</span><h2>🧠 مركز التحليل الذكي</h2><p>تحليل مباشر لقواعد المشروع، جودة البيانات، التأخيرات والاستثناءات بدون أي API مدفوع.</p></div><div class="sc-hero-actions"><span class="sc-live"><i></i><span id="scUpdated">جاري التحليل...</span></span><button id="scRefresh" class="sc-refresh">↻ إعادة التحليل</button></div></div></div>
 <div id="scLoading" class="sc-loading"><i></i><span>جاري قراءة بيانات المشروع وبناء التحليل الذكي...</span></div>
 <div id="scContent" style="display:none"></div>`}
 function temporalMemoryMarkup(){return `
@@ -93,8 +147,8 @@ function openSmartCenter(){
  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
  el('smartCenterPage')?.classList.add('active');
  document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.id==='smartCenterNav'));
+ syncSmartSectionTabs();
  if(el('filterBar'))el('filterBar').style.display='none';
- if(el('globalPageHeading'))el('globalPageHeading').style.display='none';
  if(el('pageTitle'))el('pageTitle').textContent='مركز التحليل الذكي';
  if(!SC.loaded)loadSmartCenter();else renderAll();
 }
@@ -103,8 +157,8 @@ async function openTemporalMemory(){
  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
  el('temporalMemoryPage')?.classList.add('active');
  document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.id==='temporalMemoryNav'));
+ syncSmartSectionTabs();
  if(el('filterBar'))el('filterBar').style.display='none';
- if(el('globalPageHeading'))el('globalPageHeading').style.display='';
  if(el('pageTitle'))el('pageTitle').textContent='ذاكرة المشروع الزمنية';
  if(!SC.loaded){el('tmLoading').style.display='flex';el('tmContent').style.display='none';await loadSmartCenter()}
  renderTemporalMemory();
@@ -114,8 +168,8 @@ async function openInvestigationRoom(){
  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
  el('investigationRoomPage')?.classList.add('active');
  document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.id==='investigationRoomNav'));
+ syncSmartSectionTabs();
  if(el('filterBar'))el('filterBar').style.display='none';
- if(el('globalPageHeading'))el('globalPageHeading').style.display='';
  if(el('pageTitle'))el('pageTitle').textContent='غرفة التحقيق الذكية';
  if(!SC.loaded){el('irLoading').style.display='flex';el('irContent').style.display='none';await loadSmartCenter()}
  renderInvestigationRoom();
@@ -125,8 +179,8 @@ async function openExplainableDecision(){
  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
  el('explainableDecisionPage')?.classList.add('active');
  document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.id==='explainableDecisionNav'));
+ syncSmartSectionTabs();
  if(el('filterBar'))el('filterBar').style.display='none';
- if(el('globalPageHeading'))el('globalPageHeading').style.display='';
  if(el('pageTitle'))el('pageTitle').textContent='محرك القرار القابل للتفسير';
  if(!SC.loaded){el('xdLoading').style.display='flex';el('xdContent').style.display='none';await loadSmartCenter()}
  renderExplainableDecision();
@@ -137,7 +191,7 @@ function leaveSmartCenter(){
  el('investigationRoomPage')?.classList.remove('active');
  el('explainableDecisionPage')?.classList.remove('active');
  if(el('filterBar'))el('filterBar').style.display='';
- if(el('globalPageHeading'))el('globalPageHeading').style.display='';
+ setTimeout(syncSmartSectionTabs,0);
 }
 function bindSmartCenter(){
  el('scRefresh').onclick=()=>loadSmartCenter(true);

@@ -139,3 +139,111 @@ body.theme-dark .ir-summary strong,body.theme-dark .ir-best-head h3,body.theme-d
 body.theme-dark .ir-row{border-color:#24344e}.theme-dark .ir-table-wrap th{background:#18263b;color:#b6c6d8}.theme-dark .ir-table-wrap td{color:#c9d5e3;border-color:#24344e}.theme-dark .xd-reason{background:#17243a;border-color:#2d405c}.theme-dark .xd-reason span{color:#dce6f2}.theme-dark .xd-next{background:#1b263c}.theme-dark .xd-evidence-panel{background:#151f35}
 @media(max-width:1180px){.ir-summary,.xd-kpis{grid-template-columns:repeat(3,1fr)}.ir-dimensions{grid-template-columns:repeat(2,1fr)}.xd-cases{grid-template-columns:1fr}.xd-evidence-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:760px){.ir-hero,.xd-hero{flex-direction:column}.ir-control{grid-template-columns:1fr}.ir-summary,.xd-kpis{grid-template-columns:repeat(2,1fr)}.ir-best{grid-template-columns:1fr}.ir-dimensions{grid-template-columns:1fr}.xd-tools{flex-direction:column}.xd-tools input,.xd-tools select,.xd-tools button{width:100%;box-sizing:border-box}.xd-evidence-grid{grid-template-columns:1fr}}
+
+/* 2026-10-02 — shared smart-analysis tab bar in the unified heading position */
+.smart-section-top-tabs{
+  position:relative;
+  overflow:hidden;
+  margin:0 0 16px;
+  padding:16px 18px 14px;
+  border-radius:24px;
+  background:linear-gradient(135deg,#11233f 0%,#1b4f91 54%,#2878e8 100%);
+  color:#fff;
+  box-shadow:0 18px 45px rgba(24,55,105,.18);
+  direction:rtl;
+}
+.smart-section-top-tabs:after{
+  content:"";
+  position:absolute;
+  width:220px;
+  height:220px;
+  border-radius:50%;
+  left:-65px;
+  top:-110px;
+  background:rgba(255,255,255,.07);
+  pointer-events:none;
+}
+.smart-section-top-tabs .sst-top{
+  position:relative;
+  z-index:1;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:12px;
+}
+.smart-section-top-tabs .sst-head span{
+  display:block;
+  font-size:9px;
+  letter-spacing:1.55px;
+  opacity:.74;
+  font-weight:900;
+}
+.smart-section-top-tabs .sst-head strong{
+  display:block;
+  margin:3px 0 2px;
+  font-size:24px;
+  line-height:1.25;
+}
+.smart-section-top-tabs .sst-head small{
+  display:block;
+  font-size:9px;
+  opacity:.78;
+}
+.smart-section-top-tabs .sst-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:flex-start;
+}
+.smart-section-top-tabs .sst-tabs{
+  position:relative;
+  z-index:1;
+  display:grid;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:8px;
+}
+.smart-section-top-tabs .sst-tabs button{
+  min-width:0;
+  min-height:46px;
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:14px;
+  background:rgba(255,255,255,.10);
+  color:#eaf3ff;
+  font:800 9.2px Cairo,sans-serif;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  padding:8px 9px;
+  transition:transform .16s ease,background .16s ease,border-color .16s ease,box-shadow .16s ease;
+  white-space:nowrap;
+}
+.smart-section-top-tabs .sst-tabs button:hover{
+  transform:translateY(-1px);
+  background:rgba(255,255,255,.17);
+  border-color:rgba(255,255,255,.34);
+}
+.smart-section-top-tabs .sst-tabs button.active{
+  background:#fff;
+  color:#15375f;
+  border-color:#fff;
+  box-shadow:0 8px 20px rgba(7,28,55,.22);
+}
+.smart-section-top-tabs .sst-tabs button:nth-child(2).active{color:#6547c7}
+.smart-section-top-tabs .sst-tabs button:nth-child(3).active{color:#087d76}
+.smart-section-top-tabs .sst-tabs button:nth-child(4).active{color:#9246a8}
+.smart-section-top-tabs .sst-tabs button:nth-child(5).active{color:#2268c7}
+.smart-section-top-tabs .sst-tabs button:nth-child(6).active{color:#0a6fa5}
+@media(max-width:1180px){
+  .smart-section-top-tabs .sst-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:720px){
+  .smart-section-top-tabs{padding:14px;border-radius:18px}
+  .smart-section-top-tabs .sst-top{flex-direction:column}
+  .smart-section-top-tabs .sst-head strong{font-size:20px}
+  .smart-section-top-tabs .sst-tabs{display:flex;overflow-x:auto;padding-bottom:2px}
+  .smart-section-top-tabs .sst-tabs button{flex:0 0 auto;min-width:155px}
+}
