@@ -79,12 +79,37 @@ const STP_VALUE_LABELS={
  id:'stpValueLabels',
  afterDatasetsDraw(chart,args,opts){
   if(!opts||opts.enabled!==true)return;
-  const ctx=chart.ctx;
-  const occupied=[];
+  const ctx=chart.ctx,area=chart.chartArea,occupied=[];
   ctx.save();
   ctx.font='700 11px Cairo, Arial, sans-serif';
-  ctx.textAlign='left';
+  ctx.textAlign='center';
   ctx.textBaseline='middle';
+  ctx.lineJoin='round';
+
+  function rect(text,x,y){
+   const w=ctx.measureText(text).width+5,h=15;
+   return {left:x-w/2,right:x+w/2,top:y-h/2,bottom:y+h/2,x,y};
+  }
+  function hit(a,b){
+   return !(a.right+3<=b.left||a.left-3>=b.right||a.bottom+3<=b.top||a.top-3>=b.bottom);
+  }
+  function place(label,x,y,color){
+   const offsets=[[0,0],[0,-15],[0,15],[18,-10],[-18,-10],[18,10],[-18,10],[0,-30],[0,30]];
+   for(const [dx,dy] of offsets){
+    const px=x+dx,py=y+dy,r=rect(label,px,py);
+    if(r.left<area.left+2||r.right>area.right-2||r.top<area.top+2||r.bottom>area.bottom-2)continue;
+    if(occupied.some(o=>hit(r,o)))continue;
+    occupied.push(r);
+    ctx.lineWidth=3;
+    ctx.strokeStyle='rgba(5,24,43,.78)';
+    ctx.strokeText(label,px,py);
+    ctx.fillStyle=color||'#ffffff';
+    ctx.fillText(label,px,py);
+    return true;
+   }
+   return false;
+  }
+
   chart.data.datasets.forEach((ds,di)=>{
    const meta=chart.getDatasetMeta(di);
    if(meta.hidden)return;
@@ -95,32 +120,9 @@ const STP_VALUE_LABELS={
     if(raw===null||raw===undefined||raw==='')return;
     const value=Number(raw);
     if(!Number.isFinite(value))return;
-    let x=pt.x+7,y=pt.y-9;
     const label=String(Math.round(value));
-    const w=ctx.measureText(label).width+8,h=16;
-    // منع تداخل أرقام الحالات المتقاربة عند نفس لقطة الخميس
-    let tries=0;
-    while(occupied.some(r=>Math.abs(r.x-x)<42&&Math.abs(r.y-y)<15)&&tries<10){
-      y+=15; tries++;
-    }
-    if(y>chart.chartArea.bottom-8)y=pt.y-12-(tries*12);
-    if(x+w>chart.chartArea.right)x=pt.x-w-7;
-    occupied.push({x,y});
     const color=ds.borderColor||ds.backgroundColor||'#ffffff';
-    ctx.fillStyle='rgba(5,24,43,.88)';
-    ctx.strokeStyle=color;
-    ctx.lineWidth=1;
-    ctx.beginPath();
-    const rx=x-3,ry=y-h/2,rw=w,rh=h,rr=5;
-    ctx.moveTo(rx+rr,ry);
-    ctx.arcTo(rx+rw,ry,rx+rw,ry+rh,rr);
-    ctx.arcTo(rx+rw,ry+rh,rx,ry+rh,rr);
-    ctx.arcTo(rx,ry+rh,rx,ry,rr);
-    ctx.arcTo(rx,ry,rx+rw,ry,rr);
-    ctx.closePath();
-    ctx.fill();ctx.stroke();
-    ctx.fillStyle='#ffffff';
-    ctx.fillText(label,x+1,y);
+    place(label,pt.x+8,pt.y-10,color);
    });
   });
   ctx.restore();
@@ -238,8 +240,37 @@ function reportLightChartSrc(id,percentAxis=false){
  const labelPlugin={
   id:'reportPointLabels',
   afterDatasetsDraw(chart){
-   const c=chart.ctx,occupied=[];
-   c.save();c.font='700 16px Tahoma, Arial, sans-serif';c.textBaseline='middle';
+   const c=chart.ctx,area=chart.chartArea,occupied=[];
+   c.save();
+   c.font='700 16px Tahoma, Arial, sans-serif';
+   c.textAlign='center';
+   c.textBaseline='middle';
+   c.lineJoin='round';
+
+   function rect(txt,x,y){
+    const w=c.measureText(txt).width+7,h=21;
+    return {left:x-w/2,right:x+w/2,top:y-h/2,bottom:y+h/2,x,y};
+   }
+   function hit(a,b){
+    return !(a.right+5<=b.left||a.left-5>=b.right||a.bottom+5<=b.top||a.top-5>=b.bottom);
+   }
+   function drawLabel(txt,x,y,color){
+    const offsets=[[0,0],[0,-24],[0,24],[34,-16],[-34,-16],[34,16],[-34,16],[0,-48],[0,48]];
+    for(const [dx,dy] of offsets){
+     const px=x+dx,py=y+dy,r=rect(txt,px,py);
+     if(r.left<area.left+3||r.right>area.right-3||r.top<area.top+3||r.bottom>area.bottom-3)continue;
+     if(occupied.some(o=>hit(r,o)))continue;
+     occupied.push(r);
+     c.lineWidth=4;
+     c.strokeStyle='rgba(255,255,255,.88)';
+     c.strokeText(txt,px,py);
+     c.fillStyle=color||'#172b5f';
+     c.fillText(txt,px,py);
+     return true;
+    }
+    return false;
+   }
+
    chart.data.datasets.forEach((ds,di)=>{
     const meta=chart.getDatasetMeta(di);if(meta.hidden)return;
     meta.data.forEach((pt,pi)=>{
@@ -247,16 +278,7 @@ function reportLightChartSrc(id,percentAxis=false){
      if(!showAll&&pi!==meta.data.length-1)return;
      const raw=Number(ds.data?.[pi]);if(!Number.isFinite(raw))return;
      const txt=percentAxis?(raw.toFixed(1)+'%'):String(Math.round(raw));
-     const tw=c.measureText(txt).width+16,th=24;
-     let x=pt.x+10,y=pt.y-14,tries=0;
-     while(occupied.some(r=>Math.abs(r.x-x)<58&&Math.abs(r.y-y)<23)&&tries<10){y+=24;tries++}
-     if(y>chart.chartArea.bottom-12)y=pt.y-16-(tries*18);
-     if(x+tw>chart.chartArea.right)x=pt.x-tw-10;
-     occupied.push({x,y});
-     c.fillStyle='#ffffff';c.strokeStyle=ds.borderColor;c.lineWidth=1.5;
-     const rx=x-5,ry=y-th/2,r=6;
-     c.beginPath();c.roundRect(rx,ry,tw,th,r);c.fill();c.stroke();
-     c.fillStyle='#172b5f';c.fillText(txt,x+3,y);
+     drawLabel(txt,pt.x+12,pt.y-15,ds.borderColor||'#172b5f');
     });
    });
    c.restore();

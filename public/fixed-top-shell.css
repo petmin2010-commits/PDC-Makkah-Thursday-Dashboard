@@ -327,3 +327,12 @@ html[data-theme] body .topbar .dashboard-user-info strong{
   .topbar,#projectNewsTicker.project-news{display:none!important}
   main{padding-top:0!important}
 }
+
+/* Remove redundant legacy hero/status cards from the primary operational tabs. */
+.me-hero,
+.pa-hero,
+.ca-hero,
+.pe-hero,
+.aa-hero{
+  display:none!important;
+}

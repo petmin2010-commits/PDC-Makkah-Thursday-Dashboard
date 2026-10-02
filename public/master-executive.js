@@ -53,14 +53,21 @@ function draw(id,type,labels,datasets,extra={},plugins=[]){
 function monthlyAverageLabelPlugin(value){
  return {id:'meMonthlyAverageLabel',afterDatasetsDraw(chart){
    if(!Number.isFinite(value)||!chart.scales?.y)return;
-   const ctx=chart.ctx,area=chart.chartArea,py=chart.scales.y.getPixelForValue(value);
+   const ctx=chart.ctx,area=chart.chartArea;
    const text='متوسط الإسناد الشهري: '+value.toLocaleString('ar-SA',{maximumFractionDigits:2})+' ر.س';
-   const y=Math.max(area.top+16,Math.min(area.bottom-8,py-8)),x=area.right-10;
-   ctx.save();ctx.font='700 11px Cairo';ctx.textAlign='right';ctx.textBaseline='middle';ctx.direction='rtl';
-   const w=ctx.measureText(text).width,pad=7,h=20,left=x-w-pad*2,top=y-h/2;
-   ctx.fillStyle='rgba(255,255,255,.94)';ctx.fillRect(left,top,w+pad*2,h);
-   ctx.strokeStyle='#16a34a';ctx.lineWidth=1;ctx.strokeRect(left,top,w+pad*2,h);
-   ctx.fillStyle='#15803d';ctx.fillText(text,x-pad,y);ctx.restore();
+   const x=area.right-8,y=area.top+13;
+   ctx.save();
+   ctx.font='700 10px Cairo';
+   ctx.textAlign='right';
+   ctx.textBaseline='middle';
+   ctx.direction='rtl';
+   ctx.lineJoin='round';
+   ctx.lineWidth=3;
+   ctx.strokeStyle='rgba(255,255,255,.86)';
+   ctx.strokeText(text,x,y);
+   ctx.fillStyle='#15803d';
+   ctx.fillText(text,x,y);
+   ctx.restore();
  }};
 }
 function stacked(id,rows,key,limit=10){
