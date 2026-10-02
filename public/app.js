@@ -3601,6 +3601,11 @@ function applyThursdayParityCards(key,rows,cards){
 
 function renderPageKpis(key,rows){
  const pageKpis=document.getElementById('pageKpis');
+ pageKpis.style.display=key==='projects'?'none':'';
+ if(key==='projects'){
+   pageKpis.innerHTML='';
+   return;
+ }
  pageKpis.classList.toggle('emergency-kpi-board',key==='emergency');
 
  if(key==='emergency'){
