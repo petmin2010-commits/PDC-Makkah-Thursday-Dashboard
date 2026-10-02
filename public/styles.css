@@ -3133,3 +3133,13 @@ body .panel > .vd-tab-report-actions{
 @media print{
   .global-page-heading:before{opacity:calc(var(--gph-photo-opacity) * .55)!important}
 }
+
+/* PHOTO WATERMARK HERO — remaining dashboard tabs */
+.global-page-heading[data-page="minutes"]{--gph-photo-image:url('hero-watermarks-rest5.png');--gph-photo-size:100% 500%;--gph-photo-y:0%;--gph-photo-opacity:.78}
+.global-page-heading[data-page="dataQuality"]{--gph-photo-image:url('hero-watermarks-rest5.png');--gph-photo-size:100% 500%;--gph-photo-y:25%;--gph-photo-opacity:.78}
+.global-page-heading[data-page="hrStaff"]{--gph-photo-image:url('hero-watermarks-rest5.png');--gph-photo-size:100% 500%;--gph-photo-y:50%;--gph-photo-opacity:.76}
+.global-page-heading[data-page="employeeEvaluation"]{--gph-photo-image:url('hero-watermarks-rest5.png');--gph-photo-size:100% 500%;--gph-photo-y:75%;--gph-photo-opacity:.78}
+.global-page-heading[data-page="electricityEngineerEvaluation"]{--gph-photo-image:url('hero-watermarks-rest5.png');--gph-photo-size:100% 500%;--gph-photo-y:100%;--gph-photo-opacity:.80}
+.global-page-heading[data-page="wednesdayMeeting"]{--gph-photo-image:url('hero-watermarks-rest5.png');--gph-photo-size:100% 500%;--gph-photo-y:50%;--gph-photo-opacity:.74}
+.global-page-heading[data-page="smartThursday"]{--gph-photo-image:url('hero-watermarks-rest5.png');--gph-photo-size:100% 500%;--gph-photo-y:25%;--gph-photo-opacity:.76}
+.global-page-heading[data-page="importantLinks"]{--gph-photo-image:url('hero-watermarks-rest5.png');--gph-photo-size:100% 500%;--gph-photo-y:50%;--gph-photo-opacity:.72}

@@ -114,6 +114,13 @@ const PAGE_META={
     icon:'▦',
     from:'#6a4709',to:'#efa914',accent:'#ffe184'
   },
+  smartThursday:{
+    eyebrow:'SMART THURSDAY • WEEKLY EXECUTIVE BRIEF',
+    title:'تقرير الخميس الذكي',
+    subtitle:'ملخص أسبوعي ذكي للتقدم والتغيرات والمؤشرات والقرارات المطلوبة.',
+    icon:'▣',
+    from:'#57400f',to:'#d79a22',accent:'#ffe08a'
+  },
   importantLinks:{
     eyebrow:'PROJECT RESOURCES • QUICK ACCESS',
     title:'الروابط المهمة',
