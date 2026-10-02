@@ -29,12 +29,39 @@ function smartSectionKey(){
  if(active.dataset?.page==='smartThursday')return 'smartThursday';
  return '';
 }
+function restoreSmartSpecialHeroes(){
+ const defs=[
+  ['.tm-hero','temporalMemoryPage'],
+  ['.ir-hero','investigationRoomPage'],
+  ['.xd-hero','explainableDecisionPage'],
+  ['.st-hero','smartThursdayReport']
+ ];
+ defs.forEach(([sel,parentId])=>{
+  const hero=document.querySelector(sel),parent=el(parentId);
+  if(hero&&parent&&hero.parentElement!==parent)parent.insertBefore(hero,parent.firstChild);
+ });
+}
 function syncSmartSectionTabs(){
- const bar=el('smartSectionTopTabs'),heading=el('globalPageHeading'),key=smartSectionKey();
- const on=!!key;
- if(bar)bar.style.display=on?'block':'none';
- if(heading)heading.style.display=on?'none':'';
+ const bar=el('smartSectionTopTabs'),heading=el('globalPageHeading'),host=el('smartPageHeroHost'),key=smartSectionKey();
+ restoreSmartSpecialHeroes();
+ const showShared=key==='smartCenterNav';
+ if(bar)bar.style.display=showShared?'block':'none';
+ if(heading)heading.style.display=key?'none':'';
  if(bar)bar.querySelectorAll('[data-smart-target]').forEach(b=>b.classList.toggle('active',b.dataset.smartTarget===key));
+ if(host){
+  host.style.display='none';
+  host.innerHTML='';
+  const target={
+   temporalMemoryNav:'.tm-hero',
+   investigationRoomNav:'.ir-hero',
+   explainableDecisionNav:'.xd-hero',
+   smartThursday:'#smartThursdayReport .st-hero'
+  }[key];
+  if(target){
+   const hero=document.querySelector(target);
+   if(hero){host.appendChild(hero);host.style.display='block'}
+  }
+ }
 }
 function installSmartSectionTabs(){
  if(el('smartSectionTopTabs')){syncSmartSectionTabs();return}
@@ -57,6 +84,8 @@ function installSmartSectionTabs(){
    <button type="button" data-smart-target="workOrder360Nav">🔎 <span>Work Order 360°</span></button>
    <button type="button" data-smart-target="smartThursday">▣ <span>تقرير الخميس الذكي</span></button>
   </div>`;
+ const host=document.createElement('div');host.id='smartPageHeroHost';host.className='smart-page-hero-host';host.style.display='none';
+ heading.parentNode.insertBefore(host,heading);
  heading.parentNode.insertBefore(bar,heading);
  bar.addEventListener('click',ev=>{
   const b=ev.target.closest('[data-smart-target]');if(!b)return;
@@ -768,6 +797,7 @@ function renderCharts(){
  const categories=groupIssues('category',9);barChart('scIssueChart',categories.map(x=>x.name),categories.map(x=>x.count),true,0);
  const contractors=groupIssues('contractor',10);barChart('scContractorChart',contractors.map(x=>x.name),contractors.map(x=>x.count),true,0);
 }
+window.VDSyncSmartSectionTabs=syncSmartSectionTabs;
 function bootSmartCenter(){
  const identity=projectIdentity();SC.projectKey=identity.key;installUi();
 }
