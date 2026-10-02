@@ -108,6 +108,14 @@ function clearLoginFailures_(key){
   loginAttempts.delete(key);
 }
 
+function dashboardUserImageUrl_(value){
+  const raw=String(value==null ? '' : value).trim();
+  if(!raw) return '';
+  const formula=raw.match(/^=IMAGE\(\s*"([^"]+)"/i);
+  const url=(formula ? formula[1] : raw).trim();
+  return /^https?:\/\//i.test(url) ? url : '';
+}
+
 async function readDashboardUsers_(){
 
   /*
@@ -117,11 +125,16 @@ async function readDashboardUsers_(){
     C = Email
     D = Password
     E = Active / inactive
+    F = User photo (=IMAGE("https://..."))
   */
 
-  const values=await valuesGet(
-    qSheet(USERS_SHEET)+'!A:E'
-  );
+  const sheets=await getSheets();
+  const response=await sheets.spreadsheets.values.get({
+    spreadsheetId:SPREADSHEET_ID,
+    range:qSheet(USERS_SHEET)+'!A:F',
+    valueRenderOption:'FORMULA'
+  });
+  const values=response.data.values || [];
 
   if(!Array.isArray(values) || values.length<2){
     return [];
@@ -143,7 +156,9 @@ async function readDashboardUsers_(){
       ).trim(),
 
       active:clean_(r[4])
-        .toLowerCase()
+        .toLowerCase(),
+
+      image:dashboardUserImageUrl_(r[5])
 
     }))
     .filter(u=>u.email);
@@ -154,7 +169,8 @@ function publicUser_(user){
   return {
     name:user.name,
     role:user.role,
-    email:user.email
+    email:user.email,
+    image:user.image || ''
   };
 
 }
