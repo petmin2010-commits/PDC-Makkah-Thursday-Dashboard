@@ -2753,3 +2753,129 @@ body .panel > .vd-tab-report-actions{
   background:#eaf2ff!important;
   color:#2563eb!important;
 }
+
+
+/* =========================================================
+   UNIFIED PAGE HEADING — one professional title for every tab
+   ========================================================= */
+.topbar .topbar-page-name{
+  display:none!important;
+}
+.topbar{
+  justify-content:flex-end!important;
+  margin-bottom:10px!important;
+}
+
+.global-page-heading{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  min-height:92px;
+  margin:8px 0 12px;
+  padding:16px 20px 17px;
+  text-align:center;
+  border:1px solid rgba(40,120,232,.10);
+  border-radius:18px;
+  background:
+    radial-gradient(circle at 50% 0%,rgba(40,120,232,.07),transparent 54%),
+    linear-gradient(180deg,rgba(255,255,255,.96),rgba(247,250,255,.96));
+  box-shadow:0 8px 24px rgba(24,53,92,.045);
+  overflow:hidden;
+}
+.global-page-heading:after{
+  content:"";
+  width:48px;
+  height:3px;
+  margin-top:5px;
+  border-radius:999px;
+  background:linear-gradient(90deg,#f0a126,#2878e8);
+}
+.global-page-heading>span{
+  display:block;
+  color:#2878e8;
+  font-size:8.5px;
+  line-height:1;
+  font-weight:800;
+  letter-spacing:1.8px;
+  direction:ltr;
+}
+.global-page-heading>h1{
+  margin:4px 0 0;
+  color:#0f315f;
+  font-size:25px;
+  line-height:1.35;
+  font-weight:800;
+  letter-spacing:-.25px;
+}
+
+/* The unified heading replaces local page-name hero copy.
+   Keep only unique operational/meta information from those heroes. */
+.me-hero>div:first-child,
+.pa-hero>div:first-child,
+.ca-hero>div:first-child,
+.aa-hero>div:first-child,
+.dq-hero>div:first-child,
+.ee-hero>div:first-child,
+.eee-hero>div:first-child,
+.hr-hero>div:first-child,
+.il-hero>div:first-child,
+.meeting-hero>div:first-child{
+  display:none!important;
+}
+
+.me-hero,
+.pa-hero,
+.ca-hero,
+.aa-hero,
+.dq-hero,
+.ee-hero,
+.eee-hero,
+.hr-hero,
+.il-hero,
+.meeting-hero{
+  min-height:0!important;
+  padding:0!important;
+  margin-top:0!important;
+  margin-bottom:10px!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  justify-content:flex-start!important;
+}
+
+.me-hero .me-alert,
+.pa-hero>b,
+.ca-hero>b,
+.aa-hero>b,
+.dq-hero .dq-hero-score,
+.ee-hero .ee-meta,
+.eee-hero .eee-meta,
+.hr-hero .hr-hero-meta,
+.il-hero .il-contract,
+.meeting-hero .meeting-update{
+  margin-inline-start:auto!important;
+}
+
+/* Avoid displaying the old title block if a legacy page injects it. */
+.page>.page-title,
+.page>.legacy-page-title{
+  display:none!important;
+}
+
+@media(max-width:850px){
+  .global-page-heading{
+    min-height:78px;
+    padding:13px 12px 14px;
+    border-radius:14px;
+  }
+  .global-page-heading>h1{
+    font-size:20px;
+  }
+  .global-page-heading>span{
+    font-size:7.5px;
+    letter-spacing:1.4px;
+  }
+}
