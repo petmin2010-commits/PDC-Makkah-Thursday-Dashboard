@@ -692,6 +692,7 @@
     buildCover(report, type, summary);
     const cover = report.lastElementChild;
     cover?.classList.add('vd-report-projects-cover');
+    cover?.querySelector('.vd-report-cover-badge')?.remove();
     const coverGrid = cover?.querySelector('.vd-report-cover-kpis');
     if (coverGrid) {
       coverGrid.innerHTML = '';
@@ -710,9 +711,35 @@
     });
     [...root.querySelectorAll('.pa-actions .panel')].filter(isVisible).forEach((panel, index) => {
       const title = panel.querySelector('.panel-title h3')?.textContent?.trim() || 'تحليل تنفيذي للمشاريع';
-      const page = createPage(title, index === 0 ? 'الأوامر ذات الأولوية للتدخل' : 'تشخيص الاختناقات للأوامر غير المنفذة', 'vd-report-projects-action-page');
-      const clone = cloneWithCanvases(panel); clone.classList.add('vd-report-summary-table');
-      page.querySelector('.vd-report-section-body').appendChild(clone); report.appendChild(page);
+      const subtitle = index === 0 ? 'الأوامر ذات الأولوية للتدخل' : 'تشخيص الاختناقات للأوامر غير المنفذة';
+      const sourceRows = [...panel.querySelectorAll('tbody tr')];
+      const batches = index === 0 && sourceRows.length > 10 ? chunk(sourceRows, 10) : [sourceRows];
+
+      batches.forEach((batch, batchIndex) => {
+        const pageClass = index === 0
+          ? 'vd-report-projects-action-page vd-report-projects-priority-page'
+          : 'vd-report-projects-action-page vd-report-projects-bottleneck-page';
+
+        const page = createPage(
+          title,
+          batches.length > 1 ? subtitle + ' — ' + (batchIndex + 1) + '/' + batches.length : subtitle,
+          pageClass
+        );
+
+        const clone = cloneWithCanvases(panel);
+        clone.classList.add('vd-report-summary-table');
+        clone.querySelector('.panel-title')?.remove();
+
+        if (batches.length > 1) {
+          const start = batchIndex * 10;
+          [...clone.querySelectorAll('tbody tr')].forEach((row, rowIndex) => {
+            if (rowIndex < start || rowIndex >= start + batch.length) row.remove();
+          });
+        }
+
+        page.querySelector('.vd-report-section-body').appendChild(clone);
+        report.appendChild(page);
+      });
     });
     if (type === 'full') {
       const dataPanel = document.getElementById('dataTable')?.closest('.panel');

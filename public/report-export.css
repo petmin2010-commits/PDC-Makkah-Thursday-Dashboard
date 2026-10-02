@@ -930,3 +930,93 @@ body.vd-report-dark #vdReportV2 .vd-report-safety-detail-page .table-link *{
     transform:none!important;
   }
 }
+
+
+/* Projects PDF finishing pass: balanced action pages and denser detail appendix */
+.vd-report-projects-action-page{
+  box-sizing:border-box!important;
+  min-height:188mm!important;
+  padding:6mm 8mm 14mm!important;
+}
+.vd-report-projects-action-page .vd-report-section-header{
+  min-height:22mm!important;
+  padding:0 30mm 2mm!important;
+}
+.vd-report-projects-action-page .vd-report-section-header h2{
+  font-size:17px!important;
+}
+.vd-report-projects-action-page .vd-report-section-header h2:after{
+  margin-top:2.2mm!important;
+}
+.vd-report-projects-action-page .vd-report-section-header h2:before{
+  top:11mm!important;
+}
+.vd-report-projects-action-page .vd-report-section-body{
+  margin-top:1.5mm!important;
+}
+.vd-report-projects-action-page .vd-report-summary-table{
+  break-inside:avoid!important;
+  page-break-inside:avoid!important;
+  padding:1.5mm!important;
+  overflow:hidden!important;
+}
+.vd-report-projects-action-page .pa-wrap{
+  border-radius:2px!important;
+}
+.vd-report-projects-priority-page table{
+  font-size:5.5px!important;
+}
+.vd-report-projects-priority-page th,
+.vd-report-projects-priority-page td{
+  padding:.7mm .55mm!important;
+  line-height:1.25!important;
+}
+.vd-report-projects-priority-page td:last-child{
+  font-size:5px!important;
+  line-height:1.2!important;
+}
+.vd-report-projects-bottleneck-page table{
+  font-size:5.5px!important;
+}
+.vd-report-projects-bottleneck-page th,
+.vd-report-projects-bottleneck-page td{
+  padding:.72mm .58mm!important;
+  line-height:1.25!important;
+}
+
+/* Fit the full projects appendix more efficiently without creating a tiny final page. */
+.vd-report-projects-detail-page .vd-report-section-header{
+  min-height:18mm!important;
+  padding:0 26mm 1mm!important;
+}
+.vd-report-projects-detail-page .vd-report-section-header h2{
+  font-size:16px!important;
+}
+.vd-report-projects-detail-page .vd-report-section-header h2:after{
+  margin-top:1.6mm!important;
+}
+.vd-report-projects-detail-page .vd-report-section-header h2:before{
+  top:9mm!important;
+}
+.vd-report-projects-detail-page .vd-report-section-header p{
+  margin-top:.8mm!important;
+  font-size:7px!important;
+}
+.vd-report-projects-detail-page .vd-report-section-body{
+  margin-top:.5mm!important;
+}
+.vd-report-projects-detail-page .vd-report-detail-panel{
+  padding:1mm!important;
+}
+.vd-report-projects-detail-page .vd-report-detail-panel .panel-head{
+  margin-bottom:.5mm!important;
+}
+.vd-report-projects-detail-page table{
+  font-size:4.9px!important;
+  line-height:1.12!important;
+}
+.vd-report-projects-detail-page th,
+.vd-report-projects-detail-page td{
+  padding:.48mm .38mm!important;
+  line-height:1.12!important;
+}
