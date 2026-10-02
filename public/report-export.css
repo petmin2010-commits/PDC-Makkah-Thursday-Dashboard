@@ -1163,3 +1163,56 @@ body.vd-report-dark #vdReportV2 .vd-report-safety-detail-page .table-link *{
   object-position:center center!important;
   margin:0 auto!important;
 }
+
+
+/* Projects PDF: explicit doughnut legends for reliable print/export */
+.vd-report-projects-chart-page .vd-report-doughnut-card .pa-chart-box{
+  height:49mm!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:1mm!important;
+  overflow:visible!important;
+}
+.vd-report-projects-chart-page .vd-report-doughnut-card .vd-report-chart-image-doughnut{
+  width:90%!important;
+  height:39mm!important;
+  max-height:39mm!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+  margin:0 auto!important;
+}
+.vd-report-doughnut-legend{
+  width:100%!important;
+  display:flex!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:1mm 2.2mm!important;
+  padding:.4mm 1mm 0!important;
+  box-sizing:border-box!important;
+  direction:rtl!important;
+}
+.vd-report-doughnut-legend-item{
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:.8mm!important;
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+  font-size:5.4px!important;
+  line-height:1.2!important;
+  white-space:nowrap!important;
+}
+.vd-report-doughnut-legend-item i{
+  display:inline-block!important;
+  width:2.2mm!important;
+  height:2.2mm!important;
+  min-width:2.2mm!important;
+  border-radius:50%!important;
+}
+.vd-report-doughnut-legend-item b{
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+  font-weight:700!important;
+}

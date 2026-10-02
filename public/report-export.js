@@ -223,6 +223,35 @@
         if (liveChart?.config?.type === 'doughnut') {
           img.classList.add('vd-report-chart-image-doughnut');
           clone.classList.add('vd-report-doughnut-card');
+
+          const legend = document.createElement('div');
+          legend.className = 'vd-report-doughnut-legend';
+
+          const labels = Array.isArray(liveChart.data?.labels)
+            ? liveChart.data.labels
+            : [];
+          const dataset = liveChart.data?.datasets?.[0] || {};
+          const colors = Array.isArray(dataset.backgroundColor)
+            ? dataset.backgroundColor
+            : labels.map(() => dataset.backgroundColor || '#64748b');
+
+          labels.forEach((label, labelIndex) => {
+            const item = document.createElement('span');
+            item.className = 'vd-report-doughnut-legend-item';
+
+            const swatch = document.createElement('i');
+            swatch.style.background = colors[labelIndex] || '#64748b';
+
+            const text = document.createElement('b');
+            text.textContent = String(label ?? '');
+
+            item.append(swatch, text);
+            legend.appendChild(item);
+          });
+
+          clonedCanvas.replaceWith(img);
+          img.insertAdjacentElement('afterend', legend);
+          return;
         }
 
         clonedCanvas.replaceWith(img);
