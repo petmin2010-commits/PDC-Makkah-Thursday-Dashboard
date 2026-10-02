@@ -164,14 +164,25 @@ function investigationRoomMarkup(){return `
  <article class="sc-panel ir-combos-panel"><div class="sc-panel-head"><div><span>COMBINATION SEARCH</span><h3>أقوى التركيبات المفسرة للزيادة</h3></div><b class="sc-badge" id="irComboCount">0</b></div><div id="irComboTable"></div></article>
 </div>`}
 function explainableDecisionMarkup(){return `
-<div class="xd-hero"><div><span>EXPLAINABLE DECISION ENGINE</span><h2>⚖ محرك القرار القابل للتفسير</h2><p>لا يكتفي بقول «تابع أمر العمل»؛ يرتب حالات المتابعة ثم يشرح كل سبب بالدليل والمصدر والإجراء التالي المقترح.</p></div><button id="xdRefresh" type="button">↻ إعادة الحساب</button></div>
-<div id="xdLoading" class="sc-loading"><i></i><span>جاري بناء أولويات المتابعة والأدلة...</span></div>
+<div class="xd-hero"><div><span>EXPLAINABLE DECISION ENGINE • ACTIONABLE PRIORITIES</span><h2>⚖ محرك القرار القابل للتفسير</h2><p>يرتب حالات المتابعة من جميع مصادر المشروع، ويفصل بين الإشارة المباشرة والعامل السياقي، ثم يوضح الدليل وثقة التغطية وخطة الإجراء التالية.</p></div><button id="xdRefresh" type="button">↻ إعادة الحساب</button></div>
+<div id="xdLoading" class="sc-loading"><i></i><span>جاري بناء أولويات المتابعة وربط الأدلة بين مصادر المشروع...</span></div>
 <div id="xdContent" style="display:none">
  <div id="xdKpis" class="xd-kpis"></div>
- <article class="xd-tools"><input id="xdSearch" placeholder="ابحث برقم أمر العمل أو المقاول"><select id="xdPriority"><option value="">كل مستويات الأولوية</option><option value="high">مرتفعة</option><option value="medium">متوسطة</option><option value="watch">مراقبة</option></select><button id="xdClear" type="button">مسح</button></article>
+ <article class="xd-guide">
+  <div><b>قرار أقوى = أكثر من إشارة مباشرة مستقلة</b><span>التأخير، المستندات، التصاريح، المخالفات، الأصول، الإغلاقات، المواقع والطوارئ.</span></div>
+  <div><b>العوامل السياقية لا تكفي وحدها</b><span>تكرار مخالفات المقاول يعزز حالة موجودة، ولا ينشئ أولوية بمفرده.</span></div>
+  <div><b>جودة البيانات منفصلة عن نقاط الأولوية</b><span>نقص المهندس أو المقاول يخفض ثقة التغطية بدل رفع درجة المخاطر.</span></div>
+ </article>
+ <article class="xd-tools">
+  <input id="xdSearch" placeholder="ابحث بأمر العمل، المقاول، المهندس، السبب أو الإجراء...">
+  <select id="xdPriority"><option value="">كل مستويات الأولوية</option><option value="high">مرتفعة</option><option value="medium">متوسطة</option><option value="watch">مراقبة</option></select>
+  <select id="xdConfidence"><option value="">كل مستويات ثقة التغطية</option><option value="high">ثقة عالية ≥ 75%</option><option value="medium">ثقة متوسطة 50–74%</option><option value="low">ثقة محدودة &lt; 50%</option></select>
+  <select id="xdSource"><option value="">كل مصادر القرار</option></select>
+  <button id="xdClear" type="button">مسح</button>
+ </article>
  <div id="xdCases" class="xd-cases"></div>
- <article id="xdEvidencePanel" class="xd-evidence-panel"><div class="xd-empty-evidence">اضغط على أي سبب داخل حالة متابعة لعرض الدليل التفصيلي ومصدره.</div></article>
- <div class="xd-method"><b>منهج الاحتساب:</b> الأولوية ترتفع مع تراكم إشارات مستقلة مثل مخالفات حديثة، تأخر، إفادة قديمة، دورة مستندات راكدة، وتكرار مخالفات المقاول. الدرجة أداة ترتيب للمتابعة وليست حكمًا على المقاول أو سببًا نهائيًا للمشكلة.</div>
+ <article id="xdEvidencePanel" class="xd-evidence-panel"><div class="xd-empty-evidence">اضغط على أي سبب داخل حالة متابعة لعرض الدليل، المصدر، الإجراء المقترح وفتح السجل الأصلي.</div></article>
+ <div class="xd-method"><b>منهج الاحتساب:</b> «نقاط الأولوية» أداة ترتيب تشغيلية وليست احتمالًا أو حكمًا نهائيًا. ثقة التغطية تقيس تنوع الأدلة واكتمال البيانات المتاحة. العوامل السياقية تُستخدم فقط لتعزيز حالة لها دليل مباشر.</div>
 </div>`}
 function openSmartCenter(){
  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -239,8 +250,17 @@ function bindInvestigationRoom(){
 }
 function bindExplainableDecision(){
  el('xdRefresh').onclick=async()=>{el('xdLoading').style.display='flex';el('xdContent').style.display='none';await loadSmartCenter(true);renderExplainableDecision()};
- el('xdSearch').oninput=renderDecisionCases;el('xdPriority').onchange=renderDecisionCases;
- el('xdClear').onclick=()=>{el('xdSearch').value='';el('xdPriority').value='';renderDecisionCases()};
+ el('xdSearch').oninput=renderDecisionCases;
+ el('xdPriority').onchange=renderDecisionCases;
+ el('xdConfidence').onchange=renderDecisionCases;
+ el('xdSource').onchange=renderDecisionCases;
+ el('xdClear').onclick=()=>{
+  el('xdSearch').value='';
+  el('xdPriority').value='';
+  el('xdConfidence').value='';
+  el('xdSource').value='';
+  renderDecisionCases();
+ };
 }
 async function loadSmartCenter(force=false){
  if(SC.loading)return;SC.loading=true;
@@ -732,37 +752,142 @@ function renderInvestigationRoom(){
 }
 function xdDaysSince(v){const d=tmDate(v);if(!d)return null;const t=new Date();t.setHours(0,0,0,0);return Math.max(0,Math.floor((t-d)/86400000))}
 function xdDocFinal(v){const s=norm(v);return s.includes('تم الاعتماد')||s.includes('تم الرفع')||s.includes('مكتمل')||s.includes('تمت الارشفة')}
-function xdPushReason(c,id,label,points,source,detail,action,row){const old=c.reasons.find(x=>x.id===id);if(old){if(points<=old.points)return;c.score+=points-old.points;Object.assign(old,{label,points,source,detail,action,row:row&&row._row?row._row:'—'});return}c.score+=points;c.reasons.push({id,label,points,source,detail,action,row:row&&row._row?row._row:'—'})}
+function xdClosingState(r){const s=norm([r&&r.stage,r&&r.stageStatus,r&&r.status,r&&r.executionStatus].filter(Boolean).join(' '));return s.includes('مرحله الاغلاق')||s.includes('تحت المعالجه')}
+function xdCaseRef(r){return clean(r&&r.workOrder)||clean(r&&r.noticeNo)||clean(r&&r.taskNo)||clean(r&&r.id)||''}
+function xdAddQualityFlag(c,label,detail){if(!c||!label)return;if(!c.qualityFlags.some(x=>x.label===label))c.qualityFlags.push({label,detail})}
+function xdPushReason(c,id,label,points,pageKey,source,detail,action,row,kind='direct'){
+ if(!c||!id||!points)return;
+ const old=c.reasons.find(x=>x.id===id);
+ const payload={label,points,pageKey,source,detail,action,row:row&&row._row?row._row:'—',kind};
+ if(old){if(points<=old.points)return;c.score+=points-old.points;Object.assign(old,payload);return}
+ c.score+=points;c.reasons.push({id,...payload});
+}
 function xdBuildCases(){
- const lookup=irWorkOrderLookup(),map=new Map(),ensure=(wo,row)=>{wo=clean(wo);if(!wo)return null;const k=norm(wo),m=lookup.get(k)||{},c=map.get(k)||{workOrder:wo,contractor:m.contractor||clean(row&&row.contractor),engineer:m.engineer||clean(row&&row.engineer),region:m.region||m.location||m.section||'',score:0,reasons:[]};
-  if(!c.contractor&&row)c.contractor=clean(row.contractor);if(!c.engineer&&row)c.engineer=clean(row.engineer);map.set(k,c);return c};
- ['workorders','projects','connections','permits','attachments','safety','executionViolations','minutes'].forEach(key=>rows(key).forEach(r=>ensure(r.workOrder,r)));
+ const lookup=irWorkOrderLookup(),map=new Map();
+ const ensure=(ref,row)=>{ref=clean(ref);if(!ref)return null;const k=norm(ref),m=lookup.get(k)||{},hasWo=!!clean(row&&row.workOrder);
+  const c=map.get(k)||{workOrder:ref,hasWorkOrder:hasWo,contractor:m.contractor||clean(row&&row.contractor),engineer:m.engineer||clean(row&&row.engineer),region:m.region||m.location||m.section||clean(row&&row.region)||clean(row&&row.location)||clean(row&&row.section)||'',score:0,reasons:[],qualityFlags:[]};
+  if(hasWo)c.hasWorkOrder=true;if(!c.contractor&&row)c.contractor=clean(row.contractor);if(!c.engineer&&row)c.engineer=clean(row.engineer);if(!c.region&&row)c.region=clean(row.region)||clean(row.location)||clean(row.section);map.set(k,c);return c};
+ ['workorders','projects','connections','permits','attachments','assets','closures','tasks','emergency','safety','executionViolations','minutes'].forEach(key=>rows(key).forEach(r=>ensure(xdCaseRef(r),r)));
  const today=new Date();today.setHours(0,0,0,0),recentStart=tmAddDays(today,-6);
- const violationRows=[];[['safety','مخالفات السلامة'],['executionViolations','مخالفات التنفيذ'],['minutes','محاضر إثبات الحالة']].forEach(([key,label])=>rows(key).forEach(r=>{const d=tmDate(r.date);if(d)violationRows.push({key,label,row:r,date:d,workOrder:clean(r.workOrder),contractor:clean(r.contractor)})}));
- const contractorRecent=new Map(),woRecent=new Map();violationRows.filter(x=>x.date>=recentStart&&x.date<=today).forEach(x=>{tmMapInc(contractorRecent,x.contractor);const k=norm(x.workOrder);if(k){const a=woRecent.get(k)||{count:0,row:x.row};a.count++;woRecent.set(k,a)}});
- map.forEach(c=>{const recent=woRecent.get(norm(c.workOrder));if(recent&&recent.count){const pts=Math.min(24,recent.count*6);xdPushReason(c,'recentViolations','مخالفات/محاضر حديثة',pts,'المخالفات والمحاضر',recent.count+' سجل خلال آخر 7 أيام.','مراجعة السجلات الحديثة وأسباب تكرارها.',recent.row)}});
- rows('workorders').forEach(r=>{const c=ensure(r.workOrder,r);if(!c)return;const days=num(r.consultantDays);if(days>=15)xdPushReason(c,'consultantDays','انقطاع متابعة استشارية',20,'أوامر العمل','مر '+days+' يومًا منذ آخر إجراء استشاري.','تحديث الإفادة/الإجراء الاستشاري وتوثيق آخر متابعة.',r);else if(days>=10)xdPushReason(c,'consultantDays','متابعة استشارية متأخرة',15,'أوامر العمل','مر '+days+' يومًا منذ آخر إجراء استشاري.','تحديث الإفادة أو الإجراء الاستشاري.',r);else if(days>=6)xdPushReason(c,'consultantDays','متابعة تحتاج تنشيط',8,'أوامر العمل','مر '+days+' أيام منذ آخر إجراء استشاري.','مراجعة الحاجة إلى إفادة أحدث.',r);if(!isDone(r.status)&&isDelayed(r.delay))xdPushReason(c,'delay','تأخير تنفيذ ظاهر',18,'أوامر العمل','الحالة غير منفذة مع وجود مؤشر تأخير.','مراجعة سبب التأخير وخطة المعالجة.',r)});
- ['projects','connections'].forEach(key=>rows(key).forEach(r=>{const c=ensure(r.workOrder,r);if(!c)return;const age=norm(r.adviceAge);if(age.includes('اهمال شديد'))xdPushReason(c,'advice','إفادة مهملة بشدة',20,PAGE_TITLES[key],'حالة الإفادة مصنفة إهمال شديد بالمتابعة.','تحديث الإفادة فورًا وتوثيق الموقف الحالي.',r);else if(age.includes('اهمال'))xdPushReason(c,'advice','إفادة مهملة',15,PAGE_TITLES[key],'حالة الإفادة مصنفة إهمال بالمتابعة.','تحديث الإفادة وتحديد آخر إجراء.',r);else if(age.includes('قديمه جدا'))xdPushReason(c,'advice','إفادة قديمة جدًا',10,PAGE_TITLES[key],'الإفادة مصنفة قديمة جدًا.','تحديث الإفادة بالموقف الحالي.',r);if(isDelayed(r.executionStatus)||isDelayed(r.delay))xdPushReason(c,'delay','تأخير في التنفيذ',18,PAGE_TITLES[key],'سجل التنفيذ يحمل مؤشر تأخير.','مراجعة سبب التأخير والإجراء التصحيحي.',r)}));
- rows('attachments').forEach(r=>{const c=ensure(r.workOrder,r);if(!c)return;const status=clean(r.status),age=xdDaysSince(r.uploadDate);if(!xdDocFinal(status)){if(age!==null&&age>=14)xdPushReason(c,'documents','دورة مستندات راكدة',18,'المرفقات','حالة المرفقات «'+(status||'غير محددة')+'» وآخر تحديث منذ '+age+' يومًا.','متابعة المستندات وتحديد سبب توقف الدورة.',r);else if(age!==null&&age>=7)xdPushReason(c,'documents','مستندات لم تتحرك',12,'المرفقات','حالة المرفقات «'+(status||'غير محددة')+'» وآخر تحديث منذ '+age+' أيام.','متابعة انتقال المستندات للمرحلة التالية.',r);else if(status&&(norm(status).includes('لم')||norm(status).includes('قيد')))xdPushReason(c,'documents','دورة مستندات غير مكتملة',7,'المرفقات','الحالة الحالية: '+status+'.','التحقق من الإجراء التالي في دورة المستندات.',r)}});
- rows('permits').forEach(r=>{const c=ensure(r.workOrder,r);if(!c)return;if(containsAny(r.evaluation,['رفض','مرفوض']))xdPushReason(c,'permit','تصريح مرفوض',10,'التصاريح','تقييم طلب التصريح يشير إلى الرفض.','مراجعة سبب الرفض وخطوة إعادة التقديم.',r);else if(clean(r.permitNotes)&&!clean(r.actionTaken))xdPushReason(c,'permit','ملاحظة تصريح بلا إجراء',8,'التصاريح','توجد ملاحظة على التصريح بدون إجراء مسجل.','تسجيل الإجراء المتخذ ومتابعة التصريح.',r)});
- map.forEach(c=>{const repeat=contractorRecent.get(c.contractor)||0;if(c.contractor&&repeat>=7)xdPushReason(c,'contractorRepeat','تكرار مرتفع لدى المقاول',12,'المخالفات والمحاضر','المقاول لديه '+repeat+' سجل مخالفة/محضر خلال آخر 7 أيام.','مراجعة النمط المتكرر مع المقاول وربطه بأنواع المخالفات.',null);else if(c.contractor&&repeat>=4)xdPushReason(c,'contractorRepeat','تكرار ملحوظ لدى المقاول',8,'المخالفات والمحاضر','المقاول لديه '+repeat+' سجلات خلال آخر 7 أيام.','فحص نمط التكرار قبل اتساعه.',null);if(!c.engineer)xdPushReason(c,'missingOwner','مسؤول متابعة غير واضح',5,'البيانات الرئيسية','لم يتم العثور على مهندس/مسؤول متابعة مرتبط بأمر العمل.','استكمال مسؤول المتابعة في المصدر.',null);c.score=Math.min(100,c.score);c.priority=c.score>=55?'high':c.score>=30?'medium':'watch';c.nextAction=c.reasons.length?c.reasons.slice().sort((a,b)=>b.points-a.points)[0].action:''});
- return [...map.values()].filter(c=>c.score>0).sort((a,b)=>b.score-a.score||b.reasons.length-a.reasons.length);
+ const seen=new Set(),recentBySource={safety:new Map(),executionViolations:new Map(),minutes:new Map()},contractorRecent=new Map();
+ [['safety','مخالفات السلامة'],['executionViolations','مخالفات التنفيذ'],['minutes','محاضر إثبات الحالة']].forEach(([key,label])=>rows(key).forEach(r=>{
+  const d=tmDate(r.date),ref=xdCaseRef(r);if(!d||!ref||d<recentStart||d>today)return;
+  const detail=clean(r.violation)||clean(r.violation1)||clean(r.minuteType)||clean(r.penaltyItem1)||clean(r.type)||label;
+  const dedupe=[key,norm(ref),d.toISOString().slice(0,10),norm(detail),norm(r.contractor)].join('|');if(seen.has(dedupe))return;seen.add(dedupe);
+  const bucket=recentBySource[key],rk=norm(ref),a=bucket.get(rk)||{count:0,row:r};a.count++;a.row=r;bucket.set(rk,a);if(clean(r.contractor))tmMapInc(contractorRecent,clean(r.contractor));
+ }));
+ const recentRules=[
+  ['safety','مخالفات سلامة حديثة',4,12,'مخالفات السلامة'],
+  ['executionViolations','مخالفات تنفيذ حديثة',5,15,'مخالفات التنفيذ'],
+  ['minutes','محاضر إثبات حالة حديثة',5,15,'محاضر إثبات الحالة']
+ ];
+ recentRules.forEach(([key,label,unit,cap,source])=>recentBySource[key].forEach((x,k)=>{const c=map.get(k);if(c)xdPushReason(c,'recent-'+key,label,Math.min(cap,x.count*unit),key,source,x.count+' سجل حديث خلال آخر 7 أيام.','مراجعة السجلات الحديثة وربطها بسبب التكرار والإجراء التصحيحي.',x.row)}));
+ rows('workorders').forEach(r=>{const c=ensure(xdCaseRef(r),r);if(!c)return;const days=num(r.consultantDays);
+  if(days>=15)xdPushReason(c,'consultantDays-workorders','انقطاع متابعة استشارية',20,'workorders','أوامر العمل','مر '+days+' يومًا منذ آخر إجراء استشاري.','تحديث الإفادة والإجراء الاستشاري وتوثيق آخر متابعة.',r);
+  else if(days>=10)xdPushReason(c,'consultantDays-workorders','متابعة استشارية متأخرة',15,'workorders','أوامر العمل','مر '+days+' يومًا منذ آخر إجراء استشاري.','تحديث الإفادة أو الإجراء الاستشاري.',r);
+  else if(days>=6)xdPushReason(c,'consultantDays-workorders','متابعة تحتاج تنشيط',8,'workorders','أوامر العمل','مر '+days+' أيام منذ آخر إجراء استشاري.','مراجعة الحاجة إلى إفادة أحدث.',r);
+  if(!isDone(r.status)&&isDelayed(r.delay))xdPushReason(c,'delay-workorders','تأخير تنفيذ ظاهر',18,'workorders','أوامر العمل','الحالة غير منفذة مع وجود مؤشر تأخير.','مراجعة سبب التأخير وخطة المعالجة.',r);
+ });
+ ['projects','connections'].forEach(key=>rows(key).forEach(r=>{const c=ensure(xdCaseRef(r),r);if(!c)return;const age=norm(r.adviceAge),closing=xdClosingState(r);
+  if(!closing&&age.includes('اهمال شديد'))xdPushReason(c,'advice-'+key,'إفادة مهملة بشدة',20,key,PAGE_TITLES[key],'حالة الإفادة مصنفة إهمال شديد بالمتابعة.','تحديث الإفادة فورًا وتوثيق الموقف الحالي.',r);
+  else if(!closing&&age.includes('اهمال'))xdPushReason(c,'advice-'+key,'إفادة مهملة',15,key,PAGE_TITLES[key],'حالة الإفادة مصنفة إهمال بالمتابعة.','تحديث الإفادة وتحديد آخر إجراء.',r);
+  else if(!closing&&age.includes('قديمه جدا'))xdPushReason(c,'advice-'+key,'إفادة قديمة جدًا',10,key,PAGE_TITLES[key],'الإفادة مصنفة قديمة جدًا.','تحديث الإفادة بالموقف الحالي.',r);
+  if(isDelayed(r.executionStatus)||isDelayed(r.delay))xdPushReason(c,'delay-'+key,'تأخير في التنفيذ',18,key,PAGE_TITLES[key],'سجل التنفيذ يحمل مؤشر تأخير.','مراجعة سبب التأخير والإجراء التصحيحي.',r);
+ }));
+ rows('attachments').forEach(r=>{const c=ensure(xdCaseRef(r),r);if(!c)return;const status=clean(r.status),age=xdDaysSince(r.uploadDate);
+  if(!xdDocFinal(status)){if(age!==null&&age>=14)xdPushReason(c,'documents-attachments','دورة مستندات راكدة',18,'attachments','المرفقات','حالة المرفقات «'+(status||'غير محددة')+'» وآخر تحديث منذ '+age+' يومًا.','متابعة المستندات وتحديد سبب توقف الدورة.',r);
+   else if(age!==null&&age>=7)xdPushReason(c,'documents-attachments','مستندات لم تتحرك',12,'attachments','المرفقات','حالة المرفقات «'+(status||'غير محددة')+'» وآخر تحديث منذ '+age+' أيام.','متابعة انتقال المستندات للمرحلة التالية.',r);
+   else if(status&&(norm(status).includes('لم')||norm(status).includes('قيد')))xdPushReason(c,'documents-attachments','دورة مستندات غير مكتملة',7,'attachments','المرفقات','الحالة الحالية: '+status+'.','التحقق من الإجراء التالي في دورة المستندات.',r)}
+ });
+ rows('permits').forEach(r=>{const c=ensure(xdCaseRef(r),r);if(!c)return;
+  if(containsAny(r.evaluation,['رفض','مرفوض']))xdPushReason(c,'permit-rejected','تصريح مرفوض',10,'permits','التصاريح','تقييم طلب التصريح يشير إلى الرفض.','مراجعة سبب الرفض وخطوة إعادة التقديم.',r);
+  else if(clean(r.permitNotes)&&!clean(r.actionTaken))xdPushReason(c,'permit-no-action','ملاحظة تصريح بلا إجراء',8,'permits','التصاريح','توجد ملاحظة على التصريح بدون إجراء مسجل.','تسجيل الإجراء المتخذ ومتابعة التصريح.',r)
+ });
+ rows('assets').forEach(r=>{const c=ensure(xdCaseRef(r),r);if(!c)return;
+  if(norm(r.plantingReview)==='تمت المراجعه'){
+   if(!clean(r.installDate))xdAddQualityFlag(c,'تاريخ تركيب مفقود','الأصل تمت مراجعته لكن تاريخ التركيب غير مسجل.');
+   if(!clean(r.engineer))xdAddQualityFlag(c,'مهندس تركيب مفقود','الأصل تمت مراجعته لكن مهندس التركيب غير مسجل.');
+  }
+  if(clean(r.notes)&&!containsAny(r.resolved,['تم','نعم','معالج']))xdPushReason(c,'asset-unresolved','ملاحظة أصل غير مغلقة',10,'assets','الأصول','توجد ملاحظة على الأصل دون إثبات تلافيها.','مراجعة الملاحظة وتوثيق الإغلاق أو الإجراء التصحيحي.',r);
+ });
+ rows('closures').forEach(r=>{const c=ensure(xdCaseRef(r),r);if(!c)return;
+  if(clean(r.docsReceived)&&!clean(r.docsReview))xdPushReason(c,'closure-review','مستندات إغلاق بلا مراجعة',10,'closures','الإغلاقات','تم استلام مستندات الإغلاق دون تسجيل نتيجة المراجعة.','استكمال مراجعة مستندات الإغلاق وتوثيق النتيجة.',r);
+ });
+ rows('tasks').forEach(r=>{const c=ensure(xdCaseRef(r),r);if(!c)return;
+  if(containsAny(r.attachments,['مشكلة','عدم','ناقص'])&&!containsAny(r.resolved,['تم','معالج']))xdPushReason(c,'site-unresolved','مشكلة ميدانية غير معالجة',12,'tasks','متابعة المواقع','السجل يشير إلى مشكلة بالمرفقات أو الإثباتات دون معالجة مثبتة.','معالجة المشكلة الميدانية وتحديث الإثبات والإفادة.',r);
+ });
+ rows('emergency').forEach(r=>{const c=ensure(xdCaseRef(r),r);if(!c)return;const done=isDone(r.status),archive=norm(r.archive);
+  if(done&&(!archive||archive.includes('لم يستلم من المقاول')))xdPushReason(c,'emergency-docs','إشعار منجز ودورة المستندات لم تبدأ',14,'emergency','الطوارئ','التنفيذ منجز لكن المستندات غير مستلمة من المقاول أو الحالة غير مكتملة.','استلام مستندات الإشعار وبدء دورة المراجعة.',r);
+  if(!clean(r.status))xdAddQualityFlag(c,'حالة الطوارئ غير مسجلة','السجل لا يحتوي على حالة تنفيذ.');
+  if(done&&(!clean(r.startDate)||!clean(r.endDate)))xdAddQualityFlag(c,'تواريخ تنفيذ ناقصة','الإشعار منجز مع نقص في تاريخ المباشرة أو الانتهاء.');
+ });
+ map.forEach(c=>{
+  if(!c.engineer)xdAddQualityFlag(c,'مسؤول المتابعة غير واضح','لم يتم العثور على مهندس أو مسؤول متابعة مرتبط بالسجل.');
+  if(!c.contractor)xdAddQualityFlag(c,'المقاول غير واضح','لم يتم العثور على مقاول مرتبط بالسجل.');
+  const direct=c.reasons.filter(r=>r.kind!=='context');
+  const repeat=contractorRecent.get(c.contractor)||0;
+  if(direct.length&&c.contractor&&repeat>=7)xdPushReason(c,'contractor-context','سياق تكرار مرتفع لدى المقاول',8,'','سياق المقاول','المقاول لديه '+repeat+' سجل مخالفة/محضر فريد خلال آخر 7 أيام.','مراجعة النمط المتكرر لدى المقاول بالتوازي مع السبب المباشر للحالة.',null,'context');
+  else if(direct.length&&c.contractor&&repeat>=4)xdPushReason(c,'contractor-context','سياق تكرار ملحوظ لدى المقاول',5,'','سياق المقاول','المقاول لديه '+repeat+' سجلات مخالفة/محاضر فريدة خلال آخر 7 أيام.','فحص نمط التكرار لدى المقاول قبل اتساعه.',null,'context');
+  c.score=Math.min(100,c.score);
+  c.directReasons=c.reasons.filter(r=>r.kind!=='context');
+  c.contextReasons=c.reasons.filter(r=>r.kind==='context');
+  c.sourceKeys=[...new Set(c.directReasons.map(r=>r.pageKey).filter(Boolean))];
+  c.sourceNames=c.sourceKeys.map(k=>PAGE_TITLES[k]||k);
+  c.actionPlan=[...new Set(c.directReasons.slice().sort((a,b)=>b.points-a.points).map(r=>r.action).filter(Boolean))].slice(0,3);
+  const coverage=30+Math.min(30,c.sourceKeys.length*10)+Math.min(30,c.directReasons.length*7)+(c.hasWorkOrder?5:0)-Math.min(24,c.qualityFlags.length*8);
+  c.confidence=Math.max(25,Math.min(95,coverage));c.confidenceLevel=c.confidence>=75?'high':c.confidence>=50?'medium':'low';
+  c.priority=c.score>=50?'high':c.score>=25?'medium':'watch';c.nextAction=c.actionPlan[0]||'مراجعة الحالة';
+ });
+ return [...map.values()].filter(c=>c.directReasons&&c.directReasons.length&&c.score>0).sort((a,b)=>b.score-a.score||b.confidence-a.confidence||b.directReasons.length-a.directReasons.length);
 }
 function renderExplainableDecision(){
  if(!SC.loaded)return;const loading=el('xdLoading'),root=el('xdContent');if(loading)loading.style.display='none';if(root)root.style.display='block';SC.decisionCases=xdBuildCases();
- const all=SC.decisionCases,high=all.filter(x=>x.priority==='high').length,medium=all.filter(x=>x.priority==='medium').length,watch=all.filter(x=>x.priority==='watch').length,top=all[0];
- el('xdKpis').innerHTML=[['حالات تحتاج متابعة',all.length,'بها إشارة واحدة على الأقل'],['أولوية مرتفعة',high,'تراكم عدة إشارات مستقلة'],['أولوية متوسطة',medium,'تحتاج متابعة منظمة'],['مراقبة',watch,'إشارات مبكرة'],['أعلى حالة',top?top.workOrder:'—',top?('درجة '+top.score+'/100'):'لا توجد حالات']].map(x=>'<article><span>'+esc(x[0])+'</span><strong>'+esc(x[1])+'</strong><small>'+esc(x[2])+'</small></article>').join('');
+ const all=SC.decisionCases,high=all.filter(x=>x.priority==='high').length,multi=all.filter(x=>x.sourceKeys.length>=2).length,highConfidence=all.filter(x=>x.confidence>=75).length,top=all[0];
+ el('xdKpis').innerHTML=[['حالات تحتاج متابعة',all.length,'بها دليل مباشر واحد على الأقل'],['أولوية مرتفعة',high,'نقاط أولوية ≥ 50'],['متعددة المصادر',multi,'مرتبطة بمصدرين أو أكثر'],['ثقة تغطية عالية',highConfidence,'تغطية ≥ 75%'],['أعلى حالة',top?top.workOrder:'—',top?('نقاط '+top.score+' • ثقة '+top.confidence+'%'):'لا توجد حالات']].map(x=>'<article><span>'+esc(x[0])+'</span><strong>'+esc(x[1])+'</strong><small>'+esc(x[2])+'</small></article>').join('');
+ const source=el('xdSource');if(source){const current=source.value;const keys=[...new Set(all.flatMap(c=>c.sourceKeys))].sort((a,b)=>(PAGE_TITLES[a]||a).localeCompare(PAGE_TITLES[b]||b,'ar'));source.innerHTML='<option value="">كل مصادر القرار</option>'+keys.map(k=>'<option value="'+esc(k)+'">'+esc(PAGE_TITLES[k]||k)+'</option>').join('');if(keys.includes(current))source.value=current}
  renderDecisionCases();
 }
+function xdConfidenceMatch(c,f){if(!f)return true;if(f==='high')return c.confidence>=75;if(f==='medium')return c.confidence>=50&&c.confidence<75;if(f==='low')return c.confidence<50;return true}
 function renderDecisionCases(){
- if(!Array.isArray(SC.decisionCases))SC.decisionCases=xdBuildCases();const q=norm(el('xdSearch')&&el('xdSearch').value),p=el('xdPriority')&&el('xdPriority').value;const cases=SC.decisionCases.filter(c=>(!p||c.priority===p)&&(!q||norm([c.workOrder,c.contractor,c.engineer,c.region].join(' ')).includes(q))).slice(0,60);
+ if(!Array.isArray(SC.decisionCases))SC.decisionCases=xdBuildCases();
+ const q=norm(el('xdSearch')&&el('xdSearch').value),p=el('xdPriority')&&el('xdPriority').value,cf=el('xdConfidence')&&el('xdConfidence').value,src=el('xdSource')&&el('xdSource').value;
+ const cases=SC.decisionCases.filter(c=>{if(p&&c.priority!==p)return false;if(!xdConfidenceMatch(c,cf))return false;if(src&&!c.sourceKeys.includes(src))return false;
+  if(!q)return true;const hay=[c.workOrder,c.contractor,c.engineer,c.region,...c.reasons.flatMap(r=>[r.label,r.detail,r.action,r.source]),...c.qualityFlags.flatMap(x=>[x.label,x.detail])].join(' ');return norm(hay).includes(q)}).slice(0,80);
  const label={high:'مرتفعة',medium:'متوسطة',watch:'مراقبة'},root=el('xdCases');if(!cases.length){root.innerHTML='<div class="xd-empty">لا توجد حالات مطابقة للفلاتر الحالية.</div>';return}
- root.innerHTML=cases.map(c=>{const idx=SC.decisionCases.indexOf(c);return '<article class="xd-case '+c.priority+'"><div class="xd-case-head"><div><span>أمر العمل</span><h3>'+esc(c.workOrder)+'</h3><small>'+esc(c.contractor||'مقاول غير محدد')+(c.engineer?' • '+esc(c.engineer):'')+'</small></div><div class="xd-score"><b>'+c.score+'</b><span>/100</span><em>'+label[c.priority]+'</em></div></div><div class="xd-why"><b>لماذا هذه الأولوية؟</b><div>'+c.reasons.slice().sort((a,b)=>b.points-a.points).map((r,ri)=>'<button type="button" class="xd-reason" data-ci="'+idx+'" data-ri="'+c.reasons.indexOf(r)+'"><span>'+esc(r.label)+'</span><strong>+'+r.points+'</strong><small>'+esc(r.detail)+'</small></button>').join('')+'</div></div><div class="xd-next"><span>الإجراء التالي المقترح</span><b>'+esc(c.nextAction||'مراجعة الحالة')+'</b></div></article>'}).join('');
+ root.innerHTML=cases.map(c=>{const idx=SC.decisionCases.indexOf(c),sorted=c.reasons.slice().sort((a,b)=>b.points-a.points),kindLabel=c.hasWorkOrder?'أمر العمل':'السجل';
+  return '<article class="xd-case '+c.priority+'"><div class="xd-case-head"><div><span>'+kindLabel+'</span><h3>'+esc(c.workOrder)+'</h3><small>'+esc(c.contractor||'مقاول غير محدد')+(c.engineer?' • '+esc(c.engineer):'')+(c.region?' • '+esc(c.region):'')+'</small></div><div class="xd-score"><b>'+c.score+'</b><span>نقاط أولوية</span><em>'+label[c.priority]+'</em></div></div>'+
+  '<div class="xd-meta-row"><span class="xd-confidence '+c.confidenceLevel+'">ثقة التغطية '+c.confidence+'%</span><span>'+c.directReasons.length+' إشارة مباشرة</span><span>'+c.sourceKeys.length+' مصدر</span></div>'+
+  '<div class="xd-source-row">'+c.sourceNames.map(x=>'<span>'+esc(x)+'</span>').join('')+'</div>'+
+  '<div class="xd-why"><b>لماذا هذه الأولوية؟</b><div>'+sorted.map(r=>'<button type="button" class="xd-reason '+(r.kind==='context'?'context':'')+'" data-ci="'+idx+'" data-ri="'+c.reasons.indexOf(r)+'"><span>'+esc(r.label)+'</span><strong>+'+r.points+'</strong><small>'+esc(r.detail)+'</small><em>'+(r.kind==='context'?'عامل سياقي':'دليل مباشر')+'</em></button>').join('')+'</div></div>'+
+  '<div class="xd-plan"><span>خطة الإجراء المقترحة</span><ol>'+c.actionPlan.map(a=>'<li>'+esc(a)+'</li>').join('')+'</ol></div>'+
+  (c.qualityFlags.length?'<div class="xd-quality-flags"><b>تنبيهات جودة البيانات</b>'+c.qualityFlags.map(x=>'<span title="'+esc(x.detail)+'">'+esc(x.label)+'</span>').join('')+'</div>':'')+
+  '</article>'}).join('');
  root.querySelectorAll('.xd-reason').forEach(b=>b.onclick=()=>renderDecisionEvidence(Number(b.dataset.ci),Number(b.dataset.ri)));
 }
 function renderDecisionEvidence(ci,ri){
- const c=SC.decisionCases&&SC.decisionCases[ci],r=c&&c.reasons[ri],root=el('xdEvidencePanel');if(!c||!r||!root)return;root.innerHTML='<div class="xd-evidence-head"><div><span>EVIDENCE TRACE</span><h3>'+esc(r.label)+'</h3><p>أمر العمل '+esc(c.workOrder)+' • مساهمة +'+r.points+' نقطة في ترتيب المتابعة.</p></div><b>'+esc(r.source)+'</b></div><div class="xd-evidence-grid"><article><span>الدليل</span><strong>'+esc(r.detail)+'</strong></article><article><span>المصدر</span><strong>'+esc(r.source)+'</strong><small>صف المصدر: '+esc(r.row||'—')+'</small></article><article><span>الإجراء التالي المقترح</span><strong>'+esc(r.action)+'</strong></article><article><span>السياق</span><strong>'+esc(c.contractor||'مقاول غير محدد')+'</strong><small>'+esc(c.engineer||'مسؤول متابعة غير محدد')+(c.region?' • '+esc(c.region):'')+'</small></article></div><div class="xd-evidence-note">هذه أولوية تشغيلية قابلة للتفسير مبنية على البيانات المتاحة؛ يمكن الضغط على أسباب أخرى لنفس الحالة لمراجعة بقية الأدلة.</div>';root.scrollIntoView({behavior:'smooth',block:'nearest'});
+ const c=SC.decisionCases&&SC.decisionCases[ci],r=c&&c.reasons[ri],root=el('xdEvidencePanel');if(!c||!r||!root)return;
+ root.innerHTML='<div class="xd-evidence-head"><div><span>EVIDENCE TRACE</span><h3>'+esc(r.label)+'</h3><p>'+esc(c.hasWorkOrder?'أمر العمل ':'السجل ')+esc(c.workOrder)+' • مساهمة +'+r.points+' نقطة • '+(r.kind==='context'?'عامل سياقي':'دليل مباشر')+'.</p></div><b>'+esc(r.source)+'</b></div>'+
+ '<div class="xd-evidence-grid"><article><span>الدليل</span><strong>'+esc(r.detail)+'</strong></article><article><span>المصدر</span><strong>'+esc(r.source)+'</strong><small>صف المصدر: '+esc(r.row||'—')+'</small></article><article><span>الإجراء التالي المقترح</span><strong>'+esc(r.action)+'</strong></article><article><span>السياق</span><strong>'+esc(c.contractor||'مقاول غير محدد')+'</strong><small>'+esc(c.engineer||'مسؤول متابعة غير محدد')+(c.region?' • '+esc(c.region):'')+'</small></article></div>'+
+ '<div class="xd-evidence-actions">'+(xdCanOpenSource(r.pageKey)?'<button type="button" id="xdOpenSource">فتح المصدر الأصلي ↗</button>':'')+(c.hasWorkOrder?'<button type="button" id="xdOpen360">فتح Work Order 360° 🔎</button>':'')+'</div>'+
+ '<div class="xd-evidence-note">هذه أولوية تشغيلية قابلة للتفسير مبنية على البيانات المتاحة. ثقة التغطية الحالية '+c.confidence+'%، ويمكن مراجعة بقية الأسباب للحصول على الصورة الكاملة.</div>';
+ if(xdCanOpenSource(r.pageKey)&&el('xdOpenSource'))el('xdOpenSource').onclick=()=>openDecisionSource(ci,ri);
+ if(c.hasWorkOrder&&el('xdOpen360'))el('xdOpen360').onclick=()=>openDecision360(ci);
+ root.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
+function xdCanOpenSource(pageKey){return pageKey==='workorders'||!!document.querySelector('#nav .nav-item[data-page="'+pageKey+'"]')}
+function openDecisionSource(ci,ri){
+ const c=SC.decisionCases&&SC.decisionCases[ci],r=c&&c.reasons[ri];if(!c||!r||!xdCanOpenSource(r.pageKey))return;
+ const target=r.pageKey==='workorders'?'master':r.pageKey;
+ leaveSmartCenter();const search=el('globalSearch');if(search)search.value=c.workOrder;
+ if(typeof openPage==='function')openPage(target);else document.querySelector('#nav .nav-item[data-page="'+target+'"]')?.click();
+ setTimeout(()=>{try{if(typeof applyFilters==='function')applyFilters()}catch(e){}},650);
+}
+function openDecision360(ci){
+ const c=SC.decisionCases&&SC.decisionCases[ci];if(!c||!c.hasWorkOrder)return;
+ const nav=el('workOrder360Nav');if(!nav)return;nav.click();
+ setTimeout(()=>{const input=el('wo360Input');if(input)input.value=c.workOrder;el('wo360Search')?.click()},180);
+}
+
 function bindExceptionTools(){
  const cats=[...new Set(SC.issues.map(x=>x.category).filter(Boolean))].sort();
  el('scCategory').innerHTML='<option value="">كل الأنواع</option>'+cats.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');

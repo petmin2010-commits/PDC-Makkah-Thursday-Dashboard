@@ -247,3 +247,183 @@ body.theme-dark .ir-row{border-color:#24344e}.theme-dark .ir-table-wrap th{backg
   .smart-section-top-tabs .sst-tabs{display:flex;overflow-x:auto;padding-bottom:2px}
   .smart-section-top-tabs .sst-tabs button{flex:0 0 auto;min-width:155px}
 }
+
+/* =========================================================
+   EXPLAINABLE DECISION ENGINE V2 — actionable + evidence based
+   ========================================================= */
+.xd-guide{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:9px;
+  margin-bottom:12px;
+}
+.xd-guide>div{
+  min-width:0;
+  padding:12px 13px;
+  border:1px solid rgba(140,92,180,.18);
+  border-radius:15px;
+  background:linear-gradient(135deg,#fbf9ff,#f7fbff);
+}
+.xd-guide b{
+  display:block;
+  margin-bottom:4px;
+  font-size:9px;
+  color:#67457f;
+}
+.xd-guide span{
+  display:block;
+  font-size:7.8px;
+  line-height:1.7;
+  color:#7d8b9e;
+}
+.xd-tools{
+  display:grid!important;
+  grid-template-columns:minmax(250px,1fr) 170px 190px 180px auto;
+  gap:8px;
+}
+.xd-tools input,
+.xd-tools select,
+.xd-tools button{width:100%;box-sizing:border-box}
+.xd-meta-row{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:wrap;
+  margin:-2px 0 8px;
+}
+.xd-meta-row>span{
+  padding:4px 7px;
+  border-radius:999px;
+  background:#f2f5f9;
+  color:#667b92;
+  font-size:7.2px;
+  font-weight:800;
+}
+.xd-confidence.high{background:#e8f8f1!important;color:#12835f!important}
+.xd-confidence.medium{background:#fff5df!important;color:#9b6714!important}
+.xd-confidence.low{background:#fff0f1!important;color:#b63c49!important}
+.xd-source-row{
+  display:flex;
+  gap:5px;
+  flex-wrap:wrap;
+  margin:0 0 9px;
+}
+.xd-source-row span{
+  padding:4px 7px;
+  border:1px solid #e3e8ef;
+  border-radius:8px;
+  background:#fbfcfe;
+  color:#60738b;
+  font-size:7.2px;
+}
+.xd-reason{
+  position:relative;
+}
+.xd-reason em{
+  display:inline-flex;
+  margin-top:6px;
+  padding:3px 6px;
+  border-radius:999px;
+  background:#eaf3ff;
+  color:#3268a8;
+  font-size:6.5px;
+  font-style:normal;
+  font-weight:900;
+}
+.xd-reason.context{
+  border-style:dashed;
+  background:#faf8fc;
+}
+.xd-reason.context strong{color:#76528e}
+.xd-reason.context em{
+  background:#f1eaf5;
+  color:#76528e;
+}
+.xd-plan{
+  margin-top:10px;
+  padding:10px 11px;
+  border-radius:12px;
+  background:linear-gradient(135deg,#f7f4fb,#f8fbff);
+  border:1px solid #e8e1ef;
+}
+.xd-plan>span{
+  display:block;
+  margin-bottom:5px;
+  font-size:7.5px;
+  color:#8a7896;
+  font-weight:800;
+}
+.xd-plan ol{
+  margin:0;
+  padding-right:18px;
+}
+.xd-plan li{
+  margin:3px 0;
+  font-size:8px;
+  line-height:1.6;
+  color:#59456c;
+  font-weight:700;
+}
+.xd-quality-flags{
+  display:flex;
+  gap:5px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin-top:9px;
+}
+.xd-quality-flags>b{
+  font-size:7px;
+  color:#8794a4;
+  margin-left:2px;
+}
+.xd-quality-flags span{
+  padding:4px 6px;
+  border-radius:8px;
+  background:#fff7e8;
+  color:#97651b;
+  border:1px solid #f2dfb8;
+  font-size:6.8px;
+  font-weight:800;
+}
+.xd-evidence-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+.xd-evidence-actions button{
+  border:0;
+  border-radius:10px;
+  padding:8px 11px;
+  background:#6f4a8d;
+  color:#fff;
+  font:800 8px Cairo,sans-serif;
+  cursor:pointer;
+}
+.xd-evidence-actions button+button{background:#2878e8}
+body.theme-dark .xd-guide>div,
+body.theme-dark .xd-source-row span,
+body.theme-dark .xd-plan{
+  background:#17243a;
+  border-color:#2d405c;
+}
+body.theme-dark .xd-guide b,
+body.theme-dark .xd-plan li{color:#ddd0e8}
+body.theme-dark .xd-guide span,
+body.theme-dark .xd-source-row span{color:#aebdd0}
+body.theme-dark .xd-meta-row>span{background:#1b2a41;color:#afbdd0}
+body.theme-dark .xd-reason.context{background:#1b2438}
+body.theme-dark .xd-quality-flags span{background:#3b2f1d;border-color:#5d4826;color:#f0cf8f}
+@media(max-width:1250px){
+  .xd-tools{grid-template-columns:minmax(230px,1fr) repeat(2,minmax(150px,.7fr))}
+  .xd-tools #xdSource,.xd-tools button{grid-column:auto}
+}
+@media(max-width:900px){
+  .xd-guide{grid-template-columns:1fr}
+  .xd-tools{grid-template-columns:1fr 1fr!important}
+  .xd-tools input{grid-column:1/-1}
+}
+@media(max-width:620px){
+  .xd-tools{grid-template-columns:1fr!important}
+  .xd-tools input{grid-column:auto}
+}
