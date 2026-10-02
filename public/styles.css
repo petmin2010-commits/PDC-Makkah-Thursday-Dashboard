@@ -3036,3 +3036,51 @@ body .panel > .vd-tab-report-actions{
     print-color-adjust:exact!important;
   }
 }
+
+/* THEMED LEFT HERO ART — 2026-10-02 */
+.global-page-heading{--gph-art:"◆"}
+.global-page-heading .gph-copy::after{
+  content:""!important;position:absolute!important;left:18px!important;top:50%!important;
+  width:184px!important;height:102px!important;transform:translateY(-50%) rotate(-4deg)!important;
+  border:1px solid rgba(255,255,255,.18)!important;border-radius:28px!important;
+  background:radial-gradient(circle at 18% 24%,rgba(255,255,255,.62) 0 3px,transparent 4px),radial-gradient(circle at 78% 24%,rgba(255,255,255,.40) 0 3px,transparent 4px),radial-gradient(circle at 18% 76%,rgba(255,255,255,.40) 0 3px,transparent 4px),radial-gradient(circle at 78% 76%,rgba(255,255,255,.62) 0 3px,transparent 4px),linear-gradient(135deg,rgba(255,255,255,.10),rgba(255,255,255,.025))!important;
+  box-shadow:0 14px 30px rgba(0,0,0,.10),inset 0 1px 0 rgba(255,255,255,.10)!important;pointer-events:none!important;
+}
+.global-page-heading .gph-copy::before{
+  content:var(--gph-art)!important;position:absolute!important;left:54px!important;top:50%!important;z-index:2!important;
+  width:112px!important;height:112px!important;transform:translateY(-50%) rotate(-3deg)!important;
+  display:grid!important;place-items:center!important;border-radius:32px!important;
+  border:1px solid rgba(255,255,255,.26)!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.18),rgba(255,255,255,.06))!important;
+  color:#fff!important;font-size:44px!important;line-height:1!important;font-weight:900!important;
+  text-shadow:0 5px 16px rgba(0,0,0,.18)!important;
+  box-shadow:0 16px 34px rgba(0,0,0,.16),inset 0 1px 0 rgba(255,255,255,.20)!important;
+  backdrop-filter:blur(2px)!important;pointer-events:none!important;
+}
+.global-page-heading[data-page="master"]{--gph-art:"⌂"}
+.global-page-heading[data-page="projects"]{--gph-art:"▥"}
+.global-page-heading[data-page="connections"]{--gph-art:"⌁"}
+.global-page-heading[data-page="permits"]{--gph-art:"▤"}
+.global-page-heading[data-page="assets"]{--gph-art:"⬡"}
+.global-page-heading[data-page="closures"]{--gph-art:"✓"}
+.global-page-heading[data-page="tasks"]{--gph-art:"✦"}
+.global-page-heading[data-page="emergency"]{--gph-art:"⚠"}
+.global-page-heading[data-page="safety"]{--gph-art:"⛨"}
+.global-page-heading[data-page="executionViolations"]{--gph-art:"⊘"}
+.global-page-heading[data-page="minutes"]{--gph-art:"≡"}
+.global-page-heading[data-page="dataQuality"]{--gph-art:"◆"}
+.global-page-heading[data-page="hrStaff"]{--gph-art:"◉"}
+.global-page-heading[data-page="employeeEvaluation"]{--gph-art:"★"}
+.global-page-heading[data-page="electricityEngineerEvaluation"]{--gph-art:"◈"}
+.global-page-heading[data-page="wednesdayMeeting"]{--gph-art:"▦"}
+.global-page-heading[data-page="importantLinks"]{--gph-art:"↗"}
+.global-page-heading[data-page="projects"] .gph-copy::after{
+  background:linear-gradient(90deg,transparent 0 10%,rgba(255,255,255,.18) 10% 12%,transparent 12% 34%,rgba(255,255,255,.18) 34% 36%,transparent 36% 58%,rgba(255,255,255,.18) 58% 60%,transparent 60%),linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.015))!important;
+}
+@media(max-width:1100px){
+  .global-page-heading .gph-copy::before,.global-page-heading .gph-copy::after{display:none!important}
+  .global-page-heading .gph-copy{width:100%!important}
+}
+@media print{
+  .global-page-heading .gph-copy::before,.global-page-heading .gph-copy::after{display:none!important}
+}
