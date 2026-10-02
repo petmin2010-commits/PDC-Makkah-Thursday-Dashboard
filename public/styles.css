@@ -3084,3 +3084,52 @@ body .panel > .vd-tab-report-actions{
 @media print{
   .global-page-heading .gph-copy::before,.global-page-heading .gph-copy::after{display:none!important}
 }
+
+/* =========================================================
+   PHOTO WATERMARK HERO — 2026-10-03
+   Real expressive imagery blended into the left of each hero.
+   ========================================================= */
+.global-page-heading{
+  --gph-photo-image:none;
+  --gph-photo-size:100% 100%;
+  --gph-photo-y:0%;
+  --gph-photo-opacity:0;
+}
+.global-page-heading:before{
+  content:""!important;
+  position:absolute!important;
+  left:0!important;top:0!important;bottom:auto!important;
+  width:46%!important;height:100%!important;
+  border-radius:inherit!important;
+  background-image:var(--gph-photo-image)!important;
+  background-repeat:no-repeat!important;
+  background-size:var(--gph-photo-size)!important;
+  background-position:50% var(--gph-photo-y)!important;
+  opacity:var(--gph-photo-opacity)!important;
+  box-shadow:none!important;
+  pointer-events:none!important;
+  -webkit-mask-image:linear-gradient(90deg,#000 0%,#000 58%,rgba(0,0,0,.78) 74%,transparent 100%)!important;
+  mask-image:linear-gradient(90deg,#000 0%,#000 58%,rgba(0,0,0,.78) 74%,transparent 100%)!important;
+}
+.global-page-heading .gph-copy::before,
+.global-page-heading .gph-copy::after{display:none!important}
+
+.global-page-heading[data-page="master"]{--gph-photo-image:url('hero-watermarks-first10.webp');--gph-photo-size:100% 1000%;--gph-photo-y:0%;--gph-photo-opacity:.78}
+.global-page-heading[data-page="projects"]{--gph-photo-image:url('hero-watermarks-first10.webp');--gph-photo-size:100% 1000%;--gph-photo-y:11.111%;--gph-photo-opacity:.80}
+.global-page-heading[data-page="connections"]{--gph-photo-image:url('hero-watermarks-first10.webp');--gph-photo-size:100% 1000%;--gph-photo-y:22.222%;--gph-photo-opacity:.77}
+.global-page-heading[data-page="permits"]{--gph-photo-image:url('hero-watermarks-first10.webp');--gph-photo-size:100% 1000%;--gph-photo-y:33.333%;--gph-photo-opacity:.76}
+.global-page-heading[data-page="assets"]{--gph-photo-image:url('hero-watermarks-first10.webp');--gph-photo-size:100% 1000%;--gph-photo-y:44.444%;--gph-photo-opacity:.78}
+.global-page-heading[data-page="closures"]{--gph-photo-image:url('hero-watermarks-first10.webp');--gph-photo-size:100% 1000%;--gph-photo-y:55.556%;--gph-photo-opacity:.78}
+.global-page-heading[data-page="tasks"]{--gph-photo-image:url('hero-watermarks-first10.webp');--gph-photo-size:100% 1000%;--gph-photo-y:66.667%;--gph-photo-opacity:.78}
+.global-page-heading[data-page="emergency"]{--gph-photo-image:url('hero-watermarks-first10.webp');--gph-photo-size:100% 1000%;--gph-photo-y:77.778%;--gph-photo-opacity:.80}
+.global-page-heading[data-page="safety"]{--gph-photo-image:url('hero-watermarks-first10.webp');--gph-photo-size:100% 1000%;--gph-photo-y:88.889%;--gph-photo-opacity:.80}
+.global-page-heading[data-page="executionViolations"]{--gph-photo-image:url('hero-watermarks-first10.webp');--gph-photo-size:100% 1000%;--gph-photo-y:100%;--gph-photo-opacity:.80}
+@media(max-width:1100px){
+  .global-page-heading:before{width:43%!important}
+}
+@media(max-width:850px){
+  .global-page-heading:before{width:48%!important;opacity:calc(var(--gph-photo-opacity) * .58)!important}
+}
+@media print{
+  .global-page-heading:before{opacity:calc(var(--gph-photo-opacity) * .55)!important}
+}
