@@ -1990,8 +1990,16 @@
 
     const oldTitle = document.title;
 
+    const cityText = getBrandInfo().city || '';
+    const cityName =
+      cityText.includes('جدة') ? 'جدة' :
+      cityText.includes('مكة') ? 'مكة' :
+      cityText.replace(/^ب?إدارة كهرباء\s*/,'').trim();
+    const pageName = getActivePageName();
+    const exportPageName = pageName === 'المشاريع' ? 'مشاريع' : pageName;
+
     document.title =
-      `Vision Dimensions - ${getActivePageName()}`;
+      [exportPageName, cityName].filter(Boolean).join(' ');
 
     document.body.classList.add(
       'vd-report-v2-mode'
