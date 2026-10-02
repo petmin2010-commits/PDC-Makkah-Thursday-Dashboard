@@ -3601,7 +3601,7 @@ function applyThursdayParityCards(key,rows,cards){
 
 function renderPageKpis(key,rows){
  const pageKpis=document.getElementById('pageKpis');
- pageKpis.style.display=key==='projects'?'none':'';
+ pageKpis.style.display=(key==='projects'||key==='assets')?'none':'';
  if(key==='projects'){
    pageKpis.innerHTML='';
    return;
