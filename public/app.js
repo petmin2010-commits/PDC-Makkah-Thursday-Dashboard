@@ -3516,6 +3516,14 @@ function exportSafetyReportPdf(){
 
 function renderPermitDelayKpis(rows){
  const total=rows.length;
+ const metric=window.VDKpiLogic?.metric?.('permits',rows);
+
+ const noPermitRequired=rows.filter(r=>has(r.permitStatus,'لا يتطلب')).length;
+ const permitRequired=rows.filter(r=>{
+   const s=String(r.permitStatus||'').trim();
+   return s!=='' && !has(s,'لا يتطلب');
+ }).length;
+ const permitUndefined=Math.max(0,total-permitRequired-noPermitRequired);
 
  const normalized=rows.map(r=>({
    row:r,
@@ -3542,36 +3550,83 @@ function renderPermitDelayKpis(rows){
           exactStatus(s,'متأخر جداً(6 أيام)');
  }).length;
 
- const cards=[
+ const overview=[
+   {
+     label:'إجمالي السجلات',
+     value:total,
+     note:'السجلات المفلترة',
+     cls:'permit-delay-info',
+     icon:'Σ'
+   },
+   metric ? {
+     label:metric.primaryLabel||'نسبة الإنجاز',
+     value:Number(metric.rate||0).toFixed(1)+'%',
+     note:'المؤشر الرئيسي',
+     cls:'permit-delay-ok',
+     icon:'%'
+   } : null,
+   metric&&metric.secondaryLabel&&metric.secondaryRate!=null ? {
+     label:metric.secondaryLabel,
+     value:Number(metric.secondaryRate||0).toFixed(1)+'%',
+     note:'المؤشر الثانوي',
+     cls:'permit-delay-info',
+     icon:'%'
+   } : null,
+   {
+     label:'أوامر عمل تتطلب تصريح',
+     value:permitRequired,
+     note:total?((permitRequired/total)*100).toFixed(1)+'% من السجلات':'0.0%',
+     cls:'permit-delay-info',
+     icon:'P'
+   },
+   {
+     label:'أوامر عمل لا تتطلب تصريح',
+     value:noPermitRequired,
+     note:total?((noPermitRequired/total)*100).toFixed(1)+'% من السجلات':'0.0%',
+     cls:'permit-delay-ok',
+     icon:'✓'
+   },
+   {
+     label:'أوامر عمل غير محدد حالة التصريح',
+     value:permitUndefined,
+     note:total?((permitUndefined/total)*100).toFixed(1)+'% من السجلات':'0.0%',
+     cls:permitUndefined?'permit-delay-critical':'permit-delay-ok',
+     icon:'?'
+   }
+ ].filter(Boolean);
+
+ const delayCards=[
    {
      label:'غير متأخر',
      value:notDelayed,
-     pct:total?(notDelayed/total*100):0,
+     note:(total?(notDelayed/total*100):0).toFixed(1)+'% من السجلات المفلترة',
      cls:'permit-delay-ok',
      icon:'✓'
    },
    {
      label:'متأخر (3 أيام)',
      value:delayed3,
-     pct:total?(delayed3/total*100):0,
+     note:(total?(delayed3/total*100):0).toFixed(1)+'% من السجلات المفلترة',
      cls:'permit-delay-late',
      icon:'↑'
    },
    {
      label:'متأخر جدا (6 أيام)',
      value:delayed6,
-     pct:total?(delayed6/total*100):0,
+     note:(total?(delayed6/total*100):0).toFixed(1)+'% من السجلات المفلترة',
      cls:'permit-delay-critical',
      icon:'⇈'
    }
  ];
 
+ const cards=overview.concat(delayCards);
+
  document.getElementById('permitDelayKpis').innerHTML=cards.map(c=>`
    <article class="permit-delay-card ${c.cls}">
      <div class="permit-delay-icon">${c.icon}</div>
      <span>${esc(c.label)}</span>
-     <strong>${fmt(c.value)}</strong>
-     <small>${c.pct.toFixed(1)}% من السجلات المفلترة</small>
+     <strong>${typeof c.value==='number'?fmt(c.value):esc(c.value)}</strong>
+     <small>${esc(c.note||'')}</small>
    </article>
  `).join('');
 }
@@ -3601,8 +3656,9 @@ function applyThursdayParityCards(key,rows,cards){
 
 function renderPageKpis(key,rows){
  const pageKpis=document.getElementById('pageKpis');
- pageKpis.style.display=(key==='projects'||key==='assets')?'none':'';
- if(key==='projects'){
+ const specializedKpiPages=new Set(['projects','connections','permits','assets']);
+ pageKpis.style.display=specializedKpiPages.has(key)?'none':'';
+ if(specializedKpiPages.has(key)){
    pageKpis.innerHTML='';
    return;
  }

@@ -2714,3 +2714,42 @@ body .panel > .vd-tab-report-actions{
     font-size:7.8px!important;
   }
 }
+
+
+/* Specialized tabs: keep KPI information inside the lower analysis groups, not below filters. */
+#permitDelaySection .permit-delay-kpis{
+  grid-template-columns:repeat(auto-fit,minmax(145px,1fr))!important;
+  gap:8px!important;
+}
+#permitDelaySection .permit-delay-card{
+  min-height:112px!important;
+  padding:10px!important;
+}
+#permitDelaySection .permit-delay-icon{
+  width:30px!important;
+  height:30px!important;
+  margin-bottom:6px!important;
+  font-size:15px!important;
+}
+#permitDelaySection .permit-delay-card span{
+  min-height:27px!important;
+  font-size:8px!important;
+}
+#permitDelaySection .permit-delay-card strong{
+  margin:2px 0 1px!important;
+  font-size:20px!important;
+}
+#permitDelaySection .permit-delay-card small{
+  font-size:7px!important;
+}
+#permitDelaySection .permit-delay-info{
+  background:#f7fbff!important;
+  border-color:#dbe7f4!important;
+}
+#permitDelaySection .permit-delay-info:before{
+  background:#2878e8!important;
+}
+#permitDelaySection .permit-delay-info .permit-delay-icon{
+  background:#eaf2ff!important;
+  color:#2563eb!important;
+}
