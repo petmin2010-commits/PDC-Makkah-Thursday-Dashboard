@@ -32,7 +32,7 @@
   <link rel="stylesheet" href="/report-export.css?v=control-reports-20261002-1">
   <link rel="stylesheet" href="/readability.css?v=black-text-20261001-1">
   <link rel="stylesheet" href="/standard-report-controls.css?v=standard-report-controls-20261002-1">
-  <link rel="stylesheet" href="/fixed-top-shell.css?v=hide-legacy-hero-20261002-2">
+  <link rel="stylesheet" href="/fixed-top-shell.css?v=theme-palette-20261002-3">
 </head>
 <body>
 <div id="boot" class="boot boot-soft"><div class="boot-card"><div class="spinner"></div><b>جاري جلب البيانات</b><span>ستظهر الواجهة فورًا بينما تكتمل البيانات</span></div></div>
@@ -80,9 +80,48 @@
       <div class="top-actions">
         <div class="search"><span>⌕</span><input id="globalSearch" placeholder="بحث في الصفحة الحالية..."></div>
 
-        <div class="theme-picker-wrap"><span>🎨</span><select id="themeSelect" class="theme-select" aria-label="اختيار لون الداشبورد">
-<option value="light">⚪ أبيض</option><option value="lavender">🟣 لافندر فاتح</option><option value="purple">💜 موف</option><option value="blue">🔵 أزرق</option><option value="sky">🩵 سماوي</option><option value="green">🟢 أخضر</option><option value="mint">🌿 نعناعي</option><option value="orange">🟠 برتقالي</option><option value="gold">🟡 ذهبي</option><option value="pink">🌸 وردي</option><option value="charcoal">⚫ رمادي داكن</option><option value="navy">🌙 كحلي ليلي</option>
-</select></div>
+        <div id="themePickerWrap" class="theme-picker-wrap">
+          <button id="themePickerButton" class="theme-picker-button" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="themePickerPanel">
+            <span class="theme-palette-icon" aria-hidden="true">🎨</span>
+            <span id="themeCurrentDot" class="theme-current-dot" aria-hidden="true"></span>
+            <span id="themePickerLabel" class="theme-picker-label">أبيض</span>
+            <span class="theme-picker-caret" aria-hidden="true">⌄</span>
+          </button>
+          <div id="themePickerPanel" class="theme-picker-panel" role="dialog" aria-label="اختيار ألوان الواجهة" hidden>
+            <div class="theme-picker-head">
+              <div><strong>ألوان الواجهة</strong><small>اختر ستايل فاتح أو غامق</small></div>
+              <button id="themePickerClose" class="theme-picker-close" type="button" aria-label="إغلاق">×</button>
+            </div>
+            <div class="theme-mode-tabs" role="tablist" aria-label="نوع الألوان">
+              <button type="button" class="active" data-theme-group="light">☀ فاتح</button>
+              <button type="button" data-theme-group="dark">🌙 غامق</button>
+            </div>
+            <div class="theme-swatch-grid" data-theme-group-panel="light">
+              <button type="button" data-theme="light"><i style="--swatch:#ffffff"></i><span>أبيض</span></button>
+              <button type="button" data-theme="lavender"><i style="--swatch:#b9a3e3"></i><span>لافندر</span></button>
+              <button type="button" data-theme="purple"><i style="--swatch:#8064c9"></i><span>موف</span></button>
+              <button type="button" data-theme="blue"><i style="--swatch:#397bc0"></i><span>أزرق</span></button>
+              <button type="button" data-theme="sky"><i style="--swatch:#3aa7c4"></i><span>سماوي</span></button>
+              <button type="button" data-theme="green"><i style="--swatch:#43996c"></i><span>أخضر</span></button>
+              <button type="button" data-theme="mint"><i style="--swatch:#36a88e"></i><span>نعناعي</span></button>
+              <button type="button" data-theme="orange"><i style="--swatch:#df8a3a"></i><span>برتقالي</span></button>
+              <button type="button" data-theme="gold"><i style="--swatch:#b99839"></i><span>ذهبي</span></button>
+              <button type="button" data-theme="pink"><i style="--swatch:#c56d92"></i><span>وردي</span></button>
+            </div>
+            <div class="theme-swatch-grid" data-theme-group-panel="dark" hidden>
+              <button type="button" data-theme="charcoal"><i style="--swatch:#3d424e"></i><span>فحمي</span></button>
+              <button type="button" data-theme="navy"><i style="--swatch:#203653"></i><span>كحلي</span></button>
+              <button type="button" data-theme="midnight"><i style="--swatch:#16263e"></i><span>ليلي أزرق</span></button>
+              <button type="button" data-theme="forest"><i style="--swatch:#1f4034"></i><span>أخضر داكن</span></button>
+              <button type="button" data-theme="plum"><i style="--swatch:#493052"></i><span>موف داكن</span></button>
+              <button type="button" data-theme="burgundy"><i style="--swatch:#4d2631"></i><span>خمري داكن</span></button>
+            </div>
+            <div class="theme-picker-foot">✓ يتم حفظ اختيارك تلقائيًا على هذا الجهاز</div>
+          </div>
+          <select id="themeSelect" class="theme-select theme-select-legacy" aria-label="اختيار لون الداشبورد" tabindex="-1">
+            <option value="light">أبيض</option><option value="lavender">لافندر</option><option value="purple">موف</option><option value="blue">أزرق</option><option value="sky">سماوي</option><option value="green">أخضر</option><option value="mint">نعناعي</option><option value="orange">برتقالي</option><option value="gold">ذهبي</option><option value="pink">وردي</option><option value="charcoal">فحمي</option><option value="navy">كحلي</option><option value="midnight">ليلي أزرق</option><option value="forest">أخضر داكن</option><option value="plum">موف داكن</option><option value="burgundy">خمري داكن</option>
+          </select>
+        </div>
         <button id="printBtn" class="ghost-btn">🖨 طباعة</button>
         <button id="refreshBtn" class="primary-btn">↻ تحديث</button>
       </div>
@@ -515,7 +554,7 @@
 <div id="toast" class="toast"></div>
 <script src="/gas-bridge.js"></script>
 <script src="/kpi-logic.js?v=thursday-parity-20260930"></script>
-<script src="/app.js?v=merge-specialized-kpis-20261002-3"></script>
+<script src="/app.js?v=theme-palette-20261002-4"></script>
 <script src="/projects-analytics.js?v=projects-legends-axis-final-20261002-5"></script>
 <script src="/connections-analytics.js?v=connections-hide-duplicate-kpis-20261002-1"></script>
 <script src="/permits-analytics.js"></script>

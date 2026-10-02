@@ -51,6 +51,7 @@ function bind(){
 
  const themeSelect=document.getElementById('themeSelect');
  if(themeSelect) themeSelect.onchange=()=>setDashboardTheme(themeSelect.value,true);
+ initThemePicker();
  applySavedTheme();
 
  const refreshBtn=document.getElementById('refreshBtn');
@@ -4264,11 +4265,91 @@ function bindMeetingCalculationHelp(){
 }
 
 /* =========================
-   THEME PICKER — 12 THEMES
+   THEME PALETTE — LIGHT + DARK
    ========================= */
-const DASHBOARD_THEMES=['light','lavender','purple','blue','sky','green','mint','orange','gold','pink','charcoal','navy'];
-function applySavedTheme(){let t='light';try{t=localStorage.getItem('vd-dashboard-theme')||'light'}catch(e){}if(!DASHBOARD_THEMES.includes(t))t='light';setDashboardTheme(t,false)}
-function setDashboardTheme(t,save=true){if(!DASHBOARD_THEMES.includes(t))t='light';document.body.classList.remove('theme-purple');if(t==='light')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);if(save){try{localStorage.setItem('vd-dashboard-theme',t)}catch(e){}}const s=document.getElementById('themeSelect');if(s)s.value=t;requestAnimationFrame(()=>Object.values(S.charts||{}).forEach(c=>{try{c.resize();c.update('none')}catch(e){}}))}
+const THEME_META={
+ light:{label:'أبيض',group:'light',color:'#ffffff'},
+ lavender:{label:'لافندر',group:'light',color:'#b9a3e3'},
+ purple:{label:'موف',group:'light',color:'#8064c9'},
+ blue:{label:'أزرق',group:'light',color:'#397bc0'},
+ sky:{label:'سماوي',group:'light',color:'#3aa7c4'},
+ green:{label:'أخضر',group:'light',color:'#43996c'},
+ mint:{label:'نعناعي',group:'light',color:'#36a88e'},
+ orange:{label:'برتقالي',group:'light',color:'#df8a3a'},
+ gold:{label:'ذهبي',group:'light',color:'#b99839'},
+ pink:{label:'وردي',group:'light',color:'#c56d92'},
+ charcoal:{label:'فحمي',group:'dark',color:'#3d424e'},
+ navy:{label:'كحلي',group:'dark',color:'#203653'},
+ midnight:{label:'ليلي أزرق',group:'dark',color:'#16263e'},
+ forest:{label:'أخضر داكن',group:'dark',color:'#1f4034'},
+ plum:{label:'موف داكن',group:'dark',color:'#493052'},
+ burgundy:{label:'خمري داكن',group:'dark',color:'#4d2631'}
+};
+const DASHBOARD_THEMES=Object.keys(THEME_META);
+
+function showThemeGroup(group){
+ const panel=document.getElementById('themePickerPanel');
+ if(!panel)return;
+ panel.querySelectorAll('[data-theme-group]').forEach(b=>b.classList.toggle('active',b.dataset.themeGroup===group));
+ panel.querySelectorAll('[data-theme-group-panel]').forEach(p=>p.hidden=p.dataset.themeGroupPanel!==group);
+}
+
+function syncThemePicker(t){
+ const meta=THEME_META[t]||THEME_META.light;
+ const label=document.getElementById('themePickerLabel');
+ const dot=document.getElementById('themeCurrentDot');
+ if(label)label.textContent=meta.label;
+ if(dot)dot.style.background=meta.color;
+ document.querySelectorAll('#themePickerPanel [data-theme]').forEach(b=>b.classList.toggle('active',b.dataset.theme===t));
+ showThemeGroup(meta.group);
+}
+
+function initThemePicker(){
+ const wrap=document.getElementById('themePickerWrap');
+ const button=document.getElementById('themePickerButton');
+ const panel=document.getElementById('themePickerPanel');
+ const close=document.getElementById('themePickerClose');
+ if(!wrap||!button||!panel)return;
+
+ const setOpen=open=>{
+   panel.hidden=!open;
+   button.setAttribute('aria-expanded',open?'true':'false');
+   wrap.classList.toggle('is-open',open);
+ };
+ button.onclick=e=>{e.preventDefault();e.stopPropagation();setOpen(panel.hidden)};
+ if(close)close.onclick=e=>{e.preventDefault();e.stopPropagation();setOpen(false)};
+ panel.querySelectorAll('[data-theme-group]').forEach(b=>{
+   b.onclick=e=>{e.preventDefault();e.stopPropagation();showThemeGroup(b.dataset.themeGroup||'light')};
+ });
+ panel.querySelectorAll('[data-theme]').forEach(b=>{
+   b.onclick=e=>{
+     e.preventDefault();e.stopPropagation();
+     setDashboardTheme(b.dataset.theme,true);
+     setOpen(false);
+   };
+ });
+ document.addEventListener('click',e=>{if(!wrap.contains(e.target))setOpen(false)});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape')setOpen(false)});
+}
+
+function applySavedTheme(){
+ let t='light';
+ try{t=localStorage.getItem('vd-dashboard-theme')||'light'}catch(e){}
+ if(!DASHBOARD_THEMES.includes(t))t='light';
+ setDashboardTheme(t,false);
+}
+
+function setDashboardTheme(t,save=true){
+ if(!DASHBOARD_THEMES.includes(t))t='light';
+ document.body.classList.remove('theme-purple');
+ if(t==='light')document.documentElement.removeAttribute('data-theme');
+ else document.documentElement.setAttribute('data-theme',t);
+ if(save){try{localStorage.setItem('vd-dashboard-theme',t)}catch(e){}}
+ const s=document.getElementById('themeSelect');
+ if(s)s.value=t;
+ syncThemePicker(t);
+ requestAnimationFrame(()=>Object.values(S.charts||{}).forEach(c=>{try{c.resize();c.update('none')}catch(e){}}));
+}
 
 function showBoot(x){
  const boot=document.getElementById('boot');
