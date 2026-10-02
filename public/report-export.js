@@ -719,6 +719,482 @@
     });
   }
 
+
+  function normalizeReportHeader(value) {
+    return String(value || '')
+      .trim()
+      .replace(/[\u064B-\u065F\u0670]/g, '')
+      .replace(/[إأآ]/g, 'ا')
+      .replace(/ة/g, 'ه')
+      .replace(/ى/g, 'ي')
+      .replace(/\s+/g, ' ');
+  }
+
+  function cloneControlChart(panel, wideSelector = '') {
+    const clone = cloneWithCanvases(panel);
+    clone.classList.add('vd-report-chart-card', 'vd-report-control-chart-card');
+
+    if (wideSelector && panel.matches(wideSelector)) {
+      clone.classList.add('vd-report-wide-chart');
+    }
+
+    const sourceCanvas = panel.querySelector('canvas');
+    const liveChart = sourceCanvas
+      ? window.Chart?.getChart?.(sourceCanvas)
+      : null;
+
+    if (liveChart?.config?.type === 'doughnut') {
+      clone.classList.add('vd-report-doughnut-card');
+      clone.querySelectorAll('.vd-report-doughnut-legend').forEach(el => el.remove());
+
+      const labels = Array.isArray(liveChart.data?.labels)
+        ? liveChart.data.labels
+        : [];
+      const dataset = liveChart.data?.datasets?.[0] || {};
+      const colors = Array.isArray(dataset.backgroundColor)
+        ? dataset.backgroundColor
+        : labels.map(() => dataset.backgroundColor || '#64748b');
+
+      if (labels.length) {
+        const legend = document.createElement('div');
+        legend.className = 'vd-report-doughnut-legend vd-report-control-doughnut-legend';
+
+        labels.forEach((label, labelIndex) => {
+          const item = document.createElement('span');
+          item.className = 'vd-report-doughnut-legend-item';
+
+          const swatch = document.createElement('i');
+          swatch.style.background = colors[labelIndex] || '#64748b';
+
+          const text = document.createElement('b');
+          text.textContent = String(label ?? '');
+
+          item.append(swatch, text);
+          legend.appendChild(item);
+        });
+
+        const chartBox = clone.querySelector(
+          '.me-chart-box,.ca-chart-box,.aa-chart-box,.pa-chart-box,.chart-box'
+        ) || clone;
+
+        chartBox.appendChild(legend);
+      }
+    }
+
+    return clone;
+  }
+
+  function packControlCharts(charts, wideSelector = '') {
+    const groups = [];
+    let group = [];
+    let slots = 0;
+
+    const flush = () => {
+      if (!group.length) return;
+      groups.push(group);
+      group = [];
+      slots = 0;
+    };
+
+    charts.forEach(panel => {
+      const wide = !!(wideSelector && panel.matches(wideSelector));
+      const cost = wide ? 2 : 1;
+
+      if (slots + cost > 4) flush();
+
+      group.push(panel);
+      slots += cost;
+
+      if (slots >= 4) flush();
+    });
+
+    flush();
+    return groups;
+  }
+
+  function buildControlMetricPages(report, groups, config) {
+    const visibleGroups = groups.slice(config.skipFirstGroup ? 1 : 0);
+    if (!visibleGroups.length && !config.preludeSelector) return;
+
+    const chunks = chunk(visibleGroups, 2);
+    if (!chunks.length) chunks.push([]);
+
+    chunks.forEach((group, index) => {
+      const page = createPage(
+        config.metricTitle,
+        chunks.length > 1
+          ? `المجموعة ${index + 1} من ${chunks.length}`
+          : 'المؤشرات التشغيلية',
+        'vd-report-control-metric-page ' + config.pageClass
+      );
+
+      const body = page.querySelector('.vd-report-section-body');
+
+      if (index === 0 && config.preludeSelector) {
+        const prelude = document.querySelector(config.preludeSelector);
+        if (prelude && isVisible(prelude)) {
+          const preludeClone = prelude.cloneNode(true);
+          cleanupClone(preludeClone);
+          preludeClone.classList.add('vd-report-control-prelude');
+          body.appendChild(preludeClone);
+        }
+      }
+
+      const grid = document.createElement('div');
+      grid.className = 'vd-report-control-group-grid';
+
+      group.forEach(sourceGroup => {
+        const clone = sourceGroup.cloneNode(true);
+        cleanupClone(clone);
+        clone.querySelectorAll('.aa-info,button,[role="button"]').forEach(el => el.remove());
+        clone.classList.add('vd-report-control-group');
+        grid.appendChild(clone);
+      });
+
+      body.appendChild(grid);
+      report.appendChild(page);
+    });
+  }
+
+  function buildControlChartPages(report, charts, config) {
+    if (!charts.length) return;
+
+    const groups = packControlCharts(charts, config.wideSelector);
+
+    groups.forEach((group, index) => {
+      const page = createPage(
+        'التحليلات والرسوم البيانية',
+        `${config.chartSubtitle} — ${index + 1}/${groups.length}`,
+        'vd-report-chart-page vd-report-control-chart-page ' + config.pageClass
+      );
+
+      if (group.length === 1) {
+        page.classList.add('vd-report-control-chart-page-single');
+      }
+
+      const grid = document.createElement('div');
+      grid.className = 'vd-report-chart-grid vd-report-control-chart-grid';
+
+      group.forEach(panel => {
+        grid.appendChild(
+          cloneControlChart(panel, config.wideSelector)
+        );
+      });
+
+      page.querySelector('.vd-report-section-body').appendChild(grid);
+      report.appendChild(page);
+    });
+  }
+
+  function buildPaginatedPanelTable(report, panel, config) {
+    if (!panel) return;
+
+    const table = panel.querySelector('table');
+    if (!table) return;
+
+    const rows = [...table.querySelectorAll('tbody tr')];
+    if (!rows.length) return;
+
+    const title =
+      panel.querySelector('.panel-title h3,h3')?.textContent?.trim()
+      || config.fallbackTitle
+      || 'جدول المتابعة';
+
+    const rowsPerPage = Math.max(1, config.rowsPerPage || 8);
+    const groups = chunk(rows, rowsPerPage);
+
+    groups.forEach((group, index) => {
+      const page = createPage(
+        title,
+        `صفحة ${index + 1} من ${groups.length} • ${rows.length} سجل`,
+        'vd-report-control-table-page ' + (config.pageClass || '')
+      );
+
+      const copy = table.cloneNode(false);
+      copy.className = 'vd-report-paginated-table';
+
+      const head = table.querySelector('thead')?.cloneNode(true);
+      if (head) copy.appendChild(head);
+
+      const body = document.createElement('tbody');
+      group.forEach(row => body.appendChild(row.cloneNode(true)));
+      copy.appendChild(body);
+
+      cleanupClone(copy);
+
+      copy.querySelectorAll('th,td').forEach(cell => {
+        cell.setAttribute('dir', 'auto');
+        cell.style.color = '#000';
+        cell.style.webkitTextFillColor = '#000';
+      });
+
+      page.querySelector('.vd-report-section-body').appendChild(copy);
+      report.appendChild(page);
+    });
+  }
+
+  function buildSegmentedDataAppendix(report, config) {
+    const container = document.getElementById('dataTable');
+    const table = container?.querySelector('table');
+    if (!table) return;
+
+    const headers = [...table.querySelectorAll('thead th')];
+    const rows = [...table.querySelectorAll('tbody tr')];
+    if (!headers.length || !rows.length) return;
+
+    const headerIndex = new Map();
+    headers.forEach((th, index) => {
+      headerIndex.set(normalizeReportHeader(th.textContent), index);
+    });
+
+    const findIndex = label => {
+      const target = normalizeReportHeader(label);
+      if (headerIndex.has(target)) return headerIndex.get(target);
+
+      for (const [key, index] of headerIndex) {
+        if (key.includes(target) || target.includes(key)) return index;
+      }
+
+      return -1;
+    };
+
+    config.segments.forEach((segment, segmentIndex) => {
+      const indexes = segment.columns
+        .map(findIndex)
+        .filter((value, index, array) =>
+          value >= 0 && array.indexOf(value) === index
+        );
+
+      if (!indexes.length) return;
+
+      const rowsPerPage = Math.max(1, segment.rowsPerPage || 10);
+      const groups = chunk(rows, rowsPerPage);
+
+      groups.forEach((group, pageIndex) => {
+        const page = createPage(
+          `${config.detailTitle} — ${segment.title}`,
+          `الجزء ${segmentIndex + 1}/${config.segments.length} • صفحة ${pageIndex + 1}/${groups.length} • ${rows.length} سجل`,
+          'vd-report-control-detail-page ' + config.pageClass
+        );
+
+        const copy = document.createElement('table');
+        copy.className = 'vd-report-paginated-table vd-report-segmented-table';
+
+        const thead = document.createElement('thead');
+        const headRow = document.createElement('tr');
+
+        const serialHead = document.createElement('th');
+        serialHead.textContent = 'م';
+        headRow.appendChild(serialHead);
+
+        indexes.forEach(columnIndex => {
+          headRow.appendChild(headers[columnIndex].cloneNode(true));
+        });
+
+        thead.appendChild(headRow);
+        copy.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+
+        group.forEach((row, localIndex) => {
+          const cells = [...row.children];
+          const tr = document.createElement('tr');
+
+          const serialCell = document.createElement('td');
+          serialCell.textContent = String(pageIndex * rowsPerPage + localIndex + 1);
+          tr.appendChild(serialCell);
+
+          indexes.forEach(columnIndex => {
+            const cell = cells[columnIndex];
+            tr.appendChild(
+              cell ? cell.cloneNode(true) : document.createElement('td')
+            );
+          });
+
+          tbody.appendChild(tr);
+        });
+
+        copy.appendChild(tbody);
+        cleanupClone(copy);
+
+        copy.querySelectorAll('th,td').forEach(cell => {
+          cell.setAttribute('dir', 'auto');
+          cell.style.color = '#000';
+          cell.style.webkitTextFillColor = '#000';
+        });
+
+        page.querySelector('.vd-report-section-body').appendChild(copy);
+        report.appendChild(page);
+      });
+    });
+  }
+
+  function buildControlRoomReport(report, type, config) {
+    const root = document.getElementById(config.rootId);
+    if (!root || !isVisible(root)) return false;
+
+    const summary = [...root.querySelectorAll(config.summarySelector)]
+      .filter(isVisible);
+
+    buildCover(report, type, summary);
+
+    const cover = report.lastElementChild;
+    cover?.classList.add('vd-report-control-cover', config.pageClass);
+    cover?.querySelector('.vd-report-cover-badge')?.remove();
+
+    const coverGrid = cover?.querySelector('.vd-report-cover-kpis');
+    if (coverGrid) {
+      coverGrid.innerHTML = '';
+
+      summary.slice(0, 8).forEach(kpi => {
+        const clone = kpi.cloneNode(true);
+        cleanupClone(clone);
+        clone.querySelectorAll('.aa-info,button,[role="button"]').forEach(el => el.remove());
+        clone.classList.add('vd-report-kpi-clone');
+        coverGrid.appendChild(clone);
+      });
+    }
+
+    const metricGroups = [...root.querySelectorAll(config.groupSelector)]
+      .filter(isVisible);
+
+    buildControlMetricPages(report, metricGroups, config);
+
+    const charts = [...root.querySelectorAll(config.chartSelector)]
+      .filter(isVisible);
+
+    buildControlChartPages(report, charts, config);
+
+    const tables = [...root.querySelectorAll(config.tableSelector)]
+      .filter(isVisible);
+
+    tables.forEach((panel, index) => {
+      buildPaginatedPanelTable(report, panel, {
+        rowsPerPage: config.tableRowsPerPage?.[index] || config.defaultTableRows || 8,
+        pageClass: config.pageClass,
+        fallbackTitle: config.tableTitles?.[index]
+      });
+    });
+
+    if (config.detailSegments?.length) {
+      buildSegmentedDataAppendix(report, {
+        detailTitle: config.detailTitle,
+        segments: config.detailSegments,
+        pageClass: config.pageClass
+      });
+    }
+
+    return true;
+  }
+
+  function getMasterReportConfig() {
+    return {
+      rootId: 'masterExecutiveControl',
+      summarySelector: '.me-groups .me-group:first-child .me-card',
+      groupSelector: '.me-groups .me-group',
+      chartSelector: '.me-charts .panel',
+      tableSelector: '.me-actions .panel',
+      wideSelector: '.me-wide',
+      skipFirstGroup: true,
+      metricTitle: 'المؤشرات التنفيذية للرئيسية',
+      chartSubtitle: 'تحليل الرئيسية',
+      pageClass: 'vd-report-master-control',
+      tableRowsPerPage: [8, 12],
+      tableTitles: [
+        'أعلى أوامر العمل أولوية للتدخل',
+        'أوامر العمل المطابقة للفلاتر'
+      ]
+    };
+  }
+
+  function getConnectionsReportConfig() {
+    return {
+      rootId: 'connectionsAdvancedAnalytics',
+      summarySelector: '.ca-groups .ca-group:first-child .ca-card',
+      groupSelector: '.ca-groups .ca-group',
+      chartSelector: '.ca-charts .panel',
+      tableSelector: '.ca-actions .panel',
+      wideSelector: '.ca-wide',
+      skipFirstGroup: true,
+      metricTitle: 'المؤشرات التنفيذية للتوصيلات',
+      chartSubtitle: 'تحليل التوصيلات',
+      pageClass: 'vd-report-connections-control',
+      tableRowsPerPage: [5, 5],
+      detailTitle: 'البيانات التفصيلية للتوصيلات',
+      detailSegments: [
+        {
+          title: 'التعريف والتنفيذ',
+          rowsPerPage: 11,
+          columns: [
+            'أمر العمل','النوع','الوصف','المقاول','الموقع',
+            'تاريخ الإسناد','الأيام منذ الإسناد','حفريات / عدادات',
+            'المدة','التأخير','حالة التنفيذ'
+          ]
+        },
+        {
+          title: 'التصاريح والمسار',
+          rowsPerPage: 11,
+          columns: [
+            'أمر العمل','التصريح','بداية التصريح','نهاية التصريح',
+            'المهندس','مرحلة التنفيذ','حالة المرحلة','المكتب',
+            'نسبة الإنجاز','النسبة الزمنية','SPI'
+          ]
+        },
+        {
+          title: 'المتابعة والإفادة',
+          rowsPerPage: 6,
+          columns: [
+            'أمر العمل','آخر إجراء للمقاول','تفصيل أمر العمل',
+            'إفادة الاستشاري','تاريخ آخر إفادة','حالة الإفادة',
+            'تاريخ الإنجاز الكلي 155','نسبة إنجاز الحفر',
+            'نسبة إنجاز التمديد'
+          ]
+        }
+      ]
+    };
+  }
+
+  function getAssetsReportConfig() {
+    return {
+      rootId: 'assetsAdvancedAnalytics',
+      summarySelector: '.aa-groups .aa-group:first-child .aa-card',
+      groupSelector: '.aa-groups .aa-group',
+      chartSelector: '.aa-charts .panel',
+      tableSelector: '.aa-tables .panel',
+      wideSelector: '.aa-wide',
+      skipFirstGroup: true,
+      preludeSelector: '#assetsAdvancedAnalytics > .aa-funnel',
+      metricTitle: 'المؤشرات التنفيذية للأصول',
+      chartSubtitle: 'تحليل الأصول',
+      pageClass: 'vd-report-assets-control',
+      tableRowsPerPage: [10, 6],
+      detailTitle: 'البيانات التفصيلية للأصول',
+      detailSegments: [
+        {
+          title: 'التعريف والتنفيذ',
+          rowsPerPage: 10,
+          columns: [
+            'أمر العمل','نوع أمر العمل','رمز أمر العمل','المقاول',
+            'الموقع','عدد الأيام منذ الإسناد',
+            'حالة الأمر وفق متابعة المهندس','تاريخ تركيب المعدة',
+            'رقم المعدة','نوع الاختبار','الجهة المنفذة',
+            'المهندس المسؤول عن التركيب'
+          ]
+        },
+        {
+          title: 'دورة الأصل والمتابعة',
+          rowsPerPage: 6,
+          columns: [
+            'أمر العمل','مراجعة بيانات الزراعة','حالة الزراعة',
+            'نموذج الأصول','الاستلام الميداني','إجراء 207',
+            'الملاحظات','هل تم تلافيها',
+            'استلام الأصول على النظام إجراء 211','ملاحظة خاصة'
+          ]
+        }
+      ]
+    };
+  }
+
   function buildProjectsReport(report, type = 'executive') {
     const root = document.getElementById('projectsAdvancedAnalytics');
     if (!root || !isVisible(root)) return false;
@@ -1943,6 +2419,36 @@
     if (getActivePageKey() === 'dataQuality') {
       if (!buildDataQualityReport(report)) {
         alert('تعذر تجهيز بيانات جودة البيانات للتقرير.');
+        return null;
+      }
+
+      document.body.appendChild(report);
+      return report;
+    }
+
+    if (getActivePageKey() === 'master') {
+      if (!buildControlRoomReport(report, type, getMasterReportConfig())) {
+        alert('تعذر تجهيز تقرير الرئيسية.');
+        return null;
+      }
+
+      document.body.appendChild(report);
+      return report;
+    }
+
+    if (getActivePageKey() === 'connections') {
+      if (!buildControlRoomReport(report, type, getConnectionsReportConfig())) {
+        alert('تعذر تجهيز تقرير التوصيلات.');
+        return null;
+      }
+
+      document.body.appendChild(report);
+      return report;
+    }
+
+    if (getActivePageKey() === 'assets') {
+      if (!buildControlRoomReport(report, type, getAssetsReportConfig())) {
+        alert('تعذر تجهيز تقرير الأصول.');
         return null;
       }
 
