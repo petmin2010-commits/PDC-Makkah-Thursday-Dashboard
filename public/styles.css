@@ -2879,3 +2879,12 @@ body .panel > .vd-tab-report-actions{
     letter-spacing:1.4px;
   }
 }
+
+/* 2026-10-02 — remove duplicate page hero bars; keep the unified page heading as the standard */
+#permitsAdvancedAnalytics > .pe-hero,
+#siteFollowupAnalytics > .sf-hero,
+#safetyMasterAnalytics > .safety-report-actions.safety-brand-hero,
+#executionMasterAnalytics > .safety-report-actions.safety-brand-hero,
+#minutesMasterAnalytics > .vx-hero{
+  display:none!important;
+}

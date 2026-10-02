@@ -94,6 +94,7 @@ function openSmartCenter(){
  el('smartCenterPage')?.classList.add('active');
  document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.id==='smartCenterNav'));
  if(el('filterBar'))el('filterBar').style.display='none';
+ if(el('globalPageHeading'))el('globalPageHeading').style.display='none';
  if(el('pageTitle'))el('pageTitle').textContent='مركز التحليل الذكي';
  if(!SC.loaded)loadSmartCenter();else renderAll();
 }
@@ -103,6 +104,7 @@ async function openTemporalMemory(){
  el('temporalMemoryPage')?.classList.add('active');
  document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.id==='temporalMemoryNav'));
  if(el('filterBar'))el('filterBar').style.display='none';
+ if(el('globalPageHeading'))el('globalPageHeading').style.display='';
  if(el('pageTitle'))el('pageTitle').textContent='ذاكرة المشروع الزمنية';
  if(!SC.loaded){el('tmLoading').style.display='flex';el('tmContent').style.display='none';await loadSmartCenter()}
  renderTemporalMemory();
@@ -113,6 +115,7 @@ async function openInvestigationRoom(){
  el('investigationRoomPage')?.classList.add('active');
  document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.id==='investigationRoomNav'));
  if(el('filterBar'))el('filterBar').style.display='none';
+ if(el('globalPageHeading'))el('globalPageHeading').style.display='';
  if(el('pageTitle'))el('pageTitle').textContent='غرفة التحقيق الذكية';
  if(!SC.loaded){el('irLoading').style.display='flex';el('irContent').style.display='none';await loadSmartCenter()}
  renderInvestigationRoom();
@@ -123,6 +126,7 @@ async function openExplainableDecision(){
  el('explainableDecisionPage')?.classList.add('active');
  document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.id==='explainableDecisionNav'));
  if(el('filterBar'))el('filterBar').style.display='none';
+ if(el('globalPageHeading'))el('globalPageHeading').style.display='';
  if(el('pageTitle'))el('pageTitle').textContent='محرك القرار القابل للتفسير';
  if(!SC.loaded){el('xdLoading').style.display='flex';el('xdContent').style.display='none';await loadSmartCenter()}
  renderExplainableDecision();
@@ -133,6 +137,7 @@ function leaveSmartCenter(){
  el('investigationRoomPage')?.classList.remove('active');
  el('explainableDecisionPage')?.classList.remove('active');
  if(el('filterBar'))el('filterBar').style.display='';
+ if(el('globalPageHeading'))el('globalPageHeading').style.display='';
 }
 function bindSmartCenter(){
  el('scRefresh').onclick=()=>loadSmartCenter(true);
