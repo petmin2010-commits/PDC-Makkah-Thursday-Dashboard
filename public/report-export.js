@@ -1185,8 +1185,10 @@
     const root = document.getElementById(config.rootId);
     if (!root || !isVisible(root)) return false;
 
-    const summary = [...root.querySelectorAll(config.summarySelector)]
-      .filter(isVisible);
+    const summaryItems = [...root.querySelectorAll(config.summarySelector)];
+    const summary = config.summaryIncludeHidden
+      ? summaryItems
+      : summaryItems.filter(isVisible);
 
     buildCover(report, type, summary);
 
@@ -1270,12 +1272,13 @@
   function getConnectionsReportConfig() {
     return {
       rootId: 'connectionsAdvancedAnalytics',
-      summarySelector: '.ca-groups .ca-group:first-child .ca-card',
+      summarySelector: '.ca-summary-source .ca-card',
+      summaryIncludeHidden: true,
       groupSelector: '.ca-groups .ca-group',
       chartSelector: '.ca-charts .panel',
       tableSelector: '.ca-actions .panel',
       wideSelector: '.ca-wide',
-      skipFirstGroup: true,
+      skipFirstGroup: false,
       metricTitle: 'المؤشرات التنفيذية للتوصيلات',
       chartSubtitle: 'تحليل التوصيلات',
       pageClass: 'vd-report-connections-control',
