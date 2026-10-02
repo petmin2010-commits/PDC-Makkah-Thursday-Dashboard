@@ -895,3 +895,38 @@ body.vd-report-dark #vdReportV2 .vd-report-safety-detail-page .table-link *{
 .vd-report-projects-chart-page-last .vd-report-chart-grid{display:block!important}
 .vd-report-projects-chart-page-last .vd-report-chart-card{height:136mm!important;min-height:136mm!important;max-height:136mm!important}
 .vd-report-projects-chart-page-last .pa-chart-box{height:119mm!important}.vd-report-projects-chart-page-last .vd-report-chart-image{height:116mm!important;max-height:116mm!important}
+
+
+/* Print alignment fix: keep report inside the A4 landscape printable box.
+   Oversized decorative curves previously made Chrome shrink the whole report
+   and anchor the shrunken content to the left. */
+@media print{
+  html,
+  body,
+  body.vd-report-v2-mode{
+    width:100%!important;
+    max-width:none!important;
+    margin:0!important;
+    padding:0!important;
+  }
+  #vdReportV2,
+  .vd-report-v2{
+    width:100%!important;
+    max-width:none!important;
+    margin:0!important;
+    padding:0!important;
+  }
+  .vd-report-v2-page{
+    width:100%!important;
+    max-width:none!important;
+    margin:0!important;
+    box-sizing:border-box!important;
+  }
+  .vd-report-v2-page:before,
+  .vd-report-v2-page:after{
+    left:0!important;
+    right:0!important;
+    width:auto!important;
+    transform:none!important;
+  }
+}
