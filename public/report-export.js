@@ -761,7 +761,10 @@
           headers = [...detailTable.querySelectorAll('thead th')];
           const normHeader = value => String(value || '')
             .trim()
+            .replace(/[\u064B-\u065F\u0670]/g, '')
             .replace(/[إأآ]/g, 'ا')
+            .replace(/ة/g, 'ه')
+            .replace(/ى/g, 'ي')
             .replace(/\s+/g, ' ');
           const adviceIndex = headers.findIndex(th => {
             const h = normHeader(th.textContent);
@@ -769,7 +772,7 @@
           });
           const adviceDateIndex = headers.findIndex(th => {
             const h = normHeader(th.textContent);
-            return h.includes('تاريخ') && h.includes('اخر') && h.includes('افاد');
+            return h.includes('تاريخ') && h.includes('افاد') && !h.includes('155');
           });
 
           [...detailTable.querySelectorAll('tr')].forEach(row => {
