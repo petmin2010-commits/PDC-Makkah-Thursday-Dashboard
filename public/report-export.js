@@ -755,6 +755,32 @@
         ? dataset.backgroundColor
         : labels.map(() => dataset.backgroundColor || '#64748b');
 
+      if (sourceCanvas) {
+        try {
+          const legendOptions = liveChart.options?.plugins?.legend;
+          const previousDisplay = legendOptions?.display;
+
+          if (legendOptions) {
+            legendOptions.display = false;
+            liveChart.update?.('none');
+
+            const cleanImage = clone.querySelector('.vd-report-chart-image');
+            if (cleanImage) {
+              cleanImage.src = sourceCanvas.toDataURL('image/png', 1);
+            }
+
+            legendOptions.display = previousDisplay;
+            liveChart.update?.('none');
+          }
+        } catch (_) {}
+      }
+
+      if (labels.length >= 8) {
+        clone.classList.add('vd-report-doughnut-ultra-dense');
+      } else if (labels.length >= 5) {
+        clone.classList.add('vd-report-doughnut-dense');
+      }
+
       if (labels.length) {
         const legend = document.createElement('div');
         legend.className = 'vd-report-doughnut-legend vd-report-control-doughnut-legend';
@@ -774,7 +800,7 @@
         });
 
         const chartBox = clone.querySelector(
-          '.me-chart-box,.ca-chart-box,.aa-chart-box,.pa-chart-box,.chart-box'
+          '.me-chart-box,.ca-chart-box,.aa-chart-box,.pa-chart-box,.pe-chart-box,.sf-chart-box,.emergency-chart-wrap,.chart-box'
         ) || clone;
 
         chartBox.appendChild(legend);
@@ -921,12 +947,7 @@
       copy.appendChild(body);
 
       cleanupClone(copy);
-
-      copy.querySelectorAll('th,td').forEach(cell => {
-        cell.setAttribute('dir', 'auto');
-        cell.style.color = '#000';
-        cell.style.webkitTextFillColor = '#000';
-      });
+      prepareAutoFitReportTable(copy);
 
       page.querySelector('.vd-report-section-body').appendChild(copy);
       report.appendChild(page);
@@ -1016,12 +1037,7 @@
 
         copy.appendChild(tbody);
         cleanupClone(copy);
-
-        copy.querySelectorAll('th,td').forEach(cell => {
-          cell.setAttribute('dir', 'auto');
-          cell.style.color = '#000';
-          cell.style.webkitTextFillColor = '#000';
-        });
+        prepareAutoFitReportTable(copy);
 
         page.querySelector('.vd-report-section-body').appendChild(copy);
         report.appendChild(page);
@@ -1077,6 +1093,7 @@
           });
         }
 
+        prepareAutoFitReportTable(clone.querySelector('table'));
         page.querySelector('.vd-report-section-body').appendChild(clone);
         report.appendChild(page);
       });
@@ -1177,9 +1194,172 @@
       });
     }
 
+    prepareAutoFitReportTable(clone.querySelector('table'));
     page.querySelector('.vd-report-section-body').appendChild(clone);
     report.appendChild(page);
   }
+
+
+  function prepareAutoFitReportTable(table) {
+    if (!table) return null;
+
+    table.classList.add('vd-report-autofit-table');
+
+    table.querySelectorAll('tr').forEach(row => {
+      row.classList.add('vd-report-autofit-row');
+      [
+        'height','min-height','max-height','overflow'
+      ].forEach(prop => row.style.removeProperty(prop));
+    });
+
+    table.querySelectorAll('th,td').forEach(cell => {
+      cell.classList.add('vd-report-autofit-cell');
+      cell.setAttribute('dir', 'auto');
+
+      [
+        'height','min-height','max-height',
+        'white-space','overflow','text-overflow',
+        'word-break','line-clamp','-webkit-line-clamp'
+      ].forEach(prop => cell.style.removeProperty(prop));
+
+      cell.style.color = '#000';
+      cell.style.webkitTextFillColor = '#000';
+    });
+
+    table.querySelectorAll('th *,td *').forEach(el => {
+      [
+        'height','min-height','max-height',
+        'overflow','text-overflow',
+        'white-space','line-clamp','-webkit-line-clamp'
+      ].forEach(prop => el.style?.removeProperty?.(prop));
+    });
+
+    return table;
+  }
+
+  function buildAutoFitDataAppendix(report, config = {}) {
+    const container = document.getElementById('dataTable');
+    const sourceTable = container?.querySelector('table');
+
+    if (!sourceTable || !isVisible(container)) return;
+
+    const headers = [...sourceTable.querySelectorAll('thead th')];
+    const rows = [...sourceTable.querySelectorAll('tbody tr')];
+
+    if (!headers.length || !rows.length) return;
+
+    const detailTitle =
+      config.detailTitle
+      || ('البيانات التفصيلية — ' + getActivePageName());
+
+    const maxColumns = Math.max(6, config.columnsPerSegment || 10);
+
+    const normalized = headers.map(th =>
+      normalizeReportHeader(th.textContent)
+    );
+
+    const keyIndexes = [];
+    [
+      'رقم امر العمل',
+      'امر العمل',
+      'رقم المهمه',
+      'المهمه',
+      'رقم الاشعار',
+      'الاشعار'
+    ].forEach(label => {
+      const target = normalizeReportHeader(label);
+      const idx = normalized.findIndex(h =>
+        h === target || h.includes(target) || target.includes(h)
+      );
+      if (idx >= 0 && !keyIndexes.includes(idx)) keyIndexes.push(idx);
+    });
+
+    if (!keyIndexes.length && headers.length) keyIndexes.push(0);
+    if (keyIndexes.length < 2 && headers.length > 1) {
+      const fallback = keyIndexes[0] === 1 ? 0 : 1;
+      if (!keyIndexes.includes(fallback)) keyIndexes.push(fallback);
+    }
+
+    const otherIndexes = headers
+      .map((_, index) => index)
+      .filter(index => !keyIndexes.includes(index));
+
+    const payloadSize = Math.max(3, maxColumns - keyIndexes.length);
+    const groups = [];
+
+    for (let i = 0; i < otherIndexes.length; i += payloadSize) {
+      groups.push([
+        ...keyIndexes,
+        ...otherIndexes.slice(i, i + payloadSize)
+      ]);
+    }
+
+    if (!groups.length) groups.push([...keyIndexes]);
+
+    groups.forEach((indexes, segmentIndex) => {
+      const page = createPage(
+        detailTitle,
+        groups.length > 1
+          ? `الجزء ${segmentIndex + 1} من ${groups.length} • ${rows.length} سجل`
+          : `${rows.length} سجل`,
+        'vd-report-detail-page vd-report-control-detail-page vd-report-autofit-detail-page '
+          + (config.pageClass || '')
+      );
+
+      const table = document.createElement('table');
+      table.className = 'vd-report-paginated-table vd-report-autofit-table';
+
+      const thead = document.createElement('thead');
+      const headRow = document.createElement('tr');
+
+      const serialHead = document.createElement('th');
+      serialHead.textContent = 'م';
+      serialHead.className = 'vd-report-autofit-serial';
+      headRow.appendChild(serialHead);
+
+      indexes.forEach(columnIndex => {
+        headRow.appendChild(
+          headers[columnIndex]?.cloneNode(true)
+          || document.createElement('th')
+        );
+      });
+
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+
+      rows.forEach((sourceRow, rowIndex) => {
+        const sourceCells = [...sourceRow.children];
+        const tr = document.createElement('tr');
+
+        const serial = document.createElement('td');
+        serial.textContent = String(rowIndex + 1);
+        serial.className = 'vd-report-autofit-serial';
+        tr.appendChild(serial);
+
+        indexes.forEach(columnIndex => {
+          tr.appendChild(
+            sourceCells[columnIndex]?.cloneNode(true)
+            || document.createElement('td')
+          );
+        });
+
+        tbody.appendChild(tr);
+      });
+
+      table.appendChild(tbody);
+      cleanupClone(table);
+      prepareAutoFitReportTable(table);
+
+      page
+        .querySelector('.vd-report-section-body')
+        .appendChild(table);
+
+      report.appendChild(page);
+    });
+  }
+
 
   function buildControlRoomReport(report, type, config) {
     const root = document.getElementById(config.rootId);
@@ -1226,7 +1406,15 @@
       buildProjectStyleActionTables(report, tables, config);
 
       if (type === 'full') {
-        buildProjectStyleDetailTable(report, config);
+        if (config.detailMode === 'projects') {
+          buildProjectStyleDetailTable(report, config);
+        } else if (config.detailMode === 'autofit') {
+          buildAutoFitDataAppendix(report, {
+            detailTitle: config.detailTitle,
+            columnsPerSegment: config.columnsPerSegment,
+            pageClass: config.pageClass
+          });
+        }
       }
     } else {
       tables.forEach((panel, index) => {
@@ -1241,6 +1429,12 @@
         buildSegmentedDataAppendix(report, {
           detailTitle: config.detailTitle,
           segments: config.detailSegments,
+          pageClass: config.pageClass
+        });
+      } else if (type === 'full' && config.autoFitDetail) {
+        buildAutoFitDataAppendix(report, {
+          detailTitle: config.detailTitle,
+          columnsPerSegment: config.columnsPerSegment,
           pageClass: config.pageClass
         });
       }
@@ -1261,6 +1455,10 @@
       metricTitle: 'المؤشرات التنفيذية للرئيسية',
       chartSubtitle: 'تحليل الرئيسية',
       pageClass: 'vd-report-master-control',
+      projectStyleTables: true,
+      detailMode: 'autofit',
+      detailTitle: 'البيانات التفصيلية للرئيسية',
+      columnsPerSegment: 10,
       tableRowsPerPage: [8, 12],
       tableTitles: [
         'أعلى أوامر العمل أولوية للتدخل',
@@ -1283,6 +1481,7 @@
       chartSubtitle: 'تحليل التوصيلات',
       pageClass: 'vd-report-connections-control',
       projectStyleTables: true,
+      detailMode: 'projects',
       tableRowsPerPage: [5, 5],
       tableTitles: [
         'أعلى أوامر التوصيلات أولوية للتدخل',
@@ -1334,6 +1533,170 @@
         }
       ]
     };
+  }
+
+
+  function getPermitsReportConfig() {
+    return {
+      rootId: 'permitsAdvancedAnalytics',
+      summarySelector: '.pe-groups .pe-group:first-child .pe-card',
+      groupSelector: '.pe-groups .pe-group',
+      chartSelector: '.pe-charts .panel',
+      tableSelector: '.pe-actions .panel',
+      wideSelector: '.pe-wide',
+      skipFirstGroup: true,
+      metricTitle: 'المؤشرات التنفيذية للتصاريح',
+      chartSubtitle: 'تحليل التصاريح',
+      pageClass: 'vd-report-permits-control',
+      projectStyleTables: true,
+      detailMode: 'autofit',
+      detailTitle: 'البيانات التفصيلية للتصاريح',
+      columnsPerSegment: 10,
+      tableRowsPerPage: [6, 8],
+      tableTitles: [
+        'طلبات التصاريح الأعلى أولوية للتدخل',
+        'التصاريح المنتهية وقريبة الانتهاء'
+      ],
+      tableSubtitles: [
+        'طلبات تحتاج تدخلاً ومتابعة',
+        'مراقبة تواريخ انتهاء التصاريح'
+      ]
+    };
+  }
+
+  function getSiteFollowupReportConfig() {
+    return {
+      rootId: 'siteFollowupAnalytics',
+      summarySelector: '.sf-groups .sf-group:first-child .sf-card',
+      groupSelector: '.sf-groups .sf-group',
+      chartSelector: '.sf-charts .panel',
+      tableSelector: '.sf-tables .panel',
+      wideSelector: '.sf-wide',
+      skipFirstGroup: true,
+      metricTitle: 'المؤشرات التنفيذية لمتابعة أعمال المواقع',
+      chartSubtitle: 'تحليل أعمال المواقع',
+      pageClass: 'vd-report-site-followup-control',
+      projectStyleTables: true,
+      detailMode: 'autofit',
+      detailTitle: 'البيانات التفصيلية لمتابعة أعمال المواقع',
+      columnsPerSegment: 10,
+      tableRowsPerPage: [6, 8, 10, 10, 10],
+      tableTitles: [
+        'قائمة التدخل والأولوية',
+        'مهام اليوم التشغيلي',
+        'أداء مسؤولي المواقع',
+        'أداء المقاولين ميدانيًا',
+        'مطابقة الإفادات مع ورقة المرفقات'
+      ]
+    };
+  }
+
+  function buildClosuresReport(report, type = 'full') {
+    const source = document.getElementById('dataPage');
+    if (!source || getActivePageKey() !== 'closures') return false;
+
+    const summary = findKpis(source);
+    buildCover(report, type, summary);
+
+    const cover = report.lastElementChild;
+    cover?.classList.add('vd-report-control-cover', 'vd-report-closures-control');
+    cover?.querySelector('.vd-report-cover-badge')?.remove();
+
+    if (summary.length > 6) buildKpiPages(report, summary);
+
+    const trees = [
+      ...source.querySelectorAll('#closuresCopiedTreesSection .panel')
+    ].filter(isVisible);
+    buildTreePages(report, trees);
+
+    const charts = [
+      ...source.querySelectorAll('#genericPageCharts .panel')
+    ].filter(isVisible);
+
+    buildControlChartPages(report, charts, {
+      wideSelector: '',
+      chartSubtitle: 'تحليل الإغلاقات',
+      pageClass: 'vd-report-closures-control'
+    });
+
+    if (type === 'full') {
+      buildAutoFitDataAppendix(report, {
+        detailTitle: 'البيانات التفصيلية للإغلاقات',
+        columnsPerSegment: 10,
+        pageClass: 'vd-report-closures-control'
+      });
+    }
+
+    return true;
+  }
+
+  function buildEmergencyReport(report, type = 'full') {
+    const source = document.getElementById('dataPage');
+    const root = document.getElementById('emergencyAnalytics');
+    if (!source || !root || !isVisible(root)) return false;
+
+    const summary = [
+      ...document.querySelectorAll('#pageKpis .emergency-mini-kpi')
+    ].filter(isVisible);
+
+    buildCover(report, type, summary);
+
+    const cover = report.lastElementChild;
+    cover?.classList.add('vd-report-control-cover', 'vd-report-emergency-control');
+    cover?.querySelector('.vd-report-cover-badge')?.remove();
+
+    const metricGroups = [
+      ...document.querySelectorAll('#pageKpis .emergency-kpi-group')
+    ].filter(isVisible);
+
+    buildControlMetricPages(report, metricGroups, {
+      skipFirstGroup: false,
+      metricTitle: 'المؤشرات التنفيذية للطوارئ',
+      chartSubtitle: 'تحليل الطوارئ',
+      pageClass: 'vd-report-emergency-control'
+    });
+
+    const trees = [
+      ...document.querySelectorAll('#emergencyTreeSection .panel')
+    ].filter(isVisible);
+    buildTreePages(report, trees);
+
+    const charts = [
+      ...root.querySelectorAll('.emergency-charts-grid .panel:not(.emergency-summary-panel)')
+    ].filter(isVisible);
+
+    buildControlChartPages(report, charts, {
+      wideSelector: '.emergency-wide',
+      chartSubtitle: 'تحليل الطوارئ',
+      pageClass: 'vd-report-emergency-control'
+    });
+
+    const tables = [
+      ...root.querySelectorAll('.emergency-summary-panel')
+    ].filter(isVisible);
+
+    buildProjectStyleActionTables(report, tables, {
+      pageClass: 'vd-report-emergency-control',
+      tableRowsPerPage: [10, 10],
+      tableTitles: [
+        'الأعطال حسب الحي / الموقع',
+        'الأعطال حسب المقاول'
+      ],
+      tableSubtitles: [
+        'ملخص أداء المواقع',
+        'ملخص أداء المقاولين'
+      ]
+    });
+
+    if (type === 'full') {
+      buildAutoFitDataAppendix(report, {
+        detailTitle: 'البيانات التفصيلية لإشعارات الطوارئ',
+        columnsPerSegment: 10,
+        pageClass: 'vd-report-emergency-control'
+      });
+    }
+
+    return true;
   }
 
   function buildProjectsReport(report, type = 'executive') {
@@ -2590,6 +2953,46 @@
     if (getActivePageKey() === 'assets') {
       if (!buildControlRoomReport(report, type, getAssetsReportConfig())) {
         alert('تعذر تجهيز تقرير الأصول.');
+        return null;
+      }
+
+      document.body.appendChild(report);
+      return report;
+    }
+
+    if (getActivePageKey() === 'permits') {
+      if (!buildControlRoomReport(report, type, getPermitsReportConfig())) {
+        alert('تعذر تجهيز تقرير التصاريح.');
+        return null;
+      }
+
+      document.body.appendChild(report);
+      return report;
+    }
+
+    if (getActivePageKey() === 'tasks') {
+      if (!buildControlRoomReport(report, type, getSiteFollowupReportConfig())) {
+        alert('تعذر تجهيز تقرير متابعة أعمال المواقع.');
+        return null;
+      }
+
+      document.body.appendChild(report);
+      return report;
+    }
+
+    if (getActivePageKey() === 'closures') {
+      if (!buildClosuresReport(report, type)) {
+        alert('تعذر تجهيز تقرير الإغلاقات.');
+        return null;
+      }
+
+      document.body.appendChild(report);
+      return report;
+    }
+
+    if (getActivePageKey() === 'emergency') {
+      if (!buildEmergencyReport(report, type)) {
+        alert('تعذر تجهيز تقرير الطوارئ.');
         return null;
       }
 

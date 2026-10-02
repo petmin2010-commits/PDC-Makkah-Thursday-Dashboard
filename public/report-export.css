@@ -1624,3 +1624,216 @@ body.vd-report-dark #vdReportV2 .vd-report-safety-detail-page .table-link *{
     page-break-after:auto!important;
   }
 }
+
+
+/* =========================================================
+   REPORT SKILL PARITY — PROJECTS → MAIN/PERMITS/CONNECTIONS/
+   ASSETS/CLOSURES/SITE FOLLOW-UP/EMERGENCY
+   AutoFit rows + readable wrapped cells for full PDF reports.
+   ========================================================= */
+body.vd-report-v2-mode #vdReportV2 table.vd-report-autofit-table,
+body.vd-report-v2-mode #vdReportV2 .vd-report-summary-table table,
+body.vd-report-v2-mode #vdReportV2 .vd-report-detail-panel table{
+  width:100%!important;
+  max-width:100%!important;
+  height:auto!important;
+  table-layout:fixed!important;
+  border-collapse:collapse!important;
+}
+body.vd-report-v2-mode #vdReportV2 table.vd-report-autofit-table thead,
+body.vd-report-v2-mode #vdReportV2 .vd-report-summary-table table thead,
+body.vd-report-v2-mode #vdReportV2 .vd-report-detail-panel table thead{
+  display:table-header-group!important;
+}
+body.vd-report-v2-mode #vdReportV2 table.vd-report-autofit-table tr,
+body.vd-report-v2-mode #vdReportV2 .vd-report-summary-table table tr,
+body.vd-report-v2-mode #vdReportV2 .vd-report-detail-panel table tr{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+  break-inside:avoid!important;
+  page-break-inside:avoid!important;
+}
+body.vd-report-v2-mode #vdReportV2 table.vd-report-autofit-table th,
+body.vd-report-v2-mode #vdReportV2 table.vd-report-autofit-table td,
+body.vd-report-v2-mode #vdReportV2 .vd-report-summary-table table th,
+body.vd-report-v2-mode #vdReportV2 .vd-report-summary-table table td,
+body.vd-report-v2-mode #vdReportV2 .vd-report-detail-panel table th,
+body.vd-report-v2-mode #vdReportV2 .vd-report-detail-panel table td{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  padding:.75mm .6mm!important;
+  white-space:normal!important;
+  word-break:normal!important;
+  overflow-wrap:anywhere!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  line-height:1.35!important;
+  vertical-align:top!important;
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+}
+body.vd-report-v2-mode #vdReportV2 table.vd-report-autofit-table th *,
+body.vd-report-v2-mode #vdReportV2 table.vd-report-autofit-table td *,
+body.vd-report-v2-mode #vdReportV2 .vd-report-summary-table table th *,
+body.vd-report-v2-mode #vdReportV2 .vd-report-summary-table table td *,
+body.vd-report-v2-mode #vdReportV2 .vd-report-detail-panel table th *,
+body.vd-report-v2-mode #vdReportV2 .vd-report-detail-panel table td *{
+  max-height:none!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  white-space:normal!important;
+  -webkit-line-clamp:unset!important;
+  line-clamp:unset!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-autofit-serial{
+  width:7mm!important;
+  max-width:7mm!important;
+  text-align:center!important;
+  white-space:nowrap!important;
+  vertical-align:middle!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-autofit-detail-page{
+  min-height:0!important;
+  height:auto!important;
+  overflow:visible!important;
+  padding-bottom:0!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-autofit-detail-page .vd-report-section-body{
+  min-height:0!important;
+  height:auto!important;
+  overflow:visible!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-autofit-detail-page .vd-report-footer{
+  display:none!important;
+}
+
+/* Source table wrappers must never clip a tall AutoFit row. */
+body.vd-report-v2-mode #vdReportV2 .pe-wrap,
+body.vd-report-v2-mode #vdReportV2 .sf-table-wrap,
+body.vd-report-v2-mode #vdReportV2 .emergency-table-scroll,
+body.vd-report-v2-mode #vdReportV2 .aa-table-wrap,
+body.vd-report-v2-mode #vdReportV2 .ca-wrap,
+body.vd-report-v2-mode #vdReportV2 .table-wrap{
+  max-height:none!important;
+  height:auto!important;
+  overflow:visible!important;
+}
+
+/* Extend the project/control-room KPI skill to the added tabs. */
+.vd-report-control-group .pe-card,
+.vd-report-control-group .sf-card,
+.vd-report-control-group .emergency-mini-kpi{
+  min-width:0!important;
+  min-height:15mm!important;
+  height:auto!important;
+  padding:1.7mm!important;
+  margin:0!important;
+  border:1px solid #e2e8f0!important;
+  border-radius:2mm!important;
+  background:#fff!important;
+  box-shadow:none!important;
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+}
+.vd-report-control-group .pe-card span,
+.vd-report-control-group .sf-card span,
+.vd-report-control-group .emergency-mini-kpi span{
+  display:block!important;
+  font-size:5.3px!important;
+  line-height:1.2!important;
+  color:#334155!important;
+  -webkit-text-fill-color:#334155!important;
+}
+.vd-report-control-group .pe-card strong,
+.vd-report-control-group .sf-card strong,
+.vd-report-control-group .emergency-mini-kpi strong{
+  display:block!important;
+  margin:.7mm 0!important;
+  font-size:8.7px!important;
+  line-height:1.05!important;
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+}
+.vd-report-control-group .pe-card small,
+.vd-report-control-group .sf-card small,
+.vd-report-control-group .emergency-mini-kpi small{
+  display:block!important;
+  font-size:4.4px!important;
+  line-height:1.2!important;
+  color:#475569!important;
+  -webkit-text-fill-color:#475569!important;
+}
+
+/* Emergency KPI group has an internal heading row + cards grid. */
+.vd-report-emergency-control .vd-report-control-group .emergency-kpi-group-head{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:2mm!important;
+  margin:0 0 2mm!important;
+}
+.vd-report-emergency-control .vd-report-control-group .emergency-kpi-group-head h3{
+  margin:0!important;
+}
+.vd-report-emergency-control .vd-report-control-group .emergency-kpi-group-head span{
+  font-size:4.8px!important;
+  color:#64748b!important;
+}
+.vd-report-emergency-control .vd-report-control-group .emergency-kpi-cards{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:1.6mm!important;
+}
+
+/* Extend control chart sizing to permits/site-follow-up/emergency. */
+.vd-report-control-chart-card .pe-chart-box,
+.vd-report-control-chart-card .sf-chart-box,
+.vd-report-control-chart-card .emergency-chart-wrap{
+  height:48mm!important;
+  min-height:48mm!important;
+  max-height:48mm!important;
+  padding:1.2mm!important;
+  box-sizing:border-box!important;
+  overflow:visible!important;
+}
+.vd-report-control-chart-card.vd-report-doughnut-card .pe-chart-box,
+.vd-report-control-chart-card.vd-report-doughnut-card .sf-chart-box,
+.vd-report-control-chart-card.vd-report-doughnut-card .emergency-chart-wrap{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:.6mm!important;
+}
+.vd-report-control-chart-page-single .vd-report-control-chart-card .pe-chart-box,
+.vd-report-control-chart-page-single .vd-report-control-chart-card .sf-chart-box,
+.vd-report-control-chart-page-single .vd-report-control-chart-card .emergency-chart-wrap{
+  height:116mm!important;
+  max-height:116mm!important;
+}
+
+/* Allow long notes/statements to grow the row naturally. */
+body.vd-report-v2-mode #vdReportV2 td.sf-statement,
+body.vd-report-v2-mode #vdReportV2 td.aa-note,
+body.vd-report-v2-mode #vdReportV2 td.vd-projects-advice-col{
+  white-space:normal!important;
+  overflow-wrap:anywhere!important;
+  height:auto!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+
+@media print{
+  body.vd-report-v2-mode #vdReportV2 .vd-report-autofit-detail-page{
+    overflow:visible!important;
+    break-after:page!important;
+    page-break-after:always!important;
+  }
+  body.vd-report-v2-mode #vdReportV2 .vd-report-autofit-detail-page:last-child{
+    break-after:auto!important;
+    page-break-after:auto!important;
+  }
+}
