@@ -1029,6 +1029,158 @@
     });
   }
 
+
+
+  function buildProjectStyleActionTables(report, tables, config) {
+    tables.forEach((panel, index) => {
+      const title =
+        panel.querySelector('.panel-title h3')?.textContent?.trim()
+        || config.tableTitles?.[index]
+        || 'تحليل تنفيذي';
+
+      const subtitle =
+        config.tableSubtitles?.[index]
+        || (index === 0 ? 'الأوامر ذات الأولوية للتدخل' : 'متابعة أوامر العمل');
+
+      const sourceRows = [...panel.querySelectorAll('tbody tr')];
+      const perPage =
+        config.tableRowsPerPage?.[index]
+        || config.defaultTableRows
+        || 10;
+
+      const batches =
+        sourceRows.length > perPage
+          ? chunk(sourceRows, perPage)
+          : [sourceRows];
+
+      batches.forEach((batch, batchIndex) => {
+        const page = createPage(
+          title,
+          batches.length > 1
+            ? subtitle + ' — ' + (batchIndex + 1) + '/' + batches.length
+            : subtitle,
+          'vd-report-projects-action-page vd-report-control-project-table-page ' + config.pageClass
+        );
+
+        const clone = cloneWithCanvases(panel);
+        clone.classList.add('vd-report-summary-table');
+        clone.querySelector('.panel-title')?.remove();
+        clone.querySelector('.panel-head .panel-title')?.remove();
+
+        if (batches.length > 1) {
+          const start = batchIndex * perPage;
+
+          [...clone.querySelectorAll('tbody tr')].forEach((row, rowIndex) => {
+            if (rowIndex < start || rowIndex >= start + batch.length) {
+              row.remove();
+            }
+          });
+        }
+
+        page.querySelector('.vd-report-section-body').appendChild(clone);
+        report.appendChild(page);
+      });
+    });
+  }
+
+  function buildProjectStyleDetailTable(report, config) {
+    const dataPanel =
+      document.getElementById('dataTable')?.closest('.panel');
+
+    if (!dataPanel || !isVisible(dataPanel)) return;
+
+    const page = createPage(
+      'البيانات التفصيلية',
+      getActivePageName(),
+      'vd-report-detail-page vd-report-projects-detail-page vd-report-control-project-detail-page ' + config.pageClass
+    );
+
+    const clone = cloneWithCanvases(dataPanel);
+    clone.classList.add('vd-report-detail-panel');
+    clone.querySelector('.panel-head .panel-title')?.remove();
+
+    const table = clone.querySelector('table');
+
+    if (table) {
+      let headers = [...table.querySelectorAll('thead th')];
+
+      const sectionIndex =
+        headers.findIndex(th =>
+          normalizeReportHeader(th.textContent) === normalizeReportHeader('القسم')
+        );
+
+      if (sectionIndex >= 0) {
+        [...table.querySelectorAll('tr')].forEach(row => {
+          row.children[sectionIndex]?.remove();
+        });
+      }
+
+      headers = [...table.querySelectorAll('thead th')];
+
+      const adviceIndex = headers.findIndex(th => {
+        const h = normalizeReportHeader(th.textContent);
+        return h.includes('افاد') && h.includes('استشار') && !h.includes('تاريخ');
+      });
+
+      const adviceDateIndex = headers.findIndex(th => {
+        const h = normalizeReportHeader(th.textContent);
+        return h.includes('تاريخ') && h.includes('افاد') && !h.includes('155');
+      });
+
+      /*
+        نفس منطق المشاريع: يحتفظ تقرير البيانات التفصيلية بالأعمدة التشغيلية
+        حتى «تاريخ آخر إفادة» فقط؛ وبالتالي لا تظهر الأعمدة اللاحقة مثل
+        نسب الحفر/التمديد أو المؤشرات المحسوبة في جدول التوصيلات.
+      */
+      if (adviceIndex >= 0 && adviceDateIndex > adviceIndex) {
+        [...table.querySelectorAll('tr')].forEach(row => {
+          for (let i = row.children.length - 1; i > adviceDateIndex; i--) {
+            row.children[i]?.remove();
+          }
+        });
+      }
+
+      [...table.querySelectorAll('tr')].forEach(row => {
+        const cells = [...row.children];
+
+        const adviceCell =
+          adviceIndex >= 0 ? cells[adviceIndex] : null;
+
+        const adviceDateCell =
+          adviceDateIndex >= 0 ? cells[adviceDateIndex] : null;
+
+        if (adviceCell) {
+          adviceCell.classList.add('vd-projects-advice-col');
+          row.appendChild(adviceCell);
+        }
+
+        if (adviceDateCell) {
+          adviceDateCell.classList.add('vd-projects-advice-date-col');
+          row.appendChild(adviceDateCell);
+        }
+      });
+
+      const headRow = table.querySelector('thead tr');
+
+      if (headRow) {
+        const serialHead = document.createElement('th');
+        serialHead.textContent = 'م';
+        serialHead.classList.add('vd-projects-serial-col');
+        headRow.insertBefore(serialHead, headRow.firstElementChild);
+      }
+
+      [...table.querySelectorAll('tbody tr')].forEach((row, rowIndex) => {
+        const serialCell = document.createElement('td');
+        serialCell.textContent = String(rowIndex + 1);
+        serialCell.classList.add('vd-projects-serial-col');
+        row.insertBefore(serialCell, row.firstElementChild);
+      });
+    }
+
+    page.querySelector('.vd-report-section-body').appendChild(clone);
+    report.appendChild(page);
+  }
+
   function buildControlRoomReport(report, type, config) {
     const root = document.getElementById(config.rootId);
     if (!root || !isVisible(root)) return false;
@@ -1068,20 +1220,28 @@
     const tables = [...root.querySelectorAll(config.tableSelector)]
       .filter(isVisible);
 
-    tables.forEach((panel, index) => {
-      buildPaginatedPanelTable(report, panel, {
-        rowsPerPage: config.tableRowsPerPage?.[index] || config.defaultTableRows || 8,
-        pageClass: config.pageClass,
-        fallbackTitle: config.tableTitles?.[index]
-      });
-    });
+    if (config.projectStyleTables) {
+      buildProjectStyleActionTables(report, tables, config);
 
-    if (config.detailSegments?.length) {
-      buildSegmentedDataAppendix(report, {
-        detailTitle: config.detailTitle,
-        segments: config.detailSegments,
-        pageClass: config.pageClass
+      if (type === 'full') {
+        buildProjectStyleDetailTable(report, config);
+      }
+    } else {
+      tables.forEach((panel, index) => {
+        buildPaginatedPanelTable(report, panel, {
+          rowsPerPage: config.tableRowsPerPage?.[index] || config.defaultTableRows || 8,
+          pageClass: config.pageClass,
+          fallbackTitle: config.tableTitles?.[index]
+        });
       });
+
+      if (config.detailSegments?.length) {
+        buildSegmentedDataAppendix(report, {
+          detailTitle: config.detailTitle,
+          segments: config.detailSegments,
+          pageClass: config.pageClass
+        });
+      }
     }
 
     return true;
@@ -1119,36 +1279,15 @@
       metricTitle: 'المؤشرات التنفيذية للتوصيلات',
       chartSubtitle: 'تحليل التوصيلات',
       pageClass: 'vd-report-connections-control',
+      projectStyleTables: true,
       tableRowsPerPage: [5, 5],
-      detailTitle: 'البيانات التفصيلية للتوصيلات',
-      detailSegments: [
-        {
-          title: 'التعريف والتنفيذ',
-          rowsPerPage: 11,
-          columns: [
-            'أمر العمل','النوع','الوصف','المقاول','الموقع',
-            'تاريخ الإسناد','الأيام منذ الإسناد','حفريات / عدادات',
-            'المدة','التأخير','حالة التنفيذ'
-          ]
-        },
-        {
-          title: 'التصاريح والمسار',
-          rowsPerPage: 11,
-          columns: [
-            'أمر العمل','التصريح','بداية التصريح','نهاية التصريح',
-            'المهندس','مرحلة التنفيذ','حالة المرحلة','المكتب',
-            'نسبة الإنجاز','النسبة الزمنية','SPI'
-          ]
-        },
-        {
-          title: 'المتابعة والإفادة',
-          rowsPerPage: 6,
-          columns: [
-            'أمر العمل','آخر إجراء للمقاول','تفصيل أمر العمل',
-            'إفادة الاستشاري','تاريخ آخر إفادة','حالة الإفادة',
-            'تاريخ الإنجاز الكلي 155'
-          ]
-        }
+      tableTitles: [
+        'أعلى أوامر التوصيلات أولوية للتدخل',
+        'تشخيص الأوامر غير المنفذة'
+      ],
+      tableSubtitles: [
+        'الأوامر ذات الأولوية للتدخل',
+        'تشخيص الاختناقات للأوامر غير المنفذة'
       ]
     };
   }
