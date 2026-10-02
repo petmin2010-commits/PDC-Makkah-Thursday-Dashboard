@@ -748,13 +748,43 @@
         const clone = cloneWithCanvases(dataPanel); clone.classList.add('vd-report-detail-panel');
 
         // تقرير المشاريع لا يحتاج عمود «القسم» لأنه ثابت ومعلوم مسبقًا.
+        // كذلك: «تاريخ آخر إفادة» يكون آخر عمود، مع مسلسل في أقصى اليمين.
         const detailTable = clone.querySelector('table');
         if (detailTable) {
-          const headers = [...detailTable.querySelectorAll('thead th')];
+          let headers = [...detailTable.querySelectorAll('thead th')];
           const sectionIndex = headers.findIndex(th => th.textContent.trim() === 'القسم');
           if (sectionIndex >= 0) {
             [...detailTable.querySelectorAll('tr')].forEach(row => row.children[sectionIndex]?.remove());
           }
+
+          headers = [...detailTable.querySelectorAll('thead th')];
+          const normHeader = value => String(value || '')
+            .trim()
+            .replace(/[إأآ]/g, 'ا')
+            .replace(/\s+/g, ' ');
+          const adviceDateIndex = headers.findIndex(th => {
+            const h = normHeader(th.textContent);
+            return h.includes('تاريخ') && h.includes('اخر') && h.includes('افاد');
+          });
+
+          if (adviceDateIndex >= 0) {
+            [...detailTable.querySelectorAll('tr')].forEach(row => {
+              const cell = row.children[adviceDateIndex];
+              if (cell) row.appendChild(cell);
+            });
+          }
+
+          const headRow = detailTable.querySelector('thead tr');
+          if (headRow) {
+            const serialHead = document.createElement('th');
+            serialHead.textContent = 'م';
+            headRow.insertBefore(serialHead, headRow.firstElementChild);
+          }
+          [...detailTable.querySelectorAll('tbody tr')].forEach((row, rowIndex) => {
+            const serialCell = document.createElement('td');
+            serialCell.textContent = String(rowIndex + 1);
+            row.insertBefore(serialCell, row.firstElementChild);
+          });
         }
 
         page.querySelector('.vd-report-section-body').appendChild(clone); report.appendChild(page);

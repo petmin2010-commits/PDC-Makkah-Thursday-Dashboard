@@ -1054,44 +1054,44 @@ body.vd-report-dark #vdReportV2 .vd-report-safety-detail-page .table-link *{
   overflow-wrap:normal!important;
 }
 /* Text-heavy columns get controlled space and wrap only at natural word boundaries. */
-.vd-report-projects-detail-page th:nth-child(3),
-.vd-report-projects-detail-page td:nth-child(3){
+.vd-report-projects-detail-page th:nth-child(4),
+.vd-report-projects-detail-page td:nth-child(4){
   min-width:14mm!important;
   max-width:22mm!important;
   white-space:normal!important;
 }
-.vd-report-projects-detail-page th:nth-child(4),
-.vd-report-projects-detail-page td:nth-child(4){
+.vd-report-projects-detail-page th:nth-child(5),
+.vd-report-projects-detail-page td:nth-child(5){
   min-width:16mm!important;
   max-width:24mm!important;
   white-space:normal!important;
 }
-.vd-report-projects-detail-page th:nth-child(13),
-.vd-report-projects-detail-page td:nth-child(13){
-  min-width:15mm!important;
-  max-width:22mm!important;
-  white-space:normal!important;
-}
 .vd-report-projects-detail-page th:nth-child(14),
 .vd-report-projects-detail-page td:nth-child(14){
-  min-width:12mm!important;
-  max-width:18mm!important;
+  min-width:15mm!important;
+  max-width:22mm!important;
   white-space:normal!important;
 }
 .vd-report-projects-detail-page th:nth-child(15),
 .vd-report-projects-detail-page td:nth-child(15){
   min-width:12mm!important;
-  max-width:20mm!important;
+  max-width:18mm!important;
   white-space:normal!important;
 }
-.vd-report-projects-detail-page th:nth-child(20),
-.vd-report-projects-detail-page td:nth-child(20){
-  min-width:26mm!important;
-  max-width:36mm!important;
+.vd-report-projects-detail-page th:nth-child(16),
+.vd-report-projects-detail-page td:nth-child(16){
+  min-width:12mm!important;
+  max-width:20mm!important;
   white-space:normal!important;
 }
 .vd-report-projects-detail-page th:nth-child(21),
 .vd-report-projects-detail-page td:nth-child(21){
+  min-width:26mm!important;
+  max-width:36mm!important;
+  white-space:normal!important;
+}
+.vd-report-projects-detail-page th:nth-child(22),
+.vd-report-projects-detail-page td:nth-child(22){
   min-width:34mm!important;
   max-width:48mm!important;
   white-space:normal!important;
@@ -1101,10 +1101,14 @@ body.vd-report-dark #vdReportV2 .vd-report-safety-detail-page .table-link *{
 .vd-report-projects-detail-page td:nth-child(1),
 .vd-report-projects-detail-page th:nth-child(2),
 .vd-report-projects-detail-page td:nth-child(2),
-.vd-report-projects-detail-page th:nth-child(n+5):nth-child(-n+12),
-.vd-report-projects-detail-page td:nth-child(n+5):nth-child(-n+12),
-.vd-report-projects-detail-page th:nth-child(n+16):nth-child(-n+19),
-.vd-report-projects-detail-page td:nth-child(n+16):nth-child(-n+19){
+.vd-report-projects-detail-page th:nth-child(3),
+.vd-report-projects-detail-page td:nth-child(3),
+.vd-report-projects-detail-page th:nth-child(n+6):nth-child(-n+13),
+.vd-report-projects-detail-page td:nth-child(n+6):nth-child(-n+13),
+.vd-report-projects-detail-page th:nth-child(n+17):nth-child(-n+20),
+.vd-report-projects-detail-page td:nth-child(n+17):nth-child(-n+20),
+.vd-report-projects-detail-page th:last-child,
+.vd-report-projects-detail-page td:last-child{
   width:1%!important;
   white-space:nowrap!important;
 }
