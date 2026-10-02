@@ -90,10 +90,9 @@ function buildGroups(q=''){
   }).filter(Boolean);
 }
 
-function render(q=''){
+function render(){
   const host=root();if(!host)return;
-  const groups=buildGroups(q);
-  const total=groups.reduce((s,g)=>s+g.links.length,0);
+  const groups=buildGroups('');
   host.innerHTML=
     '<div class="il-root" style="display:block">'+
       '<section class="il-hero">'+
@@ -101,10 +100,6 @@ function render(q=''){
         '<p>اضغط على «اضغط هنا لفتح الرابط» لفتح الشيت مباشرة — '+esc(CFG.city)+'.</p></div>'+
         '<div class="il-contract"><span>رقم العقد</span><strong>'+esc(CFG.contract)+'</strong></div>'+
       '</section>'+
-      '<div class="il-tools">'+
-        '<label class="il-search"><span>⌕</span><input id="importantLinksSearch" type="search" placeholder="ابحث باسم التاب أو الشيت..."></label>'+
-        '<div class="il-count">الروابط الظاهرة <b>'+total+'</b></div>'+
-      '</div>'+
       '<section class="il-grid">'+
         (groups.length?groups.map((g,gi)=>
           '<article class="il-group">'+
@@ -126,15 +121,6 @@ function render(q=''){
         ).join(''):'<div class="il-empty">لا توجد روابط مطابقة لبحثك.</div>')+
       '</section>'+
     '</div>';
-  const input=document.getElementById('importantLinksSearch');
-  if(input){
-    input.value=q;
-    input.oninput=()=>{
-      const v=input.value;render(v);
-      const n=document.getElementById('importantLinksSearch');
-      if(n){n.focus();try{n.setSelectionRange(v.length,v.length)}catch{}}
-    };
-  }
 }
 
 function activate(){
@@ -147,7 +133,7 @@ function activate(){
   const unified=document.getElementById('vdUnifiedControls');if(unified)unified.style.display='none';
   const topSearch=document.querySelector('.top-actions .search');if(topSearch)topSearch.style.display='none';
   const title=document.getElementById('pageTitle');if(title)title.textContent='الروابط المهمة';
-  render('');
+  render();
 }
 if(typeof openPage==='function'){
   const previous=openPage;
