@@ -171,6 +171,23 @@ function updateGlobalPageHeading(){
   ensureStructure(root);
 
   const active=document.querySelector('#nav .nav-item.active');
+
+  const smartSectionIds=new Set([
+    'smartCenterNav',
+    'temporalMemoryNav',
+    'investigationRoomNav',
+    'explainableDecisionNav',
+    'workOrder360Nav'
+  ]);
+
+  const hideForSmartSection=
+    smartSectionIds.has(active?.id||'')
+    || active?.dataset?.page==='smartThursday';
+
+  root.style.display=hideForSmartSection?'none':'';
+
+  if(hideForSmartSection)return;
+
   const key=active?.dataset?.page||'master';
   const label=navLabel(active);
   const meta=PAGE_META[key]||{
