@@ -1082,3 +1082,13 @@ body.vd-report-dark #vdReportV2 .vd-report-safety-detail-page .table-link *{
   max-width:18mm!important;
   white-space:normal!important;
 }
+
+
+/* Global PDF reports: remove orange diamond decoration from all report titles */
+.vd-report-v2 .vd-report-section-header h2::before,
+.vd-report-v2 .vd-report-section-header h2:before,
+.vd-report-v2 .vd-report-cover-title h1::before,
+.vd-report-v2 .vd-report-cover-title h1:before{
+  content:none!important;
+  display:none!important;
+}
