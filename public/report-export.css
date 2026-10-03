@@ -1844,3 +1844,7 @@ body.vd-report-v2-mode #vdReportV2 td.vd-projects-advice-col{
 .vd-report-closures-tree-page .vd-report-section-body{overflow:hidden!important}
 .vd-report-closures-tree-page .vd-report-tree-wrapper{max-height:145mm!important;overflow:hidden!important}
 @media print{.vd-report-closures-tree-page{height:194mm!important;min-height:194mm!important;max-height:194mm!important;break-inside:avoid!important;page-break-inside:avoid!important;break-after:page!important;page-break-after:always!important}}
+
+/* Closures emergency tree print nodes */
+.vd-report-v2 .vd-report-closures-tree-page button.emergency-tree-card{display:flex!important}
+.vd-report-v2 .vd-report-closures-tree-page button.emergency-tree-warning{display:grid!important}
