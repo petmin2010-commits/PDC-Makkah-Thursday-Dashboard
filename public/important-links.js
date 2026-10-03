@@ -116,6 +116,7 @@ function makeQrDataUrl(text){
 }
 
 function exportLinksReport(preopenedWindow=null){
+  if(preopenedWindow && !preopenedWindow.document)preopenedWindow=null;
   if(typeof QRCode!=='function'){
     alert('تعذر تحميل مولد QR حاليًا. يرجى تحديث الصفحة ثم المحاولة مرة أخرى.');
     return;
@@ -230,7 +231,7 @@ function render(){
       '</section>'+
     '</div>';
   const exportBtn=document.getElementById('importantLinksExportBtn');
-  if(exportBtn)exportBtn.onclick=exportLinksReport;
+  if(exportBtn)exportBtn.onclick=()=>exportLinksReport();
 }
 
 function activate(){
