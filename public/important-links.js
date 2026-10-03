@@ -156,11 +156,13 @@ function exportLinksReport(preopenedWindow=null){
 
   const w=preopenedWindow||window.open('','_blank');
   if(!w){alert('يرجى السماح بالنوافذ المنبثقة لتصدير تقرير الروابط.');return;}
+  const fileTitle=window.VDReportNaming?.build({key:'importantLinks',city:CFG.city})||
+    ('VD_'+(String(CFG.city).includes('جدة')?'Jeddah':'Makkah')+'_ImportantLinks_General_'+Date.now());
 
   w.document.open();
   w.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">'+
     '<meta name="viewport" content="width=device-width,initial-scale=1">'+
-    '<title>تقرير الروابط المهمة - '+esc(CFG.city)+'</title>'+
+    '<title>'+esc(fileTitle)+'</title>'+
     '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">'+
     '<style>'+
     '*{box-sizing:border-box}html,body{margin:0;background:#fff;color:#182b42;font-family:Cairo,Tahoma,Arial,sans-serif;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+

@@ -355,6 +355,8 @@ function exportThursdayReport(){
  const pRows=P.pages.projects?.rows||[];
  const cRows=P.pages.connections?.rows||[];
  const pageTitle='التقرير الأسبوعي لمتابعة الأداء الفني';
+ const fileTitle=window.VDReportNaming?.build({key:'smartThursday',city})||
+   ('VD_'+(String(city).includes('جدة')?'Jeddah':'Makkah')+'_SmartThursday_General_'+Date.now());
  const baselineText=previous&&latest?('مقارنة '+previous.label+' مع '+latest.label):'بانتظار اكتمال خط الأساس الأسبوعي';
 
  const chartSources={
@@ -527,7 +529,7 @@ function exportThursdayReport(){
  '.footer{position:absolute;z-index:3;bottom:2.4mm;right:9mm;left:9mm;display:flex;justify-content:space-between;color:#777f8a;font-size:5.8px}'+
  '@media print{html,body{width:297mm}body{margin:0}.page{break-inside:avoid}}';
 
- const html='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+e(pageTitle)+'</title><style>'+css+'</style></head><body>'+
+ const html='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+e(fileTitle)+'</title><style>'+css+'</style></head><body>'+
   page(page1,1,totalPages,city)+
   page(page2,2,totalPages,city+' — مرحلة الإنجاز')+
   page(page3,3,totalPages,city+' — حالة المرحلة')+

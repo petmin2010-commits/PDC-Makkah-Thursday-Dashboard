@@ -140,6 +140,8 @@
       key === 'importantLinks'
         ? window.open('', '_blank')
         : null;
+    const previousScopeOverride = window.__VD_REPORT_SCOPE_OVERRIDE;
+    window.__VD_REPORT_SCOPE_OVERRIDE = 'General';
 
     button.disabled = true;
     button.classList.add('is-loading');
@@ -158,6 +160,8 @@
       if (finished) return;
       finished = true;
       restoreFilters(snapshot);
+      if (previousScopeOverride === undefined) delete window.__VD_REPORT_SCOPE_OVERRIDE;
+      else window.__VD_REPORT_SCOPE_OVERRIDE = previousScopeOverride;
       button.disabled = false;
       button.classList.remove('is-loading');
       button.textContent = original;
@@ -188,12 +192,12 @@
 
     const api = window.VDReportExport;
     const exportFn =
-      typeof api?.exportCurrent === 'function'
-        ? api.exportCurrent
-        : typeof api?.showModal === 'function'
-          ? api.showModal
-          : typeof api?.exportCurrentTab === 'function'
-            ? api.exportCurrentTab
+      typeof api?.exportCurrentTab === 'function'
+        ? api.exportCurrentTab
+        : typeof api?.exportCurrent === 'function'
+          ? api.exportCurrent
+          : typeof api?.showModal === 'function'
+            ? api.showModal
             : null;
 
     if (!exportFn) {

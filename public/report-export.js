@@ -3566,17 +3566,13 @@
     if (!report) return;
 
     const oldTitle = document.title;
+    const fallbackKey = getActivePageKey();
+    const fallbackCity = (getBrandInfo().city || '').includes('جدة') ? 'Jeddah' :
+      (getBrandInfo().city || '').includes('مكة') ? 'Makkah' : 'Project';
+    const fallbackType = String(fallbackKey || 'Report').replace(/[^A-Za-z0-9]/g,'') || 'Report';
 
-    const cityText = getBrandInfo().city || '';
-    const cityName =
-      cityText.includes('جدة') ? 'جدة' :
-      cityText.includes('مكة') ? 'مكة' :
-      cityText.replace(/^ب?إدارة كهرباء\s*/,'').trim();
-    const pageName = getActivePageName();
-    const exportPageName = pageName === 'المشاريع' ? 'مشاريع' : pageName;
-
-    document.title =
-      [exportPageName, cityName].filter(Boolean).join(' ');
+    document.title = window.VDReportNaming?.build({ key: fallbackKey }) ||
+      ['VD', fallbackCity, fallbackType, 'General', Date.now()].join('_');
 
     document.body.classList.add(
       'vd-report-v2-mode'
