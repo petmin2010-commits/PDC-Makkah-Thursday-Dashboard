@@ -73,6 +73,15 @@ function buildXlsx(rows,sheetName){
 function installExcelExportRoutes(ctx){
   const {app,requireAuth_,getSheets,SPREADSHEET_ID,USERS_SHEET,qSheet,clean_,APP,DateTime}=ctx;
   const blocked=new Set([String(USERS_SHEET||'').toLowerCase(),'dashboard history','vd thursday progress']);
+  const normPerm=value=>String(value??'').normalize('NFKC').replace(/[\u064B-\u065F\u0670]/g,'').replace(/ـ/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/[^\p{L}\p{N}]+/gu,' ').replace(/\s+/g,' ').trim().toLowerCase();
+  function requireExcelAccess(req,res,next){
+    const permissions=Array.isArray(req.session?.user?.permissions)?req.session.user.permissions:[];
+    const keys=new Set(permissions.map(normPerm));
+    const all=[...keys].some(v=>['*','all',normPerm('الكل'),normPerm('جميع الصفحات'),normPerm('كامل الصلاحيات')].includes(v));
+    const allowed=all||keys.has(normPerm('مركز التقارير'))||keys.has(normPerm('تصدير تقرير اكسيل'));
+    if(allowed)return next();
+    return res.status(403).json({ok:false,error:'لا توجد صلاحية لتصدير تقارير Excel'});
+  }
 
   async function allowedSheets(){
     const sheets=await getSheets();
@@ -134,7 +143,7 @@ function installExcelExportRoutes(ctx){
     return buildXlsx(picked,sheetName);
   }
 
-  app.get('/api/excel-export/sheets',requireAuth_,async(req,res)=>{
+  app.get('/api/excel-export/sheets',requireAuth_,requireExcelAccess,async(req,res)=>{
     try{
       res.set('Cache-Control','no-store');
       res.json({ok:true,...await allowedSheets()});
@@ -144,7 +153,7 @@ function installExcelExportRoutes(ctx){
     }
   });
 
-  app.get('/api/excel-export/columns',requireAuth_,async(req,res)=>{
+  app.get('/api/excel-export/columns',requireAuth_,requireExcelAccess,async(req,res)=>{
     try{
       res.set('Cache-Control','no-store');
       res.json({ok:true,...await columnsFor(String(req.query.sheet||''))});
@@ -154,7 +163,7 @@ function installExcelExportRoutes(ctx){
     }
   });
 
-  app.post('/api/excel-export',requireAuth_,async(req,res)=>{
+  app.post('/api/excel-export',requireAuth_,requireExcelAccess,async(req,res)=>{
     try{
       const sheet=String(req.body?.sheet||'');
       const columns=Array.isArray(req.body?.columns)?req.body.columns:[];
