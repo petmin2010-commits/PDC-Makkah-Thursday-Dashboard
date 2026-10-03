@@ -108,12 +108,52 @@ body.electricity-engineer-evaluation-active .eee-actions{
   padding-top:12px!important;
   border-top:1px solid #e7edf5!important;
 }
+body.electricity-engineer-evaluation-active .eee-search-export-bar{
+  display:flex!important;
+  align-items:flex-end!important;
+  gap:10px!important;
+  margin:0 0 10px!important;
+  padding:12px 14px!important;
+  border:1px solid #dbe5f2!important;
+  border-radius:16px!important;
+  background:#fff!important;
+  box-shadow:0 8px 22px rgba(25,55,95,.06)!important;
+}
+body.electricity-engineer-evaluation-active .eee-search-box{
+  display:flex!important;
+  flex:1 1 auto!important;
+  min-width:0!important;
+  flex-direction:column!important;
+  gap:6px!important;
+}
+body.electricity-engineer-evaluation-active .eee-search-box span{
+  color:#27364d!important;
+  font-size:10px!important;
+  font-weight:900!important;
+}
+body.electricity-engineer-evaluation-active .eee-search-box input{
+  width:100%!important;
+  height:42px!important;
+  min-height:42px!important;
+  border:1px solid #cdd9e8!important;
+  border-radius:11px!important;
+  background:#fbfdff!important;
+  color:#14213d!important;
+  padding:0 13px!important;
+  outline:none!important;
+}
+body.electricity-engineer-evaluation-active .eee-search-box input:focus{
+  border-color:#2878e8!important;
+  box-shadow:0 0 0 3px rgba(40,120,232,.08)!important;
+}
 body.electricity-engineer-evaluation-active #eeeExportReport{
+  flex:0 0 auto!important;
   min-height:42px!important;
   height:42px!important;
-  padding:0 14px!important;
+  padding:0 16px!important;
   border-radius:11px!important;
   font-size:8.5px!important;
+  white-space:nowrap!important;
 }
 body.electricity-engineer-evaluation-active .eee-note{
   margin:0 0 16px!important;
@@ -127,6 +167,8 @@ body.electricity-engineer-evaluation-active .eee-note{
   body.electricity-engineer-evaluation-active .eee-filter-grid .wide{grid-column:span 2!important}
 }
 @media(max-width:700px){
+  body.electricity-engineer-evaluation-active .eee-search-export-bar{align-items:stretch!important;flex-direction:column!important}
+  body.electricity-engineer-evaluation-active #eeeExportReport{width:100%!important}
   body.electricity-engineer-evaluation-active .eee-filter-title{align-items:flex-start!important;flex-direction:column!important}
   body.electricity-engineer-evaluation-active .eee-filter-grid{grid-template-columns:1fr!important}
   body.electricity-engineer-evaluation-active .eee-engineer-focus,
