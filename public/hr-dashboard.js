@@ -426,6 +426,7 @@ async function load(force=false){
   }catch(e){if(host)host.innerHTML='<div class="hr-error">'+esc(e.message||e)+'</div>'}
 }
 function activate(){
+  document.body.classList.add('hr-staff-active');
   if(typeof S!=='undefined')S.current='hrStaff';
   document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.page==='hrStaff'));
   ['masterPage','meetingPage','dataPage','importantLinksPage'].forEach(id=>document.getElementById(id)?.classList.remove('active'));
@@ -440,6 +441,7 @@ if(typeof openPage==='function'){
   const previous=openPage;
   openPage=function(key){
     if(key==='hrStaff'){activate();return}
+    document.body.classList.remove('hr-staff-active');
     document.getElementById('hrStaffPage')?.classList.remove('active');
     const fb=document.getElementById('filterBar');if(fb)fb.style.display='';
     const unified=document.getElementById('vdUnifiedControls');if(unified)unified.style.display='';
