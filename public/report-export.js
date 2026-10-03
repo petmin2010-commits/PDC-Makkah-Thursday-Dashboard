@@ -2649,7 +2649,11 @@
 
     if (liveChart?.config?.type !== 'doughnut') return clone;
 
-    clone.classList.add('vd-report-doughnut-card', 'vd-report-violation-doughnut-card');
+    clone.classList.add(
+      'vd-report-doughnut-card',
+      'vd-report-violation-doughnut-card',
+      'vd-report-violation-doughnut-wide'
+    );
     clone.querySelectorAll('.vd-report-doughnut-legend').forEach(el => el.remove());
 
     const labels = Array.isArray(liveChart.data?.labels)
@@ -2710,6 +2714,27 @@
     }
 
     return clone;
+  }
+
+  function isViolationDoughnutPanel(panel) {
+    const canvas = panel?.querySelector?.('canvas');
+    const chart = canvas ? window.Chart?.getChart?.(canvas) : null;
+    return chart?.config?.type === 'doughnut';
+  }
+
+  function packViolationChartPanels(panels) {
+    const groups = [];
+    let group = [];
+    let slots = 0;
+    const flush = () => { if (group.length) groups.push(group); group = []; slots = 0; };
+    panels.forEach(panel => {
+      const cost = isViolationDoughnutPanel(panel) ? 2 : 1;
+      if (slots + cost > 4) flush();
+      group.push(panel); slots += cost;
+      if (slots === 4) flush();
+    });
+    flush();
+    return groups;
   }
 
   function buildViolationFamilyReport(report, config) {
@@ -2804,15 +2829,13 @@
       });
     });
 
-    chunk(chartPanels, 4).forEach((group, index) => {
+    const chartGroups = packViolationChartPanels(chartPanels);
+    chartGroups.forEach((group, index) => {
       const page = createPage(
         config.chartTitle,
-        `الصفحة ${index + 1} من ${Math.ceil(chartPanels.length / 4)}`,
+        `الصفحة ${index + 1} من ${chartGroups.length}`,
         'vd-report-safety-chart-page vd-report-violations-chart-page'
       );
-      if (group.length <= 2) {
-        page.classList.add('vd-report-safety-chart-page-last');
-      }
 
       const body = page.querySelector('.vd-report-section-body');
       const grid = document.createElement('div');

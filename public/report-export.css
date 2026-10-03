@@ -2053,3 +2053,10 @@ body.vd-report-v2-mode #vdReportV2 td.vd-projects-advice-col{
   font-size:5.5px!important;
   padding:.8mm .7mm!important;
 }
+
+/* Violation PDF doughnuts: full-row cards and non-clipping legends. */
+.vd-report-violations-chart-page .vd-report-violation-doughnut-wide{grid-column:1/-1!important;height:63mm!important;min-height:63mm!important;max-height:63mm!important;overflow:visible!important}
+.vd-report-violations-chart-page .vd-report-violation-doughnut-wide .vx-chart{grid-template-columns:minmax(0,.75fr) minmax(0,1.25fr)!important;height:50mm!important;min-height:50mm!important;max-height:none!important;overflow:visible!important}
+.vd-report-violations-chart-page .vd-report-violation-doughnut-legend{max-height:none!important;overflow:visible!important}
+.vd-report-violations-chart-page .vd-report-doughnut-dense .vd-report-violation-doughnut-legend,.vd-report-violations-chart-page .vd-report-doughnut-ultra-dense .vd-report-violation-doughnut-legend{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;align-content:center!important;column-gap:2mm!important;row-gap:.45mm!important}
+.vd-report-violations-chart-page .vd-report-doughnut-dense .vd-report-doughnut-legend-item,.vd-report-violations-chart-page .vd-report-doughnut-ultra-dense .vd-report-doughnut-legend-item{min-height:5mm!important;box-sizing:border-box!important}
