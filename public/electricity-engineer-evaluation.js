@@ -208,7 +208,6 @@ function render(){
   card('دون متابعة جوهرية 3+ أيام',ai.stale,'مؤشر متابعة من وكيل الإفادات',ai.stale?'warn':'ok')
  ];
  host.innerHTML='<div class="eee-wrap"><section class="eee-hero"><div><span>SEC ENGINEER • COMPOSITE PERFORMANCE EVALUATION</span><h2>تقييم مهندسي شركة الكهرباء</h2><p>تقييم مركب يدمج جودة البيانات، التدقيق الذكي، تحليل وكيل الإفادات، ومتوسط نسبة الإنجاز لأوامر العمل التابعة للمهندس في المشاريع والتوصيلات والأصول.</p></div></section>'+
- '<section class="eee-note"><b>منهجية التقييم النهائي</b><span>يتم احتساب متوسط متساوي للعوامل المتاحة: جودة البيانات + التدقيق الذكي + تقييم وكيل الإفادات + متوسط الإنجاز. عند توفر العوامل الأربعة يكون وزن كل عامل 25%، وإذا تعذر عامل في نطاق معين يعاد توزيع الوزن تلقائيًا على العوامل المتاحة.</span></section>'+
  '<section class="eee-filter">'+
  '<div class="eee-filter-title"><div><span>ENGINEER FIRST</span><h3>اختيار مهندس شركة الكهرباء هو محور التقييم</h3><p>اختر مهندسًا واحدًا أولًا، ثم استخدم باقي الفلاتر لتحليل أوامر العمل والإفادات وجودة البيانات الخاصة به.</p></div><b>'+rows.length+' سجل مطابق</b></div>'+
  '<div class="eee-filter-grid">'+
@@ -217,6 +216,7 @@ function render(){
  '<label><span>المقاول</span><select id="eeeContractor">'+optionList(contractors,f.contractor)+'</select></label>'+
  '<label><span>من تاريخ</span><input id="eeeFrom" type="date" value="'+esc(f.from)+'"></label><label><span>إلى تاريخ</span><input id="eeeTo" type="date" value="'+esc(f.to)+'"></label></div>'+
  '<div class="eee-actions"><button id="eeeReset" class="ghost-btn">مسح الفلاتر</button><button id="eeeRefresh" class="primary-btn">↻ تحديث البيانات</button><button id="eeeExportReport" class="vd-tab-report-btn" type="button">↓ تصدير التقرير PDF</button>'+((state.cross.component||state.cross.issue||state.cross.stale)?'<span>تفاعلي: '+esc([state.cross.component,state.cross.issue==='__ANY__'?'ملاحظات الجودة':state.cross.issue,state.cross.stale==='3+'?'دون متابعة جوهرية 3+ أيام':''].filter(Boolean).join(' • '))+'</span>':'')+'</div></section>'+
+ '<section class="eee-note"><b>منهجية التقييم النهائي</b><span>يتم احتساب متوسط متساوي للعوامل المتاحة: جودة البيانات + التدقيق الذكي + تقييم وكيل الإفادات + متوسط الإنجاز. عند توفر العوامل الأربعة يكون وزن كل عامل 25%، وإذا تعذر عامل في نطاق معين يعاد توزيع الوزن تلقائيًا على العوامل المتاحة.</span></section>'+
  '<div class="eee-kpis">'+cards.join('')+'</div><section class="eee-section-grid">'+sectionCards(summary,rows,state.filters.engineer)+'</section>'+
  '<section class="eee-analysis-grid"><article class="panel"><div class="panel-title"><span>SCORE COMPONENTS</span><h3>مكونات التقييم</h3></div><div class="eee-canvas"><canvas id="eeeComponentChart"></canvas></div></article>'+
  '<article class="panel"><div class="panel-title"><span>SECTION SCORE</span><h3>التقييم المركب حسب السكشن</h3></div><div class="eee-canvas"><canvas id="eeeSectionQuality"></canvas></div></article>'+
