@@ -3355,17 +3355,26 @@ body.vd-sidebar-collapsed .vd-sidebar-toggle{
 /* Sidebar toggle visibility refinement — 2026-10-03 */
 .vd-sidebar-toggle{
   top:66px!important;
+  right:calc(var(--vd-sidebar-width) - 29px)!important;
   width:29px!important;
   height:34px!important;
+  border-radius:10px!important;
 }
 .topbar .search{
   width:290px;
 }
+body.vd-sidebar-collapsed .vd-sidebar-toggle{
+  right:7px!important;
+}
 @media(max-width:850px){
   .vd-sidebar-toggle{
     top:64px!important;
+    right:calc(var(--vd-sidebar-width) - 28px)!important;
     width:28px!important;
     height:33px!important;
+  }
+  body.vd-sidebar-collapsed .vd-sidebar-toggle{
+    right:7px!important;
   }
 }
 /* Sidebar company logo hover motion — 2026-10-03 */
