@@ -116,6 +116,16 @@ function dashboardUserImageUrl_(value){
   return /^https?:\/\//i.test(url) ? url : '';
 }
 
+function parseDashboardPermissions_(value){
+  const raw=String(value==null ? '' : value).trim();
+  if(!raw) return [];
+  return [...new Set(
+    raw.split(/\s*[,،;|\n]+\s*/)
+      .map(v=>clean_(v))
+      .filter(Boolean)
+  )];
+}
+
 async function readDashboardUsers_(){
 
   /*
@@ -126,12 +136,13 @@ async function readDashboardUsers_(){
     D = Password
     E = Active / inactive
     F = User photo (=IMAGE("https://..."))
+    G = Allowed dashboard pages (multi-select)
   */
 
   const sheets=await getSheets();
   const response=await sheets.spreadsheets.values.get({
     spreadsheetId:SPREADSHEET_ID,
-    range:qSheet(USERS_SHEET)+'!A:F',
+    range:qSheet(USERS_SHEET)+'!A:G',
     valueRenderOption:'FORMULA'
   });
   const values=response.data.values || [];
@@ -158,7 +169,9 @@ async function readDashboardUsers_(){
       active:clean_(r[4])
         .toLowerCase(),
 
-      image:dashboardUserImageUrl_(r[5])
+      image:dashboardUserImageUrl_(r[5]),
+
+      permissions:parseDashboardPermissions_(r[6])
 
     }))
     .filter(u=>u.email);
@@ -170,7 +183,8 @@ function publicUser_(user){
     name:user.name,
     role:user.role,
     email:user.email,
-    image:user.image || ''
+    image:user.image || '',
+    permissions:Array.isArray(user.permissions) ? user.permissions : []
   };
 
 }
@@ -2051,7 +2065,7 @@ app.get('/api/auth/photo',async(req,res)=>{
 
 });
 
-app.get('/api/auth/me',(req,res)=>{
+app.get('/api/auth/me',async(req,res)=>{
 
   res.set('Cache-Control','no-store');
 
@@ -2064,11 +2078,45 @@ app.get('/api/auth/me',(req,res)=>{
 
   }
 
-  res.json({
-    ok:true,
-    authenticated:true,
-    user:req.session.user
-  });
+  try{
+
+    const email=String(req.session.user.email || '')
+      .trim()
+      .toLowerCase();
+
+    const users=await readDashboardUsers_();
+    const user=users.find(u=>u.email===email);
+
+    if(!user || user.active!=='active'){
+
+      req.session.destroy(()=>{});
+
+      return res.status(401).json({
+        ok:false,
+        authenticated:false
+      });
+
+    }
+
+    req.session.user=publicUser_(user);
+
+    return res.json({
+      ok:true,
+      authenticated:true,
+      user:req.session.user
+    });
+
+  }catch(error){
+
+    console.error('Auth session refresh error:',error);
+
+    return res.status(500).json({
+      ok:false,
+      authenticated:false,
+      error:'AUTH_REFRESH_ERROR'
+    });
+
+  }
 
 });
 
