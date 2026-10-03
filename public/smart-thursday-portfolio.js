@@ -376,12 +376,12 @@ function exportThursdayReport(){
   return '<div class="section-title"><h2>'+e(title)+'</h2><span>'+e(en)+'</span></div>';
  }
  function footer(pageNo,total){
-  return '<footer class="footer"><span>شركة أبعاد الرؤية للاستشارات الهندسية</span><span>صفحة '+pageNo+' من '+total+'</span></footer>';
+  return '<footer class="footer"><span>شركة أبعاد الرؤية للاستشارات الهندسية</span><span class="footer-file" dir="ltr">'+e(fileTitle)+'</span><span>صفحة '+pageNo+' من '+total+'</span></footer>';
  }
  function header(pageNo,total,sub){
   return '<header class="header">'+
    '<img class="logo" src="'+logo+'">'+
-   '<div class="title"><h1>'+e(pageTitle)+'</h1><p>Weekly Technical Performance Report</p><p>'+e(sub||city)+'</p></div>'+
+   '<div class="title"><h1>'+e(pageTitle)+'</h1><p>Weekly Technical Performance Report</p><p>'+e(sub||city)+'</p><p class="file-id" dir="ltr">'+e(fileTitle)+'</p></div>'+
    '<div class="meta"><b>'+e(contract)+'</b><span>'+e(stamp)+'</span></div>'+
    '</header>'+
    '<section class="report-info">'+
@@ -507,7 +507,7 @@ function exportThursdayReport(){
  '.title{padding:0 40mm}.title h1{position:relative;margin:0;color:#172b5f;font-size:18px;font-weight:900}'+
  '.title h1:after{content:"";display:block;width:72mm;height:1px;background:#f2a31b;margin:2.5mm auto 0}'+
  '.title h1:before{content:"";position:absolute;left:50%;top:9.6mm;width:3.6mm;height:3.6mm;background:#f2a31b;transform:translateX(-50%) rotate(45deg)}'+
- '.title p{margin:.8mm 0 0;color:#6e737b;font-size:8px;font-weight:700}'+
+ '.title p{margin:.8mm 0 0;color:#6e737b;font-size:8px;font-weight:700}.title .file-id{font-family:Arial,Tahoma,sans-serif;font-size:6.2px;letter-spacing:.1px;color:#7a8490;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'+
  '.meta{position:absolute;right:0;top:0;text-align:right;color:#172b5f;font-size:6.8px;min-width:48mm}.meta b{display:block;font-size:7.8px;margin-bottom:.6mm}'+
  '.report-info{position:relative;margin:0 0 2.5mm;border:1px solid #26396f;border-radius:2px;display:grid;grid-template-columns:repeat(4,1fr)}'+
  '.report-info:before{content:"بيانات التقرير";position:absolute;right:-1px;top:-5.7mm;background:#172b5f;color:#fff;padding:1.4mm 3.8mm;border-radius:2px 2px 0 0;font-weight:900;font-size:7.5px}'+
@@ -526,7 +526,7 @@ function exportThursdayReport(){
  '.table-card.compact h3{padding:1.2mm 2mm;font-size:7.2px}.table-card.compact table{font-size:5.8px}.table-card.compact th,.table-card.compact td{padding:.62mm .8mm}.detail-stage-row .table-card{max-height:33mm}.detail-stage-row .table-card tbody tr:nth-child(n+7){display:none}.detail-status-row .table-card{height:82mm;overflow:hidden}'+
  '.snapshot-card{margin-top:0}.snapshot-card table{font-size:5.8px}.snapshot-card th,.snapshot-card td{padding:.65mm .8mm}'+
  '.empty{padding:5mm;text-align:center;color:#7a808a}'+
- '.footer{position:absolute;z-index:3;bottom:2.4mm;right:9mm;left:9mm;display:flex;justify-content:space-between;color:#777f8a;font-size:5.8px}'+
+ '.footer{position:absolute;z-index:3;bottom:2.4mm;right:9mm;left:9mm;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:3mm;color:#777f8a;font-size:5.8px}.footer .footer-file{min-width:0;text-align:center;font-family:Arial,Tahoma,sans-serif;font-size:5.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'+
  '@media print{html,body{width:297mm}body{margin:0}.page{break-inside:avoid}}';
 
  const html='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+e(fileTitle)+'</title><style>'+css+'</style></head><body>'+

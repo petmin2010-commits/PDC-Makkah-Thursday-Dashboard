@@ -68,7 +68,7 @@ function bind(){
  };
  const clearFilters=document.getElementById('clearFilters');
  if(clearFilters) clearFilters.onclick=()=>{
-   ['f1','f2','f3','f4','f5','f6'].forEach(id=>document.getElementById(id).value='');
+   ['f1','f2','f3','f4','f5','f6'].forEach(id=>{const el=document.getElementById(id);if(!el)return;if(window.VDMultiFilter)VDMultiFilter.clear(el,{silent:true});else el.value='';});
    document.querySelectorAll('.workorder-option-search').forEach(input=>input.value='');
    document.getElementById('globalSearch').value='';
    clearChartFilters(S.current);
@@ -260,10 +260,11 @@ function configureWednesdayMeetingFilters(){
  defs.forEach(([id,key])=>{
    const el=document.getElementById(id);
    if(!el)return;
-   const current=el.value||'';
+   const current=window.VDMultiFilter?VDMultiFilter.values(el):(el.value?[el.value]:[]);
    const vals=unique(S.meetingRows.map(r=>r[key])).sort((a,b)=>String(a).localeCompare(String(b),'ar'));
    el.innerHTML='<option value="">الكل</option>'+vals.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
-   if(vals.includes(current))el.value=current;
+   const kept=current.filter(v=>vals.includes(v));
+   if(window.VDMultiFilter)VDMultiFilter.refresh(el,{selected:kept,allText:'الكل'});else el.value=kept[0]||'';
    el.onchange=renderWednesdayMeeting;
  });
  const search=document.getElementById('wmSearch');
@@ -275,7 +276,7 @@ function configureWednesdayMeetingFilters(){
  const reset=document.getElementById('wmReset');
  if(reset&&!reset.dataset.bound){
    reset.onclick=()=>{
-     defs.forEach(([id])=>{const e=document.getElementById(id);if(e)e.value=''});
+     defs.forEach(([id])=>{const e=document.getElementById(id);if(!e)return;if(window.VDMultiFilter)VDMultiFilter.clear(e,{silent:true});else e.value=''});
      if(search)search.value='';
      S.meetingChartFilters={};
      renderWednesdayMeeting();
@@ -300,18 +301,14 @@ function meetingRowMatchesInteractiveFilter(row,filter){
 }
 
 function filteredWednesdayRows(){
- const filters={
-   office:document.getElementById('wmOffice')?.value||'',
-   contractor:document.getElementById('wmContractor')?.value||'',
-   category:document.getElementById('wmCategory')?.value||'',
-   executionStatus:document.getElementById('wmExecution')?.value||''
- };
+ const get=id=>{const e=document.getElementById(id);return window.VDMultiFilter?VDMultiFilter.values(e):(e?.value?[e.value]:[])};
+ const filters={office:get('wmOffice'),contractor:get('wmContractor'),category:get('wmCategory'),executionStatus:get('wmExecution')};
  const q=String(document.getElementById('wmSearch')?.value||'').trim().toLowerCase();
  return S.meetingRows.filter(r=>{
-   if(filters.office&&String(r.office||'')!==filters.office)return false;
-   if(filters.contractor&&String(r.contractor||'')!==filters.contractor)return false;
-   if(filters.category&&String(r.category||'')!==filters.category)return false;
-   if(filters.executionStatus&&String(r.executionStatus||'')!==filters.executionStatus)return false;
+   if(filters.office.length&&!filters.office.map(String).includes(String(r.office||'')))return false;
+   if(filters.contractor.length&&!filters.contractor.map(String).includes(String(r.contractor||'')))return false;
+   if(filters.category.length&&!filters.category.map(String).includes(String(r.category||'')))return false;
+   if(filters.executionStatus.length&&!filters.executionStatus.map(String).includes(String(r.executionStatus||'')))return false;
    if(q&&!String(r._search||'').includes(q))return false;
    for(const f of Object.values(S.meetingChartFilters||{})){
      if(f&&!meetingRowMatchesInteractiveFilter(r,f))return false;
@@ -807,8 +804,11 @@ function setupInteractiveFilters(defs,rows,isMaster,resetValues){
    const box=document.getElementById('f'+(i+1)), lab=document.getElementById('fl'+(i+1));
    if(!box||!lab)continue;
    const d=defs[i];
+   const keyChanged=!!box.dataset.key&&box.dataset.key!==d?.[0];
 
-   if(resetValues) box.value='';
+   if(resetValues||keyChanged){
+     if(window.VDMultiFilter)VDMultiFilter.clear(box,{silent:true});else box.value='';
+   }
 
    if(!d){
      box.parentElement.style.display='none';
@@ -822,12 +822,20 @@ function setupInteractiveFilters(defs,rows,isMaster,resetValues){
    box.dataset.master=isMaster?'1':'0';
    lab.textContent=d[1];
    syncWorkOrderSearch(box,resetValues);
+   if(window.VDMultiFilter){
+     VDMultiFilter.enhance(box,{selected:resetValues?[]:VDMultiFilter.values(box),allText:'الكل'});
+   }
  }
  rebuildFilterOptions(rows,isMaster);
 }
 
 function syncWorkOrderSearch(select,resetValue){
  const wrap=select.parentElement;
+ if(window.VDMultiFilter){
+   const legacy=wrap.querySelector('.workorder-search-row');
+   if(legacy)legacy.remove();
+   return;
+ }
  let row=wrap.querySelector('.workorder-search-row');
  let input=row?row.querySelector('.workorder-option-search'):null;
  if(select.dataset.key!=='workOrder'){
@@ -877,14 +885,14 @@ function runWorkOrderSearch(select,input){
    return;
  }
  const target=matches[0];
- ['f1','f2','f3','f4','f5','f6'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+ ['f1','f2','f3','f4','f5','f6'].forEach(id=>{const el=document.getElementById(id);if(!el)return;if(window.VDMultiFilter)VDMultiFilter.clear(el,{silent:true});else el.value='';});
  const gs=document.getElementById('globalSearch');if(gs)gs.value='';
  clearChartFilters(S.current);
  const periodClear=document.getElementById('vpsClear');
  const periodBox=document.getElementById('violationPeriodSlicer');
  if(periodClear&&periodBox&&periodBox.style.display!=='none')periodClear.click();
  rebuildFilterOptions(S.raw,false);
- select.value=target;
+ if(window.VDMultiFilter)VDMultiFilter.set(select,[target],{silent:true});else select.value=target;
  input.value=target;
  applyFilters();
  toast(`تم عرض جميع سجلات أمر العمل ${target}`);
@@ -908,15 +916,18 @@ function currentSelections(){
  for(let i=1;i<=6;i++){
    const s=document.getElementById('f'+i);
    if(s.parentElement.style.display==='none'||!s.dataset.key)continue;
-   out[s.dataset.key]=s.value||'';
+   out[s.dataset.key]=window.VDMultiFilter?VDMultiFilter.values(s):(s.value?[s.value]:[]);
  }
  return out;
 }
 
 function rowMatchesSelections(row,selections,skipKey){
- for(const [k,v] of Object.entries(selections)){
-   if(k===skipKey||!v)continue;
-   if(String(row[k]||'')!==v)return false;
+ for(const [k,selected] of Object.entries(selections)){
+   if(k===skipKey)continue;
+   const values=Array.isArray(selected)?selected:(selected?[selected]:[]);
+   if(!values.length)continue;
+   if(window.VDMultiFilter){if(!VDMultiFilter.match(row[k],values))return false;}
+   else if(!values.includes(String(row[k]||'')))return false;
  }
  return true;
 }
@@ -929,7 +940,7 @@ function rebuildFilterOptions(rows,isMaster){
    if(s.parentElement.style.display==='none'||!s.dataset.key)continue;
 
    const key=s.dataset.key;
-   const current=selections[key]||'';
+   const current=Array.isArray(selections[key])?selections[key]:[];
 
    // كل فلتر يعرض فقط القيم الممكنة وفق اختيارات الفلاتر الأخرى
    const compatible=rows.filter(r=>rowMatchesSelections(r,selections,key));
@@ -941,9 +952,10 @@ function rebuildFilterOptions(rows,isMaster){
      o.value=v;o.textContent=v;s.appendChild(o);
    });
 
-   // الحفاظ على الاختيار إذا ما زال صالحًا
-   if(current && options.includes(current)) s.value=current;
-   else if(current) s.value='';
+   // الحفاظ على كل الاختيارات التي ما زالت صالحة بعد تفاعل الفلاتر الأخرى
+   const kept=current.filter(v=>options.includes(v));
+   s.value=kept[0]||'';
+   if(window.VDMultiFilter)VDMultiFilter.refresh(s,{selected:kept,allText:'الكل'});
 
    s._allFilterOptions=Array.from(s.options).map(o=>({value:o.value,text:o.textContent}));
    if(key==='workOrder'){
@@ -959,7 +971,7 @@ function updateFilterVisualState(){
  for(let i=1;i<=6;i++){
    const s=document.getElementById('f'+i);
    const wrap=s.parentElement;
-   const on=!!s.value;
+   const on=window.VDMultiFilter?VDMultiFilter.isActive(s):!!s.value;
    wrap.classList.toggle('active-filter',on);
    if(on)active++;
  }
@@ -3598,7 +3610,7 @@ function buildCorporateViolationsPdf(o){
  const fileTitle=window.VDReportNaming?.build({key:(typeof S!=='undefined'&&S.current)||'safety'})||
    ('VD_Project_Report_General_'+Date.now());
  const penaltyKpi=o.totalPenalty?`<div class="kpi orange"><span>إجمالي الغرامات</span><b>${money(o.totalPenalty)}</b><small>حسب البيانات المفلترة</small></div>`:`<div class="kpi orange"><span>أوامر متكررة المخالفات</span><b>${fmt(o.repeated)}</b><small>أكثر من سجل</small></div>`;
- return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>${esc(fileTitle)}</title><style>@page{size:A4 landscape;margin:8mm 8mm 11mm}*{box-sizing:border-box}html,body{margin:0;padding:0}body{font-family:Tahoma,Arial,sans-serif;color:#f5f9ff;background:#061a31;-webkit-print-color-adjust:exact;print-color-adjust:exact}h1,h2,h3,p{margin:0}.page{position:relative;min-height:185mm;background:radial-gradient(circle at 15% 18%,rgba(0,160,198,.22),transparent 27%),radial-gradient(circle at 88% 8%,rgba(246,162,26,.14),transparent 23%),linear-gradient(135deg,#061a31 0%,#082947 48%,#06385b 100%);padding:0 0 4mm}.page-break{break-after:page;page-break-after:always}.watermark{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0}.watermark img{width:300px;opacity:.055;filter:grayscale(.1)}.page>*{position:relative;z-index:1}.top-stripe{height:7px;background:linear-gradient(90deg,#1c2868 0%,#00a0c6 55%,#f6a21a 100%);margin:-8mm -8mm 8px}.report-header{display:grid;grid-template-columns:105px 1fr 185px;gap:15px;align-items:center;border-bottom:1px solid rgba(255,255,255,.16);padding-bottom:8px}.logo-box{height:72px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.18);border-radius:14px;background:rgba(255,255,255,.96)}.logo-box img{max-width:88px;max-height:64px}.title-wrap{text-align:center}.eyebrow{font-size:7px;color:#58d9ff;letter-spacing:1.3px;font-weight:800}.title-wrap h1{font-size:20px;color:#fff;margin:3px 0}.title-wrap p,.meta{font-size:8px;color:#b8c9df}.company-name{font-size:8px;color:#ffd58f;font-weight:800;margin-top:4px}.meta{line-height:1.8;text-align:left}.meta b{color:#fff}.filters{margin:8px 0 9px;border:1px solid rgba(255,255,255,.14);background:rgba(4,22,42,.55);border-radius:9px;padding:7px 9px;font-size:8px;color:#d8e6f6}.filters b{color:#ffd58f}.section-label{display:flex;align-items:center;gap:7px;margin:9px 0 6px}.section-label i{width:7px;height:7px;border-radius:2px;background:#f6a21a}.section-label h2{font-size:11px;color:#fff}.section-label span{font-size:7px;color:#8fb0cb;margin-right:auto}.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}.kpi,.summary-box,.chart-card{border:1px solid rgba(255,255,255,.13);background:linear-gradient(180deg,rgba(13,50,82,.9),rgba(5,32,58,.92));box-shadow:0 8px 24px rgba(0,0,0,.16)}.kpi{position:relative;overflow:hidden;border-radius:10px;padding:8px 10px;min-height:60px}.kpi:after{content:"";position:absolute;right:0;top:0;bottom:0;width:4px;background:#19b8e6}.kpi.orange:after{background:#f6a21a}.kpi.navy:after{background:#5d78ff}.kpi span{display:block;font-size:7px;color:#b8c9df}.kpi b{display:block;font-size:18px;color:#fff;margin-top:4px}.kpi small{font-size:6.5px;color:#8fb0cb}.summary-grid{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:8px;margin-top:8px}.summary-box{border-radius:10px;padding:8px;min-height:154px}.summary-box h3,.chart-card h3{font-size:8.5px;color:#fff;margin-bottom:7px;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:5px}.bar-row{margin:0 0 5px}.bar-head{display:flex;gap:7px;justify-content:space-between;font-size:6.6px}.bar-head span{max-width:84%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bar-head b{color:#58d9ff}.bar-track{height:4px;background:rgba(255,255,255,.08);border-radius:99px;margin-top:2px;overflow:hidden}.bar-track i{display:block;height:100%;background:linear-gradient(90deg,#1c2868,#19b8e6,#f6a21a);border-radius:99px}.charts-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.chart-card{border-radius:10px;padding:7px;height:82mm;break-inside:avoid}.chart-card img{width:100%;height:69mm;object-fit:contain}.section-head{display:flex;justify-content:space-between;align-items:end;margin:0 0 6px}.section-head h2{font-size:11px;color:#fff}.section-head span{font-size:7px;color:#b8c9df}.table-shell{background:rgba(255,255,255,.97);border-radius:10px;padding:5px;color:#16213f}table{width:100%;border-collapse:collapse;font-size:6.5px;table-layout:fixed;background:#fff}thead{display:table-header-group}th,td{border:1px solid #dfe5ec;padding:3.2px 2.8px;vertical-align:top;word-break:break-word;line-height:1.35}th{background:linear-gradient(180deg,#1c2868,#007fba);color:#fff;font-weight:700}th:first-child,.seq{width:20px;text-align:center}th:nth-last-child(1),.link-cell{width:55px;text-align:center}.link-cell a{display:inline-block;background:#e9f7fb;color:#006d9f;border:1px solid #a9dce9;border-radius:4px;padding:2px 4px;text-decoration:none;font-weight:700;white-space:nowrap}tbody tr:nth-child(even){background:#f6f9fc}tr{page-break-inside:avoid}.footer{position:fixed;bottom:0;left:0;right:0;height:8mm;border-top:1px solid rgba(255,255,255,.12);background:#061a31;display:flex;align-items:center;justify-content:space-between;padding:0 8mm;font-size:6px;color:#9fb4ca;z-index:3}.footer b{color:#fff}.table-note{font-size:6.5px;color:#b8c9df;margin:5px 0 0}.table-note b{color:#58d9ff}</style></head><body><div class="watermark"><img src="${o.logoUrl}"></div><div class="footer"><b>شركة أبعاد الرؤية للاستشارات الهندسية</b><span>${o.reportId}</span><span>تقرير آلي من لوحة المخالفات</span></div><main class="page page-break"><div class="top-stripe"></div><header class="report-header"><div class="logo-box"><img src="${o.logoUrl}"></div><div class="title-wrap"><div class="eyebrow">${o.eyebrow}</div><h1>${esc(o.title)}</h1><p>${esc(o.subtitle)}</p><div class="company-name">شركة أبعاد الرؤية للاستشارات الهندسية</div></div><div class="meta"><b>رقم التقرير:</b> ${o.reportId}<br><b>تاريخ الإنشاء:</b> ${esc(o.today)}<br><b>عدد السجلات:</b> ${fmt(o.rows.length)}</div></header><div class="filters"><b>نطاق التقرير والفلاتر:</b> ${o.appliedFilters}</div><div class="section-label"><i></i><h2>المؤشرات التنفيذية الرئيسية</h2><span>Executive KPIs</span></div><div class="kpis"><div class="kpi orange"><span>إجمالي المخالفات</span><b>${fmt(o.rows.length)}</b><small>حسب النطاق الحالي</small></div><div class="kpi"><span>أوامر العمل الفريدة</span><b>${fmt(o.workOrders)}</b></div><div class="kpi navy"><span>المقاولون</span><b>${fmt(o.contractors)}</b></div><div class="kpi"><span>أنواع أوامر العمل</span><b>${fmt(o.types)}</b></div>${penaltyKpi}</div><div class="section-label"><i></i><h2>ملخصات التصنيف</h2><span>Ranked summaries</span></div><div class="summary-grid">${o.miniBars('أعلى المقاولين بالمخالفات',o.topContractors)}${o.miniBars('أكثر أنواع المخالفات تكرارًا',o.topViolations)}${o.miniBars('أوامر العمل الأكثر تكرارًا',o.topWorkOrders)}</div></main><main class="page page-break"><div class="top-stripe"></div><header class="report-header"><div class="logo-box"><img src="${o.logoUrl}"></div><div class="title-wrap"><div class="eyebrow">VISUAL ANALYTICS</div><h1>التحليلات الرسومية</h1><p>الشارتات تعكس نفس الفلاتر المطبقة على التقرير</p></div><div class="meta"><b>رقم التقرير:</b> ${o.reportId}<br><b>السجلات:</b> ${fmt(o.rows.length)}</div></header><div class="charts-grid">${o.chartCards}</div></main><main class="page"><div class="top-stripe"></div><header class="report-header"><div class="logo-box"><img src="${o.logoUrl}"></div><div class="title-wrap"><div class="eyebrow">DETAILED VIOLATION REGISTER</div><h1>قائمة المخالفات حسب الفلاتر</h1><p>السجل التفصيلي وروابط المخالفات المتاحة</p></div><div class="meta"><b>عدد النتائج:</b> ${fmt(o.rows.length)}<br><b>رقم التقرير:</b> ${o.reportId}</div></header><div class="section-head"><h2>السجل التفصيلي للمخالفات</h2><span>${o.appliedFilters}</span></div><div class="table-shell"><table><thead><tr><th>#</th>${o.listCols.map(x=>`<th>${esc(x[1])}</th>`).join('')}</tr></thead><tbody>${o.tableRows}</tbody></table></div><div class="table-note">يمكن الضغط على <b>فتح المخالفة</b> عند توفر الرابط الأصلي.</div></main><script>window.onload=()=>setTimeout(()=>window.print(),900)<\/script></body></html>`;
+ return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>${esc(fileTitle)}</title><style>@page{size:A4 landscape;margin:8mm 8mm 11mm}*{box-sizing:border-box}html,body{margin:0;padding:0}body{font-family:Tahoma,Arial,sans-serif;color:#f5f9ff;background:#061a31;-webkit-print-color-adjust:exact;print-color-adjust:exact}h1,h2,h3,p{margin:0}.page{position:relative;min-height:185mm;background:radial-gradient(circle at 15% 18%,rgba(0,160,198,.22),transparent 27%),radial-gradient(circle at 88% 8%,rgba(246,162,26,.14),transparent 23%),linear-gradient(135deg,#061a31 0%,#082947 48%,#06385b 100%);padding:0 0 4mm}.page-break{break-after:page;page-break-after:always}.watermark{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0}.watermark img{width:300px;opacity:.055;filter:grayscale(.1)}.page>*{position:relative;z-index:1}.top-stripe{height:7px;background:linear-gradient(90deg,#1c2868 0%,#00a0c6 55%,#f6a21a 100%);margin:-8mm -8mm 8px}.report-header{display:grid;grid-template-columns:105px 1fr 185px;gap:15px;align-items:center;border-bottom:1px solid rgba(255,255,255,.16);padding-bottom:8px}.logo-box{height:72px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.18);border-radius:14px;background:rgba(255,255,255,.96)}.logo-box img{max-width:88px;max-height:64px}.title-wrap{text-align:center}.eyebrow{font-size:7px;color:#58d9ff;letter-spacing:1.3px;font-weight:800}.title-wrap h1{font-size:20px;color:#fff;margin:3px 0}.title-wrap p,.meta{font-size:8px;color:#b8c9df}.company-name{font-size:8px;color:#ffd58f;font-weight:800;margin-top:4px}.file-id{margin-top:4px;color:#9fb4ca;font:700 6.4px Arial,Tahoma,sans-serif;direction:ltr;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.meta{line-height:1.8;text-align:left}.meta b{color:#fff}.filters{margin:8px 0 9px;border:1px solid rgba(255,255,255,.14);background:rgba(4,22,42,.55);border-radius:9px;padding:7px 9px;font-size:8px;color:#d8e6f6}.filters b{color:#ffd58f}.section-label{display:flex;align-items:center;gap:7px;margin:9px 0 6px}.section-label i{width:7px;height:7px;border-radius:2px;background:#f6a21a}.section-label h2{font-size:11px;color:#fff}.section-label span{font-size:7px;color:#8fb0cb;margin-right:auto}.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}.kpi,.summary-box,.chart-card{border:1px solid rgba(255,255,255,.13);background:linear-gradient(180deg,rgba(13,50,82,.9),rgba(5,32,58,.92));box-shadow:0 8px 24px rgba(0,0,0,.16)}.kpi{position:relative;overflow:hidden;border-radius:10px;padding:8px 10px;min-height:60px}.kpi:after{content:"";position:absolute;right:0;top:0;bottom:0;width:4px;background:#19b8e6}.kpi.orange:after{background:#f6a21a}.kpi.navy:after{background:#5d78ff}.kpi span{display:block;font-size:7px;color:#b8c9df}.kpi b{display:block;font-size:18px;color:#fff;margin-top:4px}.kpi small{font-size:6.5px;color:#8fb0cb}.summary-grid{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:8px;margin-top:8px}.summary-box{border-radius:10px;padding:8px;min-height:154px}.summary-box h3,.chart-card h3{font-size:8.5px;color:#fff;margin-bottom:7px;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:5px}.bar-row{margin:0 0 5px}.bar-head{display:flex;gap:7px;justify-content:space-between;font-size:6.6px}.bar-head span{max-width:84%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bar-head b{color:#58d9ff}.bar-track{height:4px;background:rgba(255,255,255,.08);border-radius:99px;margin-top:2px;overflow:hidden}.bar-track i{display:block;height:100%;background:linear-gradient(90deg,#1c2868,#19b8e6,#f6a21a);border-radius:99px}.charts-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.chart-card{border-radius:10px;padding:7px;height:82mm;break-inside:avoid}.chart-card img{width:100%;height:69mm;object-fit:contain}.section-head{display:flex;justify-content:space-between;align-items:end;margin:0 0 6px}.section-head h2{font-size:11px;color:#fff}.section-head span{font-size:7px;color:#b8c9df}.table-shell{background:rgba(255,255,255,.97);border-radius:10px;padding:5px;color:#16213f}table{width:100%;border-collapse:collapse;font-size:6.5px;table-layout:fixed;background:#fff}thead{display:table-header-group}th,td{border:1px solid #dfe5ec;padding:3.2px 2.8px;vertical-align:top;word-break:break-word;line-height:1.35}th{background:linear-gradient(180deg,#1c2868,#007fba);color:#fff;font-weight:700}th:first-child,.seq{width:20px;text-align:center}th:nth-last-child(1),.link-cell{width:55px;text-align:center}.link-cell a{display:inline-block;background:#e9f7fb;color:#006d9f;border:1px solid #a9dce9;border-radius:4px;padding:2px 4px;text-decoration:none;font-weight:700;white-space:nowrap}tbody tr:nth-child(even){background:#f6f9fc}tr{page-break-inside:avoid}.footer{position:fixed;bottom:0;left:0;right:0;height:8mm;border-top:1px solid rgba(255,255,255,.12);background:#061a31;display:flex;align-items:center;justify-content:space-between;padding:0 8mm;font-size:6px;color:#9fb4ca;z-index:3}.footer b{color:#fff}.footer-file{max-width:58%;direction:ltr;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.table-note{font-size:6.5px;color:#b8c9df;margin:5px 0 0}.table-note b{color:#58d9ff}</style></head><body><div class="watermark"><img src="${o.logoUrl}"></div><div class="footer"><b>شركة أبعاد الرؤية للاستشارات الهندسية</b><span class="footer-file">${esc(fileTitle)} • ${o.reportId}</span><span>تقرير آلي من لوحة المخالفات</span></div><main class="page page-break"><div class="top-stripe"></div><header class="report-header"><div class="logo-box"><img src="${o.logoUrl}"></div><div class="title-wrap"><div class="eyebrow">${o.eyebrow}</div><h1>${esc(o.title)}</h1><p>${esc(o.subtitle)}</p><div class="company-name">شركة أبعاد الرؤية للاستشارات الهندسية</div><div class="file-id">${esc(fileTitle)}</div></div><div class="meta"><b>رقم التقرير:</b> ${o.reportId}<br><b>تاريخ الإنشاء:</b> ${esc(o.today)}<br><b>عدد السجلات:</b> ${fmt(o.rows.length)}<br><b>الصفحة:</b> 1 / 3</div></header><div class="filters"><b>نطاق التقرير والفلاتر:</b> ${o.appliedFilters}</div><div class="section-label"><i></i><h2>المؤشرات التنفيذية الرئيسية</h2><span>Executive KPIs</span></div><div class="kpis"><div class="kpi orange"><span>إجمالي المخالفات</span><b>${fmt(o.rows.length)}</b><small>حسب النطاق الحالي</small></div><div class="kpi"><span>أوامر العمل الفريدة</span><b>${fmt(o.workOrders)}</b></div><div class="kpi navy"><span>المقاولون</span><b>${fmt(o.contractors)}</b></div><div class="kpi"><span>أنواع أوامر العمل</span><b>${fmt(o.types)}</b></div>${penaltyKpi}</div><div class="section-label"><i></i><h2>ملخصات التصنيف</h2><span>Ranked summaries</span></div><div class="summary-grid">${o.miniBars('أعلى المقاولين بالمخالفات',o.topContractors)}${o.miniBars('أكثر أنواع المخالفات تكرارًا',o.topViolations)}${o.miniBars('أوامر العمل الأكثر تكرارًا',o.topWorkOrders)}</div></main><main class="page page-break"><div class="top-stripe"></div><header class="report-header"><div class="logo-box"><img src="${o.logoUrl}"></div><div class="title-wrap"><div class="eyebrow">VISUAL ANALYTICS</div><h1>التحليلات الرسومية</h1><p>الشارتات تعكس نفس الفلاتر المطبقة على التقرير</p><div class="file-id">${esc(fileTitle)}</div></div><div class="meta"><b>رقم التقرير:</b> ${o.reportId}<br><b>السجلات:</b> ${fmt(o.rows.length)}<br><b>الصفحة:</b> 2 / 3</div></header><div class="charts-grid">${o.chartCards}</div></main><main class="page"><div class="top-stripe"></div><header class="report-header"><div class="logo-box"><img src="${o.logoUrl}"></div><div class="title-wrap"><div class="eyebrow">DETAILED VIOLATION REGISTER</div><h1>قائمة المخالفات حسب الفلاتر</h1><p>السجل التفصيلي وروابط المخالفات المتاحة</p><div class="file-id">${esc(fileTitle)}</div></div><div class="meta"><b>عدد النتائج:</b> ${fmt(o.rows.length)}<br><b>رقم التقرير:</b> ${o.reportId}<br><b>الصفحة:</b> 3 / 3</div></header><div class="section-head"><h2>السجل التفصيلي للمخالفات</h2><span>${o.appliedFilters}</span></div><div class="table-shell"><table><thead><tr><th>#</th>${o.listCols.map(x=>`<th>${esc(x[1])}</th>`).join('')}</tr></thead><tbody>${o.tableRows}</tbody></table></div><div class="table-note">يمكن الضغط على <b>فتح المخالفة</b> عند توفر الرابط الأصلي.</div></main><script>window.onload=()=>setTimeout(()=>window.print(),900)<\/script></body></html>`;
 }
 
 function exportSafetyReportPdf(){

@@ -23,6 +23,28 @@
     reportsCenter: 'ReportsCenter'
   };
 
+  const ARABIC_MAP = {
+    master: 'تقرير الرئيسية',
+    projects: 'تقرير المشاريع',
+    connections: 'تقرير التوصيلات',
+    permits: 'تقرير التصاريح',
+    assets: 'تقرير الأصول',
+    closures: 'تقرير الإغلاقات',
+    tasks: 'تقرير متابعة أعمال المواقع',
+    emergency: 'تقرير الطوارئ',
+    safety: 'تقرير مخالفات السلامة',
+    executionViolations: 'تقرير مخالفات التنفيذ',
+    minutes: 'تقرير محاضر إثبات الحالة',
+    dataQuality: 'تقرير جودة البيانات',
+    hrStaff: 'تقرير الموارد البشرية للكادر',
+    employeeEvaluation: 'تقرير تقييم مهندسي المواقع',
+    electricityEngineerEvaluation: 'تقرير تقييم مهندسي شركة الكهرباء',
+    wednesdayMeeting: 'تقرير اجتماع الـ PDC',
+    smartThursday: 'تقرير الخميس الذكي',
+    importantLinks: 'تقرير الروابط المهمة',
+    reportsCenter: 'مركز التقارير'
+  };
+
   function pad(n) {
     return String(n).padStart(2, '0');
   }
@@ -84,6 +106,12 @@
     return TYPE_MAP[key] || 'Report';
   }
 
+  function arabicTitle(key = pageKey(), forceScope = '') {
+    const base = ARABIC_MAP[key] || 'تقرير';
+    const reportScope = scope(forceScope || '');
+    return base + (reportScope === 'Filtered' ? ' المفلتر' : ' العام');
+  }
+
   function build(options = {}) {
     const reportKey = options.key || pageKey();
     const type = options.type || reportType(reportKey);
@@ -100,8 +128,10 @@
     currentCity,
     pageKey,
     reportType,
+    arabicTitle,
     scope,
     hasFilters,
-    TYPE_MAP
+    TYPE_MAP,
+    ARABIC_MAP
   };
 })();

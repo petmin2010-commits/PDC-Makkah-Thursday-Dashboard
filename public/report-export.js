@@ -1604,7 +1604,7 @@
             'الموقع','عدد الأيام منذ الإسناد',
             'حالة الأمر وفق متابعة المهندس','تاريخ تركيب المعدة',
             'رقم المعدة','نوع الاختبار','الجهة المنفذة',
-            'المهندس المسؤول عن التركيب'
+            'مهندس الاختبار المشرف'
           ]
         },
         {
@@ -3550,6 +3550,44 @@
     return report;
   }
 
+  function decorateReportIdentity(report, fileTitle, pageKey) {
+    if (!report) return;
+
+    const naming = window.VDReportNaming;
+    const scope = naming?.scope?.() || 'General';
+    const baseArabic = naming?.arabicTitle?.(pageKey, scope) ||
+      ('تقرير ' + (getActivePageName() || 'المشروع') + (scope === 'Filtered' ? ' المفلتر' : ' العام'));
+    const cityText = getBrandInfo().city || '';
+    const cityName = cityText.includes('جدة') ? 'جدة' :
+      cityText.includes('مكة') ? 'مكة' :
+      cityText.replace(/^ب?إدارة كهرباء\s*/,'').trim();
+    const displayTitle = [baseArabic, cityName].filter(Boolean).join(' – ');
+
+    const pages = [...report.querySelectorAll('.vd-report-v2-page')];
+    const total = pages.length || 1;
+
+    pages.forEach((page, index) => {
+      const identity = document.createElement('div');
+      identity.className = 'vd-report-page-identity';
+      identity.innerHTML =
+        '<b>' + escapeHtml(displayTitle) + '</b>' +
+        '<span dir="ltr">' + escapeHtml(fileTitle) + '</span>';
+
+      const sectionHeader = page.querySelector('.vd-report-section-header');
+      const coverTitle = page.querySelector('.vd-report-cover-title');
+
+      if (sectionHeader) sectionHeader.appendChild(identity);
+      else if (coverTitle) coverTitle.appendChild(identity);
+      else page.prepend(identity);
+
+      const stamp = document.createElement('div');
+      stamp.className = 'vd-report-page-stamp';
+      stamp.setAttribute('dir', 'ltr');
+      stamp.textContent = fileTitle + '  |  Page ' + (index + 1) + ' / ' + total;
+      page.appendChild(stamp);
+    });
+  }
+
   function cleanupReport() {
     document.body.classList.remove(
       'vd-report-v2-mode'
@@ -3570,9 +3608,11 @@
     const fallbackCity = (getBrandInfo().city || '').includes('جدة') ? 'Jeddah' :
       (getBrandInfo().city || '').includes('مكة') ? 'Makkah' : 'Project';
     const fallbackType = String(fallbackKey || 'Report').replace(/[^A-Za-z0-9]/g,'') || 'Report';
-
-    document.title = window.VDReportNaming?.build({ key: fallbackKey }) ||
+    const fileTitle = window.VDReportNaming?.build({ key: fallbackKey }) ||
       ['VD', fallbackCity, fallbackType, 'General', Date.now()].join('_');
+
+    decorateReportIdentity(report, fileTitle, fallbackKey);
+    document.title = fileTitle;
 
     document.body.classList.add(
       'vd-report-v2-mode'

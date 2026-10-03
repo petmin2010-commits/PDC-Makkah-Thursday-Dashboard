@@ -144,7 +144,7 @@ function exportLinksReport(preopenedWindow=null){
     }).join('');
 
     const continuation=gi===2
-      ? '<div class="continuation"><span>VISION DIMENSIONS</span><strong>تقرير الروابط المهمة - '+esc(CFG.city)+'</strong><small>دورات التأهيل</small></div>'
+      ? '<div class="continuation"><span>VISION DIMENSIONS</span><strong>تقرير الروابط المهمة - '+esc(CFG.city)+'</strong><small>دورات التأهيل • صفحة 2 / 2</small></div>'
       : '';
 
     return '<section class="report-group '+(gi===2?'page-start':'')+'">'+
@@ -158,6 +158,7 @@ function exportLinksReport(preopenedWindow=null){
   if(!w){alert('يرجى السماح بالنوافذ المنبثقة لتصدير تقرير الروابط.');return;}
   const fileTitle=window.VDReportNaming?.build({key:'importantLinks',city:CFG.city})||
     ('VD_'+(String(CFG.city).includes('جدة')?'Jeddah':'Makkah')+'_ImportantLinks_General_'+Date.now());
+  const arabicTitle=(window.VDReportNaming?.arabicTitle?.('importantLinks')||'تقرير الروابط المهمة العام')+' - '+CFG.city;
 
   w.document.open();
   w.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">'+
@@ -167,26 +168,28 @@ function exportLinksReport(preopenedWindow=null){
     '<style>'+
     '*{box-sizing:border-box}html,body{margin:0;background:#fff;color:#182b42;font-family:Cairo,Tahoma,Arial,sans-serif;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
     'body{padding:18px 22px;font-size:11px}.report-head{position:relative;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:20px 22px;margin-bottom:16px;border:1px solid #dbe4ef;border-radius:18px;background:linear-gradient(135deg,#f7f8fc 0%,#f1f4fa 100%);overflow:hidden}'+
-    '.report-head:before{content:"";position:absolute;inset-inline-start:0;top:0;bottom:0;width:7px;background:linear-gradient(180deg,#6958d9,#4f3aa8)}.brand span{display:block;color:#6958d9;font-size:9px;font-weight:800;letter-spacing:1.1px}.brand h1{margin:4px 0 5px;font-size:25px;line-height:1.35;color:#172d44}.brand p{margin:0;color:#64758a;font-size:10px;font-weight:500}'+
+    '.report-head:before{content:"";position:absolute;inset-inline-start:0;top:0;bottom:0;width:7px;background:linear-gradient(180deg,#6958d9,#4f3aa8)}.brand span{display:block;color:#6958d9;font-size:9px;font-weight:800;letter-spacing:1.1px}.brand h1{margin:4px 0 5px;font-size:25px;line-height:1.35;color:#172d44}.brand p{margin:0;color:#64758a;font-size:10px;font-weight:500}.file-id{margin-top:5px;direction:ltr;text-align:right;color:#6c7685;font:700 8px Arial,Tahoma,sans-serif;letter-spacing:.15px}'+
     '.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;min-width:280px}.meta-box{padding:9px 12px;border:1px solid #dbe4ef;border-radius:12px;background:#fff;text-align:center}.meta-box small{display:block;color:#7c8999;font-size:8px;margin-bottom:2px}.meta-box b{font-size:12px;color:#172d44}.meta-wide{grid-column:1/-1}'+
     '.report-group{margin:0 0 15px}.page-start{break-before:page;page-break-before:always}.continuation{display:flex;align-items:center;gap:12px;padding:10px 13px;margin:0 0 11px;border-radius:12px;background:#f5f4fb;border:1px solid #e2def4}.continuation span{font-size:8px;color:#6958d9;font-weight:800;letter-spacing:.8px}.continuation strong{font-size:12px}.continuation small{margin-inline-start:auto;color:#748094;font-size:9px}'+
     '.group-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:8px;padding:0 2px}.group-head span{display:block;color:#78879a;font-size:8px;font-weight:800;letter-spacing:.7px}.group-head h2{margin:2px 0 0;font-size:15px;color:#172d44}.group-head b{font-size:9px;color:#fff;background:#6958d9;padding:5px 10px;border-radius:999px;white-space:nowrap}'+
     '.cards-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.page-start .cards-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.link-card{display:grid;grid-template-columns:minmax(0,1fr) 78px;gap:8px;align-items:center;min-height:88px;padding:8px 9px;border:1px solid #dce5ef;border-radius:14px;background:#fff;box-shadow:0 3px 10px rgba(29,48,71,.045);break-inside:avoid;page-break-inside:avoid}'+
     '.card-copy{min-width:0}.card-top{display:flex;align-items:flex-start;gap:8px}.card-no{display:grid;place-items:center;flex:0 0 25px;height:25px;border-radius:8px;background:#f0eefb;color:#5d4bc3;font-size:9px;font-weight:800}.card-title{font-size:11.5px;font-weight:800;line-height:1.55;color:#172d44}.card-copy p{margin:4px 0 7px;color:#69798c;font-size:8.5px;font-weight:500;line-height:1.65}'+
     '.open-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:92px;padding:5px 11px;border-radius:8px;background:#176b7a;color:#fff!important;text-decoration:none;font-size:8.5px;font-weight:800;box-shadow:0 3px 7px rgba(23,107,122,.16)}.open-btn span{font-size:10px}.qr-box{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:4px;border-inline-start:1px solid #edf1f6}.qr-box img{display:block;width:72px;height:72px;image-rendering:auto}.qr-box small{font-size:6.8px;color:#7a8797;font-weight:700}.qr-missing{display:grid;place-items:center;width:72px;height:72px;border:1px dashed #c9d2dd;border-radius:8px;color:#93a0ad;font-size:9px}'+
-    '.report-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px;padding-top:7px;border-top:1px solid #e4e9ef;color:#8390a0;font-size:7.5px}.report-foot strong{color:#59687a;font-weight:700}'+
-    '@page{size:A4 landscape;margin:8mm}@media print{body{padding:0}.report-head{break-inside:avoid}.link-card{box-shadow:none}.open-btn{color:#fff!important;text-decoration:none!important}}'+
+    '.report-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px;padding-top:7px;border-top:1px solid #e4e9ef;color:#8390a0;font-size:7.5px}.report-foot strong{color:#59687a;font-weight:700}.print-report-id{display:none}'+
+    '@page{size:A4 landscape;margin:10mm 8mm 12mm}@media print{body{padding:0}.report-head{break-inside:avoid}.link-card{box-shadow:none}.open-btn{color:#fff!important;text-decoration:none!important}.print-report-id{display:block;position:fixed;z-index:999;bottom:2mm;left:8mm;right:8mm;text-align:center;direction:ltr;color:#788494;font:700 7px Arial,Tahoma,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}'+
     '</style></head><body>'+
     '<header class="report-head">'+
-      '<div class="brand"><span>VISION DIMENSIONS • IMPORTANT LINKS REPORT</span><h1>تقرير الروابط المهمة - '+esc(CFG.city)+'</h1><p>وصول موحد وسريع إلى الروابط التشغيلية ودورات التأهيل المعتمدة بالمشروع.</p></div>'+
+      '<div class="brand"><span>VISION DIMENSIONS • IMPORTANT LINKS REPORT</span><h1>'+esc(arabicTitle)+'</h1><p>وصول موحد وسريع إلى الروابط التشغيلية ودورات التأهيل المعتمدة بالمشروع.</p><div class="file-id">'+esc(fileTitle)+'</div></div>'+
       '<div class="meta">'+
         '<div class="meta-box"><small>رقم العقد</small><b>'+esc(CFG.contract)+'</b></div>'+
         '<div class="meta-box"><small>إجمالي الروابط</small><b>'+total+' رابط</b></div>'+
-        '<div class="meta-box meta-wide"><small>تاريخ إصدار التقرير</small><b>'+esc(generated)+'</b></div>'+
+        '<div class="meta-box"><small>تاريخ إصدار التقرير</small><b>'+esc(generated)+'</b></div>'+
+        '<div class="meta-box"><small>الصفحة</small><b>1 / 2</b></div>'+
       '</div>'+
     '</header>'+
     sections+
     '<footer class="report-foot"><strong>شركة أبعاد الرؤية للاستشارات الهندسية</strong><span>QR + رابط مباشر لكل مورد</span></footer>'+
+    '<div class="print-report-id">'+esc(fileTitle)+'</div>'+
     '</body></html>');
   w.document.close();
 

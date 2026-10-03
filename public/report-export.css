@@ -26,6 +26,10 @@ body.vd-report-v2-mode #vdReportV2{display:block!important}
 .vd-report-section-header h2:before{content:"";position:absolute;left:50%;top:14mm;width:4mm;height:4mm;background:#f2a31b;transform:translateX(-50%) rotate(45deg)}
 .vd-report-section-header span{display:block;color:#6e737b;font-size:10px;font-weight:700;letter-spacing:.8px;margin-bottom:2mm}
 .vd-report-section-header p{margin:2mm 0 0;color:#6d7480;font-size:9px}
+.vd-report-page-identity{display:flex;flex-direction:column;align-items:center;gap:.5mm;margin-top:1.8mm;text-align:center}
+.vd-report-page-identity b{color:#172b5f;font-size:8px;font-weight:900;line-height:1.35}
+.vd-report-page-identity span{display:block;max-width:100%;color:#6f7885;font-family:Arial,Tahoma,sans-serif;font-size:6.6px;font-weight:700;letter-spacing:.15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vd-report-page-stamp{position:absolute!important;z-index:5!important;bottom:7mm;right:26mm;left:26mm;text-align:center;color:#7c8490;font-family:Arial,Tahoma,sans-serif;font-size:5.9px;font-weight:700;letter-spacing:.1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vd-report-section-body{margin-top:4mm}
 .vd-report-footer{position:absolute;z-index:3;bottom:3mm;right:9mm;left:9mm;display:flex;justify-content:space-between;align-items:center;color:#777f8b;font-size:7px}
 .vd-report-cover{padding-top:7mm}
