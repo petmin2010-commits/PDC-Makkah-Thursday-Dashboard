@@ -107,7 +107,7 @@ function installSmartSectionTabs(){
 function installUi(){
  if(el('smartCenterPage'))return;
  const nav=el('nav');if(!nav)return;
- const adminLabel=[...nav.children].find(x=>x.classList?.contains('nav-section-label')&&clean(x.textContent)==='اداريات');
+ const adminLabel=[...nav.children].find(x=>x.classList?.contains('nav-section-label')&&clean(x.textContent)==='المتابعة الادارية');
  const reportsLabel=[...nav.children].find(x=>x.classList?.contains('nav-section-label')&&clean(x.textContent)==='التقارير');
  const label=document.createElement('div');label.className='nav-section-label smart-center-label';label.textContent='التحليل الذكي و التقارير';
  const btn=document.createElement('button');btn.type='button';btn.id='smartCenterNav';btn.className='nav-item';btn.innerHTML='🧠 <span>مركز التحليل الذكي</span>';
