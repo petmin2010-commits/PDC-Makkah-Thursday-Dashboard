@@ -13,6 +13,8 @@ function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;',
 function isDone(v){return norm(v)==='تم التنفيذ'||norm(v)==='منجز'}
 function isDelayed(v){const s=norm(v);return !!s&&!s.includes('ضمن المده')&&!s.includes('اوشك')&&(s.includes('تاخير')||s.includes('متاخر'))}
 function containsAny(v,arr){const s=norm(v);return arr.some(x=>s.includes(norm(x)))}
+function mfValues(id){const x=el(id);return window.VDMultiFilter?VDMultiFilter.values(x):(x?.value?[x.value]:[])}
+function mfMatch(v,s){return window.VDMultiFilter?VDMultiFilter.match(v,s):(!s||!s.length||s.includes(v))}
 function rpc(method,args=[]){return fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({method,args})}).then(async r=>{const x=await r.json().catch(()=>({}));if(!r.ok||x.ok===false)throw new Error(x.error||('HTTP '+r.status));return x.result})}
 function projectIdentity(){
  const brand=clean(document.querySelector('.brand-copy strong')?.textContent)||clean(document.title);
@@ -260,20 +262,32 @@ function bindInvestigationRoom(){
  el('irRefresh').onclick=async()=>{el('irLoading').style.display='flex';el('irContent').style.display='none';await loadSmartCenter(true);renderInvestigationRoom()};
  el('irPhenomenon').onchange=renderInvestigationRoom;el('irPeriod').onchange=renderInvestigationRoom;
 }
+function smartFilterValues(id){
+ const node=el(id);if(!node)return[];
+ return window.VDMultiFilter?VDMultiFilter.values(node):(node.value?[node.value]:[]);
+}
+function smartFilterMatch(value,selection){
+ const values=Array.isArray(selection)?selection:(selection?[selection]:[]);
+ return !values.length||values.includes(String(value??''));
+}
+function smartFilterEnhance(id,selected){
+ const node=el(id);if(!node||node.tagName!=='SELECT'||!window.VDMultiFilter)return;
+ VDMultiFilter.enhance(node,{selected:selected===undefined?VDMultiFilter.values(node):selected,allText:'الكل'});
+}
+function smartFilterClear(id,opt={silent:true}){
+ const node=el(id);if(!node)return;
+ if(window.VDMultiFilter)VDMultiFilter.clear(node,opt);else node.value='';
+}
 function bindExplainableDecision(){
  el('xdRefresh').onclick=async()=>{el('xdLoading').style.display='flex';el('xdContent').style.display='none';await loadSmartCenter(true);renderExplainableDecision()};
  const runSearch=()=>renderDecisionCases();
  el('xdSearchBtn').onclick=runSearch;
  el('xdSearch').oninput=renderDecisionCases;
  el('xdSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();runSearch()}});
- el('xdPriority').onchange=renderDecisionCases;
- el('xdConfidence').onchange=renderDecisionCases;
- el('xdSource').onchange=renderDecisionCases;
+ ['xdPriority','xdConfidence','xdSource'].forEach(id=>{const x=el(id);if(!x)return;if(window.VDMultiFilter)VDMultiFilter.enhance(x,{allText:'الكل'});x.onchange=renderDecisionCases});
  el('xdClear').onclick=()=>{
   el('xdSearch').value='';
-  el('xdPriority').value='';
-  el('xdConfidence').value='';
-  el('xdSource').value='';
+  ['xdPriority','xdConfidence','xdSource'].forEach(id=>{const x=el(id);if(!x)return;if(window.VDMultiFilter)VDMultiFilter.clear(x,{silent:true});else x.value=''});
   renderDecisionCases();
  };
 }
@@ -870,20 +884,20 @@ function renderExplainableDecision(){
  if(!SC.loaded)return;const loading=el('xdLoading'),root=el('xdContent');if(loading)loading.style.display='none';if(root)root.style.display='block';SC.decisionCases=xdBuildCases();
  const all=SC.decisionCases,high=all.filter(x=>x.priority==='high').length,multi=all.filter(x=>x.sourceKeys.length>=2).length,highConfidence=all.filter(x=>x.confidence>=75).length,top=all[0];
  el('xdKpis').innerHTML=[['حالات تحتاج متابعة',all.length,'بها دليل مباشر واحد على الأقل'],['أولوية مرتفعة',high,'نقاط أولوية ≥ 50'],['متعددة المصادر',multi,'مرتبطة بمصدرين أو أكثر'],['ثقة تغطية عالية',highConfidence,'تغطية ≥ 75%'],['أعلى حالة',top?top.workOrder:'—',top?('نقاط '+top.score+' • ثقة '+top.confidence+'%'):'لا توجد حالات']].map(x=>'<article><span>'+esc(x[0])+'</span><strong>'+esc(x[1])+'</strong><small>'+esc(x[2])+'</small></article>').join('');
- const source=el('xdSource');if(source){const current=source.value;const keys=[...new Set(all.flatMap(c=>c.sourceKeys))].sort((a,b)=>(PAGE_TITLES[a]||a).localeCompare(PAGE_TITLES[b]||b,'ar'));source.innerHTML='<option value="">كل مصادر القرار</option>'+keys.map(k=>'<option value="'+esc(k)+'">'+esc(PAGE_TITLES[k]||k)+'</option>').join('');if(keys.includes(current))source.value=current}
+ const source=el('xdSource');if(source){const current=mfValues('xdSource');const keys=[...new Set(all.flatMap(c=>c.sourceKeys))].sort((a,b)=>(PAGE_TITLES[a]||a).localeCompare(PAGE_TITLES[b]||b,'ar'));source.innerHTML='<option value="">كل مصادر القرار</option>'+keys.map(k=>'<option value="'+esc(k)+'">'+esc(PAGE_TITLES[k]||k)+'</option>').join('');const kept=current.filter(v=>keys.includes(v));if(window.VDMultiFilter)VDMultiFilter.refresh(source,{selected:kept,allText:'كل مصادر القرار'});else source.value=kept[0]||''}
  renderDecisionCases();
 }
-function xdConfidenceMatch(c,f){if(!f)return true;if(f==='high')return c.confidence>=75;if(f==='medium')return c.confidence>=50&&c.confidence<75;if(f==='low')return c.confidence<50;return true}
+function xdConfidenceMatch(c,f){const vals=Array.isArray(f)?f:(f?[f]:[]);if(!vals.length)return true;return vals.some(x=>x==='high'?c.confidence>=75:x==='medium'?c.confidence>=50&&c.confidence<75:x==='low'?c.confidence<50:true)}
 function renderDecisionCases(){
  if(!Array.isArray(SC.decisionCases))SC.decisionCases=xdBuildCases();
- const searchRaw=clean(el('xdSearch')&&el('xdSearch').value),q=norm(searchRaw),p=el('xdPriority')&&el('xdPriority').value,cf=el('xdConfidence')&&el('xdConfidence').value,src=el('xdSource')&&el('xdSource').value;
- const cases=SC.decisionCases.filter(c=>{if(p&&c.priority!==p)return false;if(!xdConfidenceMatch(c,cf))return false;if(src&&!c.sourceKeys.includes(src))return false;
+ const searchRaw=clean(el('xdSearch')&&el('xdSearch').value),q=norm(searchRaw),p=mfValues('xdPriority'),cf=mfValues('xdConfidence'),src=mfValues('xdSource');
+ const cases=SC.decisionCases.filter(c=>{if(p.length&&!p.includes(c.priority))return false;if(!xdConfidenceMatch(c,cf))return false;if(src.length&&!src.some(x=>c.sourceKeys.includes(x)))return false;
   if(!q)return true;const hay=[c.workOrder,c.contractor,c.engineer,c.region,...c.reasons.flatMap(r=>[r.label,r.detail,r.action,r.source]),...c.qualityFlags.flatMap(x=>[x.label,x.detail])].join(' ');return norm(hay).includes(q)}).slice(0,80);
  const count=el('xdFilterCount'),hint=el('xdFilterHint'),clearBtn=el('xdClear'),active=[];
  if(searchRaw)active.push('بحث: '+searchRaw);
- if(p)active.push('الأولوية: '+({high:'مرتفعة',medium:'متوسطة',watch:'مراقبة'}[p]||p));
- if(cf)active.push('الثقة: '+({high:'عالية',medium:'متوسطة',low:'محدودة'}[cf]||cf));
- if(src){const opt=el('xdSource')?.selectedOptions?.[0];active.push('المصدر: '+(opt?.textContent||src))}
+ if(p.length)active.push('الأولوية: '+p.map(x=>({high:'مرتفعة',medium:'متوسطة',watch:'مراقبة'}[x]||x)).join('، '));
+ if(cf.length)active.push('الثقة: '+cf.map(x=>({high:'عالية',medium:'متوسطة',low:'محدودة'}[x]||x)).join('، '));
+ if(src.length)active.push('المصدر: '+src.map(x=>PAGE_TITLES[x]||x).join('، '))
  if(count)count.textContent=cases.length.toLocaleString('ar-SA')+' حالة';
  if(hint)hint.textContent=active.length?active.join(' • '):'كل الحالات بدون فلترة';
  if(clearBtn){clearBtn.disabled=!active.length;clearBtn.classList.toggle('is-active',!!active.length)}
@@ -923,24 +937,26 @@ function openDecision360(ci){
 }
 
 function bindExceptionTools(){
- const cats=[...new Set(SC.issues.map(x=>x.category).filter(Boolean))].sort();
- el('scCategory').innerHTML='<option value="">كل الأنواع</option>'+cats.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
- el('scSeverity').onchange=renderExceptions;el('scCategory').onchange=renderExceptions;
+ const cats=[...new Set(SC.issues.map(x=>x.category).filter(Boolean))].sort(),catEl=el('scCategory'),sevEl=el('scSeverity');
+ const current=mfValues('scCategory');
+ catEl.innerHTML='<option value="">كل الأنواع</option>'+cats.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
+ if(window.VDMultiFilter){VDMultiFilter.refresh(catEl,{selected:current.filter(v=>cats.includes(v)),allText:'كل الأنواع'});VDMultiFilter.enhance(sevEl,{allText:'كل درجات الأهمية'})}
+ catEl.onchange=renderExceptions;sevEl.onchange=renderExceptions;
  let t;el('scIssueSearch').oninput=()=>{clearTimeout(t);t=setTimeout(renderExceptions,130)};
- const clear=el('scChartFilterClear');if(clear)clear.onclick=()=>{SC.cross={contractor:'',pageKey:''};if(el('scCategory'))el('scCategory').value='';renderExceptions()};
+ const clear=el('scChartFilterClear');if(clear)clear.onclick=()=>{SC.cross={contractor:'',pageKey:''};if(window.VDMultiFilter)VDMultiFilter.clear(catEl,{silent:true});else catEl.value='';renderExceptions()};
 }
 function filteredIssues(){
- const sev=el('scSeverity')?.value||'',cat=el('scCategory')?.value||'',q=norm(el('scIssueSearch')?.value||'');
+ const sev=mfValues('scSeverity'),cat=mfValues('scCategory'),q=norm(el('scIssueSearch')?.value||'');
  return SC.issues.filter(x=>{
-  if(sev&&x.severity!==sev)return false;if(cat&&x.category!==cat)return false;
+  if(sev.length&&!sev.includes(x.severity))return false;if(cat.length&&!cat.includes(x.category))return false;
   if(SC.cross.contractor&&clean(x.contractor)!==clean(SC.cross.contractor))return false;
   if(SC.cross.pageKey&&x.pageKey!==SC.cross.pageKey)return false;
   if(!q)return true;return norm([x.title,x.detail,x.id,x.contractor,x.engineer,x.section,PAGE_TITLES[x.pageKey]].join(' ')).includes(q);
  });
 }
 function syncSmartChartFilterBadge(){
- const badge=el('scChartFilterBadge'),clear=el('scChartFilterClear'),cat=el('scCategory')?.value||'';
- const parts=[];if(SC.cross.pageKey)parts.push(PAGE_TITLES[SC.cross.pageKey]||SC.cross.pageKey);if(SC.cross.contractor)parts.push(SC.cross.contractor);if(cat)parts.push(cat);
+ const badge=el('scChartFilterBadge'),clear=el('scChartFilterClear'),cat=mfValues('scCategory');
+ const parts=[];if(SC.cross.pageKey)parts.push(PAGE_TITLES[SC.cross.pageKey]||SC.cross.pageKey);if(SC.cross.contractor)parts.push(SC.cross.contractor);if(cat.length)parts.push(cat.join('، '));
  if(badge){badge.style.display=parts.length?'inline-flex':'none';badge.textContent=parts.length?'فلتر الشارت: '+parts.join(' • '):''}
  if(clear)clear.style.display=parts.length?'inline-flex':'none';
 }
@@ -959,7 +975,7 @@ function openIssueSource(issue){
 function destroyChart(id){try{SC.charts[id]?.destroy()}catch(e){}delete SC.charts[id]}
 function smartChartClick(id,label){
  if(id==='scQualityChart'){const q=SC.quality.find(x=>clean(x.title)===clean(label));if(q){SC.cross.pageKey=SC.cross.pageKey===q.pageKey?'':q.pageKey;renderExceptions()}return}
- if(id==='scIssueChart'){const c=el('scCategory');if(c){c.value=c.value===label?'':label;renderExceptions()}return}
+ if(id==='scIssueChart'){const c=el('scCategory');if(c){if(window.VDMultiFilter){const cur=VDMultiFilter.values(c);VDMultiFilter.set(c,cur.length===1&&cur[0]===label?[]:[label],{silent:true})}else c.value=c.value===label?'':label;renderExceptions()}return}
  if(id==='scContractorChart'){SC.cross.contractor=SC.cross.contractor===label?'':label;renderExceptions()}
 }
 function barChart(id,labels,data,horizontal=false,max=100){
