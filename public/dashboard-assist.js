@@ -25,10 +25,10 @@ function source(){
  if(p==='minutes')return 'Google Sheet — ورقة «🚫محاضر مخالفة اثبات الحالة»';
  return m&&m.sheet?'Google Sheet — ورقة «'+m.sheet+'»':'مصدر بيانات التاب الحالي من Google Sheets';
 }
-function title(el){const q=el&&el.querySelector?el.querySelector(':scope > .panel-title h3,:scope > .panel-head .panel-title h3,:scope > span,:scope > h3,.panel-title h3'):null;return clean((q&&q.textContent)||(el&&el.getAttribute&&el.getAttribute('aria-label'))||'الكائن')}
+function title(el){const q=el&&el.querySelector?el.querySelector(':scope > .panel-title h3,:scope > .panel-head .panel-title h3,:scope > span,:scope > h3,:scope > div > span,.panel-title h3'):null;return clean((q&&q.textContent)||(el&&el.getAttribute&&el.getAttribute('aria-label'))||'الكائن')}
 function hint(el){const q=el&&el.querySelector?el.querySelector(':scope > .panel-title span,:scope > .panel-head .panel-title span,:scope > small,.panel-title span'):null;const a=clean(q&&q.textContent),c=el&&el.querySelector?el.querySelector('canvas'):null;return[a,a&&c&&c.id?'معرّف الشارت: '+c.id:(c&&c.id?'معرّف الشارت: '+c.id:'')].filter(Boolean).join(' — ')}
 function kind(el){
- if(el.matches&&el.matches('.master-card,.mini-kpi,.kpi-story-card,.meeting-summary-card,.hr-kpi,.pa-card,.ca-card,.pe-card,.sf-card,.me-card,.emergency-kpi-card'))return'card';
+ if(el.matches&&el.matches('.master-card,.mini-kpi,.kpi-story-card,.meeting-summary-card,.hr-kpi,.ee-kpi,.eee-kpi,.eee-section-card,.permit-delay-card,.pa-card,.ca-card,.pe-card,.sf-card,.me-card,.emergency-kpi-card'))return'card';
  if(el.querySelector&&el.querySelector('canvas'))return'chart';
  if(el.querySelector&&el.querySelector('table,.table-wrap'))return'table';
  return'panel';
@@ -147,9 +147,10 @@ function canvas(c){
 }
 function meetCard(l){const m={'تم التنفيذ':'completed','أُنجز التنفيذ':'completed','متأخر تنفيذ':'delayed','قيد التنفيذ ضمن المدة':'within','متأخر إغلاق':'closure'};if(l.includes('إجمالي أوامر العمل')){S.meetingChartFilters={};renderWednesdayMeeting();return true}if(m[l]){S.meetingChartFilters['card-'+l]={mode:m[l],label:l};renderWednesdayMeeting();return true}if(l.includes('مستندات لم')){S.meetingChartFilters['card-docs']={field:'docsSubStatus',value:'لم تُسلّم من المقاول',mode:'contains',label:l};renderWednesdayMeeting();return true}return false}
 function cardAct(c){
- const l=title(c);if(!l)return;if(page()==='hrStaff'&&window.HRDashboard){window.HRDashboard.filterFromCard(l);return}if(page()==='wednesdayMeeting'&&meetCard(l))return;
+ const l=title(c);if(!l)return;const pg=page();if(pg==='hrStaff'&&window.HRDashboard){window.HRDashboard.filterFromCard(l);return}if(pg==='employeeEvaluation'&&window.EmployeeEvaluationDashboard?.filterFromCard){window.EmployeeEvaluationDashboard.filterFromCard(l);return}if(pg==='electricityEngineerEvaluation'&&window.ElectricityEngineerEvaluationDashboard?.filterFromCard){window.ElectricityEngineerEvaluationDashboard.filterFromCard(l);return}if(pg==='wednesdayMeeting'&&meetCard(l))return;
  if(/إجمالي|المجموع الكلي/.test(l)){try{clearChartFilters(page());run()}catch(e){}return}
  const a=rows(),has=k=>a.some(r=>Object.prototype.hasOwnProperty.call(r,k)),ex=(f,v,m)=>{if(has(f))toggleChartFilter('card-'+l,f,v==null?l:v,f,m||'exact',l)};
+ if(pg==='permits'&&c.matches('.permit-delay-card')){const pf=has('permitStatus')?'permitStatus':(has('permit')?'permit':'');const ef=has('evaluation')?'evaluation':'';const n=v=>clean(v).normalize('NFKD').replace(/[\u064B-\u065F\u0670]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').toLowerCase();const vals=(f,test)=>[...new Set(a.map(r=>clean(r[f])).filter(v=>v&&test(n(v))))];if(l.includes('تتطلب تصريح')&&!l.includes('لا تتطلب')&&pf){setF('card-'+l,{field:pf,values:vals(pf,s=>s&&!s.includes('لا يتطلب')),value:l,label:l,mode:'in-list',displayValue:l});return}if(l.includes('لا تتطلب تصريح')&&pf){setF('card-'+l,{field:pf,values:vals(pf,s=>s.includes('لا يتطلب')),value:l,label:l,mode:'in-list',displayValue:l});return}if(l.includes('غير محدد حالة التصريح')&&pf){setF('card-'+l,{field:pf,value:'',label:l,mode:'blank',displayValue:l});return}if(ef&&l==='غير متأخر'){setF('card-'+l,{field:ef,values:vals(ef,s=>s.includes('غير متاخر')),value:l,label:l,mode:'in-list',displayValue:l});return}if(ef&&l.includes('متأخر (3')){setF('card-'+l,{field:ef,values:vals(ef,s=>s.includes('متاخر')&&!s.includes('جدا')&&(s.includes('3')||s.includes('٣'))),value:l,label:l,mode:'in-list',displayValue:l});return}if(ef&&(l.includes('متأخر جدا')||l.includes('متأخر جدًا'))){setF('card-'+l,{field:ef,values:vals(ef,s=>s.includes('متاخر')&&s.includes('جدا')&&(s.includes('6')||s.includes('٦'))),value:l,label:l,mode:'in-list',displayValue:l});return}}
  if(l==='تم التنفيذ'||l==='لم يتم التنفيذ'||l.includes('موقوف')){const f=has('executionStatus')?'executionStatus':'status';ex(f,l.includes('موقوف')?'موقوف/محول':l,'contains');return}
  if(['منجز','جاري التنفيذ','لم يتم البدء'].includes(l)){ex('status',l);return}
  if(l.includes('بدون مسؤول')||l.includes('بدون مهندس')){setF('card-'+l,{field:has('engineer')?'engineer':'supervisor',value:'',label:l,mode:'blank',displayValue:l});return}
@@ -172,7 +173,7 @@ function card(c){
  c.addEventListener('click',e=>{if(e.target.closest('.vd-universal-info,.calc-help-btn,a,button,select,input'))return;cardAct(c)});
  c.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();cardAct(c)}});
 }
-function bind(){const p=document.querySelector('.page.active');if(!p)return;p.querySelectorAll('canvas').forEach(canvas);p.querySelectorAll('.master-card,.mini-kpi,.kpi-story-card,.meeting-summary-card,.hr-kpi,.pa-card,.ca-card,.pe-card,.sf-card,.me-card,.emergency-kpi-card').forEach(card)}
+function bind(){const p=document.querySelector('.page.active');if(!p)return;p.querySelectorAll('canvas').forEach(canvas);p.querySelectorAll('.master-card,.mini-kpi,.kpi-story-card,.meeting-summary-card,.hr-kpi,.ee-kpi,.eee-kpi,.eee-section-card,.permit-delay-card,.pa-card,.ca-card,.pe-card,.sf-card,.me-card,.emergency-kpi-card').forEach(card)}
 function pulse(){decorate();bind()}
 document.addEventListener('DOMContentLoaded',()=>{modal();pulse();const o=new MutationObserver(()=>requestAnimationFrame(pulse));o.observe(document.body,{childList:true,subtree:true});setInterval(pulse,1200)});
 })();

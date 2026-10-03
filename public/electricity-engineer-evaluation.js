@@ -9,7 +9,7 @@ const pct=(a,b)=>b?Math.round(a/b*10000)/100:100;
 const avg=a=>a.length?Math.round(a.reduce((s,x)=>s+x,0)/a.length*10)/10:0;
 const unique=a=>[...new Set(a.map(clean).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar'));
 const num=v=>{const n=Number(clean(v).replace('%','').replace(',','.').replace(/[^\d.-]/g,''));return Number.isFinite(n)?n:null};
-const state={data:null,loaded:false,charts:{},cross:{component:'',issue:''},filters:{engineer:'الكل',section:'الكل',contractor:'الكل',from:'',to:'',search:''}};
+const state={data:null,loaded:false,charts:{},cross:{component:'',issue:'',stale:''},filters:{engineer:'الكل',section:'الكل',contractor:'الكل',from:'',to:'',search:''}};
 const SECTION_LABELS={projects:'المشاريع',connections:'التوصيلات',assets:'الأصول'};
 const isDelayed=v=>{const s=norm(v);return !!s&&!s.includes('ضمن المده')&&!s.includes('اوشك')&&(s.includes('تاخير')||s.includes('متاخر'))};
 function progress(v){let n=num(v);if(n==null)return null;if(n<=1)n*=100;return Math.max(0,Math.min(100,n))}
@@ -64,6 +64,12 @@ function agentProblem(r){
  const c=norm(x.classification),days=Number(x.daysSinceSubstantive);
  return c==='ضعيف'||c==='شكلي'||c.includes('مشتبه')||(Number.isFinite(days)&&days>=3);
 }
+function agentStale(r){
+ if(r._section==='assets')return false;
+ const current=Array.isArray(state.data?.adviceIntelligence?.currentOrders)?state.data.adviceIntelligence.currentOrders:[];
+ const x=current.find(z=>clean(z.workOrder)===clean(r.workOrder)&&(!clean(z.engineer)||clean(z.engineer)===clean(r.engineer)));
+ return !!x&&Number(x.daysSinceSubstantive)>=3;
+}
 function filteredRows(skipEngineer=false){
  const f=state.filters,q=norm(f.search),from=f.from?new Date(f.from+'T00:00:00'):null,to=f.to?new Date(f.to+'T23:59:59'):null;
  return allRows().filter(r=>{
@@ -75,9 +81,11 @@ function filteredRows(skipEngineer=false){
   if(q&&!norm([r.engineer,r.workOrder,r.contractor,r.location,r.stage,r.executionStatus,r.advice,r.notes].join(' ')).includes(q))return false;
   if(state.cross.issue){
     const want=state.cross.issue;
-    if(want.startsWith('ذكي: ')){if(!smartAudit(r._section,r).issues.includes(want.slice(5)))return false}
+    if(want==='__ANY__'){if(!evaluateRow(r._section,r).issues.length&&!smartAudit(r._section,r).issues.length)return false}
+    else if(want.startsWith('ذكي: ')){if(!smartAudit(r._section,r).issues.includes(want.slice(5)))return false}
     else if(!evaluateRow(r._section,r).issues.includes(want))return false;
   }
+  if(state.cross.stale==='3+'&&!agentStale(r))return false;
   if(state.cross.component==='جودة البيانات'&&evaluateRow(r._section,r).score>=100)return false;
   if(state.cross.component==='التدقيق الذكي'&&(smartAudit(r._section,r).score??100)>=100)return false;
   if(state.cross.component==='تقييم الوكيل'&&!agentProblem(r))return false;
@@ -202,7 +210,7 @@ function render(){
  '<label><span>السكشن</span><select id="eeeSection"><option value="الكل">الكل</option><option value="projects"'+(f.section==='projects'?' selected':'')+'>المشاريع</option><option value="connections"'+(f.section==='connections'?' selected':'')+'>التوصيلات</option><option value="assets"'+(f.section==='assets'?' selected':'')+'>الأصول</option></select></label>'+
  '<label><span>المقاول</span><select id="eeeContractor">'+optionList(contractors,f.contractor)+'</select></label>'+
  '<label><span>من تاريخ</span><input id="eeeFrom" type="date" value="'+esc(f.from)+'"></label><label><span>إلى تاريخ</span><input id="eeeTo" type="date" value="'+esc(f.to)+'"></label>'+
- '<label class="wide"><span>بحث</span><input id="eeeSearch" value="'+esc(f.search)+'" placeholder="أمر عمل، مقاول، موقع، حالة، إفادة..."></label></div><div class="eee-actions"><button id="eeeReset" class="ghost-btn">مسح الفلاتر</button><button id="eeeRefresh" class="primary-btn">↻ تحديث البيانات</button><strong>'+rows.length+' سجل مطابق</strong>'+((state.cross.component||state.cross.issue)?'<span>تفاعلي: '+esc([state.cross.component,state.cross.issue].filter(Boolean).join(' • '))+'</span>':'')+'</div></section>'+
+ '<label class="wide"><span>بحث</span><input id="eeeSearch" value="'+esc(f.search)+'" placeholder="أمر عمل، مقاول، موقع، حالة، إفادة..."></label></div><div class="eee-actions"><button id="eeeReset" class="ghost-btn">مسح الفلاتر</button><button id="eeeRefresh" class="primary-btn">↻ تحديث البيانات</button><strong>'+rows.length+' سجل مطابق</strong>'+((state.cross.component||state.cross.issue||state.cross.stale)?'<span>تفاعلي: '+esc([state.cross.component,state.cross.issue==='__ANY__'?'ملاحظات الجودة':state.cross.issue,state.cross.stale==='3+'?'دون متابعة جوهرية 3+ أيام':''].filter(Boolean).join(' • '))+'</span>':'')+'</div></section>'+
  '<div class="eee-kpis">'+cards.join('')+'</div><section class="eee-section-grid">'+sectionCards(summary,rows,state.filters.engineer)+'</section>'+
  '<section class="eee-analysis-grid"><article class="panel"><div class="panel-title"><span>SCORE COMPONENTS</span><h3>مكونات التقييم</h3></div><div class="eee-canvas"><canvas id="eeeComponentChart"></canvas></div></article>'+
  '<article class="panel"><div class="panel-title"><span>SECTION SCORE</span><h3>التقييم المركب حسب السكشن</h3></div><div class="eee-canvas"><canvas id="eeeSectionQuality"></canvas></div></article>'+
@@ -221,13 +229,23 @@ window.ElectricityEngineerEvaluationDashboard={
   if(id==='eeeIssuesChart'){state.cross.issue=state.cross.issue===label?'':label;render();return true}
   return false;
  },
- clearInteractive(){state.cross={component:'',issue:''};render()}
+ filterFromCard(label){
+  const t=clean(label);if(!t)return false;
+  if(t==='التقييم النهائي'||t==='أوامر العمل'){state.cross={component:'',issue:'',stale:''};render();return true}
+  const sectionKey=Object.keys(SECTION_LABELS).find(k=>SECTION_LABELS[k]===t);if(sectionKey){state.filters.section=state.filters.section===sectionKey?'الكل':sectionKey;render();return true}
+  if(t==='جودة البيانات'||t==='التدقيق الذكي'||t==='متوسط الإنجاز'){state.cross.component=state.cross.component===t?'':t;render();return true}
+  if(t==='تقييم وكيل الإفادات'){const v='تقييم الوكيل';state.cross.component=state.cross.component===v?'':v;render();return true}
+  if(t==='ملاحظات الجودة'){state.cross.issue=state.cross.issue==='__ANY__'?'':'__ANY__';render();return true}
+  if(t.includes('دون متابعة جوهرية')){state.cross.stale=state.cross.stale==='3+'?'':'3+';render();return true}
+  return false;
+ },
+ clearInteractive(){state.cross={component:'',issue:'',stale:''};render()}
 };
 function bind(){
  const bindSel=(id,key)=>{const el=document.getElementById(id);if(el)el.onchange=()=>{state.filters[key]=el.value;render()}};
  bindSel('eeeEngineer','engineer');bindSel('eeeSection','section');bindSel('eeeContractor','contractor');bindSel('eeeFrom','from');bindSel('eeeTo','to');
  const q=document.getElementById('eeeSearch');if(q){let timer;q.oninput=()=>{clearTimeout(timer);timer=setTimeout(()=>{state.filters.search=q.value;render()},180)}}
- document.getElementById('eeeReset')?.addEventListener('click',()=>{state.filters={engineer:'الكل',section:'الكل',contractor:'الكل',from:'',to:'',search:''};state.cross={component:'',issue:''};render()});
+ document.getElementById('eeeReset')?.addEventListener('click',()=>{state.filters={engineer:'الكل',section:'الكل',contractor:'الكل',from:'',to:'',search:''};state.cross={component:'',issue:'',stale:''};render()});
  document.getElementById('eeeRefresh')?.addEventListener('click',()=>load(true));
  document.querySelectorAll('[data-eee-engineer]').forEach(b=>b.onclick=()=>{state.filters.engineer=b.dataset.eeeEngineer;render();root()?.scrollIntoView({behavior:'smooth',block:'start'})});
 }

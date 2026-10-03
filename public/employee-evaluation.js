@@ -7,7 +7,7 @@ const pct=(a,b)=>b?Math.round(a/b*1000)/10:0, avg=a=>a.length?Math.round(a.reduc
 const unique=a=>[...new Set(a.map(clean).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar'));
 const num=v=>{const s=clean(v).replace(/[٠-٩]/g,d=>'0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]).replace(/[۰-۹]/g,d=>'0123456789'['۰۱۲۳۴۵۶۷۸۹'.indexOf(d)]).replace(/,/g,'');const n=Number(s.replace(/[^\d.-]/g,''));return Number.isFinite(n)?Math.max(0,n):0};
 const safetySummary=rows=>{const total=rows.reduce((s,r)=>s+num(r.safetyViolations),0),tasks=rows.length,withViolations=rows.filter(r=>num(r.safetyViolations)>0).length;return {total:Math.round(total*10)/10,tasks,withViolations,per100:tasks?Math.round(total/tasks*1000)/10:0,interventionPct:tasks?Math.round(withViolations/tasks*1000)/10:0}};
-const state={rows:[],available:{},updatedAt:'',sheet:'',loaded:false,charts:{},cross:{band:'',metric:''},filters:{engineer:'الكل',contractor:'الكل',workType:'الكل',owner:'الكل',from:'',to:'',search:''}};
+const state={rows:[],available:{},updatedAt:'',sheet:'',loaded:false,charts:{},cross:{band:'',metric:'',safety:''},filters:{engineer:'الكل',contractor:'الكل',workType:'الكل',owner:'الكل',from:'',to:'',search:''}};
 const metricDefs=[
  {key:'advice',label:'اكتمال الإفادات',source:'T',avail:a=>a.advice,score:r=>{const s=norm(r.advice);return s&&!/لا ?يوجد.*افاد|لا ?توجد.*افاد/.test(s)?100:0}},
  {key:'attachments',label:'اكتمال المرفقات',source:'V/W',avail:a=>a.attachments,score:r=>docScore(r.attachments,r.attachmentsFix)},
@@ -23,7 +23,7 @@ function docScore(v,fix){if(isDone(v))return 100;const f=norm(fix);return f&&f.i
 function electronicScore(r){const s=clean(r.safetyElectronicRate),n=Number(s.replace(',','.'));if(s&&Number.isFinite(n))return Math.max(0,Math.min(100,n));const z=norm(s);if(z.includes('تم المعالجه'))return 100;if(z.includes('لم يتم'))return 0;return docScore(r.safetyElectronic,r.safetyElectronicFix)}
 function metrics(){return metricDefs.filter(m=>m.avail(state.available||{}))}
 function parseTaskDate(v){const s=clean(v);if(!s)return null;let m=s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);if(m)return new Date(+m[1],+m[2]-1,+m[3]);m=s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/);if(!m)return null;const a=+m[1],b=+m[2],y=+m[3];return a>12?new Date(y,b-1,a):b>12?new Date(y,a-1,b):new Date(y,a-1,b)}
-function filtered(skipEngineer=false){const f=state.filters,q=norm(f.search),from=f.from?new Date(f.from+'T00:00:00'):null,to=f.to?new Date(f.to+'T23:59:59'):null;let out=state.rows.filter(r=>{if(!skipEngineer&&f.engineer!=='الكل'&&r.engineer!==f.engineer)return false;if(f.contractor!=='الكل'&&r.contractor!==f.contractor)return false;if(f.workType!=='الكل'&&r.workType!==f.workType)return false;if(f.owner!=='الكل'&&r.owner!==f.owner)return false;const d=parseTaskDate(r.taskDate);if(from&&(!d||d<from))return false;if(to&&(!d||d>to))return false;if(q&&!norm([r.engineer,r.workOrder,r.contractor,r.description,r.location,r.advice].join(' ')).includes(q))return false;return true});if(state.cross.metric){const m=metrics().find(x=>x.label===state.cross.metric);if(m)out=out.filter(r=>m.score(r)<100)}if(state.cross.band){const allowed=new Set(engineerStats(out).filter(x=>band(x.overall)===state.cross.band).map(x=>x.name));out=out.filter(r=>allowed.has(clean(r.engineer)))}return out}
+function filtered(skipEngineer=false){const f=state.filters,q=norm(f.search),from=f.from?new Date(f.from+'T00:00:00'):null,to=f.to?new Date(f.to+'T23:59:59'):null;let out=state.rows.filter(r=>{if(!skipEngineer&&f.engineer!=='الكل'&&r.engineer!==f.engineer)return false;if(f.contractor!=='الكل'&&r.contractor!==f.contractor)return false;if(f.workType!=='الكل'&&r.workType!==f.workType)return false;if(f.owner!=='الكل'&&r.owner!==f.owner)return false;const d=parseTaskDate(r.taskDate);if(from&&(!d||d<from))return false;if(to&&(!d||d>to))return false;if(q&&!norm([r.engineer,r.workOrder,r.contractor,r.description,r.location,r.advice].join(' ')).includes(q))return false;return true});if(state.cross.metric){const m=metrics().find(x=>x.label===state.cross.metric);if(m)out=out.filter(r=>m.score(r)<100)}if(state.cross.safety==='with')out=out.filter(r=>num(r.safetyViolations)>0);if(state.cross.band){const allowed=new Set(engineerStats(out).filter(x=>band(x.overall)===state.cross.band).map(x=>x.name));out=out.filter(r=>allowed.has(clean(r.engineer)))}return out}
 function metricAvg(rows,m){return rows.length?avg(rows.map(m.score)):0}
 function rowScore(r){const ms=metrics();return ms.length?avg(ms.map(m=>m.score(r))):0}
 function engineerStats(rows){const map=new Map();rows.forEach(r=>{const k=clean(r.engineer)||'غير محدد';if(!map.has(k))map.set(k,[]);map.get(k).push(r)});return [...map].map(([name,rs])=>{const values={};metrics().forEach(m=>values[m.key]=metricAvg(rs,m));const safety=safetySummary(rs);return {name,tasks:rs.length,overall:metrics().length?avg(metrics().map(m=>values[m.key])):0,values,safety,rows:rs}}).sort((a,b)=>b.overall-a.overall||b.tasks-a.tasks)}
@@ -48,7 +48,7 @@ function renderShell(rows,stats,benchmarkRows){
  '<label><span>الجهة</span><select id="eeOwner">'+optionList(state.rows.map(r=>r.owner),f.owner)+'</select></label>'+
  '<label><span>من تاريخ</span><input id="eeFrom" type="date" value="'+esc(f.from)+'"></label><label><span>إلى تاريخ</span><input id="eeTo" type="date" value="'+esc(f.to)+'"></label>'+
  '<label class="ee-search"><span>بحث شامل</span><input id="eeSearch" value="'+esc(f.search)+'" placeholder="مهندس، أمر عمل، مقاول، إفادة..."></label></div>'+
- '<div class="ee-actions"><button id="eeReset" class="ghost-btn">مسح الفلاتر</button><button id="eeRefresh" class="primary-btn">↻ تحديث البيانات</button><strong>'+rows.length+' مهمة مطابقة</strong>'+((state.cross.band||state.cross.metric)?'<span>تفاعلي: '+esc([state.cross.band,state.cross.metric].filter(Boolean).join(' • '))+'</span>':'')+'</div></section>'+
+ '<div class="ee-actions"><button id="eeReset" class="ghost-btn">مسح الفلاتر</button><button id="eeRefresh" class="primary-btn">↻ تحديث البيانات</button><strong>'+rows.length+' مهمة مطابقة</strong>'+((state.cross.band||state.cross.metric||state.cross.safety)?'<span>تفاعلي: '+esc([state.cross.band,state.cross.metric,state.cross.safety==='with'?'بها مخالفات سلامة':''].filter(Boolean).join(' • '))+'</span>':'')+'</div></section>'+
  '<section class="ee-section-head"><div><span>PERFORMANCE KPIs</span><h3>مؤشرات تقييم مهندسي المواقع</h3></div></section><div class="ee-kpis">'+cards.join('')+'</div>'+
  '<div class="ee-charts"><article class="panel ee-chart wide"><div class="panel-title"><span>ENGINEER RANKING</span><h3>التقييم الإجمالي حسب المهندس</h3></div><div class="ee-canvas"><canvas id="eeRankingChart"></canvas></div></article>'+
  '<article class="panel ee-chart"><div class="panel-title"><span>METRICS</span><h3>متوسط المؤشرات</h3></div><div class="ee-canvas"><canvas id="eeMetricChart"></canvas></div></article>'+
@@ -68,13 +68,21 @@ window.EmployeeEvaluationDashboard={
   if(id==='eeMetricChart'){state.cross.metric=state.cross.metric===label?'':label;render();return true}
   return false;
  },
- clearInteractive(){state.cross={band:'',metric:''};render()}
+ filterFromCard(label){
+  const t=clean(label);if(!t)return false;
+  if(t==='مهندسو المواقع'||t==='إجمالي المهام'){state.cross={band:'',metric:'',safety:''};render();return true}
+  if(t==='متوسط التقييم'){const rs=filtered(),ms=metrics(),overall=ms.length?avg(ms.map(m=>metricAvg(rs,m))):0,b=band(overall);state.cross.band=state.cross.band===b?'':b;render();return true}
+  if(t.includes('الرقابة وفرض متطلبات السلامة')){state.cross.safety=state.cross.safety==='with'?'':'with';render();return true}
+  const m=metrics().find(x=>x.label===t);if(m){state.cross.metric=state.cross.metric===t?'':t;render();return true}
+  return false;
+ },
+ clearInteractive(){state.cross={band:'',metric:'',safety:''};render()}
 };
 function bind(){
  const bindSel=(id,key)=>{const el=document.getElementById(id);if(el)el.onchange=()=>{state.filters[key]=el.value;render()}};
  bindSel('eeEngineer','engineer');bindSel('eeContractor','contractor');bindSel('eeWorkType','workType');bindSel('eeOwner','owner');bindSel('eeFrom','from');bindSel('eeTo','to');
  const q=document.getElementById('eeSearch');if(q){let timer;q.oninput=()=>{clearTimeout(timer);timer=setTimeout(()=>{state.filters.search=q.value;render()},180)}}
- document.getElementById('eeReset')?.addEventListener('click',()=>{state.filters={engineer:'الكل',contractor:'الكل',workType:'الكل',owner:'الكل',from:'',to:'',search:''};state.cross={band:'',metric:''};render()});
+ document.getElementById('eeReset')?.addEventListener('click',()=>{state.filters={engineer:'الكل',contractor:'الكل',workType:'الكل',owner:'الكل',from:'',to:'',search:''};state.cross={band:'',metric:'',safety:''};render()});
  document.getElementById('eeRefresh')?.addEventListener('click',()=>load(true));
  document.querySelectorAll('[data-ee-engineer]').forEach(b=>b.onclick=()=>{state.filters.engineer=b.dataset.eeEngineer;render();document.getElementById('employeeEvaluationRoot')?.scrollIntoView({behavior:'smooth',block:'start'})});
 }
