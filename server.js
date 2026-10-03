@@ -2344,6 +2344,18 @@ app.get('/api/health',(req,res)=>res.json({
   indexExists:fs.existsSync(INDEX_FILE)
 }));
 
+require('./excel-export-server')({
+  app,
+  requireAuth_,
+  getSheets,
+  SPREADSHEET_ID,
+  USERS_SHEET,
+  qSheet,
+  clean_,
+  APP,
+  DateTime
+});
+
 app.get('/api/hr/staff',requireAuth_,async(req,res)=>{
   try{
     const result=await getHrStaffData_();

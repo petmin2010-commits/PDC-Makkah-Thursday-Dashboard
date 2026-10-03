@@ -197,22 +197,30 @@ function openPage(key){
  S.current=key;
  const isMeeting=key==='wednesdayMeeting';
  const isReportsCenter=key==='reportsCenter';
+ const isExcelExport=key==='excelExport';
  renderChartFilterSummary();
  document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.page===key));
  document.getElementById('masterPage').classList.toggle('active',key==='master');
  document.getElementById('meetingPage').classList.toggle('active',isMeeting);
  document.getElementById('reportsCenterPage')?.classList.toggle('active',isReportsCenter);
- document.getElementById('dataPage').classList.toggle('active',key!=='master'&&!isMeeting&&!isReportsCenter);
+ document.getElementById('excelExportPage')?.classList.toggle('active',isExcelExport);
+ document.getElementById('dataPage').classList.toggle('active',key!=='master'&&!isMeeting&&!isReportsCenter&&!isExcelExport);
  document.body.classList.toggle('vd-reports-center-active',isReportsCenter);
+ document.body.classList.toggle('vd-excel-export-active',isExcelExport);
  const filterBar=document.getElementById('filterBar');
  if(filterBar){
    filterBar.classList.toggle('meeting-filter-hidden',isMeeting);
-   filterBar.style.display=isReportsCenter?'none':'';
+   filterBar.style.display=(isReportsCenter||isExcelExport)?'none':'';
  }
 
  if(isReportsCenter){
    document.getElementById('pageTitle').textContent='مركز التقارير';
    if(typeof window.renderReportsCenter==='function')window.renderReportsCenter();
+   return;
+ }
+ if(isExcelExport){
+   document.getElementById('pageTitle').textContent='تصدير تقرير اكسيل';
+   if(typeof window.renderExcelExportTool==='function')window.renderExcelExportTool();
    return;
  }
  if(key==='master'){

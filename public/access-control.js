@@ -143,7 +143,7 @@ function wrapOpenPage(){
     minutes:'محاضر مخالفة إثبات الحالة',dataQuality:'جودة البيانات',hrStaff:'الموارد البشرية للكادر',
     employeeEvaluation:'تقييم مهندسي المواقع',electricityEngineerEvaluation:'تقييم مهندسي شركة الكهرباء',
     wednesdayMeeting:'اجتماع الـ PDC',smartThursday:'تقرير الخميس الذكي',
-    reportsCenter:'مركز التقارير',importantLinks:'الروابط المهمة'
+    reportsCenter:'مركز التقارير',importantLinks:'الروابط المهمة',excelExport:'تصدير تقرير اكسيل'
   };
   const wrapped=function(key){
     const label=pageLabels[key];

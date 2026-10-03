@@ -24,7 +24,8 @@
     ['اجتماع الـ PDC','PDC Meeting'],
     ['تقرير الخميس الذكي','Smart Thursday Report'],
     ['مركز التقارير','Report Center'],
-    ['الروابط المهمة','Important Links']
+    ['الروابط المهمة','Important Links'],
+    ['تصدير تقرير اكسيل','Export Excel Report']
   ];  PAIRS.push(
     ['بحث في الصفحة الحالية...','Search current page...'],
     ['بحث','Search'],
