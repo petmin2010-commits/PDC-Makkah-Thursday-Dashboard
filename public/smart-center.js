@@ -175,11 +175,11 @@ function explainableDecisionMarkup(){return `
  </article>
  <article class="xd-tools" aria-label="بحث وتصفية حالات القرار">
   <div class="xd-search-field">
-   <span class="xd-search-icon" aria-hidden="true">⌕</span>
    <div class="xd-search-body">
     <label for="xdSearch">بحث سريع في حالات المتابعة</label>
     <input id="xdSearch" type="search" autocomplete="off" placeholder="أمر العمل، المقاول، المهندس، السبب أو الإجراء...">
    </div>
+   <button id="xdSearchBtn" class="xd-search-btn" type="button"><span aria-hidden="true">⌕</span> بحث</button>
   </div>
   <label class="xd-filter-field"><span>مستوى الأولوية</span><select id="xdPriority"><option value="">كل مستويات الأولوية</option><option value="high">مرتفعة</option><option value="medium">متوسطة</option><option value="watch">مراقبة</option></select></label>
   <label class="xd-filter-field"><span>ثقة التغطية</span><select id="xdConfidence"><option value="">كل مستويات ثقة التغطية</option><option value="high">ثقة عالية ≥ 75%</option><option value="medium">ثقة متوسطة 50–74%</option><option value="low">ثقة محدودة &lt; 50%</option></select></label>
@@ -257,7 +257,10 @@ function bindInvestigationRoom(){
 }
 function bindExplainableDecision(){
  el('xdRefresh').onclick=async()=>{el('xdLoading').style.display='flex';el('xdContent').style.display='none';await loadSmartCenter(true);renderExplainableDecision()};
+ const runSearch=()=>renderDecisionCases();
+ el('xdSearchBtn').onclick=runSearch;
  el('xdSearch').oninput=renderDecisionCases;
+ el('xdSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();runSearch()}});
  el('xdPriority').onchange=renderDecisionCases;
  el('xdConfidence').onchange=renderDecisionCases;
  el('xdSource').onchange=renderDecisionCases;
