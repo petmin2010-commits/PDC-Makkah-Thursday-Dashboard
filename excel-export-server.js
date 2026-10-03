@@ -78,7 +78,7 @@ function installExcelExportRoutes(ctx){
     const permissions=Array.isArray(req.session?.user?.permissions)?req.session.user.permissions:[];
     const keys=new Set(permissions.map(normPerm));
     const all=[...keys].some(v=>['*','all',normPerm('الكل'),normPerm('جميع الصفحات'),normPerm('كامل الصلاحيات')].includes(v));
-    const allowed=all||keys.has(normPerm('مركز التقارير'))||keys.has(normPerm('تصدير تقرير اكسيل'));
+    const allowed=all||keys.has(normPerm('تصدير تقرير اكسيل'));
     if(allowed)return next();
     return res.status(403).json({ok:false,error:'لا توجد صلاحية لتصدير تقارير Excel'});
   }

@@ -41,12 +41,7 @@ function labelOf(el){
 
 function canLabel(label){
   if(state.all)return true;
-  const key=canon(label);
-  if(state.allow.has(key))return true;
-  if(key===canon('تصدير تقرير اكسيل')){
-    return state.allow.has(canon('مركز التقارير'));
-  }
-  return false;
+  return state.allow.has(canon(label));
 }
 
 function canElement(el){
