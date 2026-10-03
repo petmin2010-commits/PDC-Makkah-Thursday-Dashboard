@@ -3351,3 +3351,20 @@ body.vd-sidebar-collapsed .vd-sidebar-toggle{
 #nav .nav-item[data-page="employeeEvaluation"]::before{content:"★"!important}
 #nav .nav-item[data-page="electricityEngineerEvaluation"]::before{content:"◈"!important}
 #nav .nav-item[data-page="wednesdayMeeting"]::before{content:"▥"!important}
+
+/* Sidebar toggle visibility refinement — 2026-10-03 */
+.vd-sidebar-toggle{
+  top:66px!important;
+  width:29px!important;
+  height:34px!important;
+}
+.topbar .search{
+  width:290px;
+}
+@media(max-width:850px){
+  .vd-sidebar-toggle{
+    top:64px!important;
+    width:28px!important;
+    height:33px!important;
+  }
+}
