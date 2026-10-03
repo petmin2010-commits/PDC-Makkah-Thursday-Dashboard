@@ -26,6 +26,36 @@ const HR_SPREADSHEET_ID = process.env.HR_SPREADSHEET_ID || '1a2K0fPOlwBPvwOHKFmm
 const HR_SHEET = 'الكادر الفعلي والمعتمد حسب المصفوفة';
 const memoryCache = new Map();
 const valuesInFlight = new Map();
+const valuesCache = new Map();
+const VALUES_CACHE_TTL_MS = 20 * 1000;
+const VALUES_STALE_MAX_MS = 5 * 60 * 1000;
+function getCachedValues_(key){
+  const hit=valuesCache.get(key);
+  if(!hit)return null;
+  const age=Date.now()-hit.at;
+  if(age>VALUES_STALE_MAX_MS){valuesCache.delete(key);return null}
+  if(age>VALUES_CACHE_TTL_MS)return null;
+  return hit.values;
+}
+function getStaleValues_(key){
+  const hit=valuesCache.get(key);
+  if(!hit)return null;
+  if(Date.now()-hit.at>VALUES_STALE_MAX_MS){valuesCache.delete(key);return null}
+  return hit.values;
+}
+function isSheetsQuotaError_(error){
+  const code=Number(error?.code||error?.response?.status||0);
+  const msg=String(error?.message||error?.response?.data?.error?.message||'');
+  return code===429||/quota exceeded|read requests per minute/i.test(msg);
+}
+function setCachedValues_(key,values){
+  if(valuesCache.size>120){
+    const oldest=[...valuesCache.entries()].sort((a,b)=>a[1].at-b[1].at).slice(0,30);
+    oldest.forEach(([k])=>valuesCache.delete(k));
+  }
+  valuesCache.set(key,{at:Date.now(),values});
+  return values;
+}
 
 /* ==========================================
    PDC Dashboard Authentication
@@ -227,22 +257,54 @@ function assertConfig(){
 function qSheet(name){ return `'${String(name).replace(/'/g,"''")}'`; }
 
 async function valuesGet(range){
-  assertConfig();
-  const sheets=await getSheets();
-  const r=await sheets.spreadsheets.values.get({spreadsheetId:SPREADSHEET_ID, range, valueRenderOption:'FORMATTED_VALUE'});
-  return r.data.values || [];
+  const key=SPREADSHEET_ID+'|'+range;
+  const cached=getCachedValues_(key);
+  if(cached)return cached;
+  if(valuesInFlight.has(key))return valuesInFlight.get(key);
+  const pending=(async()=>{
+    try{
+      assertConfig();
+      const sheets=await getSheets();
+      const r=await sheets.spreadsheets.values.get({
+        spreadsheetId:SPREADSHEET_ID,
+        range,
+        valueRenderOption:'FORMATTED_VALUE'
+      });
+      return setCachedValues_(key,r.data.values||[]);
+    }catch(error){
+      const stale=getStaleValues_(key);
+      if(stale&&isSheetsQuotaError_(error))return stale;
+      throw error;
+    }
+  })();
+  valuesInFlight.set(key,pending);
+  try{return await pending}
+  finally{valuesInFlight.delete(key)}
 }
 
 async function valuesGetFrom_(spreadsheetId,range){
   const key=spreadsheetId+'|'+range;
+  const cached=getCachedValues_(key);
+  if(cached)return cached;
   if(valuesInFlight.has(key))return valuesInFlight.get(key);
   const pending=(async()=>{
-    const sheets=await getSheets();
-    const r=await sheets.spreadsheets.values.get({spreadsheetId,range,valueRenderOption:'FORMATTED_VALUE'});
-    return r.data.values||[];
+    try{
+      const sheets=await getSheets();
+      const r=await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range,
+        valueRenderOption:'FORMATTED_VALUE'
+      });
+      return setCachedValues_(key,r.data.values||[]);
+    }catch(error){
+      const stale=getStaleValues_(key);
+      if(stale&&isSheetsQuotaError_(error))return stale;
+      throw error;
+    }
   })();
   valuesInFlight.set(key,pending);
-  try{return await pending}finally{valuesInFlight.delete(key)}
+  try{return await pending}
+  finally{valuesInFlight.delete(key)}
 }
 
 const SMART_HISTORY_SHEET='Dashboard History';
@@ -2348,6 +2410,7 @@ require('./excel-export-server')({
   app,
   requireAuth_,
   getSheets,
+  valuesGet,
   SPREADSHEET_ID,
   USERS_SHEET,
   qSheet,

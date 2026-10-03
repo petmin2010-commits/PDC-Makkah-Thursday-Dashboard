@@ -71,7 +71,7 @@ function buildXlsx(rows,sheetName){
   return Buffer.from(zipped);
 }
 function installExcelExportRoutes(ctx){
-  const {app,requireAuth_,getSheets,SPREADSHEET_ID,USERS_SHEET,qSheet,clean_,APP,DateTime}=ctx;
+  const {app,requireAuth_,getSheets,valuesGet,SPREADSHEET_ID,USERS_SHEET,qSheet,clean_,APP,DateTime}=ctx;
   const blocked=new Set([String(USERS_SHEET||'').toLowerCase(),'dashboard history','vd thursday progress']);
   const normPerm=value=>String(value??'').normalize('NFKC').replace(/[\u064B-\u065F\u0670]/g,'').replace(/ـ/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/[^\p{L}\p{N}]+/gu,' ').replace(/\s+/g,' ').trim().toLowerCase();
   function requireExcelAccess(req,res,next){
@@ -83,61 +83,108 @@ function installExcelExportRoutes(ctx){
     return res.status(403).json({ok:false,error:'لا توجد صلاحية لتصدير تقارير Excel'});
   }
 
-  async function allowedSheets(){
-    const sheets=await getSheets();
-    const meta=await sheets.spreadsheets.get({
-      spreadsheetId:SPREADSHEET_ID,
-      fields:'properties(title),sheets.properties(title,sheetType,hidden,gridProperties(rowCount,columnCount))'
-    });
-    return {
-      spreadsheetTitle:clean_(meta.data.properties?.title)||APP.TITLE,
-      sheets:(meta.data.sheets||[]).map(s=>s.properties||{})
-        .filter(p=>p.sheetType==='GRID'&&!p.hidden&&!blocked.has(clean_(p.title).toLowerCase()))
-        .map(p=>({title:p.title,rowCount:Number(p.gridProperties?.rowCount||0),columnCount:Number(p.gridProperties?.columnCount||0)}))
-    };
+  const CATALOG_TTL_MS=10*60*1000;
+  let catalogCache=null;
+  let catalogInFlight=null;
+
+  function quotaExceeded(error){
+    const code=Number(error?.code||error?.response?.status||0);
+    const msg=String(error?.message||error?.response?.data?.error?.message||'');
+    return code===429||/quota exceeded|read requests per minute/i.test(msg);
   }
 
-  async function columnsFor(sheetName){
-    const meta=await allowedSheets();
-    if(!meta.sheets.some(s=>s.title===sheetName))throw new Error('الورقة غير متاحة للتصدير.');
-    const sheets=await getSheets();
-    const r=await sheets.spreadsheets.values.get({
-      spreadsheetId:SPREADSHEET_ID,
-      range:qSheet(sheetName)+'!1:12',
-      valueRenderOption:'FORMATTED_VALUE',
-      dateTimeRenderOption:'FORMATTED_STRING'
-    });
-    const sample=r.data.values||[];
-    const maxFilled=Math.max(0,...sample.map(row=>row.filter(v=>clean_(v)!=='').length));
+  function parseHeader(sample){
+    const rows=Array.isArray(sample)?sample:[];
+    const maxFilled=Math.max(0,...rows.map(row=>(row||[]).filter(v=>clean_(v)!=='').length));
     const threshold=Math.max(1,Math.ceil(maxFilled*.5));
-    let headerRowIndex=sample.findIndex(row=>row.filter(v=>clean_(v)!=='').length>=threshold);
+    let headerRowIndex=rows.findIndex(row=>(row||[]).filter(v=>clean_(v)!=='').length>=threshold);
     if(headerRowIndex<0)headerRowIndex=0;
-    const header=sample[headerRowIndex]||[];
+    const header=rows[headerRowIndex]||[];
     const columns=[];
     header.forEach((v,i)=>{
       const label=clean_(v);
       if(label)columns.push({index:i,letter:colLetter(i+1),label});
     });
-    return {sheet:sheetName,headerRow:headerRowIndex+1,columns};
+    return {headerRow:headerRowIndex+1,columns};
+  }
+
+  async function buildCatalog(){
+    const sheets=await getSheets();
+    const meta=await sheets.spreadsheets.get({
+      spreadsheetId:SPREADSHEET_ID,
+      fields:'properties(title),sheets.properties(title,sheetType,hidden,gridProperties(rowCount,columnCount))'
+    });
+    const defs=(meta.data.sheets||[]).map(s=>s.properties||{})
+      .filter(p=>p.sheetType==='GRID'&&!p.hidden&&!blocked.has(clean_(p.title).toLowerCase()));
+
+    let valueRanges=[];
+    if(defs.length){
+      const batch=await sheets.spreadsheets.values.batchGet({
+        spreadsheetId:SPREADSHEET_ID,
+        ranges:defs.map(p=>qSheet(p.title)+'!1:12'),
+        valueRenderOption:'FORMATTED_VALUE',
+        dateTimeRenderOption:'FORMATTED_STRING'
+      });
+      valueRanges=batch.data.valueRanges||[];
+    }
+
+    return {
+      spreadsheetTitle:clean_(meta.data.properties?.title)||APP.TITLE,
+      sheets:defs.map((p,i)=>{
+        const parsed=parseHeader(valueRanges[i]?.values||[]);
+        return {
+          title:p.title,
+          rowCount:Number(p.gridProperties?.rowCount||0),
+          columnCount:Number(p.gridProperties?.columnCount||0),
+          headerRow:parsed.headerRow,
+          columns:parsed.columns
+        };
+      }),
+      cachedAt:Date.now()
+    };
+  }
+
+  async function catalog(force=false){
+    const now=Date.now();
+    if(!force&&catalogCache&&now-catalogCache.cachedAt<CATALOG_TTL_MS)return catalogCache;
+    if(catalogInFlight)return catalogInFlight;
+    catalogInFlight=(async()=>{
+      try{
+        const fresh=await buildCatalog();
+        catalogCache=fresh;
+        return fresh;
+      }catch(error){
+        if(catalogCache)return {...catalogCache,stale:true};
+        if(quotaExceeded(error)){
+          const e=new Error('تم بلوغ حد قراءة Google Sheets مؤقتًا. حاول مرة أخرى بعد نحو دقيقة.');
+          e.code=429;
+          throw e;
+        }
+        throw error;
+      }finally{
+        catalogInFlight=null;
+      }
+    })();
+    return catalogInFlight;
+  }
+
+  async function columnsFor(sheetName){
+    const meta=await catalog(false);
+    const found=meta.sheets.find(s=>s.title===sheetName);
+    if(!found)throw new Error('الورقة غير متاحة للتصدير.');
+    return {sheet:sheetName,headerRow:found.headerRow||1,columns:found.columns||[]};
   }
 
   async function workbookFor(sheetName,columnIndexes,headerRow){
-    const meta=await allowedSheets();
+    const meta=catalogCache||await catalog(false);
     if(!meta.sheets.some(s=>s.title===sheetName))throw new Error('الورقة غير متاحة للتصدير.');
     const cols=[...new Set((Array.isArray(columnIndexes)?columnIndexes:[])
       .map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<2000))].sort((a,b)=>a-b);
     if(!cols.length)throw new Error('اختر عمودًا واحدًا على الأقل.');
     const startRow=Math.max(1,Math.min(100,Number(headerRow)||1));
     const min=Math.min(...cols),max=Math.max(...cols);
-    const sheets=await getSheets();
     const range=qSheet(sheetName)+'!'+colLetter(min+1)+startRow+':'+colLetter(max+1);
-    const r=await sheets.spreadsheets.values.get({
-      spreadsheetId:SPREADSHEET_ID,
-      range,
-      valueRenderOption:'FORMATTED_VALUE',
-      dateTimeRenderOption:'FORMATTED_STRING'
-    });
-    const raw=r.data.values||[];
+    const raw=await valuesGet(range);
     const picked=raw.map(row=>cols.map(idx=>row[idx-min]??''));
     while(picked.length>1&&picked[picked.length-1].every(v=>clean_(v)===''))picked.pop();
     return buildXlsx(picked,sheetName);
@@ -145,11 +192,11 @@ function installExcelExportRoutes(ctx){
 
   app.get('/api/excel-export/sheets',requireAuth_,requireExcelAccess,async(req,res)=>{
     try{
-      res.set('Cache-Control','no-store');
-      res.json({ok:true,...await allowedSheets()});
+      res.set('Cache-Control','private, max-age=60');
+      res.json({ok:true,...await catalog(false)});
     }catch(e){
       console.error(e);
-      res.status(500).json({ok:false,error:e.message||String(e)});
+      res.status(Number(e?.code)===429?429:500).json({ok:false,error:e.message||String(e)});
     }
   });
 
