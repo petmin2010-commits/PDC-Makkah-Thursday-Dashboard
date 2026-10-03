@@ -113,10 +113,10 @@
 #vdUnifiedControls .vd-preview-btn:hover{background:#eaf3ff!important;border-color:#2878e8!important}
 #vdUnifiedControls #vdUnifiedReportAction{display:flex!important;height:auto!important;margin:0!important;padding:0!important}
 #vdUnifiedControls #vdUnifiedReportAction .vd-tab-report-btn{
-  border:1px solid #e53227!important;background:#e53227!important;color:#fff!important;
-  box-shadow:0 8px 18px rgba(229,50,39,.18)!important;
+  border:1px solid #0b5d3b!important;background:#0b5d3b!important;color:#fff!important;
+  box-shadow:0 8px 18px rgba(11,93,59,.24)!important;
 }
-#vdUnifiedControls #vdUnifiedReportAction .vd-tab-report-btn:hover{background:#cf281f!important;border-color:#cf281f!important}
+#vdUnifiedControls #vdUnifiedReportAction .vd-tab-report-btn:hover{background:#08482e!important;border-color:#08482e!important}
 #vdUnifiedControls:not(.has-period) .vd-unified-period-slot{display:none!important}
 #vdUnifiedControls:not(.has-period) .vd-period-card{opacity:.88!important}
 #vdUnifiedControls:not(.has-period):not(.has-export):has(#filterBar.meeting-filter-hidden){display:none!important}
@@ -191,4 +191,52 @@ body.vd-report-dark .hr-filter-grid select,body.vd-report-dark .hr-filter-grid i
 body.vd-report-dark .ee-filter-grid select,body.vd-report-dark .ee-filter-grid input,
 body.vd-report-dark .eee-filter-grid select,body.vd-report-dark .eee-filter-grid input{
   background:#fbfdff!important;color:#14213d!important;border-color:#d9e4f1!important;color-scheme:light!important;
+}
+
+/* Unified dark-green PDF/report export buttons — 2026-10-03 */
+.vd-tab-report-btn,
+.safety-pdf-btn,
+.rc-export-btn,
+.il-export-report-btn,
+.stp-export-btn,
+#stPdfBtn,
+#stpExportReport,
+#exportSafetyPdfBtn,
+#exportExecutionPdfBtn{
+  background:#0b5d3b!important;
+  color:#fff!important;
+  border:1px solid #0b5d3b!important;
+  border-radius:11px!important;
+  box-shadow:0 7px 16px rgba(11,93,59,.24)!important;
+  font-family:Cairo,Tahoma,Arial,sans-serif!important;
+  font-weight:900!important;
+  cursor:pointer!important;
+  transition:transform .18s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease,filter .18s ease!important;
+}
+.vd-tab-report-btn:hover,
+.safety-pdf-btn:hover,
+.rc-export-btn:hover,
+.il-export-report-btn:hover,
+.stp-export-btn:hover,
+#stPdfBtn:hover,
+#stpExportReport:hover,
+#exportSafetyPdfBtn:hover,
+#exportExecutionPdfBtn:hover{
+  background:#08482e!important;
+  border-color:#08482e!important;
+  color:#fff!important;
+  transform:translateY(-1px)!important;
+  filter:none!important;
+  box-shadow:0 9px 20px rgba(8,72,46,.28)!important;
+}
+.vd-tab-report-btn:active,
+.safety-pdf-btn:active,
+.rc-export-btn:active,
+.il-export-report-btn:active,
+.stp-export-btn:active,
+#stPdfBtn:active,
+#stpExportReport:active,
+#exportSafetyPdfBtn:active,
+#exportExecutionPdfBtn:active{
+  transform:translateY(0)!important;
 }
