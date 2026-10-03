@@ -1845,6 +1845,97 @@ body.vd-report-v2-mode #vdReportV2 td.vd-projects-advice-col{
 .vd-report-closures-tree-page .vd-report-tree-wrapper{max-height:145mm!important;overflow:hidden!important}
 @media print{.vd-report-closures-tree-page{height:194mm!important;min-height:194mm!important;max-height:194mm!important;break-inside:avoid!important;page-break-inside:avoid!important;break-after:page!important;page-break-after:always!important}}
 
+/* Human Resources PDF: stable page boundaries, balanced pagination and no decorative overlap. */
+.vd-report-hr-kpi-page,
+.vd-report-hr-chart-page{
+  box-sizing:border-box!important;
+  height:194mm!important;
+  min-height:194mm!important;
+  max-height:194mm!important;
+  overflow:hidden!important;
+}
+.vd-report-hr-kpi-page .vd-report-section-body,
+.vd-report-hr-chart-page .vd-report-section-body{
+  margin-top:1.5mm!important;
+  overflow:hidden!important;
+}
+.vd-report-hr-kpi-grid{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:2.2mm!important;
+  align-content:start!important;
+}
+.vd-report-hr-kpi-grid .vd-report-kpi-clone{
+  min-height:24mm!important;
+  padding:2mm!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  overflow:hidden!important;
+}
+.vd-report-hr-kpi-grid .vd-report-kpi-clone span{font-size:6.2px!important;line-height:1.25!important}
+.vd-report-hr-kpi-grid .vd-report-kpi-clone strong,
+.vd-report-hr-kpi-grid .vd-report-kpi-clone b{font-size:12px!important;line-height:1.15!important}
+.vd-report-hr-kpi-grid .vd-report-kpi-clone small{font-size:5.5px!important;line-height:1.2!important}
+
+.vd-report-hr-chart-grid{
+  grid-template-columns:1fr 1fr!important;
+  gap:4mm!important;
+  align-items:start!important;
+}
+.vd-report-hr-chart-page .vd-report-chart-card{
+  box-sizing:border-box!important;
+  height:112mm!important;
+  min-height:112mm!important;
+  max-height:112mm!important;
+  padding:2mm!important;
+  overflow:hidden!important;
+}
+.vd-report-hr-chart-page .vd-report-chart-card .panel-title{
+  margin:-2mm -2mm 1.5mm!important;
+  padding:1.5mm 2mm!important;
+}
+.vd-report-hr-chart-page .vd-report-chart-card .panel-title h3{font-size:8px!important;line-height:1.25!important}
+.vd-report-hr-chart-page .vd-report-chart-card .panel-title span{font-size:5.5px!important;line-height:1.2!important}
+.vd-report-hr-chart-page .vd-report-chart-image{
+  width:100%!important;
+  height:94mm!important;
+  max-height:94mm!important;
+  object-fit:contain!important;
+}
+.vd-report-hr-chart-page-single .vd-report-hr-chart-grid{grid-template-columns:1fr!important}
+.vd-report-hr-chart-page-single .vd-report-chart-card{width:100%!important}
+
+.vd-report-hr-control.vd-report-control-table-page:before,
+.vd-report-hr-control.vd-report-control-table-page:after,
+.vd-report-hr-control.vd-report-control-detail-page:before,
+.vd-report-hr-control.vd-report-control-detail-page:after{
+  display:none!important;
+}
+.vd-report-hr-control.vd-report-control-table-page,
+.vd-report-hr-control.vd-report-control-detail-page{
+  box-sizing:border-box!important;
+  padding:5mm 7mm 5mm!important;
+  overflow:hidden!important;
+}
+.vd-report-hr-control.vd-report-control-table-page .vd-report-section-header,
+.vd-report-hr-control.vd-report-control-detail-page .vd-report-section-header{
+  min-height:22mm!important;
+  padding:0 30mm 2.5mm!important;
+}
+.vd-report-hr-control .vd-report-paginated-table th{font-size:5.5px!important;line-height:1.2!important}
+.vd-report-hr-control .vd-report-paginated-table td{font-size:5.25px!important;line-height:1.28!important}
+
+@media print{
+  .vd-report-hr-kpi-page,
+  .vd-report-hr-chart-page{
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+    break-after:page!important;
+    page-break-after:always!important;
+  }
+}
+
+
 /* Closures emergency tree print nodes */
 .vd-report-v2 .vd-report-closures-tree-page button.emergency-tree-card{display:flex!important}
 .vd-report-v2 .vd-report-closures-tree-page button.emergency-tree-warning{display:grid!important}

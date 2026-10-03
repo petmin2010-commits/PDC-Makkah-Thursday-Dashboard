@@ -2852,7 +2852,7 @@
       {
         title: 'بيانات الكادر والبطاقات',
         columns: [0,1,2,3,4,5,6,7,8,9,10],
-        rowsPerPage: 9
+        rowsPerPage: 8
       },
       {
         title: 'السيارات والإجازات والتدريب',
@@ -2929,6 +2929,65 @@
     });
   }
 
+  function buildHrKpiPages(report, kpis) {
+    if (!kpis.length) return;
+
+    const groups = chunk(kpis, 16);
+
+    groups.forEach((group, index) => {
+      const page = createPage(
+        'المؤشرات الرئيسية',
+        groups.length > 1
+          ? 'صفحة المؤشرات ' + (index + 1) + ' من ' + groups.length
+          : 'ملخص مؤشرات الأداء',
+        'vd-report-kpi-page vd-report-hr-kpi-page'
+      );
+
+      const grid = document.createElement('div');
+      grid.className = 'vd-report-kpi-grid vd-report-hr-kpi-grid';
+
+      group.forEach(kpi => {
+        const clone = kpi.cloneNode(true);
+        cleanupClone(clone);
+        clone.classList.add('vd-report-kpi-clone');
+        grid.appendChild(clone);
+      });
+
+      page.querySelector('.vd-report-section-body').appendChild(grid);
+      report.appendChild(page);
+    });
+  }
+
+  function buildHrChartPages(report, charts) {
+    if (!charts.length) return;
+
+    const groups = chunk(charts, 2);
+
+    groups.forEach((group, index) => {
+      const page = createPage(
+        'التحليلات والرسوم البيانية',
+        'صفحة التحليلات ' + (index + 1) + ' من ' + groups.length,
+        'vd-report-chart-page vd-report-hr-chart-page'
+      );
+
+      if (group.length === 1) {
+        page.classList.add('vd-report-hr-chart-page-single');
+      }
+
+      const grid = document.createElement('div');
+      grid.className = 'vd-report-chart-grid vd-report-hr-chart-grid';
+
+      group.forEach(panel => {
+        const clone = cloneWithCanvases(panel);
+        clone.classList.add('vd-report-chart-card');
+        grid.appendChild(clone);
+      });
+
+      page.querySelector('.vd-report-section-body').appendChild(grid);
+      report.appendChild(page);
+    });
+  }
+
   function buildHrStaffReport(report, type = 'full') {
     const source = document.getElementById('hrStaffPage');
     const root = document.getElementById('hrStaffRoot');
@@ -2947,13 +3006,13 @@
     cover?.querySelector('.vd-report-cover-badge')?.remove();
 
     if (kpis.length > 6) {
-      buildKpiPages(report, kpis);
+      buildHrKpiPages(report, kpis);
     }
 
     const charts = [...root.querySelectorAll('.hr-chart')]
       .filter(el => isDisplayedWithin(el, source));
 
-    buildChartPages(report, charts);
+    buildHrChartPages(report, charts);
 
     const tablePanels = [...root.querySelectorAll('article.panel')]
       .filter(panel =>
@@ -2979,8 +3038,19 @@
         fallbackTitle = 'ملخص الكادر حسب الوظيفة';
       }
 
+      let rowsPerPage = 12;
+
+      if (panel.querySelector('.hr-mini-table')) {
+        rowsPerPage = headerText.includes('الاكتمال') ? 6 : 8;
+      } else if (
+        headerText.includes('الوظيفة') &&
+        headerText.includes('الإجمالي')
+      ) {
+        rowsPerPage = 8;
+      }
+
       buildPaginatedPanelTable(report, panel, {
-        rowsPerPage: panel.querySelector('.hr-mini-table') ? 10 : 12,
+        rowsPerPage,
         pageClass: 'vd-report-hr-control',
         fallbackTitle
       });
