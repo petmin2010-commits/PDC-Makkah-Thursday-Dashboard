@@ -129,10 +129,17 @@
       await delay(140);
     }
     return !!navFor(key)?.classList.contains('active');
-  }  async function exportGeneral(key, button) {
+  }
+
+  async function exportGeneral(key, button) {
     const target = navFor(key);
     const center = navFor('reportsCenter');
     if (!target) return;
+
+    const preopenedWindow =
+      key === 'importantLinks'
+        ? window.open('', '_blank')
+        : null;
 
     button.disabled = true;
     button.classList.add('is-loading');
@@ -169,7 +176,12 @@
     }
 
     if (key === 'importantLinks' && typeof window.exportImportantLinksReport === 'function') {
-      window.exportImportantLinksReport();
+      if (!preopenedWindow) {
+        alert('يرجى السماح بالنوافذ المنبثقة لتصدير تقرير الروابط.');
+        finish();
+        return;
+      }
+      window.exportImportantLinksReport(preopenedWindow);
       setTimeout(finish, 900);
       return;
     }

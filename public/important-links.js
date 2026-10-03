@@ -115,7 +115,7 @@ function makeQrDataUrl(text){
   }
 }
 
-function exportLinksReport(){
+function exportLinksReport(preopenedWindow=null){
   if(typeof QRCode!=='function'){
     alert('تعذر تحميل مولد QR حاليًا. يرجى تحديث الصفحة ثم المحاولة مرة أخرى.');
     return;
@@ -153,7 +153,7 @@ function exportLinksReport(){
     '</section>';
   }).join('');
 
-  const w=window.open('','_blank');
+  const w=preopenedWindow||window.open('','_blank');
   if(!w){alert('يرجى السماح بالنوافذ المنبثقة لتصدير تقرير الروابط.');return;}
 
   w.document.open();
