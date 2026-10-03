@@ -169,14 +169,32 @@
     }
 
     const api = window.VDReportExport;
-    if (!api || typeof api.exportCurrent !== 'function') {
+    const exportFn =
+      typeof api?.exportCurrent === 'function'
+        ? api.exportCurrent
+        : typeof api?.showModal === 'function'
+          ? api.showModal
+          : typeof api?.exportCurrentTab === 'function'
+            ? api.exportCurrentTab
+            : null;
+
+    if (!exportFn) {
+      const originalButton =
+        document.querySelector('#vdUnifiedReportAction .vd-tab-report-btn');
+      if (originalButton) {
+        window.addEventListener('afterprint', finish, { once: true });
+        originalButton.click();
+        setTimeout(finish, 5000);
+        return;
+      }
+
       alert('تعذر تشغيل أداة تصدير التقرير.');
       finish();
       return;
     }
 
     window.addEventListener('afterprint', finish, { once: true });
-    api.exportCurrent();
+    exportFn();
     setTimeout(finish, 5000);
   }
 
