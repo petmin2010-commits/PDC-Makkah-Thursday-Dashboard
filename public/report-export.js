@@ -2638,6 +2638,80 @@
     return true;
   }
 
+  function cloneViolationChart(panel) {
+    const clone = cloneWithCanvases(panel);
+    clone.classList.add('vd-report-chart-card');
+
+    const sourceCanvas = panel.querySelector('canvas');
+    const liveChart = sourceCanvas
+      ? window.Chart?.getChart?.(sourceCanvas)
+      : null;
+
+    if (liveChart?.config?.type !== 'doughnut') return clone;
+
+    clone.classList.add('vd-report-doughnut-card', 'vd-report-violation-doughnut-card');
+    clone.querySelectorAll('.vd-report-doughnut-legend').forEach(el => el.remove());
+
+    const labels = Array.isArray(liveChart.data?.labels)
+      ? liveChart.data.labels
+      : [];
+    const dataset = liveChart.data?.datasets?.[0] || {};
+    const values = Array.isArray(dataset.data)
+      ? dataset.data.map(value => Number(value) || 0)
+      : labels.map(() => 0);
+    const colors = Array.isArray(dataset.backgroundColor)
+      ? dataset.backgroundColor
+      : labels.map(() => dataset.backgroundColor || '#64748b');
+    const total = values.reduce((sum, value) => sum + value, 0);
+
+    if (sourceCanvas) {
+      try {
+        const legendOptions = liveChart.options?.plugins?.legend;
+        const previousDisplay = legendOptions?.display;
+        if (legendOptions) {
+          legendOptions.display = false;
+          liveChart.update?.('none');
+          const cleanImage = clone.querySelector('.vd-report-chart-image');
+          if (cleanImage) cleanImage.src = sourceCanvas.toDataURL('image/png', 1);
+          legendOptions.display = previousDisplay;
+          liveChart.update?.('none');
+        }
+      } catch (_) {}
+    }
+
+    if (labels.length >= 8) clone.classList.add('vd-report-doughnut-ultra-dense');
+    else if (labels.length >= 5) clone.classList.add('vd-report-doughnut-dense');
+
+    if (labels.length) {
+      const legend = document.createElement('div');
+      legend.className = 'vd-report-doughnut-legend vd-report-violation-doughnut-legend';
+
+      labels.forEach((label, labelIndex) => {
+        const value = values[labelIndex] || 0;
+        const pct = total ? ((value / total) * 100).toFixed(1) : '0.0';
+        const item = document.createElement('span');
+        item.className = 'vd-report-doughnut-legend-item';
+
+        const swatch = document.createElement('i');
+        swatch.style.background = colors[labelIndex] || '#64748b';
+
+        const text = document.createElement('b');
+        text.textContent = String(label ?? '');
+
+        const metric = document.createElement('strong');
+        metric.textContent = value.toLocaleString('en-US') + ' • ' + pct + '%';
+
+        item.append(swatch, text, metric);
+        legend.appendChild(item);
+      });
+
+      const chartBox = clone.querySelector('.vx-chart') || clone;
+      chartBox.appendChild(legend);
+    }
+
+    return clone;
+  }
+
   function buildViolationFamilyReport(report, config) {
     const source = document.getElementById('dataPage');
     const root = document.getElementById(config.rootId);
@@ -2745,9 +2819,8 @@
       grid.className = 'vd-report-chart-grid vd-safety-chart-grid';
 
       group.forEach(panel => {
-        const cloned = cloneWithCanvases(panel);
+        const cloned = cloneViolationChart(panel);
         cleanupClone(cloned);
-        cloned.classList.add('vd-report-chart-card');
         grid.appendChild(cloned);
       });
 
