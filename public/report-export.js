@@ -2713,7 +2713,45 @@
     const table = document.querySelector('#dataTable table');
     const rows = table ? [...table.querySelectorAll('tbody tr')] : [];
     if (table && rows.length) {
-      chunk(rows, 8).forEach((group, index, groups) => {
+      const rowScore = row => {
+        const cells = [...row.querySelectorAll('td')];
+        const reason = (cells[9]?.textContent || '').trim();
+        const violation1 = (cells[5]?.textContent || '').trim();
+        const violation2 = (cells[6]?.textContent || '').trim();
+        const supervisor = (cells[7]?.textContent || '').trim();
+        const editor = (cells[8]?.textContent || '').trim();
+        const longestSide = Math.max(
+          violation1.length + violation2.length,
+          supervisor.length + editor.length
+        );
+        return 1
+          + Math.min(1.55, Math.max(0, (reason.length - 65) / 115))
+          + Math.min(0.65, Math.max(0, (longestSide - 85) / 150));
+      };
+
+      const groups = [];
+      const maxPageScore = 10.2;
+      let current = [];
+      let currentScore = 0;
+      rows.forEach(row => {
+        const score = rowScore(row);
+        if (current.length && (currentScore + score > maxPageScore || current.length >= 12)) {
+          groups.push(current);
+          current = [];
+          currentScore = 0;
+        }
+        current.push(row);
+        currentScore += score;
+      });
+      if (current.length) groups.push(current);
+
+      if (groups.length > 1 && groups.at(-1).length <= 2) {
+        const last = groups.at(-1);
+        const prev = groups.at(-2);
+        while (last.length < 4 && prev.length > 5) last.unshift(prev.pop());
+      }
+
+      groups.forEach((group, index) => {
         const page = createPage(
           'السجل التفصيلي لمخالفات السلامة',
           `صفحة ${index + 1} من ${groups.length} • ${rows.length} سجل`,
