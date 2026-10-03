@@ -1,5 +1,5 @@
 
-const S={booted:false,boot:null,masterRows:[],masterKpis:[],page:null,raw:[],filtered:[],columns:[],filterKeys:[],charts:{},current:'master',pageCache:{},chartFilters:{},pageBaseRows:[],masterBaseRows:[],meeting:null,meetingRows:[]};
+const S={booted:false,boot:null,masterRows:[],masterKpis:[],page:null,raw:[],filtered:[],columns:[],filterKeys:[],charts:{},current:'master',pageCache:{},chartFilters:{},pageBaseRows:[],masterBaseRows:[],meeting:null,meetingRows:[],meetingChartFilters:{}};
 const LABELS={
  region:'الإدارة / المنطقة',section:'القسم',contractor:'المقاول',engineer:'المهندس',status:'الحالة',
  delay:'التأخير',executionStatus:'حالة التنفيذ',permit:'التصريح',permitStatus:'حالة التصريح',
@@ -527,6 +527,40 @@ function renderWednesdayMeeting(){
  renderMeetingDelayedTable(delayedRows);
 }
 
+function meetingSetInteractiveFilter(id,filter){
+ if(!S.meetingChartFilters||typeof S.meetingChartFilters!=='object')S.meetingChartFilters={};
+ const cur=S.meetingChartFilters[id];
+ const same=cur&&JSON.stringify(cur)===JSON.stringify(filter);
+ if(same)delete S.meetingChartFilters[id];
+ else S.meetingChartFilters[id]=filter;
+ renderWednesdayMeeting();
+}
+
+function meetingNativeChartFilter(id,label){
+ const value=String(label||'').trim();
+ if(!value)return;
+ if(id==='wmExecutionChart'){
+   const modes={'أُنجز التنفيذ':'completed','متأخر تنفيذ':'delayed','قيد التنفيذ ضمن المدة':'within','أخرى':'other'};
+   if(modes[value])meetingSetInteractiveFilter(id,{mode:modes[value],label:value});
+   return;
+ }
+ if(id==='wmDelayChart'){
+   meetingSetInteractiveFilter(id,{field:'delayBucket',value,mode:'exact',label:value});
+   return;
+ }
+ const officeField=(S.meetingRows||[]).some(r=>Object.prototype.hasOwnProperty.call(r,'officeSummary'))?'officeSummary':'office';
+ const fields={
+   wmOfficeChart:officeField,
+   wmCategoryChart:'category',
+   wmContractorChart:'contractor',
+   wmWorkTypeChart:'workType',
+   wmPermitChart:'permitStatus',
+   wmDocsChart:'docsSubStatus'
+ };
+ const field=fields[id];
+ if(field)meetingSetInteractiveFilter(id,{field,value,mode:'exact',label:value});
+}
+
 function meetingDrawChart(id,type,labels,datasets,opt={}){
  if(S.charts[id])S.charts[id].destroy();
  const ctx=document.getElementById(id);
@@ -539,6 +573,13 @@ function meetingDrawChart(id,type,labels,datasets,opt={}){
      responsive:true,
      maintainAspectRatio:false,
      interaction:{mode:'nearest',intersect:true},
+     onHover:(event,elements)=>{ctx.style.cursor=elements&&elements.length?'pointer':'default';},
+     onClick:(event,elements)=>{
+       if(!elements||!elements.length)return;
+       const point=elements[0];
+       const label=labels?.[point.index];
+       meetingNativeChartFilter(id,label);
+     },
      plugins:{
        legend:{
          display:!!opt.legend,

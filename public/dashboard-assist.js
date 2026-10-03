@@ -82,6 +82,7 @@ function band(label){
 }
 function exactField(label){const a=rows();if(!a.length)return null;let best=null,bn=0;Object.keys(a[0]).filter(k=>!k.startsWith('_')).forEach(k=>{let c=0;a.forEach(r=>{if(clean(r[k])===label)c++});if(c>bn){bn=c;best=k}});return bn?best:null}
 function setMeetingChartFilter(id,f){
+ if(!S.meetingChartFilters||typeof S.meetingChartFilters!=='object')S.meetingChartFilters={};
  const cur=S.meetingChartFilters[id],same=cur&&JSON.stringify(cur)===JSON.stringify(f);
  if(same)delete S.meetingChartFilters[id];else S.meetingChartFilters[id]=f;
  renderWednesdayMeeting();

@@ -7,7 +7,7 @@ const CFG={
 const root=()=>document.getElementById('hrStaffRoot');
 const EMPTY='—';
 let state={
-  rows:[],courses:[],updatedAt:'',loaded:false,charts:{},
+  rows:[],courses:[],updatedAt:'',loaded:false,charts:{},cross:{},
   filters:{city:CFG.defaultCity,role:'الكل',card:'الكل',sponsor:'الكل',nationality:'الكل',training:'الكل',vehicle:'الكل',search:''}
 };
 
@@ -49,9 +49,40 @@ function destroyCharts(){
 function optionList(values,current){
   return ['الكل',...unique(values)].map(v=>'<option value="'+esc(v)+'"'+(v===current?' selected':'')+'>'+esc(v)+'</option>').join('');
 }
+function hrCrossMatch(r,f){
+  if(!f)return true;
+  if(f.type==='city')return r.city===f.value;
+  if(f.type==='role')return r.role===f.value;
+  if(f.type==='sponsor')return f.value==='أبعاد الرؤية'?isCompany(r):!isCompany(r);
+  if(f.type==='card')return r.cardStatus===f.value;
+  if(f.type==='expiry')return expiryBand(r)===f.value;
+  if(f.type==='training')return trainingBand(r)===f.value;
+  if(f.type==='qualification')return clean(r.qualification)===f.value;
+  if(f.type==='vehicle')return vehicleState(r)===f.value;
+  if(f.type==='course')return (r.missingCourses||[]).includes(f.value);
+  if(f.type==='leave'){
+    const v=clean(r.electricityLeave);
+    if(f.value==='حاصل')return !!v&&!['لا','غير مطلوبة'].includes(v);
+    if(f.value==='غير حاصل')return v==='لا';
+    return v==='غير مطلوبة'||!v;
+  }
+  if(f.type==='pipeline'){
+    const map={
+      'الدورات المطلوبة':'trainingRequired','المنجزة':'trainingCompleted','المحجوزة':'trainingBooked',
+      'المجدولة':'trainingScheduled','تحت جدولة الأكاديمية':'trainingPendingAcademy',
+      'غير متاح حجزها':'trainingUnavailable','متاحة ولم تحجز':'trainingAvailableNotBooked'
+    };
+    const key=map[f.value];return key?Number(r[key]||0)>0:true;
+  }
+  if(f.type==='nationality')return r.nationality===f.value;
+  if(f.type==='card30'){const x=num(r.cardDays);return x!==null&&x>=0&&x<=30}
+  if(f.type==='trainingIncomplete')return Number(r.trainingPct)<100;
+  if(f.type==='notblank')return !!clean(r[f.field]);
+  return true;
+}
 function filtered(){
   const f=state.filters,q=f.search.trim().toLowerCase();
-  return state.rows.filter(r=>{
+  const base=state.rows.filter(r=>{
     if(f.city!=='الكل'&&r.city!==f.city)return false;
     if(f.role!=='الكل'&&r.role!==f.role)return false;
     if(f.card!=='الكل'&&r.cardStatus!==f.card)return false;
@@ -62,6 +93,8 @@ function filtered(){
     if(q&&![r.name,r.nameEn,r.code,r.role,r.project,r.cardStatus,r.qualification,r.sponsorship,r.email,r.phone].join(' ').toLowerCase().includes(q))return false;
     return true;
   });
+  const cross=Object.values(state.cross||{}).filter(Boolean);
+  return cross.length?base.filter(r=>cross.every(x=>hrCrossMatch(r,x))):base;
 }
 function countBy(rows,getter){
   const m={};rows.forEach(r=>{const k=clean(getter(r))||'غير محدد';m[k]=(m[k]||0)+1});return m;
@@ -134,6 +167,7 @@ function renderShell(rows){
         '<label class="hr-search"><span>بحث شامل</span><input id="hrSearch" value="'+esc(f.search)+'" placeholder="اسم، كود، وظيفة، بطاقة..."></label>'+
       '</div>'+
       '<div class="hr-filter-actions"><button id="hrReset" class="ghost-btn">مسح الفلاتر</button><button id="hrRefresh" class="primary-btn">↻ تحديث البيانات</button><strong>'+rows.length+' موظف مطابق</strong></div>'+
+      '<div id="hrCrossSummary" class="hr-cross-summary"></div>'+
     '</section>'+
     '<section class="hr-section-head"><div><span>EXECUTIVE KPIs</span><h3>المؤشرات التنفيذية</h3></div><p>جميع المؤشرات تتغير مباشرة مع الفلاتر.</p></section>'+
     '<div class="hr-kpis">'+kpis(rows).map(c=>'<article class="hr-kpi '+c[2]+'"><span>'+esc(c[0])+'</span><strong>'+esc(c[1])+'</strong><small>'+esc(c[3])+'</small></article>').join('')+'</div>'+
@@ -222,14 +256,39 @@ function bind(){
   const search=document.getElementById('hrSearch');
   if(search)search.oninput=()=>{state.filters.search=search.value;render();setTimeout(()=>{const n=document.getElementById('hrSearch');if(n){n.focus();n.setSelectionRange(n.value.length,n.value.length)}},0)};
   document.getElementById('hrReset')?.addEventListener('click',()=>{
-    state.filters={city:CFG.defaultCity,role:'الكل',card:'الكل',sponsor:'الكل',nationality:'الكل',training:'الكل',vehicle:'الكل',search:''};render();
+    state.filters={city:CFG.defaultCity,role:'الكل',card:'الكل',sponsor:'الكل',nationality:'الكل',training:'الكل',vehicle:'الكل',search:''};state.cross={};render();
   });
   document.getElementById('hrRefresh')?.addEventListener('click',()=>load(true));
+
+  // تفعيل الكروت نفسها كفلاتر تفاعلية داخل تاب الموارد البشرية
+  document.querySelectorAll('#hrStaffRoot .hr-kpi').forEach(card=>{
+    card.dataset.vdCardInteractive='1';
+    card.classList.add('vd-filter-card');
+    card.setAttribute('tabindex','0');
+    const activate=()=>{
+      const label=clean(card.querySelector('span')?.textContent);
+      if(label)hrFilterFromCard(label);
+    };
+    card.onclick=e=>{
+      if(e.target.closest('a,button,input,select,textarea'))return;
+      activate();
+    };
+    card.onkeydown=e=>{
+      if(e.key==='Enter'||e.key===' '){e.preventDefault();activate();}
+    };
+  });
 }
 function chart(id,type,labels,data,options){
   const canvas=document.getElementById(id);if(!canvas||typeof Chart==='undefined')return;
   state.charts[id]=new Chart(canvas,{type,data:{labels,datasets:data},options:Object.assign({
     responsive:true,maintainAspectRatio:false,
+    onHover:(event,elements)=>{canvas.style.cursor=elements&&elements.length?'pointer':'default';},
+    onClick:(event,elements)=>{
+      if(!elements||!elements.length)return;
+      const item=elements[0];
+      const label=clean(labels?.[item.index]);
+      if(label)hrFilterFromChart(id,label);
+    },
     plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{family:'Cairo',size:9}}}},
     scales:(type==='doughnut'||type==='pie')?{}:{x:{ticks:{font:{family:'Cairo',size:8}},grid:{display:false}},y:{ticks:{font:{family:'Cairo',size:8}},grid:{color:'rgba(120,130,150,.12)'}}}
   },options||{})});
@@ -287,12 +346,72 @@ function renderCharts(rows){
   };
   chart('hrLeaveChart','doughnut',Object.keys(leave),[{data:Object.values(leave)}],{cutout:'64%'});
 }
+function renderHrCrossSummary(){
+  const host=document.getElementById('hrCrossSummary'); if(!host)return;
+  const entries=Object.entries(state.cross||{}).filter(([,x])=>x);
+  if(!entries.length){host.innerHTML='';host.classList.remove('show');return}
+  host.classList.add('show');
+  host.innerHTML='<span>فلاتر تفاعلية:</span>'+entries.map(([id,x])=>'<button type="button" data-hr-cross="'+esc(id)+'">'+esc(x.label||x.value)+' ×</button>').join('')+
+    '<button type="button" class="hr-cross-clear">مسح التفاعلية</button>';
+  host.querySelectorAll('[data-hr-cross]').forEach(b=>b.onclick=()=>{delete state.cross[b.dataset.hrCross];render()});
+  host.querySelector('.hr-cross-clear')?.addEventListener('click',()=>{state.cross={};render()});
+}
+function toggleHrCross(id,type,value,label,extra={}){
+  const cur=state.cross[id];
+  if(cur&&cur.type===type&&String(cur.value)===String(value))delete state.cross[id];
+  else state.cross[id]={type,value,label:label||value,...extra};
+  render();
+}
+function hrFilterFromChart(id,label){
+  const map={
+    hrCityChart:'city',hrRoleChart:'role',hrSponsorChart:'sponsor',hrCardChart:'card',
+    hrExpiryChart:'expiry',hrTrainingChart:'training',hrTrainingPipelineChart:'pipeline',
+    hrMissingCourseChart:'course',hrCityTrainingChart:'city',hrQualificationChart:'qualification',
+    hrVehicleChart:'vehicle',hrLeaveChart:'leave'
+  };
+  const type=map[id]; if(!type)return false;
+  toggleHrCross(id,type,label,label); return true;
+}
+function hrFilterFromCard(label){
+  const t=clean(label);
+  if(!t)return false;
+  if(t==='إجمالي الكادر'){state.cross={};render();return true}
+  if(t==='مكة'||t==='جدة'){toggleHrCross('card-city','city',t,t);return true}
+  if(t.includes('السعوديون')){toggleHrCross('card-nationality','nationality','سعودي','السعوديون');return true}
+  if(t.includes('كفالة أبعاد الرؤية')){toggleHrCross('card-sponsor','sponsor','أبعاد الرؤية',t);return true}
+  if(t.includes('سيارات مسلمة')){toggleHrCross('card-vehicle','vehicle','سيارة مسلمة',t);return true}
+  if(t.includes('بطاقات سارية')){toggleHrCross('card-card','card','سارية',t);return true}
+  if(t.includes('قاربت')){toggleHrCross('card-card','card','أوشكت على الانتهاء',t);return true}
+  if(t.includes('بطاقات منتهية')){toggleHrCross('card-card','card','انتهت',t);return true}
+  if(t.includes('بدون بطاقة')){toggleHrCross('card-card','card','لا يوجد',t);return true}
+  if(t.includes('30 يوم')){toggleHrCross('card-expiry','card30','30',t);return true}
+  if(t.includes('شهادة الإجازة')){toggleHrCross('card-leave','leave','حاصل',t);return true}
+  if(t.includes('مكتملو التدريب')){toggleHrCross('card-training','training','مكتمل 100%',t);return true}
+  if(t.includes('غير مكتملين')){toggleHrCross('card-training','trainingIncomplete','1',t);return true}
+  if(t.includes('إجمالي الدورات المطلوبة')){toggleHrCross('card-pipeline','pipeline','الدورات المطلوبة',t);return true}
+  if(t.includes('الدورات المنجزة')){toggleHrCross('card-pipeline','pipeline','المنجزة',t);return true}
+  if(t.includes('الدورات المحجوزة')){toggleHrCross('card-pipeline','pipeline','المحجوزة',t);return true}
+  if(t.includes('الدورات المجدولة')){toggleHrCross('card-pipeline','pipeline','المجدولة',t);return true}
+  if(t.includes('تحت جدولة الأكاديمية')){toggleHrCross('card-pipeline','pipeline','تحت جدولة الأكاديمية',t);return true}
+  if(t.includes('غير متاح حجزها')){toggleHrCross('card-pipeline','pipeline','غير متاح حجزها',t);return true}
+  if(t.includes('متاحة ولم يتم حجزها')){toggleHrCross('card-pipeline','pipeline','متاحة ولم تحجز',t);return true}
+  if(t.includes('متوسط اكتمال التدريب')){toggleHrCross('card-training','trainingIncomplete','1','غير مكتمل 100%');return true}
+  return false;
+}
+window.HRDashboard={
+  filterFromChart:hrFilterFromChart,
+  filterFromCard:hrFilterFromCard,
+  activeFilters:()=>Object.values(state.cross||{}).filter(Boolean).map(x=>x.label||x.value),
+  clearInteractive:()=>{state.cross={};render()}
+};
+
 function render(){
   const host=root();if(!host)return;
   destroyCharts();
   const rows=filtered();
   host.innerHTML=renderShell(rows);
   bind();
+  renderHrCrossSummary();
   requestAnimationFrame(()=>renderCharts(rows));
 }
 async function load(force=false){
