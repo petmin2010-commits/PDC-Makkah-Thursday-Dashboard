@@ -175,3 +175,129 @@ body.electricity-engineer-evaluation-active .eee-note{
   body.electricity-engineer-evaluation-active .eee-filter-grid .wide{grid-column:auto!important}
   body.electricity-engineer-evaluation-active .eee-actions{flex-wrap:wrap!important}
 }
+
+/* Compact SEC engineer filter bar v2 — 2026-10-03 */
+body.electricity-engineer-evaluation-active .eee-filter{
+  margin:0 0 12px!important;
+  padding:9px 11px 10px!important;
+  border-radius:15px!important;
+  box-shadow:0 6px 18px rgba(25,55,95,.055)!important;
+}
+body.electricity-engineer-evaluation-active .eee-filter-title{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  margin:0 0 8px!important;
+  padding:0 0 7px!important;
+}
+body.electricity-engineer-evaluation-active .eee-filter-title>div{
+  display:flex!important;
+  align-items:center!important;
+  gap:9px!important;
+  min-width:0!important;
+  flex-wrap:wrap!important;
+}
+body.electricity-engineer-evaluation-active .eee-filter-title span{
+  margin:0!important;
+  padding:4px 7px!important;
+  border-radius:999px!important;
+  background:#edf5ff!important;
+  color:#2878e8!important;
+  font-size:7px!important;
+  line-height:1!important;
+  letter-spacing:.8px!important;
+}
+body.electricity-engineer-evaluation-active .eee-filter-title h3{
+  margin:0!important;
+  font-size:12px!important;
+  line-height:1.15!important;
+  white-space:nowrap!important;
+}
+body.electricity-engineer-evaluation-active .eee-filter-title p{
+  margin:0!important;
+  font-size:8px!important;
+  line-height:1.25!important;
+  color:#71819a!important;
+  white-space:nowrap!important;
+}
+body.electricity-engineer-evaluation-active .eee-filter-title>b{
+  padding:5px 9px!important;
+  font-size:8px!important;
+}
+body.electricity-engineer-evaluation-active .eee-filter-grid{
+  grid-template-columns:2fr 1fr 1fr 1fr 1fr!important;
+  gap:7px 9px!important;
+  align-items:end!important;
+}
+body.electricity-engineer-evaluation-active .eee-filter-grid label{
+  gap:4px!important;
+}
+body.electricity-engineer-evaluation-active .eee-filter-grid label>span{
+  font-size:9px!important;
+  line-height:1.1!important;
+}
+body.electricity-engineer-evaluation-active .eee-engineer-focus{
+  grid-column:auto!important;
+  padding:6px 8px!important;
+  border-radius:11px!important;
+  box-shadow:none!important;
+}
+body.electricity-engineer-evaluation-active .eee-engineer-focus>span{
+  padding:0!important;
+  background:transparent!important;
+  color:#174f9d!important;
+  font-size:9px!important;
+  letter-spacing:0!important;
+}
+body.electricity-engineer-evaluation-active .eee-filter-grid select,
+body.electricity-engineer-evaluation-active .eee-filter-grid input{
+  height:36px!important;
+  min-height:36px!important;
+  border-radius:9px!important;
+  padding:0 9px!important;
+  font-size:9px!important;
+}
+body.electricity-engineer-evaluation-active .eee-engineer-focus select{
+  height:38px!important;
+  min-height:38px!important;
+  border-width:1.5px!important;
+  border-radius:9px!important;
+  font-size:10px!important;
+  box-shadow:0 0 0 2px rgba(40,120,232,.045)!important;
+}
+body.electricity-engineer-evaluation-active .eee-actions{
+  margin-top:7px!important;
+  padding-top:7px!important;
+  gap:7px!important;
+}
+body.electricity-engineer-evaluation-active .eee-actions button{
+  min-height:34px!important;
+  height:34px!important;
+  padding:0 11px!important;
+  border-radius:9px!important;
+  font-size:8px!important;
+}
+body.electricity-engineer-evaluation-active .eee-actions span{
+  margin-inline-start:auto!important;
+  padding:5px 8px!important;
+  border-radius:999px!important;
+  background:#f4f8fd!important;
+  border:1px solid #dbe5f2!important;
+  font-size:8px!important;
+}
+@media(max-width:1280px){
+  body.electricity-engineer-evaluation-active .eee-filter-title p{display:none!important}
+  body.electricity-engineer-evaluation-active .eee-filter-grid{grid-template-columns:2fr 1fr 1fr 1fr 1fr!important}
+}
+@media(max-width:1000px){
+  body.electricity-engineer-evaluation-active .eee-filter-grid{grid-template-columns:repeat(2,minmax(140px,1fr))!important}
+  body.electricity-engineer-evaluation-active .eee-engineer-focus{grid-column:span 2!important}
+}
+@media(max-width:700px){
+  body.electricity-engineer-evaluation-active .eee-filter-title{align-items:flex-start!important}
+  body.electricity-engineer-evaluation-active .eee-filter-title>div{display:block!important}
+  body.electricity-engineer-evaluation-active .eee-filter-title h3{margin-top:5px!important;white-space:normal!important}
+  body.electricity-engineer-evaluation-active .eee-filter-grid{grid-template-columns:1fr!important}
+  body.electricity-engineer-evaluation-active .eee-engineer-focus{grid-column:auto!important}
+}

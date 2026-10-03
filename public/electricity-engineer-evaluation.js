@@ -207,13 +207,13 @@ function render(){
   card('ملاحظات الجودة',summary.issues,summary.affected+' أمر / سجل متأثر',summary.issues?'bad':'ok'),
   card('دون متابعة جوهرية 3+ أيام',ai.stale,'مؤشر متابعة من وكيل الإفادات',ai.stale?'warn':'ok')
  ];
- host.innerHTML='<div class="eee-wrap"><section class="eee-hero"><div><span>SEC ENGINEER • COMPOSITE PERFORMANCE EVALUATION</span><h2>تقييم مهندسي شركة الكهرباء</h2><p>تقييم مركب يدمج جودة البيانات، التدقيق الذكي، تحليل وكيل الإفادات، ومتوسط نسبة الإنجاز لأوامر العمل التابعة للمهندس في المشاريع والتوصيلات والأصول.</p></div><div class="eee-meta"><small>آخر قراءة</small><b>'+esc(state.data.updatedAt||'—')+'</b></div></section>'+
+ host.innerHTML='<div class="eee-wrap"><section class="eee-hero"><div><span>SEC ENGINEER • COMPOSITE PERFORMANCE EVALUATION</span><h2>تقييم مهندسي شركة الكهرباء</h2><p>تقييم مركب يدمج جودة البيانات، التدقيق الذكي، تحليل وكيل الإفادات، ومتوسط نسبة الإنجاز لأوامر العمل التابعة للمهندس في المشاريع والتوصيلات والأصول.</p></div></section>'+
  '<section class="eee-search-export-bar"><div class="eee-search-box"><span>بحث</span><input id="eeeSearch" value="'+esc(f.search)+'" placeholder="ابحث داخل أوامر العمل، المقاول، الموقع، الحالة أو الإفادة..."></div><button id="eeeExportReport" class="vd-tab-report-btn" type="button">↓ تصدير التقرير PDF</button></section>'+
  '<section class="eee-note"><b>منهجية التقييم النهائي</b><span>يتم احتساب متوسط متساوي للعوامل المتاحة: جودة البيانات + التدقيق الذكي + تقييم وكيل الإفادات + متوسط الإنجاز. عند توفر العوامل الأربعة يكون وزن كل عامل 25%، وإذا تعذر عامل في نطاق معين يعاد توزيع الوزن تلقائيًا على العوامل المتاحة.</span></section>'+
  '<section class="eee-filter">'+
  '<div class="eee-filter-title"><div><span>ENGINEER FIRST</span><h3>اختيار مهندس شركة الكهرباء هو محور التقييم</h3><p>اختر مهندسًا واحدًا أولًا، ثم استخدم باقي الفلاتر لتحليل أوامر العمل والإفادات وجودة البيانات الخاصة به.</p></div><b>'+rows.length+' سجل مطابق</b></div>'+
  '<div class="eee-filter-grid">'+
- '<label class="eee-engineer-focus"><span>المهندس المراد تقييمه</span><select id="eeeEngineer">'+optionList(engineers,f.engineer)+'</select><small>الفلتر الرئيسي للصفحة</small></label>'+
+ '<label class="eee-engineer-focus"><span>المهندس المراد تقييمه</span><select id="eeeEngineer">'+optionList(engineers,f.engineer)+'</select></label>'+
  '<label><span>السكشن</span><select id="eeeSection"><option value="الكل">الكل</option><option value="projects"'+(f.section==='projects'?' selected':'')+'>المشاريع</option><option value="connections"'+(f.section==='connections'?' selected':'')+'>التوصيلات</option><option value="assets"'+(f.section==='assets'?' selected':'')+'>الأصول</option></select></label>'+
  '<label><span>المقاول</span><select id="eeeContractor">'+optionList(contractors,f.contractor)+'</select></label>'+
  '<label><span>من تاريخ</span><input id="eeeFrom" type="date" value="'+esc(f.from)+'"></label><label><span>إلى تاريخ</span><input id="eeeTo" type="date" value="'+esc(f.to)+'"></label></div>'+
