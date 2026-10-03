@@ -175,19 +175,100 @@ function installExcelExportRoutes(ctx){
     return {sheet:sheetName,headerRow:found.headerRow||1,columns:found.columns||[]};
   }
 
-  async function workbookFor(sheetName,columnIndexes,headerRow){
-    const meta=catalogCache||await catalog(false);
-    if(!meta.sheets.some(s=>s.title===sheetName))throw new Error('الورقة غير متاحة للتصدير.');
+  const FILTER_DATA_TTL_MS=2*60*1000;
+  const filterDataCache=new Map();
+  const filterDataInFlight=new Map();
+
+  async function sheetDef(sheetName){
+    const meta=await catalog(false);
+    const found=meta.sheets.find(s=>s.title===sheetName);
+    if(!found)throw new Error('الورقة غير متاحة للتصدير.');
+    return found;
+  }
+
+  function selectedColsFor(def,columnIndexes){
+    const allowed=new Set((def.columns||[]).map(c=>Number(c.index)));
     const cols=[...new Set((Array.isArray(columnIndexes)?columnIndexes:[])
-      .map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<2000))].sort((a,b)=>a-b);
+      .map(Number).filter(n=>Number.isInteger(n)&&allowed.has(n)))].sort((a,b)=>a-b);
     if(!cols.length)throw new Error('اختر عمودًا واحدًا على الأقل.');
-    const startRow=Math.max(1,Math.min(100,Number(headerRow)||1));
+    return cols;
+  }
+
+  async function selectedData(sheetName,columnIndexes,headerRow){
+    const def=await sheetDef(sheetName);
+    const cols=selectedColsFor(def,columnIndexes);
+    const startRow=Math.max(1,Math.min(100,Number(headerRow)||Number(def.headerRow)||1));
     const min=Math.min(...cols),max=Math.max(...cols);
     const range=qSheet(sheetName)+'!'+colLetter(min+1)+startRow+':'+colLetter(max+1);
-    const raw=await valuesGet(range);
-    const picked=raw.map(row=>cols.map(idx=>row[idx-min]??''));
+    const key=sheetName+'|'+startRow+'|'+min+'|'+max;
+    const hit=filterDataCache.get(key);
+    if(hit&&Date.now()-hit.at<FILTER_DATA_TTL_MS)return {raw:hit.raw,cols,min,startRow,def};
+    if(filterDataInFlight.has(key)){
+      const raw=await filterDataInFlight.get(key);
+      return {raw,cols,min,startRow,def};
+    }
+    const pending=(async()=>{
+      const raw=await valuesGet(range);
+      filterDataCache.set(key,{at:Date.now(),raw});
+      if(filterDataCache.size>24){
+        const oldest=[...filterDataCache.entries()].sort((a,b)=>a[1].at-b[1].at).slice(0,8);
+        oldest.forEach(([k])=>filterDataCache.delete(k));
+      }
+      return raw;
+    })();
+    filterDataInFlight.set(key,pending);
+    try{
+      const raw=await pending;
+      return {raw,cols,min,startRow,def};
+    }finally{
+      filterDataInFlight.delete(key);
+    }
+  }
+
+  async function filterOptionsFor(sheetName,columnIndexes,headerRow){
+    const data=await selectedData(sheetName,columnIndexes,headerRow);
+    const rows=(data.raw||[]).slice(1);
+    const options=data.cols.map(idx=>{
+      const counts=new Map();
+      rows.forEach(row=>{
+        const value=String(row?.[idx-data.min]??'');
+        counts.set(value,(counts.get(value)||0)+1);
+      });
+      const values=[...counts.entries()]
+        .sort((a,b)=>String(a[0]).localeCompare(String(b[0]),'ar',{numeric:true,sensitivity:'base'}))
+        .map(([value,count])=>({value,count}));
+      const col=(data.def.columns||[]).find(c=>Number(c.index)===idx)||{};
+      return {index:idx,label:col.label||colLetter(idx+1),letter:col.letter||colLetter(idx+1),values};
+    });
+    return {sheet:sheetName,headerRow:data.startRow,rowCount:rows.length,filters:options};
+  }
+
+  async function workbookFor(sheetName,columnIndexes,headerRow,excludeFilters){
+    const data=await selectedData(sheetName,columnIndexes,headerRow);
+    const raw=data.raw||[];
+    const header=raw[0]||[];
+    const rows=raw.slice(1);
+    const sourceFilters=excludeFilters&&typeof excludeFilters==='object'?excludeFilters:{};
+    const excluded=new Map();
+    data.cols.forEach(idx=>{
+      const arr=Array.isArray(sourceFilters[String(idx)])?sourceFilters[String(idx)]:[];
+      if(arr.length)excluded.set(idx,new Set(arr.map(v=>String(v??''))));
+    });
+
+    const filtered=rows.filter(row=>{
+      for(const [idx,set] of excluded){
+        const value=String(row?.[idx-data.min]??'');
+        if(set.has(value))return false;
+      }
+      return true;
+    });
+
+    const picked=[
+      data.cols.map(idx=>header[idx-data.min]??''),
+      ...filtered.map(row=>data.cols.map(idx=>row[idx-data.min]??''))
+    ];
     while(picked.length>1&&picked[picked.length-1].every(v=>clean_(v)===''))picked.pop();
-    return buildXlsx(picked,sheetName);
+    return {buffer:buildXlsx(picked,sheetName),rowCount:filtered.length};
   }
 
   app.get('/api/excel-export/sheets',requireAuth_,requireExcelAccess,async(req,res)=>{
@@ -210,12 +291,27 @@ function installExcelExportRoutes(ctx){
     }
   });
 
+  app.post('/api/excel-export/filter-options',requireAuth_,requireExcelAccess,async(req,res)=>{
+    try{
+      const sheet=String(req.body?.sheet||'');
+      const columns=Array.isArray(req.body?.columns)?req.body.columns:[];
+      const headerRow=Number(req.body?.headerRow||1);
+      const result=await filterOptionsFor(sheet,columns,headerRow);
+      res.set('Cache-Control','no-store');
+      res.json({ok:true,...result});
+    }catch(e){
+      console.error(e);
+      res.status(Number(e?.code)===429?429:400).json({ok:false,error:e.message||String(e)});
+    }
+  });
+
   app.post('/api/excel-export',requireAuth_,requireExcelAccess,async(req,res)=>{
     try{
       const sheet=String(req.body?.sheet||'');
       const columns=Array.isArray(req.body?.columns)?req.body.columns:[];
       const headerRow=Number(req.body?.headerRow||1);
-      const buffer=await workbookFor(sheet,columns,headerRow);
+      const excludeFilters=req.body?.excludeFilters&&typeof req.body.excludeFilters==='object'?req.body.excludeFilters:{};
+      const result=await workbookFor(sheet,columns,headerRow,excludeFilters);
       const city=/مكة|makkah/i.test(APP.TITLE)?'Makkah':'Jeddah';
       const stamp=DateTime.now().setZone(APP.TZ||'Asia/Riyadh').toFormat('yyyyLLdd_HHmmss');
       const safe=String(sheet||'Sheet').replace(/[\\/:*?"<>|]/g,'-').slice(0,70);
@@ -223,7 +319,8 @@ function installExcelExportRoutes(ctx){
       res.set('Cache-Control','no-store');
       res.set('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.set('Content-Disposition','attachment; filename="Excel_Report_'+city+'_'+stamp+'.xlsx"; filename*=UTF-8\'\''+encodeURIComponent(filename));
-      res.send(buffer);
+      res.set('X-Excel-Filtered-Rows',String(result.rowCount||0));
+      res.send(result.buffer);
     }catch(e){
       console.error(e);
       res.status(400).json({ok:false,error:e.message||String(e)});
