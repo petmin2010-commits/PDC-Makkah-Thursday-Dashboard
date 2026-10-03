@@ -2709,8 +2709,13 @@
         legend.appendChild(item);
       });
 
-      const chartBox = clone.querySelector('.vx-chart') || clone;
-      chartBox.appendChild(legend);
+      const chartBox = clone.querySelector('.vx-chart');
+      if (chartBox) {
+        legend.classList.add('vd-report-violation-doughnut-legend-external');
+        chartBox.insertAdjacentElement('afterend', legend);
+      } else {
+        clone.appendChild(legend);
+      }
     }
 
     return clone;

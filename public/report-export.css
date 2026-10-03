@@ -2079,3 +2079,105 @@ body.vd-report-v2-mode #vdReportV2 .vd-report-master-control:not(.vd-report-cont
 .vd-report-violations-chart-page .vd-report-violation-doughnut-legend{max-height:none!important;overflow:visible!important}
 .vd-report-violations-chart-page .vd-report-doughnut-dense .vd-report-violation-doughnut-legend,.vd-report-violations-chart-page .vd-report-doughnut-ultra-dense .vd-report-violation-doughnut-legend{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;align-content:center!important;column-gap:2mm!important;row-gap:.45mm!important}
 .vd-report-violations-chart-page .vd-report-doughnut-dense .vd-report-doughnut-legend-item,.vd-report-violations-chart-page .vd-report-doughnut-ultra-dense .vd-report-doughnut-legend-item{min-height:5mm!important;box-sizing:border-box!important}
+
+/* Violation PDF legend hard fix: external sibling, always visible in print. */
+body.vd-report-v2-mode #vdReportV2 .vd-report-violations-chart-page .vd-report-violation-doughnut-card{
+  display:grid!important;
+  grid-template-columns:minmax(0,.78fr) minmax(0,1.22fr)!important;
+  grid-template-rows:auto 1fr!important;
+  height:76mm!important;
+  min-height:76mm!important;
+  max-height:76mm!important;
+  overflow:visible!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-violations-chart-page .vd-report-violation-doughnut-card>.panel-title{
+  grid-column:1/-1!important;
+  grid-row:1!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-violations-chart-page .vd-report-violation-doughnut-card>.vx-chart{
+  grid-column:1!important;
+  grid-row:2!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:100%!important;
+  height:54mm!important;
+  min-height:54mm!important;
+  max-height:54mm!important;
+  overflow:visible!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-violations-chart-page .vd-report-violation-doughnut-card>.vx-chart>.vd-report-chart-image-doughnut{
+  display:block!important;
+  width:100%!important;
+  max-width:100%!important;
+  height:46mm!important;
+  max-height:46mm!important;
+  object-fit:contain!important;
+  margin:0 auto!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-violations-chart-page .vd-report-violation-doughnut-legend-external{
+  grid-column:2!important;
+  grid-row:2!important;
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  align-content:center!important;
+  align-items:stretch!important;
+  gap:.7mm 2mm!important;
+  width:100%!important;
+  height:auto!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:1.2mm!important;
+  box-sizing:border-box!important;
+  overflow:visible!important;
+  visibility:visible!important;
+  opacity:1!important;
+  position:relative!important;
+  z-index:20!important;
+  background:#fff!important;
+  direction:rtl!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-violations-chart-page .vd-report-violation-doughnut-legend-external .vd-report-doughnut-legend-item{
+  display:grid!important;
+  grid-template-columns:2.2mm minmax(0,1fr) auto!important;
+  align-items:center!important;
+  gap:.8mm!important;
+  min-width:0!important;
+  min-height:5.3mm!important;
+  padding:.55mm .7mm!important;
+  box-sizing:border-box!important;
+  border:1px solid #e2e8f0!important;
+  border-radius:1.2mm!important;
+  background:#f8fafc!important;
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+  visibility:visible!important;
+  opacity:1!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-violations-chart-page .vd-report-violation-doughnut-legend-external .vd-report-doughnut-legend-item i{
+  display:block!important;
+  width:2.2mm!important;
+  height:2.2mm!important;
+  min-width:2.2mm!important;
+  border-radius:50%!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-violations-chart-page .vd-report-violation-doughnut-legend-external .vd-report-doughnut-legend-item b{
+  display:block!important;
+  min-width:0!important;
+  white-space:normal!important;
+  overflow-wrap:break-word!important;
+  word-break:normal!important;
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+  font-size:5.2px!important;
+  line-height:1.18!important;
+  font-weight:800!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-violations-chart-page .vd-report-violation-doughnut-legend-external .vd-report-doughnut-legend-item strong{
+  display:block!important;
+  white-space:nowrap!important;
+  color:#172b5f!important;
+  -webkit-text-fill-color:#172b5f!important;
+  font-size:5.2px!important;
+  font-weight:900!important;
+}
