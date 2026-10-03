@@ -1656,10 +1656,6 @@
       pageClass: 'vd-report-emergency-control'
     });
 
-    const trees = [
-      ...document.querySelectorAll('#emergencyTreeSection .panel')
-    ].filter(isVisible);
-    buildTreePages(report, trees);
 
     const charts = [
       ...root.querySelectorAll('.emergency-charts-grid .panel:not(.emergency-summary-panel)')
