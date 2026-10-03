@@ -2181,3 +2181,80 @@ body.vd-report-v2-mode #vdReportV2 .vd-report-violations-chart-page .vd-report-v
   font-size:5.2px!important;
   font-weight:900!important;
 }
+
+/* Projects detail PDF: isolate this table from the generic AutoFit rules.
+   Most columns stay on one line; only text-heavy fields wrap at word boundaries. */
+body.vd-report-v2-mode #vdReportV2 .vd-report-projects-detail-page .vd-report-detail-panel table{
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  table-layout:auto!important;
+  border-collapse:collapse!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-projects-detail-page .vd-report-detail-panel table th{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  padding:.30mm .24mm!important;
+  font-size:4px!important;
+  line-height:1.05!important;
+  white-space:nowrap!important;
+  word-break:normal!important;
+  overflow-wrap:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  vertical-align:middle!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-projects-detail-page .vd-report-detail-panel table td{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  padding:.34mm .24mm!important;
+  font-size:4.45px!important;
+  line-height:1.08!important;
+  white-space:nowrap!important;
+  word-break:normal!important;
+  overflow-wrap:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  vertical-align:middle!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-projects-detail-page .vd-report-detail-panel table th *,
+body.vd-report-v2-mode #vdReportV2 .vd-report-projects-detail-page .vd-report-detail-panel table td *{
+  word-break:normal!important;
+  overflow-wrap:normal!important;
+  text-overflow:clip!important;
+  -webkit-line-clamp:unset!important;
+  line-clamp:unset!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-projects-detail-page .vd-report-detail-panel table th:nth-child(4),
+body.vd-report-v2-mode #vdReportV2 .vd-report-projects-detail-page .vd-report-detail-panel table td:nth-child(4),
+body.vd-report-v2-mode #vdReportV2 .vd-report-projects-detail-page .vd-report-detail-panel table th:nth-child(5),
+body.vd-report-v2-mode #vdReportV2 .vd-report-projects-detail-page .vd-report-detail-panel table td:nth-child(5),
+body.vd-report-v2-mode #vdReportV2 .vd-report-projects-detail-page .vd-report-detail-panel table th:nth-child(14),
+body.vd-report-v2-mode #vdReportV2 .vd-report-projects-detail-page .vd-report-detail-panel table td:nth-child(14),
+body.vd-report-v2-mode #vdReportV2 .vd-report-projects-detail-page .vd-report-detail-panel table th:nth-child(15),
+body.vd-report-v2-mode #vdReportV2 .vd-report-projects-detail-page .vd-report-detail-panel table td:nth-child(15),
+body.vd-report-v2-mode #vdReportV2 .vd-report-projects-detail-page .vd-report-detail-panel table th:nth-child(16),
+body.vd-report-v2-mode #vdReportV2 .vd-report-projects-detail-page .vd-report-detail-panel table td:nth-child(16),
+body.vd-report-v2-mode #vdReportV2 .vd-report-projects-detail-page .vd-report-detail-panel table .vd-projects-advice-col{
+  white-space:normal!important;
+  word-break:normal!important;
+  overflow-wrap:break-word!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-projects-detail-page .vd-report-detail-panel table .vd-projects-advice-col{
+  min-width:34mm!important;
+  max-width:48mm!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-projects-detail-page .vd-report-detail-panel table .vd-projects-advice-date-col{
+  min-width:13mm!important;
+  max-width:18mm!important;
+  white-space:nowrap!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-projects-detail-page .vd-report-detail-panel table .vd-projects-serial-col{
+  min-width:4mm!important;
+  max-width:6mm!important;
+  width:1%!important;
+  white-space:nowrap!important;
+  text-align:center!important;
+}
