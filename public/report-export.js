@@ -3336,6 +3336,11 @@
     }
   }
 
+  window.VDReportExport = {
+    exportCurrent: () => showModal(),
+    getActivePageKey
+  };
+
   function hideLegacyExportButtons() {
     [
       'printBtn',
@@ -3426,7 +3431,7 @@
       document.getElementById('vdUnifiedControls');
     const bar = ensureUnifiedReportButton();
     const show =
-      key !== 'smartThursday'
+      !['smartThursday','reportsCenter'].includes(key)
       && !!dock
       && !!bar;
 

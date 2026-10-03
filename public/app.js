@@ -188,14 +188,25 @@ function bindWednesdayInfoPopups(){
 function openPage(key){
  S.current=key;
  const isMeeting=key==='wednesdayMeeting';
+ const isReportsCenter=key==='reportsCenter';
  renderChartFilterSummary();
  document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.page===key));
  document.getElementById('masterPage').classList.toggle('active',key==='master');
  document.getElementById('meetingPage').classList.toggle('active',isMeeting);
- document.getElementById('dataPage').classList.toggle('active',key!=='master'&&!isMeeting);
+ document.getElementById('reportsCenterPage')?.classList.toggle('active',isReportsCenter);
+ document.getElementById('dataPage').classList.toggle('active',key!=='master'&&!isMeeting&&!isReportsCenter);
+ document.body.classList.toggle('vd-reports-center-active',isReportsCenter);
  const filterBar=document.getElementById('filterBar');
- if(filterBar)filterBar.classList.toggle('meeting-filter-hidden',isMeeting);
+ if(filterBar){
+   filterBar.classList.toggle('meeting-filter-hidden',isMeeting);
+   filterBar.style.display=isReportsCenter?'none':'';
+ }
 
+ if(isReportsCenter){
+   document.getElementById('pageTitle').textContent='مركز التقارير';
+   if(typeof window.renderReportsCenter==='function')window.renderReportsCenter();
+   return;
+ }
  if(key==='master'){
    document.getElementById('pageTitle').textContent='لوحة المتابعة الرئيسية';
    configureMasterFilters();applyMasterFilters();return;
