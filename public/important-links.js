@@ -90,38 +90,111 @@ function buildGroups(q=''){
   }).filter(Boolean);
 }
 
+function makeQrDataUrl(text){
+  if(typeof QRCode!=='function')return '';
+  const holder=document.createElement('div');
+  holder.style.cssText='position:fixed;left:-9999px;top:-9999px;width:160px;height:160px;opacity:0;pointer-events:none';
+  document.body.appendChild(holder);
+  try{
+    new QRCode(holder,{
+      text:String(text||''),
+      width:160,
+      height:160,
+      colorDark:'#172d44',
+      colorLight:'#ffffff',
+      correctLevel:QRCode.CorrectLevel.M
+    });
+    const canvas=holder.querySelector('canvas');
+    const img=holder.querySelector('img');
+    return canvas?.toDataURL('image/png')||img?.src||'';
+  }catch(error){
+    console.error('Important links QR generation failed:',error);
+    return '';
+  }finally{
+    holder.remove();
+  }
+}
+
 function exportLinksReport(){
+  if(typeof QRCode!=='function'){
+    alert('تعذر تحميل مولد QR حاليًا. يرجى تحديث الصفحة ثم المحاولة مرة أخرى.');
+    return;
+  }
+
   const groups=buildGroups('');
   const total=groups.reduce((sum,g)=>sum+g.links.length,0);
-  const generated=new Intl.DateTimeFormat('ar-SA',{dateStyle:'medium',timeStyle:'short'}).format(new Date());
-  const sections=groups.map(g=>
-    '<section class="report-group">'+
+  const generated=new Intl.DateTimeFormat('ar-SA-u-ca-gregory',{dateStyle:'medium',timeStyle:'short'}).format(new Date());
+
+  const sections=groups.map((g,gi)=>{
+    const cards=g.links.map((x,i)=>{
+      const qr=makeQrDataUrl(x.href);
+      const n=String(i+1).padStart(2,'0');
+      return '<article class="link-card">'+
+        '<div class="card-copy">'+
+          '<div class="card-top"><span class="card-no">'+n+'</span><div class="card-title">'+esc(x.title)+'</div></div>'+
+          '<p>'+esc(x.desc)+'</p>'+
+          '<a class="open-btn" href="'+esc(x.href)+'" target="_blank" rel="noopener noreferrer">اضغط هنا <span>↗</span></a>'+
+        '</div>'+
+        '<div class="qr-box">'+
+          (qr?'<img src="'+qr+'" alt="QR '+esc(x.title)+'">':'<div class="qr-missing">QR</div>')+
+          '<small>امسح للوصول</small>'+
+        '</div>'+
+      '</article>';
+    }).join('');
+
+    const continuation=gi===2
+      ? '<div class="continuation"><span>VISION DIMENSIONS</span><strong>تقرير الروابط المهمة - '+esc(CFG.city)+'</strong><small>دورات التأهيل</small></div>'
+      : '';
+
+    return '<section class="report-group '+(gi===2?'page-start':'')+'">'+
+      continuation+
       '<div class="group-head"><div><span>'+esc(g.sub)+'</span><h2>'+esc(g.title)+'</h2></div><b>'+g.links.length+' روابط</b></div>'+
-      '<table><thead><tr><th>#</th><th>اسم الرابط</th><th>الوصف</th><th>الرابط</th></tr></thead><tbody>'+
-      g.links.map((x,i)=>'<tr><td>'+(i+1)+'</td><td class="link-name">'+esc(x.title)+'</td><td>'+esc(x.desc)+'</td><td class="url-cell"><a href="'+esc(x.href)+'">'+esc(x.href)+'</a></td></tr>').join('')+
-      '</tbody></table>'+
-    '</section>'
-  ).join('');
+      '<div class="cards-grid">'+cards+'</div>'+
+    '</section>';
+  }).join('');
 
   const w=window.open('','_blank');
   if(!w){alert('يرجى السماح بالنوافذ المنبثقة لتصدير تقرير الروابط.');return;}
 
   w.document.open();
-  w.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تقرير الروابط المهمة - '+esc(CFG.city)+'</title><style>'+
-    '*{box-sizing:border-box}body{margin:0;padding:24px;font-family:Arial,Tahoma,sans-serif;color:#172d44;background:#fff}'+
-    '.report-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:18px 20px;margin-bottom:18px;border:1px solid #dce4ee;border-radius:16px;background:#f6f8fc}'+
-    '.report-head span{font-size:10px;font-weight:800;color:#6958d9;letter-spacing:.8px}.report-head h1{margin:5px 0 6px;font-size:24px}.report-head p{margin:0;color:#657386;font-size:11px}'+
-    '.meta{min-width:180px;padding:11px 14px;border:1px solid #dce4ee;border-radius:12px;background:#fff;text-align:center}.meta b{display:block;font-size:15px}.meta small{display:block;margin-top:4px;color:#718095;font-size:9px}'+
-    '.report-group{margin:0 0 18px;page-break-inside:avoid}.group-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:8px;padding:0 2px}.group-head span{font-size:8px;color:#7a8796;font-weight:800}.group-head h2{margin:2px 0 0;font-size:15px}.group-head b{font-size:10px;color:#fff;background:#6958d9;padding:5px 9px;border-radius:999px}'+
-    'table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:9px}th,td{border:1px solid #dce4ee;padding:7px 8px;vertical-align:top;text-align:right;line-height:1.55}th{background:#eef2f8;font-weight:800}th:nth-child(1),td:nth-child(1){width:5%;text-align:center}th:nth-child(2),td:nth-child(2){width:20%}th:nth-child(3),td:nth-child(3){width:27%}th:nth-child(4),td:nth-child(4){width:48%}.link-name{font-weight:800}.url-cell,.url-cell a{direction:ltr;text-align:left;overflow-wrap:anywhere;word-break:break-all;color:#0b67bd;text-decoration:none}'+
-    '.foot{margin-top:10px;color:#7a8796;font-size:8px;text-align:left}@page{size:A4 landscape;margin:10mm}@media print{body{padding:0}.report-head{break-inside:avoid}.report-group{break-inside:avoid-page}}'+
+  w.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">'+
+    '<meta name="viewport" content="width=device-width,initial-scale=1">'+
+    '<title>تقرير الروابط المهمة - '+esc(CFG.city)+'</title>'+
+    '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">'+
+    '<style>'+
+    '*{box-sizing:border-box}html,body{margin:0;background:#fff;color:#182b42;font-family:Cairo,Tahoma,Arial,sans-serif;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
+    'body{padding:18px 22px;font-size:11px}.report-head{position:relative;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:20px 22px;margin-bottom:16px;border:1px solid #dbe4ef;border-radius:18px;background:linear-gradient(135deg,#f7f8fc 0%,#f1f4fa 100%);overflow:hidden}'+
+    '.report-head:before{content:"";position:absolute;inset-inline-start:0;top:0;bottom:0;width:7px;background:linear-gradient(180deg,#6958d9,#4f3aa8)}.brand span{display:block;color:#6958d9;font-size:9px;font-weight:800;letter-spacing:1.1px}.brand h1{margin:4px 0 5px;font-size:25px;line-height:1.35;color:#172d44}.brand p{margin:0;color:#64758a;font-size:10px;font-weight:500}'+
+    '.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;min-width:280px}.meta-box{padding:9px 12px;border:1px solid #dbe4ef;border-radius:12px;background:#fff;text-align:center}.meta-box small{display:block;color:#7c8999;font-size:8px;margin-bottom:2px}.meta-box b{font-size:12px;color:#172d44}.meta-wide{grid-column:1/-1}'+
+    '.report-group{margin:0 0 15px}.page-start{break-before:page;page-break-before:always}.continuation{display:flex;align-items:center;gap:12px;padding:10px 13px;margin:0 0 11px;border-radius:12px;background:#f5f4fb;border:1px solid #e2def4}.continuation span{font-size:8px;color:#6958d9;font-weight:800;letter-spacing:.8px}.continuation strong{font-size:12px}.continuation small{margin-inline-start:auto;color:#748094;font-size:9px}'+
+    '.group-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:8px;padding:0 2px}.group-head span{display:block;color:#78879a;font-size:8px;font-weight:800;letter-spacing:.7px}.group-head h2{margin:2px 0 0;font-size:15px;color:#172d44}.group-head b{font-size:9px;color:#fff;background:#6958d9;padding:5px 10px;border-radius:999px;white-space:nowrap}'+
+    '.cards-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.page-start .cards-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.link-card{display:grid;grid-template-columns:minmax(0,1fr) 78px;gap:8px;align-items:center;min-height:88px;padding:8px 9px;border:1px solid #dce5ef;border-radius:14px;background:#fff;box-shadow:0 3px 10px rgba(29,48,71,.045);break-inside:avoid;page-break-inside:avoid}'+
+    '.card-copy{min-width:0}.card-top{display:flex;align-items:flex-start;gap:8px}.card-no{display:grid;place-items:center;flex:0 0 25px;height:25px;border-radius:8px;background:#f0eefb;color:#5d4bc3;font-size:9px;font-weight:800}.card-title{font-size:11.5px;font-weight:800;line-height:1.55;color:#172d44}.card-copy p{margin:4px 0 7px;color:#69798c;font-size:8.5px;font-weight:500;line-height:1.65}'+
+    '.open-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:92px;padding:5px 11px;border-radius:8px;background:#176b7a;color:#fff!important;text-decoration:none;font-size:8.5px;font-weight:800;box-shadow:0 3px 7px rgba(23,107,122,.16)}.open-btn span{font-size:10px}.qr-box{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:4px;border-inline-start:1px solid #edf1f6}.qr-box img{display:block;width:72px;height:72px;image-rendering:auto}.qr-box small{font-size:6.8px;color:#7a8797;font-weight:700}.qr-missing{display:grid;place-items:center;width:72px;height:72px;border:1px dashed #c9d2dd;border-radius:8px;color:#93a0ad;font-size:9px}'+
+    '.report-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px;padding-top:7px;border-top:1px solid #e4e9ef;color:#8390a0;font-size:7.5px}.report-foot strong{color:#59687a;font-weight:700}'+
+    '@page{size:A4 landscape;margin:8mm}@media print{body{padding:0}.report-head{break-inside:avoid}.link-card{box-shadow:none}.open-btn{color:#fff!important;text-decoration:none!important}}'+
     '</style></head><body>'+
-    '<header class="report-head"><div><span>VISION DIMENSIONS • IMPORTANT LINKS REPORT</span><h1>تقرير الروابط المهمة — '+esc(CFG.city)+'</h1><p>تقرير موحد للروابط التشغيلية ودورات التأهيل المعتمدة بالمشروع.</p></div><div class="meta"><b>العقد '+esc(CFG.contract)+'</b><small>'+total+' رابط • '+esc(generated)+'</small></div></header>'+
+    '<header class="report-head">'+
+      '<div class="brand"><span>VISION DIMENSIONS • IMPORTANT LINKS REPORT</span><h1>تقرير الروابط المهمة - '+esc(CFG.city)+'</h1><p>وصول موحد وسريع إلى الروابط التشغيلية ودورات التأهيل المعتمدة بالمشروع.</p></div>'+
+      '<div class="meta">'+
+        '<div class="meta-box"><small>رقم العقد</small><b>'+esc(CFG.contract)+'</b></div>'+
+        '<div class="meta-box"><small>إجمالي الروابط</small><b>'+total+' رابط</b></div>'+
+        '<div class="meta-box meta-wide"><small>تاريخ إصدار التقرير</small><b>'+esc(generated)+'</b></div>'+
+      '</div>'+
+    '</header>'+
     sections+
-    '<div class="foot">شركة أبعاد الرؤية للاستشارات الهندسية</div>'+
+    '<footer class="report-foot"><strong>شركة أبعاد الرؤية للاستشارات الهندسية</strong><span>QR + رابط مباشر لكل مورد</span></footer>'+
     '</body></html>');
   w.document.close();
-  setTimeout(()=>{w.focus();w.print();},450);
+
+  const printWhenReady=()=>{
+    const images=[...w.document.images];
+    const imagesReady=Promise.all(images.map(img=>img.complete?Promise.resolve():new Promise(resolve=>{img.onload=resolve;img.onerror=resolve;})));
+    const fontsReady=w.document.fonts?.ready||Promise.resolve();
+    Promise.all([imagesReady,fontsReady]).then(()=>setTimeout(()=>{w.focus();w.print();},180));
+  };
+  if(w.document.readyState==='complete')printWhenReady();
+  else w.addEventListener('load',printWhenReady,{once:true});
 }
 
 function render(){
