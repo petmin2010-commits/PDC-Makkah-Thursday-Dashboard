@@ -22,6 +22,7 @@
 
     if (key === 'master') return document.getElementById('masterPage');
     if (key === 'wednesdayMeeting') return document.getElementById('meetingPage');
+    if (key === 'hrStaff') return document.getElementById('hrStaffPage');
     if (key === 'employeeEvaluation') return document.getElementById('employeeEvaluationPage');
     if (key === 'electricityEngineerEvaluation') return document.getElementById('electricityEngineerEvaluationPage');
     if (key) return document.getElementById('dataPage');
@@ -84,6 +85,8 @@
 
     const addSelect = (select, label, boundary) => {
       if (!select || !select.value) return;
+      const rawValue = String(select.value).trim();
+      if (['الكل','all','جميع البيانات'].includes(rawValue.toLowerCase())) return;
       if (!isDisplayedWithin(select, boundary || document.body)) return;
 
       const id =
@@ -115,16 +118,28 @@
     if (source) {
       source.querySelectorAll('select').forEach(select => {
         const box =
-          select.closest('.filter,.meeting-filter,.wm-filter,.toolbar-field,.field');
+          select.closest('.filter,.meeting-filter,.wm-filter,.toolbar-field,.field')
+          || select.closest('label');
 
         const label =
           box?.querySelector('label')?.textContent?.trim()
+          || box?.querySelector(':scope > span')?.textContent?.trim()
           || select.getAttribute('aria-label')
           || select.name
           || 'فلتر';
 
         addSelect(select, label, source);
       });
+
+      if (getActivePageKey() === 'hrStaff') {
+        const search = source.querySelector('#hrSearch');
+        if (search && search.value?.trim() && isDisplayedWithin(search, source)) {
+          result.push({
+            label: 'بحث شامل',
+            value: search.value.trim()
+          });
+        }
+      }
     }
 
     return result;
@@ -274,7 +289,8 @@
       '.kpi',
       '.mini-kpi',
       '.metric-card',
-      '.stat-card'
+      '.stat-card',
+      '.hr-kpi'
     ].join(',');
 
     const elements = [...page.querySelectorAll(selector)]
@@ -1656,7 +1672,6 @@
       pageClass: 'vd-report-emergency-control'
     });
 
-
     const charts = [
       ...root.querySelectorAll('.emergency-charts-grid .panel:not(.emergency-summary-panel)')
     ].filter(isVisible);
@@ -2825,6 +2840,160 @@
     return true;
   }
 
+  function buildHrDetailAppendix(report, sourceTable) {
+    if (!sourceTable) return;
+
+    const headers = [...sourceTable.querySelectorAll('thead th')];
+    const rows = [...sourceTable.querySelectorAll('tbody tr')];
+
+    if (!headers.length || !rows.length) return;
+
+    const segments = [
+      {
+        title: 'بيانات الكادر والبطاقات',
+        columns: [0,1,2,3,4,5,6,7,8,9,10],
+        rowsPerPage: 9
+      },
+      {
+        title: 'السيارات والإجازات والتدريب',
+        columns: [0,1,2,11,12,13,14,15,16,17],
+        rowsPerPage: 10
+      },
+      {
+        title: 'حالة الدورات والنواقص',
+        columns: [0,1,2,4,13,18,19,20,21],
+        rowsPerPage: 8
+      }
+    ];
+
+    segments.forEach((segment, segmentIndex) => {
+      const validColumns = segment.columns.filter(index => headers[index]);
+      if (!validColumns.length) return;
+
+      const groups = chunk(rows, segment.rowsPerPage);
+
+      groups.forEach((group, pageIndex) => {
+        const page = createPage(
+          'التفاصيل الكاملة للكادر — ' + segment.title,
+          'الجزء ' + (segmentIndex + 1) + '/' + segments.length +
+            ' • صفحة ' + (pageIndex + 1) + '/' + groups.length +
+            ' • ' + rows.length + ' موظف',
+          'vd-report-control-detail-page vd-report-hr-control'
+        );
+
+        const table = document.createElement('table');
+        table.className = 'vd-report-paginated-table vd-report-segmented-table vd-report-hr-detail-table';
+
+        const thead = document.createElement('thead');
+        const trh = document.createElement('tr');
+
+        const serialHead = document.createElement('th');
+        serialHead.textContent = 'م';
+        trh.appendChild(serialHead);
+
+        validColumns.forEach(index => {
+          trh.appendChild(headers[index].cloneNode(true));
+        });
+
+        thead.appendChild(trh);
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+
+        group.forEach((row, localIndex) => {
+          const cells = [...row.children];
+          const tr = document.createElement('tr');
+
+          const serial = document.createElement('td');
+          serial.textContent = String(pageIndex * segment.rowsPerPage + localIndex + 1);
+          tr.appendChild(serial);
+
+          validColumns.forEach(index => {
+            tr.appendChild(
+              cells[index]
+                ? cells[index].cloneNode(true)
+                : document.createElement('td')
+            );
+          });
+
+          tbody.appendChild(tr);
+        });
+
+        table.appendChild(tbody);
+        cleanupClone(table);
+        prepareAutoFitReportTable(table);
+
+        page.querySelector('.vd-report-section-body').appendChild(table);
+        report.appendChild(page);
+      });
+    });
+  }
+
+  function buildHrStaffReport(report, type = 'full') {
+    const source = document.getElementById('hrStaffPage');
+    const root = document.getElementById('hrStaffRoot');
+
+    if (!source || !root || !isDisplayedWithin(root, source)) {
+      return false;
+    }
+
+    const kpis = [...root.querySelectorAll('.hr-kpi')]
+      .filter(el => isDisplayedWithin(el, source));
+
+    buildCover(report, type, kpis);
+
+    const cover = report.lastElementChild;
+    cover?.classList.add('vd-report-control-cover', 'vd-report-hr-control');
+    cover?.querySelector('.vd-report-cover-badge')?.remove();
+
+    if (kpis.length > 6) {
+      buildKpiPages(report, kpis);
+    }
+
+    const charts = [...root.querySelectorAll('.hr-chart')]
+      .filter(el => isDisplayedWithin(el, source));
+
+    buildChartPages(report, charts);
+
+    const tablePanels = [...root.querySelectorAll('article.panel')]
+      .filter(panel =>
+        isDisplayedWithin(panel, source) &&
+        panel.querySelector('table') &&
+        !panel.querySelector('table.hr-table')
+      );
+
+    tablePanels.forEach((panel, index) => {
+      const headerText = [...panel.querySelectorAll('thead th')]
+        .map(th => th.textContent?.trim() || '')
+        .join(' | ');
+
+      let fallbackTitle = 'جدول الموارد البشرية ' + (index + 1);
+
+      if (headerText.includes('بطاقات منتهية')) {
+        fallbackTitle = 'مقارنة تشغيلية بين مكة وجدة';
+      } else if (
+        headerText.includes('الوظيفة') &&
+        headerText.includes('مكة') &&
+        headerText.includes('جدة')
+      ) {
+        fallbackTitle = 'ملخص الكادر حسب الوظيفة';
+      }
+
+      buildPaginatedPanelTable(report, panel, {
+        rowsPerPage: panel.querySelector('.hr-mini-table') ? 10 : 12,
+        pageClass: 'vd-report-hr-control',
+        fallbackTitle
+      });
+    });
+
+    buildHrDetailAppendix(
+      report,
+      root.querySelector('table.hr-table')
+    );
+
+    return report.children.length > 1;
+  }
+
   function buildReport(type = 'executive') {
     const source = getActivePage();
 
@@ -2840,6 +3009,15 @@
 
     report.id = REPORT_ID;
     report.className = 'vd-report-v2';
+
+    if (getActivePageKey() === 'hrStaff') {
+      if (!buildHrStaffReport(report, type)) {
+        alert('تعذر تجهيز تقرير الموارد البشرية.');
+        return null;
+      }
+      document.body.appendChild(report);
+      return report;
+    }
 
     if (getActivePageKey() === 'electricityEngineerEvaluation') {
       if (!buildElectricityEngineerEvaluationReport(report)) {
