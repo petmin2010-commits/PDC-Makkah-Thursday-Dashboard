@@ -25,3 +25,7 @@ body.hr-staff-active .hr-search input{
   z-index:1!important;
   margin-top:1px!important;
 }
+
+/* Tighten HR hero-to-filter spacing */
+body.hr-staff-active .hr-hero{display:none!important;}
+body.hr-staff-active .global-page-heading[data-page="hrStaff"]{margin-bottom:6px!important;}
