@@ -1846,6 +1846,7 @@ body.vd-report-v2-mode #vdReportV2 td.vd-projects-advice-col{
 @media print{.vd-report-closures-tree-page{height:194mm!important;min-height:194mm!important;max-height:194mm!important;break-inside:avoid!important;page-break-inside:avoid!important;break-after:page!important;page-break-after:always!important}}
 
 /* Human Resources PDF: stable page boundaries, balanced pagination and no decorative overlap. */
+.vd-report-hr-control.vd-report-control-cover,
 .vd-report-hr-kpi-page,
 .vd-report-hr-chart-page{
   box-sizing:border-box!important;
@@ -1854,6 +1855,15 @@ body.vd-report-v2-mode #vdReportV2 td.vd-projects-advice-col{
   max-height:194mm!important;
   overflow:hidden!important;
 }
+.vd-report-hr-control.vd-report-control-cover{
+  padding:5mm 7mm 13mm!important;
+}
+.vd-report-hr-control.vd-report-control-cover .vd-report-cover-top{min-height:18mm!important}
+.vd-report-hr-control.vd-report-control-cover .vd-report-cover-title{margin:3mm 0 3mm!important}
+.vd-report-hr-control.vd-report-control-cover .vd-report-cover-meta{margin:6mm 0 4mm!important}
+.vd-report-hr-control.vd-report-control-cover .vd-report-cover-kpis{margin-top:3mm!important;gap:2.2mm!important}
+.vd-report-hr-control.vd-report-control-cover .vd-report-kpi-clone{padding:2mm!important}
+.vd-report-hr-control.vd-report-control-cover .vd-report-cover-filters{margin-top:3mm!important;padding:2.4mm!important}
 .vd-report-hr-kpi-page .vd-report-section-body,
 .vd-report-hr-chart-page .vd-report-section-body{
   margin-top:1.5mm!important;

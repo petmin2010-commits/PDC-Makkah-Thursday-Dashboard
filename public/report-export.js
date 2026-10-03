@@ -2852,17 +2852,17 @@
       {
         title: 'بيانات الكادر والبطاقات',
         columns: [0,1,2,3,4,5,6,7,8,9,10],
-        rowsPerPage: 8
+        rowsPerPage: rows.length > 36 ? 9 : 8
       },
       {
         title: 'السيارات والإجازات والتدريب',
         columns: [0,1,2,11,12,13,14,15,16,17],
-        rowsPerPage: 10
+        rowsPerPage: rows.length > 36 ? 9 : 10
       },
       {
         title: 'حالة الدورات والنواقص',
         columns: [0,1,2,4,13,18,19,20,21],
-        rowsPerPage: 8
+        rowsPerPage: rows.length > 36 ? 9 : 8
       }
     ];
 
@@ -3046,7 +3046,7 @@
         headerText.includes('الوظيفة') &&
         headerText.includes('الإجمالي')
       ) {
-        rowsPerPage = 8;
+        rowsPerPage = 10;
       }
 
       buildPaginatedPanelTable(report, panel, {
