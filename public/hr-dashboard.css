@@ -2,3 +2,26 @@
 /* Hide legacy/global filter bar on HR page */
 body.hr-staff-active #vdUnifiedControls,
 body.hr-staff-active #filterBar{display:none!important;}
+
+/* Fix HR filter labels overlap — 2026-10-03 */
+body.hr-staff-active .hr-filter-grid label{
+  position:relative!important;
+  overflow:visible!important;
+  gap:8px!important;
+}
+body.hr-staff-active .hr-filter-grid label>span{
+  position:relative!important;
+  z-index:3!important;
+  display:block!important;
+  width:max-content!important;
+  max-width:100%!important;
+  margin:0!important;
+  padding:0 4px!important;
+  line-height:1.35!important;
+  background:var(--panel)!important;
+}
+body.hr-staff-active .hr-search input{
+  position:relative!important;
+  z-index:1!important;
+  margin-top:1px!important;
+}
