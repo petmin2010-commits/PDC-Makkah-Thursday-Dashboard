@@ -39,3 +39,15 @@ body.is-ready .login-card{opacity:1;transform:translateY(0) scale(1)}.login-card
 .pdc-brand:hover .pdc-logo{transform:scale(1.14) rotate(.6deg);filter:drop-shadow(0 0 10px rgba(46,142,195,.24))}
 @keyframes vdLoginLogoFloat{0%,100%{transform:translateY(-2px) scale(1.02)}50%{transform:translateY(-6px) scale(1.055)}}
 @media(prefers-reduced-motion:reduce){.logo-box:hover,.pdc-brand:hover{animation:none!important;transform:translateY(-2px) scale(1.02)}}
+
+/* Corporate login footer — 2026-10-03 */
+.login-corporate-footer{position:absolute;z-index:30;left:0;right:0;bottom:0;height:58px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:18px;padding:0 20px;direction:ltr;color:rgba(255,255,255,.88);background:linear-gradient(90deg,rgba(2,24,44,.82),rgba(4,47,78,.72),rgba(2,24,44,.84));border-top:1px solid rgba(77,180,225,.24);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 -10px 30px rgba(0,16,34,.18)}
+.login-socials{justify-self:start;display:flex;align-items:center;gap:9px;direction:ltr}
+.login-social-icon{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;color:#e9f8ff;border:1px solid rgba(104,197,239,.28);background:rgba(6,45,74,.45);box-shadow:inset 0 0 14px rgba(77,181,226,.05);transition:transform .2s ease,border-color .2s ease,background .2s ease,box-shadow .2s ease}
+.login-social-icon:hover{transform:translateY(-2px);border-color:rgba(121,216,242,.72);background:rgba(13,73,112,.72);box-shadow:0 6px 16px rgba(0,18,35,.25),0 0 16px rgba(91,196,239,.12)}
+.login-social-icon svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.login-social-icon svg .fill-dot,.login-social-icon svg .fill-play{fill:currentColor;stroke:none}.login-social-letter{font:bold 20px/1 Arial,sans-serif}
+.login-corporate-center{justify-self:center;display:flex;align-items:center;gap:10px;white-space:nowrap;font-size:8px;letter-spacing:.35px;color:rgba(229,243,251,.74)}.login-corporate-center span{font-weight:600;letter-spacing:.8px}.login-corporate-center b{font-weight:500;direction:rtl}
+.login-corporate-credit{justify-self:end;direction:rtl;text-align:right;white-space:nowrap;font-size:9px;font-weight:600;color:rgba(244,250,253,.86)}
+@media(min-width:981px){.city-project{bottom:84px}.photo-credit{bottom:67px}}
+@media(max-width:980px){.login-corporate-footer{height:auto;min-height:54px;grid-template-columns:auto 1fr;padding:7px 14px;gap:8px 14px}.login-socials{grid-row:1/3}.login-corporate-center{justify-self:end;flex-wrap:wrap;justify-content:flex-end;gap:3px 8px;white-space:normal;text-align:right}.login-corporate-credit{justify-self:end;white-space:normal;font-size:8px}.login-side{padding-bottom:76px}}
+@media(max-width:560px){.login-corporate-footer{padding:6px 9px;grid-template-columns:auto 1fr}.login-socials{gap:5px}.login-social-icon{width:28px;height:28px;border-radius:8px}.login-social-icon svg{width:17px;height:17px}.login-corporate-center{font-size:6px}.login-corporate-credit{font-size:7px}.login-side{padding-bottom:70px}}
