@@ -548,8 +548,7 @@ function render(root,legacy){
  if(P.error&&!P.loaded){host.innerHTML='<div class="stp-error">تعذر بناء الملخص التنفيذي: '+e(P.error)+'</div><button class="stp-retry" id="stpRetry">إعادة المحاولة</button>';document.getElementById('stpRetry').onclick=()=>{P.error='';load(root,legacy,true)};return}
  if(!P.loaded){host.innerHTML='<div class="stp-loading"><b>تهيئة الملخص التنفيذي...</b></div>';load(root,legacy);return}
  const x=P.portfolio,h=P.history||{},s=x.summary,trend=h.trend||[],latest=trend.length?trend[trend.length-1]:null,previous=trend.length>1?trend[trend.length-2]:null;
- host.innerHTML='<div class="stp-title"><div><span>TECHNICAL WEEKLY PULSE</span><h2>الملخص التنفيذي للإنجاز الفني</h2><p>المشاريع والتوصيلات والتصاريح والطوارئ تُعرض كلٌ على حدة. لا يوجد متوسط يجمع المسارات المختلفة.</p></div><div class="stp-actions"><button id="stpExportReport" class="stp-export-btn">⇩ تصدير تقرير</button><button id="stpRefresh">↻ تحديث شامل</button></div></div>'+
- '<div id="stpCrossFilter" style="display:none;align-items:center;gap:10px;margin:8px 0 14px;padding:8px 12px;border:1px solid rgba(67,165,255,.35);border-radius:12px;background:rgba(67,165,255,.08)"><span></span><button type="button" style="margin-inline-start:auto">× مسح فلتر الشارت</button></div>'+
+ host.innerHTML='<div id="stpCrossFilter" style="display:none;align-items:center;gap:10px;margin:8px 0 14px;padding:8px 12px;border:1px solid rgba(67,165,255,.35);border-radius:12px;background:rgba(67,165,255,.08)"><span></span><button type="button" style="margin-inline-start:auto">× مسح فلتر الشارت</button></div>'+
  '<div class="stp-section-head"><div><span>LIVE STATUS</span><h3>الوضع الحالي</h3></div><small>قراءة حية من الشيتات أياً كان اليوم — لا تعتمد على لقطة الخميس</small></div>'+
  '<div class="stp-section-grid stp-live-grid">'+x.sections.filter(v=>v.total).map(liveCard).join('')+'</div>'+
  '<div class="stp-section-head"><div><span>THURSDAY BASELINE DELTA</span><h3>الفرق بين خطي الأساس الأسبوعيين</h3></div><small>'+(previous&&latest?('مقارنة إغلاق '+previous.label+' مع '+latest.label):'تظهر الفروق بعد توفر لقطتي خميس رسميتين')+'</small></div>'+
@@ -561,8 +560,7 @@ function render(root,legacy){
  '<article class="stp-panel"><div><span>PROJECTS • STAGE STATUS</span><h3>تريند أعداد حالة المرحلة — المشاريع</h3></div><canvas id="stpProjectsStageStatusTrend"></canvas></article>'+
  '<article class="stp-panel"><div><span>CONNECTIONS • STAGE STATUS</span><h3>تريند أعداد حالة المرحلة — التوصيلات</h3></div><canvas id="stpConnectionsStageStatusTrend"></canvas></article>'+
  '</div>';
- document.getElementById('stpRefresh').onclick=()=>load(root,legacy,true);
- document.getElementById('stpExportReport').onclick=()=>exportThursdayReport();
+ const exportBtn=document.getElementById('stpExportReport');if(exportBtn)exportBtn.onclick=()=>exportThursdayReport();
  host.querySelectorAll('[data-stp-page]').forEach(c=>c.onclick=()=>{try{if(typeof openPage==='function')openPage(c.dataset.stpPage)}catch{}});
  setTimeout(()=>{drawCharts();renderCrossFilter()},20);
 }
