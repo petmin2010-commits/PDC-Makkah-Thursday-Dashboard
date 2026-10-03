@@ -1368,66 +1368,81 @@
     if (!groups.length) groups.push([...keyIndexes]);
 
     groups.forEach((indexes, segmentIndex) => {
-      const page = createPage(
-        detailTitle,
-        groups.length > 1
-          ? `الجزء ${segmentIndex + 1} من ${groups.length} • ${rows.length} سجل`
-          : `${rows.length} سجل`,
-        'vd-report-detail-page vd-report-control-detail-page vd-report-autofit-detail-page '
-          + (config.pageClass || '')
-      );
+      const rowsPerPage = Math.max(0, Number(config.rowsPerPage) || 0);
+      const rowPages = rowsPerPage ? chunk(rows, rowsPerPage) : [rows];
 
-      const table = document.createElement('table');
-      table.className = 'vd-report-paginated-table vd-report-autofit-table';
+      rowPages.forEach((rowGroup, rowPageIndex) => {
+        const segmentText = groups.length > 1
+          ? `الجزء ${segmentIndex + 1} من ${groups.length}`
+          : '';
+        const pageText = rowPages.length > 1
+          ? `صفحة ${rowPageIndex + 1} من ${rowPages.length}`
+          : '';
+        const subtitle = [segmentText, pageText, `${rows.length} سجل`]
+          .filter(Boolean)
+          .join(' • ');
 
-      const thead = document.createElement('thead');
-      const headRow = document.createElement('tr');
-
-      const serialHead = document.createElement('th');
-      serialHead.textContent = 'م';
-      serialHead.className = 'vd-report-autofit-serial';
-      headRow.appendChild(serialHead);
-
-      indexes.forEach(columnIndex => {
-        headRow.appendChild(
-          headers[columnIndex]?.cloneNode(true)
-          || document.createElement('th')
+        const page = createPage(
+          detailTitle,
+          subtitle,
+          'vd-report-detail-page vd-report-control-detail-page vd-report-autofit-detail-page '
+            + (config.pageClass || '')
         );
-      });
 
-      thead.appendChild(headRow);
-      table.appendChild(thead);
+        const table = document.createElement('table');
+        table.className = 'vd-report-paginated-table vd-report-autofit-table';
 
-      const tbody = document.createElement('tbody');
+        const thead = document.createElement('thead');
+        const headRow = document.createElement('tr');
 
-      rows.forEach((sourceRow, rowIndex) => {
-        const sourceCells = [...sourceRow.children];
-        const tr = document.createElement('tr');
-
-        const serial = document.createElement('td');
-        serial.textContent = String(rowIndex + 1);
-        serial.className = 'vd-report-autofit-serial';
-        tr.appendChild(serial);
+        const serialHead = document.createElement('th');
+        serialHead.textContent = 'م';
+        serialHead.className = 'vd-report-autofit-serial';
+        headRow.appendChild(serialHead);
 
         indexes.forEach(columnIndex => {
-          tr.appendChild(
-            sourceCells[columnIndex]?.cloneNode(true)
-            || document.createElement('td')
+          headRow.appendChild(
+            headers[columnIndex]?.cloneNode(true)
+            || document.createElement('th')
           );
         });
 
-        tbody.appendChild(tr);
+        thead.appendChild(headRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+
+        rowGroup.forEach((sourceRow, localIndex) => {
+          const sourceCells = [...sourceRow.children];
+          const tr = document.createElement('tr');
+
+          const serial = document.createElement('td');
+          serial.textContent = String(
+            (rowPageIndex * (rowsPerPage || rows.length)) + localIndex + 1
+          );
+          serial.className = 'vd-report-autofit-serial';
+          tr.appendChild(serial);
+
+          indexes.forEach(columnIndex => {
+            tr.appendChild(
+              sourceCells[columnIndex]?.cloneNode(true)
+              || document.createElement('td')
+            );
+          });
+
+          tbody.appendChild(tr);
+        });
+
+        table.appendChild(tbody);
+        cleanupClone(table);
+        prepareAutoFitReportTable(table);
+
+        page
+          .querySelector('.vd-report-section-body')
+          .appendChild(table);
+
+        report.appendChild(page);
       });
-
-      table.appendChild(tbody);
-      cleanupClone(table);
-      prepareAutoFitReportTable(table);
-
-      page
-        .querySelector('.vd-report-section-body')
-        .appendChild(table);
-
-      report.appendChild(page);
     });
   }
 
@@ -1675,14 +1690,15 @@
 
     if (summary.length > 6) buildKpiPages(report, summary);
 
-    const trees = [
-      ...source.querySelectorAll('#closuresCopiedTreesSection .panel')
-    ].filter(isVisible);
-    buildTreePages(report, trees, { pageClass: 'vd-report-closures-tree-page', maxHeight: 510 });
+    /* The copied PDC/emergency trees stay visible in the dashboard tab,
+       but are intentionally excluded from the Closures PDF because they belong
+       to other operational views and made the report look unrelated to closures. */
 
     const charts = [
       ...source.querySelectorAll('#genericPageCharts .panel')
     ].filter(isVisible);
+
+    const chartPageStart = report.children.length;
 
     buildControlChartPages(report, charts, {
       wideSelector: '',
@@ -1690,12 +1706,38 @@
       pageClass: 'vd-report-closures-control'
     });
 
-    if (type === 'full') {
-      buildAutoFitDataAppendix(report, {
-        detailTitle: 'البيانات التفصيلية للإغلاقات',
-        columnsPerSegment: 10,
-        pageClass: 'vd-report-closures-control'
+    Array.from(report.children)
+      .slice(chartPageStart)
+      .forEach(page => {
+        page.querySelectorAll('.panel-title span').forEach(span => {
+          span.textContent = 'تحليل الإغلاقات';
+        });
       });
+
+    if (type === 'full') {
+      const dataHost = document.getElementById('dataTable');
+      const previousMarkup = dataHost?.innerHTML || '';
+      const fullRows = typeof S !== 'undefined' && Array.isArray(S.filtered)
+        ? S.filtered
+        : [];
+      const fullColumns = typeof S !== 'undefined' && Array.isArray(S.columns)
+        ? S.columns
+        : [];
+
+      try {
+        if (dataHost && fullRows.length && fullColumns.length && typeof tableHtml === 'function') {
+          dataHost.innerHTML = tableHtml(fullRows, fullColumns);
+        }
+
+        buildAutoFitDataAppendix(report, {
+          detailTitle: 'البيانات التفصيلية للإغلاقات',
+          columnsPerSegment: 10,
+          rowsPerPage: 40,
+          pageClass: 'vd-report-closures-control'
+        });
+      } finally {
+        if (dataHost) dataHost.innerHTML = previousMarkup;
+      }
     }
 
     return true;

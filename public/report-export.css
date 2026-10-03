@@ -2326,3 +2326,39 @@ body.vd-report-v2-mode #vdReportV2 .vd-report-assets-control .vd-report-paginate
   word-break:normal!important;
   overflow-wrap:break-word!important;
 }
+
+/* Closures PDF — true pagination, readable status cells, no decorative overlap. */
+body.vd-report-v2-mode #vdReportV2 .vd-report-closures-control.vd-report-autofit-detail-page::before,
+body.vd-report-v2-mode #vdReportV2 .vd-report-closures-control.vd-report-autofit-detail-page::after{
+  content:none!important;
+  display:none!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-closures-control.vd-report-autofit-detail-page{
+  min-height:194mm!important;
+  height:194mm!important;
+  max-height:194mm!important;
+  overflow:hidden!important;
+  padding:5mm 6mm 7mm!important;
+  box-sizing:border-box!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-closures-control .vd-report-paginated-table th{
+  font-size:5.7px!important;
+  line-height:1.18!important;
+  padding:.72mm .45mm!important;
+  word-break:normal!important;
+  overflow-wrap:break-word!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-closures-control .vd-report-paginated-table td{
+  font-size:5.35px!important;
+  line-height:1.24!important;
+  padding:.64mm .45mm!important;
+  word-break:normal!important;
+  overflow-wrap:break-word!important;
+  white-space:normal!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-closures-control .vd-report-paginated-table td *,
+body.vd-report-v2-mode #vdReportV2 .vd-report-closures-control .vd-report-paginated-table th *{
+  word-break:normal!important;
+  overflow-wrap:break-word!important;
+  white-space:normal!important;
+}
