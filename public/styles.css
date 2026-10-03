@@ -3368,3 +3368,10 @@ body.vd-sidebar-collapsed .vd-sidebar-toggle{
     height:33px!important;
   }
 }
+/* Sidebar company logo hover motion — 2026-10-03 */
+.brand-logo-wrap{position:relative;transform-origin:center;will-change:transform,filter;transition:transform .28s cubic-bezier(.2,.75,.25,1),box-shadow .28s ease,filter .28s ease}
+.brand-logo{will-change:transform,filter;transition:transform .28s cubic-bezier(.2,.75,.25,1),filter .28s ease}
+.brand-logo-wrap:hover{animation:vdSidebarLogoFloat 1.65s ease-in-out infinite;box-shadow:0 15px 30px rgba(0,0,0,.22),0 0 0 3px rgba(255,255,255,.10),0 0 25px rgba(77,190,238,.30);filter:brightness(1.04)}
+.brand-logo-wrap:hover .brand-logo{transform:scale(1.09) rotate(-.8deg);filter:drop-shadow(0 0 9px rgba(67,179,229,.34))}
+@keyframes vdSidebarLogoFloat{0%,100%{transform:translateY(-1px) scale(1.02)}50%{transform:translateY(-5px) scale(1.065)}}
+@media(prefers-reduced-motion:reduce){.brand-logo-wrap:hover{animation:none!important;transform:translateY(-2px) scale(1.02)}}

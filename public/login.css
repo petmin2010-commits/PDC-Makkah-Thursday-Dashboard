@@ -29,3 +29,13 @@ body.is-ready .login-card{opacity:1;transform:translateY(0) scale(1)}.login-card
 @media(max-width:980px){.login-page{grid-template-columns:1fr}.city-visual{min-height:36vh}.login-side{min-height:64vh;padding:28px 20px}.city-visual:after{width:18%;right:-8%}.city-project{right:25px;bottom:25px}.city-project strong{font-size:20px}.photo-credit{display:none}}
 @media(max-width:560px){.city-visual{min-height:29vh}.login-side{min-height:71vh;padding:18px 13px}.login-card{padding:25px 20px 20px;border-radius:20px}.brand-row{gap:11px}.brand-divider{height:58px}.logo-box{width:58px;height:58px}.brand-copy{display:none}.pdc-brand{width:112px;min-width:112px;height:60px}.login-heading h1{font-size:27px}.city-project{right:17px;bottom:16px}.city-project-icon{width:46px;height:46px;font-size:22px}.city-project strong{font-size:17px}.city-project span{font-size:7px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.001ms!important}.city-photo{transform:scale(1.08)!important}}
+/* VD + PDC logo hover motion — 2026-10-03 */
+.logo-box,.pdc-brand{position:relative;transform-origin:center;will-change:transform,filter;transition:transform .28s cubic-bezier(.2,.75,.25,1),box-shadow .28s ease,filter .28s ease}
+.logo-box img,.pdc-logo{will-change:transform,filter;transition:transform .28s cubic-bezier(.2,.75,.25,1),filter .28s ease}
+.logo-box:hover,.pdc-brand:hover{animation:vdLoginLogoFloat 1.65s ease-in-out infinite;filter:drop-shadow(0 10px 18px rgba(8,57,94,.18))}
+.logo-box:hover{box-shadow:0 15px 32px rgba(9,68,111,.20),0 0 0 3px rgba(72,176,224,.10),0 0 28px rgba(255,190,61,.24)}
+.pdc-brand:hover{border-radius:15px;background:rgba(255,255,255,.72);box-shadow:0 15px 32px rgba(9,68,111,.18),0 0 28px rgba(255,190,61,.20)}
+.logo-box:hover img{transform:scale(1.08) rotate(-.8deg);filter:drop-shadow(0 0 10px rgba(46,142,195,.28))}
+.pdc-brand:hover .pdc-logo{transform:scale(1.14) rotate(.6deg);filter:drop-shadow(0 0 10px rgba(46,142,195,.24))}
+@keyframes vdLoginLogoFloat{0%,100%{transform:translateY(-2px) scale(1.02)}50%{transform:translateY(-6px) scale(1.055)}}
+@media(prefers-reduced-motion:reduce){.logo-box:hover,.pdc-brand:hover{animation:none!important;transform:translateY(-2px) scale(1.02)}}
