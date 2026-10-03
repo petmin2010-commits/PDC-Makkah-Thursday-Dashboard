@@ -1578,12 +1578,12 @@
       metricTitle: 'المؤشرات التنفيذية للأصول',
       chartSubtitle: 'تحليل الأصول',
       pageClass: 'vd-report-assets-control',
-      tableRowsPerPage: [10, 6],
+      tableRowsPerPage: [12, 6],
       detailTitle: 'البيانات التفصيلية للأصول',
       detailSegments: [
         {
           title: 'التعريف والتنفيذ',
-          rowsPerPage: 10,
+          rowsPerPage: 13,
           columns: [
             'أمر العمل','نوع أمر العمل','رمز أمر العمل','المقاول',
             'الموقع','عدد الأيام منذ الإسناد',
@@ -1594,7 +1594,7 @@
         },
         {
           title: 'دورة الأصل والمتابعة',
-          rowsPerPage: 6,
+          rowsPerPage: 8,
           columns: [
             'أمر العمل','مراجعة بيانات الزراعة','حالة الزراعة',
             'نموذج الأصول','الاستلام الميداني','إجراء 207',

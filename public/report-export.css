@@ -2305,3 +2305,24 @@ body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control.vd-report-cont
 }
 body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control.vd-report-control-project-table-page .vd-report-summary-table th:last-child,
 body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control.vd-report-control-project-table-page .vd-report-summary-table td:last-child{width:25%!important;}
+
+/* Assets PDF — compact pagination + last-page artifact repair (2026-10-03). */
+body.vd-report-v2-mode #vdReportV2 .vd-report-assets-control.vd-report-control-table-page::before,
+body.vd-report-v2-mode #vdReportV2 .vd-report-assets-control.vd-report-control-table-page::after,
+body.vd-report-v2-mode #vdReportV2 .vd-report-assets-control.vd-report-control-detail-page::before,
+body.vd-report-v2-mode #vdReportV2 .vd-report-assets-control.vd-report-control-detail-page::after{
+  content:none!important;
+  display:none!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-assets-control .vd-report-paginated-table th{
+  font-size:5.8px!important;
+  line-height:1.22!important;
+  padding:.95mm .58mm!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-assets-control .vd-report-paginated-table td{
+  font-size:5.6px!important;
+  line-height:1.32!important;
+  padding:.88mm .58mm!important;
+  word-break:normal!important;
+  overflow-wrap:break-word!important;
+}
