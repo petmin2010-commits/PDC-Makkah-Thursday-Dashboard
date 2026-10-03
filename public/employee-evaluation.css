@@ -134,3 +134,25 @@ body.employee-evaluation-active .ee-note{
   body.employee-evaluation-active .ee-search{grid-column:auto!important}
   body.employee-evaluation-active .ee-actions{flex-wrap:wrap!important}
 }
+
+/* Site engineer evaluation: actions inline beside "إلى تاريخ" */
+body.employee-evaluation-active .ee-actions.ee-actions-inline{
+  margin:0!important;
+  padding:0!important;
+  border-top:0!important;
+  align-self:end!important;
+  justify-content:flex-start!important;
+  gap:8px!important;
+  min-width:0!important;
+}
+body.employee-evaluation-active .ee-actions.ee-actions-inline>button{
+  min-height:42px!important;
+  height:42px!important;
+  white-space:nowrap!important;
+}
+@media(max-width:700px){
+  body.employee-evaluation-active .ee-actions.ee-actions-inline{
+    width:100%!important;
+    flex-wrap:wrap!important;
+  }
+}
