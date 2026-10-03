@@ -62,7 +62,7 @@ function definitions(q){
    missing('بدون رقم المعدة','K','equipmentNo','رقم المعدة','العمود K — يُفحص فقط عندما يكون الاستلام الميداني S = «تم»',assetFieldReceiptDone),
    missing('بدون نوع الاختبار','L','testType','نوع الاختبار','العمود L — يُفحص فقط عندما يكون الاستلام الميداني S = «تم»',assetFieldReceiptDone),
    missing('بدون الجهة المنفذة','M','executingEntity','الجهة المنفذة','العمود M — يُفحص فقط عندما يكون الاستلام الميداني S = «تم»',assetFieldReceiptDone),
-   missing('بدون اسم مهندس التركيب','N','engineer','اسم المهندس المسئول عن التركيب','العمود N — يُفحص فقط عندما يكون الاستلام الميداني S = «تم»',assetFieldReceiptDone),
+   missing('بدون اسم مهندس الاختبار المشرف','N','engineer','اسم مهندس الاختبار المشرف','العمود N — يُفحص فقط عندما يكون الاستلام الميداني S = «تم»',assetFieldReceiptDone),
    missing('بدون مراجعة بيانات الزراعة','O','plantingReview','مراجعة بيانات الزراعه','العمود O — يُفحص فقط عندما يكون الاستلام الميداني S = «تم»',assetFieldReceiptDone),
    missing('بدون حالة الزراعة','P','plantingStatus','حالة الزاعة','العمود P — يُفحص فقط عندما يكون الاستلام الميداني S = «تم»',assetFieldReceiptDone),
    missing('بدون نموذج الأصول','Q','assetForm','نموذج الأصول','العمود Q — يُفحص فقط عندما يكون الاستلام الميداني S = «تم»',assetFieldReceiptDone),

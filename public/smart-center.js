@@ -325,7 +325,7 @@ function analyzeProject(){
  rows('assets').forEach(r=>{
   if(norm(r.plantingReview)==='تمت المراجعه'){
    if(!clean(r.installDate))addIssue('high','الأصول','assets','تاريخ التركيب مفقود بعد المراجعة','حالة المراجعة تمت المراجعة بينما تاريخ التركيب فارغ.',r);
-   if(!clean(r.engineer))addIssue('high','الأصول','assets','مهندس التركيب مفقود بعد المراجعة','حالة المراجعة تمت المراجعة بينما اسم مهندس التركيب فارغ.',r);
+   if(!clean(r.engineer))addIssue('high','الأصول','assets','مهندس الاختبار المشرف مفقود بعد المراجعة','حالة المراجعة تمت المراجعة بينما اسم مهندس الاختبار المشرف فارغ.',r);
   }
  });
  rows('emergency').forEach(r=>{
@@ -832,7 +832,7 @@ function xdBuildCases(){
  rows('assets').forEach(r=>{const c=ensure(xdCaseRef(r),r);if(!c)return;
   if(norm(r.plantingReview)==='تمت المراجعه'){
    if(!clean(r.installDate))xdAddQualityFlag(c,'تاريخ تركيب مفقود','الأصل تمت مراجعته لكن تاريخ التركيب غير مسجل.');
-   if(!clean(r.engineer))xdAddQualityFlag(c,'مهندس تركيب مفقود','الأصل تمت مراجعته لكن مهندس التركيب غير مسجل.');
+   if(!clean(r.engineer))xdAddQualityFlag(c,'مهندس الاختبار المشرف مفقود','الأصل تمت مراجعته لكن مهندس الاختبار المشرف غير مسجل.');
   }
   if(clean(r.notes)&&!containsAny(r.resolved,['تم','نعم','معالج']))xdPushReason(c,'asset-unresolved','ملاحظة أصل غير مغلقة',10,'assets','الأصول','توجد ملاحظة على الأصل دون إثبات تلافيها.','مراجعة الملاحظة وتوثيق الإغلاق أو الإجراء التصحيحي.',r);
  });

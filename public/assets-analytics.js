@@ -24,7 +24,7 @@ const monitoredFields=[
  {label:'رقم المعدة',field:'equipmentNo',col:'K',applicable:executionDone},
  {label:'نوع الاختبار',field:'testType',col:'L',applicable:executionDone},
  {label:'الجهة المنفذة',field:'executingEntity',col:'M',applicable:executionDone},
- {label:'مهندس التركيب',field:'engineer',col:'N',applicable:executionDone},
+ {label:'مهندس الاختبار المشرف',field:'engineer',col:'N',applicable:executionDone},
  {label:'مراجعة بيانات الزراعة',field:'plantingReview',col:'O',applicable:()=>true},
  {label:'حالة الزراعة',field:'plantingStatus',col:'P',applicable:()=>true},
  {label:'نموذج الأصول',field:'assetForm',col:'Q',applicable:()=>true},
@@ -38,7 +38,7 @@ const workflowDefs=[
  {label:'رقم المعدة',field:'equipmentNo',mode:'filled'},
  {label:'نوع الاختبار',field:'testType',mode:'filled'},
  {label:'الجهة المنفذة',field:'executingEntity',mode:'filled'},
- {label:'مهندس التركيب',field:'engineer',mode:'filled'},
+ {label:'مهندس الاختبار المشرف',field:'engineer',mode:'filled'},
  {label:'مراجعة الزراعة',field:'plantingReview',done:'تمت المراجعة',pending:'لم تتم المراجعة',allowNA:true},
  {label:'الزراعة',field:'plantingStatus',done:'تمت الزراعة',pending:'لم يتم الزراعة',allowNA:true},
  {label:'نموذج الأصول',field:'assetForm',done:'تم الارفاق',pending:'لم يتم الارفاق',allowNA:true},
@@ -73,7 +73,7 @@ function currentStage(r,active){
  if(workflowDone(r,{field:'plantingStatus',allowNA:true}))return'بانتظار نموذج الأصول';
  if(workflowDone(r,{field:'plantingReview',allowNA:true}))return'بانتظار الزراعة';
  if(filled(r.engineer))return'بانتظار مراجعة الزراعة';
- if(filled(r.executingEntity))return'بانتظار مهندس التركيب';
+ if(filled(r.executingEntity))return'بانتظار مهندس الاختبار المشرف';
  if(filled(r.testType))return'بانتظار الجهة المنفذة';
  if(filled(r.equipmentNo))return'بانتظار نوع الاختبار';
  if(filled(r.installDate))return'بانتظار رقم المعدة';
@@ -229,7 +229,7 @@ function render(rows){
   ${chartBox('aaEquipment','تغطية أرقام المعدات','رقم المعدة',false)}
   ${chartBox('aaContractor','الأصول حسب المقاول','أعلى المقاولين',false)}
   ${chartBox('aaLocation','الأصول حسب الموقع','أعلى المواقع',false)}
-  ${chartBox('aaEngineer','التوزيع حسب مهندس التركيب','مهندس التركيب',false)}
+  ${chartBox('aaEngineer','التوزيع حسب مهندس الاختبار المشرف','مهندس الاختبار المشرف',false)}
   ${chartBox('aaInstallTrend','اتجاه تسجيل التركيب شهرياً','تاريخ تركيب المعدة',false)}
   ${chartBox('aaSystem','حالة الاستلام على النظام','إجراء 211',false)}
   ${chartBox('aaAge','توزيع العمر منذ الإسناد','عدد الأيام',false)}
@@ -254,7 +254,7 @@ function render(rows){
  const equipmentField=monitoredFields.find(f=>f.field==='equipmentNo');draw('aaEquipment','doughnut',['رقم معدة مسجل','رقم معدة ناقص'],[{data:[equipment,Math.max(0,executed-equipment)],backgroundColor:['#16a34a','#cbd5e1']}],{onClick:(hit)=>applyQualityFilter(equipmentField,hit.index===0?'complete':'missing')});
  const cs=group(rows,'contractor').slice(0,12);draw('aaContractor','bar',cs.map(x=>x[0]),[{label:'الأوامر',data:cs.map(x=>x[1]),backgroundColor:'#2563eb'}],{horizontal:true,field:'contractor',filterLabel:'المقاول'});
  const ls=group(rows,'location').slice(0,12);draw('aaLocation','bar',ls.map(x=>x[0]),[{label:'الأوامر',data:ls.map(x=>x[1]),backgroundColor:'#0891b2'}],{horizontal:true,field:'location',filterLabel:'الموقع'});
- const es=group(executedRows,'engineer').filter(x=>x[0]!=='غير محدد').slice(0,12);draw('aaEngineer','bar',es.length?es.map(x=>x[0]):['لا توجد بيانات'],[{label:'الأوامر',data:es.length?es.map(x=>x[1]):[0],backgroundColor:'#7c3aed'}],es.length?{horizontal:true,onClick:(hit,labels)=>applyExecutedFilter('aaEngineer','engineer',labels[hit.index],'مهندس التركيب','exact',labels[hit.index])}:{horizontal:true});
+ const es=group(executedRows,'engineer').filter(x=>x[0]!=='غير محدد').slice(0,12);draw('aaEngineer','bar',es.length?es.map(x=>x[0]):['لا توجد بيانات'],[{label:'الأوامر',data:es.length?es.map(x=>x[1]):[0],backgroundColor:'#7c3aed'}],es.length?{horizontal:true,onClick:(hit,labels)=>applyExecutedFilter('aaEngineer','engineer',labels[hit.index],'مهندس الاختبار المشرف','exact',labels[hit.index])}:{horizontal:true});
  const months={};executedRows.forEach(r=>{const d=date(r.installDate);if(!d)return;const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');months[k]=(months[k]||0)+1});const ma=Object.entries(months).sort((a,b)=>a[0].localeCompare(b[0]));
  draw('aaInstallTrend','line',ma.length?ma.map(x=>x[0]):['لا توجد تواريخ تركيب'],[{label:'تركيبات مسجلة',data:ma.length?ma.map(x=>x[1]):[0],borderColor:'#0ea5e9',backgroundColor:'rgba(14,165,233,.15)',fill:true,tension:.3}],ma.length?{legend:false,onClick:(hit)=>applyExecutedFilter('aaInstallTrend','installDate',ma[hit.index][0],'شهر التركيب','month',ma[hit.index][0])}:{legend:false});
  const ss=group(executedRows,'systemReceipt');draw('aaSystem','doughnut',ss.map(x=>x[0]),[{data:ss.map(x=>x[1]),backgroundColor:['#16a34a','#f59e0b','#94a3b8','#dc2626']}],{onClick:(hit,labels)=>{const label=labels[hit.index];applyExecutedFilter('aaSystem','systemReceipt',label==='غير محدد'?'':label,'إجراء 211',label==='غير محدد'?'blank':'exact',label)}});
