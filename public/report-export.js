@@ -569,7 +569,7 @@
     });
   }
 
-  function fitTreeClone(sourcePanel, clonedPanel, wrapper) {
+  function fitTreeClone(sourcePanel, clonedPanel, wrapper, options = {}) {
     const rect = sourcePanel.getBoundingClientRect();
 
     const width = Math.max(
@@ -584,8 +584,8 @@
       Math.ceil(rect.height || 0)
     );
 
-    const maxWidth = 1000;
-    const maxHeight = 575;
+    const maxWidth = Number(options.maxWidth) || 1000;
+    const maxHeight = Number(options.maxHeight) || 575;
 
     const scale = Math.min(
       1,
@@ -608,7 +608,7 @@
     wrapper.dataset.treeScale = scale.toFixed(3);
   }
 
-  function buildTreePages(report, trees) {
+  function buildTreePages(report, trees, options = {}) {
     trees.forEach((panel, index) => {
       const title =
         panel.querySelector('h1,h2,h3,.panel-title')
@@ -618,7 +618,7 @@
       const page = createPage(
         title,
         'العلاقات والتوزيع التشجيري',
-        'vd-report-tree-page'
+        'vd-report-tree-page ' + (options.pageClass || '')
       );
 
       const body =
@@ -644,7 +644,7 @@
         cloneWithCanvases(panel);
 
       wrapper.appendChild(clonedTree);
-      fitTreeClone(panel, clonedTree, wrapper);
+      fitTreeClone(panel, clonedTree, wrapper, options);
 
       body.appendChild(wrapper);
       report.appendChild(page);
@@ -1623,7 +1623,7 @@
     const trees = [
       ...source.querySelectorAll('#closuresCopiedTreesSection .panel')
     ].filter(isVisible);
-    buildTreePages(report, trees);
+    buildTreePages(report, trees, { pageClass: 'vd-report-closures-tree-page', maxHeight: 510 });
 
     const charts = [
       ...source.querySelectorAll('#genericPageCharts .panel')

@@ -1837,3 +1837,10 @@ body.vd-report-v2-mode #vdReportV2 td.vd-projects-advice-col{
     page-break-after:auto!important;
   }
 }
+
+
+/* Closures PDF: force each copied tree to occupy exactly one printed page. */
+.vd-report-closures-tree-page{height:194mm!important;min-height:194mm!important;max-height:194mm!important;box-sizing:border-box!important;overflow:hidden!important;break-inside:avoid!important;page-break-inside:avoid!important;break-after:page!important;page-break-after:always!important}
+.vd-report-closures-tree-page .vd-report-section-body{overflow:hidden!important}
+.vd-report-closures-tree-page .vd-report-tree-wrapper{max-height:145mm!important;overflow:hidden!important}
+@media print{.vd-report-closures-tree-page{height:194mm!important;min-height:194mm!important;max-height:194mm!important;break-inside:avoid!important;page-break-inside:avoid!important;break-after:page!important;page-break-after:always!important}}
