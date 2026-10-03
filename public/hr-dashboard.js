@@ -168,7 +168,7 @@ function renderShell(rows){
         '<label><span>السيارة</span><select id="hrVehicle">'+optionList(['سيارة مسلمة','يحتاج سيارة','سيارة خاصة','لا يحتاج','غير محدد'],f.vehicle)+'</select></label>'+
         '<label class="hr-search"><span>بحث شامل</span><input id="hrSearch" value="'+esc(f.search)+'" placeholder="اسم، كود، وظيفة، بطاقة..."></label>'+
       '</div>'+
-      '<div class="hr-filter-actions"><button id="hrReset" class="ghost-btn">مسح الفلاتر</button><button id="hrRefresh" class="primary-btn">↻ تحديث البيانات</button><strong>'+rows.length+' موظف مطابق</strong></div>'+
+      '<div class="hr-filter-actions"><button id="hrReset" class="ghost-btn">مسح الفلاتر</button><button id="hrRefresh" class="primary-btn">↻ تحديث البيانات</button><button id="hrExportReport" class="vd-tab-report-btn" type="button">↓ تصدير التقرير PDF</button><strong>'+rows.length+' موظف مطابق</strong></div>'+
       '<div id="hrCrossSummary" class="hr-cross-summary"></div>'+
     '</section>'+
     '<section class="hr-section-head"><div><span>EXECUTIVE KPIs</span><h3>المؤشرات التنفيذية</h3></div><p>جميع المؤشرات تتغير مباشرة مع الفلاتر.</p></section>'+
@@ -261,6 +261,7 @@ function bind(){
     state.filters={city:CFG.defaultCity,role:'الكل',card:'الكل',sponsor:'الكل',nationality:'الكل',training:'الكل',vehicle:'الكل',search:''};state.cross={};render();
   });
   document.getElementById('hrRefresh')?.addEventListener('click',()=>load(true));
+  document.getElementById('hrExportReport')?.addEventListener('click',()=>window.VDReportExport?.exportCurrent?.());
 
   // تفعيل الكروت نفسها كفلاتر تفاعلية داخل تاب الموارد البشرية
   document.querySelectorAll('#hrStaffRoot .hr-kpi').forEach(card=>{
@@ -430,6 +431,7 @@ function activate(){
   ['masterPage','meetingPage','dataPage','importantLinksPage'].forEach(id=>document.getElementById(id)?.classList.remove('active'));
   document.getElementById('hrStaffPage')?.classList.add('active');
   const fb=document.getElementById('filterBar');if(fb)fb.style.display='none';
+  const unified=document.getElementById('vdUnifiedControls');if(unified)unified.style.display='none';
   const topSearch=document.querySelector('.top-actions .search');if(topSearch)topSearch.style.display='none';
   const title=document.getElementById('pageTitle');if(title)title.textContent='الموارد البشرية للكادر';
   load(false);
@@ -440,6 +442,7 @@ if(typeof openPage==='function'){
     if(key==='hrStaff'){activate();return}
     document.getElementById('hrStaffPage')?.classList.remove('active');
     const fb=document.getElementById('filterBar');if(fb)fb.style.display='';
+    const unified=document.getElementById('vdUnifiedControls');if(unified)unified.style.display='';
     const topSearch=document.querySelector('.top-actions .search');if(topSearch)topSearch.style.display='';
     return previous(key);
   };
