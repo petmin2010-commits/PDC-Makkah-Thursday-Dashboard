@@ -3612,6 +3612,7 @@
       ['VD', fallbackCity, fallbackType, 'General', Date.now()].join('_');
 
     decorateReportIdentity(report, fileTitle, fallbackKey);
+    if(window.VDI18n?.getLanguage?.()==='en')window.VDI18n.translateRoot(report,'en');
     document.title = fileTitle;
 
     document.body.classList.add(

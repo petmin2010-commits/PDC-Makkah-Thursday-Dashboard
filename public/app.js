@@ -3616,6 +3616,7 @@ function exportExecutionReportPdf(){
  const totalPenalty=sum(rows,'penalty');
  win.document.write(buildCorporateViolationsPdf({title:'تقرير مخالفات التنفيذ',subtitle:'تقرير تنفيذي احترافي لتحليل مخالفات التنفيذ ومناطق التركّز حسب الفلاتر المطبقة',eyebrow:'VISION DIMENSIONS • EXECUTION VIOLATIONS ANALYTICS',reportId,today,rows,workOrders,contractors,types,repeated,totalPenalty,appliedFilters,logoUrl,topContractors,topViolations,topWorkOrders,topSections,miniBars,chartCards,listCols,tableRows}));
  win.document.close();
+ if(window.VDI18n?.getLanguage?.()==='en')window.VDI18n.translateRoot(win.document,'en');
 }
 
 function buildCorporateViolationsPdf(o){
@@ -3675,6 +3676,7 @@ function exportSafetyReportPdf(){
 
  win.document.write(buildCorporateViolationsPdf({title:'تقرير مخالفات السلامة',subtitle:'تقرير تنفيذي احترافي لقراءة اتجاهات مخالفات السلامة ومناطق التركّز حسب الفلاتر المطبقة',eyebrow:'VISION DIMENSIONS • EXECUTIVE SAFETY ANALYTICS',reportId,today,rows,workOrders,contractors,types,repeated,totalPenalty:0,appliedFilters,logoUrl,topContractors,topViolations,topWorkOrders,topSections:topSupervisors,miniBars,chartCards,listCols,tableRows}));
  win.document.close();
+ if(window.VDI18n?.getLanguage?.()==='en')window.VDI18n.translateRoot(win.document,'en');
  return;
 
  win.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تقرير مخالفات السلامة - ${reportId}</title><style>

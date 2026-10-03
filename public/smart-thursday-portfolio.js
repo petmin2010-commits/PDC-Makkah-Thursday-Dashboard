@@ -540,6 +540,7 @@ function exportThursdayReport(){
  win.document.open();
  win.document.write(html);
  win.document.close();
+ if(window.VDI18n?.getLanguage?.()==='en')window.VDI18n.translateRoot(win.document,'en');
 }
 function render(root,legacy){
  if(!root)return;

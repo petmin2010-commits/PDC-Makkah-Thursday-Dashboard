@@ -192,6 +192,7 @@ function exportLinksReport(preopenedWindow=null){
     '<div class="print-report-id">'+esc(fileTitle)+'</div>'+
     '</body></html>');
   w.document.close();
+  if(window.VDI18n?.getLanguage?.()==='en')window.VDI18n.translateRoot(w.document,'en');
 
   const printWhenReady=()=>{
     const images=[...w.document.images];
