@@ -168,6 +168,12 @@
       return;
     }
 
+    if (key === 'importantLinks' && typeof window.exportImportantLinksReport === 'function') {
+      window.exportImportantLinksReport();
+      setTimeout(finish, 900);
+      return;
+    }
+
     const api = window.VDReportExport;
     const exportFn =
       typeof api?.exportCurrent === 'function'

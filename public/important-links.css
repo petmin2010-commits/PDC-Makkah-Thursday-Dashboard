@@ -1,5 +1,8 @@
 /* Important Links - native cards, no embedded PDF */
 .il-root{display:none;margin-bottom:18px}
+.il-report-tools{display:flex;align-items:center;justify-content:flex-start;direction:rtl;margin:0 0 12px;padding:0 2px}
+.il-export-report-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:9px 16px;border:0;border-radius:12px;background:linear-gradient(135deg,#4f3aa8,#6958d9);color:#fff;font:inherit;font-size:10px;font-weight:900;cursor:pointer;box-shadow:0 8px 18px rgba(84,67,176,.22);transition:.18s}
+.il-export-report-btn span{font-size:15px;line-height:1}.il-export-report-btn:hover{transform:translateY(-1px);filter:brightness(1.05);box-shadow:0 10px 22px rgba(84,67,176,.28)}.il-export-report-btn:active{transform:translateY(0)}
 .il-hero{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:20px 22px;margin-bottom:14px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(135deg,#0c355f 0%,#2878e8 65%,#0d4f86 100%);color:#fff;box-shadow:0 12px 30px rgba(24,64,110,.16)}
 .il-hero span{display:block;color:#ffd174;font-size:9px;font-weight:900;letter-spacing:1px}.il-hero h2{margin:4px 0 5px;font-size:22px}.il-hero p{margin:0;color:rgba(255,255,255,.86);font-size:10px;line-height:1.7}
 .il-contract{min-width:190px;text-align:center;padding:11px 14px;border:1px solid rgba(255,255,255,.2);border-radius:13px;background:rgba(255,255,255,.1)}.il-contract span{font-size:7px;color:#ffe2a1}.il-contract strong{display:block;margin-top:3px;font-size:14px;direction:ltr}

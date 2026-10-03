@@ -90,11 +90,46 @@ function buildGroups(q=''){
   }).filter(Boolean);
 }
 
+function exportLinksReport(){
+  const groups=buildGroups('');
+  const total=groups.reduce((sum,g)=>sum+g.links.length,0);
+  const generated=new Intl.DateTimeFormat('ar-SA',{dateStyle:'medium',timeStyle:'short'}).format(new Date());
+  const sections=groups.map(g=>
+    '<section class="report-group">'+
+      '<div class="group-head"><div><span>'+esc(g.sub)+'</span><h2>'+esc(g.title)+'</h2></div><b>'+g.links.length+' روابط</b></div>'+
+      '<table><thead><tr><th>#</th><th>اسم الرابط</th><th>الوصف</th><th>الرابط</th></tr></thead><tbody>'+
+      g.links.map((x,i)=>'<tr><td>'+(i+1)+'</td><td class="link-name">'+esc(x.title)+'</td><td>'+esc(x.desc)+'</td><td class="url-cell"><a href="'+esc(x.href)+'">'+esc(x.href)+'</a></td></tr>').join('')+
+      '</tbody></table>'+
+    '</section>'
+  ).join('');
+
+  const w=window.open('','_blank');
+  if(!w){alert('يرجى السماح بالنوافذ المنبثقة لتصدير تقرير الروابط.');return;}
+
+  w.document.open();
+  w.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تقرير الروابط المهمة - '+esc(CFG.city)+'</title><style>'+
+    '*{box-sizing:border-box}body{margin:0;padding:24px;font-family:Arial,Tahoma,sans-serif;color:#172d44;background:#fff}'+
+    '.report-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:18px 20px;margin-bottom:18px;border:1px solid #dce4ee;border-radius:16px;background:#f6f8fc}'+
+    '.report-head span{font-size:10px;font-weight:800;color:#6958d9;letter-spacing:.8px}.report-head h1{margin:5px 0 6px;font-size:24px}.report-head p{margin:0;color:#657386;font-size:11px}'+
+    '.meta{min-width:180px;padding:11px 14px;border:1px solid #dce4ee;border-radius:12px;background:#fff;text-align:center}.meta b{display:block;font-size:15px}.meta small{display:block;margin-top:4px;color:#718095;font-size:9px}'+
+    '.report-group{margin:0 0 18px;page-break-inside:avoid}.group-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:8px;padding:0 2px}.group-head span{font-size:8px;color:#7a8796;font-weight:800}.group-head h2{margin:2px 0 0;font-size:15px}.group-head b{font-size:10px;color:#fff;background:#6958d9;padding:5px 9px;border-radius:999px}'+
+    'table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:9px}th,td{border:1px solid #dce4ee;padding:7px 8px;vertical-align:top;text-align:right;line-height:1.55}th{background:#eef2f8;font-weight:800}th:nth-child(1),td:nth-child(1){width:5%;text-align:center}th:nth-child(2),td:nth-child(2){width:20%}th:nth-child(3),td:nth-child(3){width:27%}th:nth-child(4),td:nth-child(4){width:48%}.link-name{font-weight:800}.url-cell,.url-cell a{direction:ltr;text-align:left;overflow-wrap:anywhere;word-break:break-all;color:#0b67bd;text-decoration:none}'+
+    '.foot{margin-top:10px;color:#7a8796;font-size:8px;text-align:left}@page{size:A4 landscape;margin:10mm}@media print{body{padding:0}.report-head{break-inside:avoid}.report-group{break-inside:avoid-page}}'+
+    '</style></head><body>'+
+    '<header class="report-head"><div><span>VISION DIMENSIONS • IMPORTANT LINKS REPORT</span><h1>تقرير الروابط المهمة — '+esc(CFG.city)+'</h1><p>تقرير موحد للروابط التشغيلية ودورات التأهيل المعتمدة بالمشروع.</p></div><div class="meta"><b>العقد '+esc(CFG.contract)+'</b><small>'+total+' رابط • '+esc(generated)+'</small></div></header>'+
+    sections+
+    '<div class="foot">شركة أبعاد الرؤية للاستشارات الهندسية</div>'+
+    '</body></html>');
+  w.document.close();
+  setTimeout(()=>{w.focus();w.print();},450);
+}
+
 function render(){
   const host=root();if(!host)return;
   const groups=buildGroups('');
   host.innerHTML=
     '<div class="il-root" style="display:block">'+
+      '<div class="il-report-tools"><button id="importantLinksExportBtn" class="il-export-report-btn" type="button"><span>⇩</span> تصدير تقرير الروابط PDF</button></div>'+
       '<section class="il-hero">'+
         '<div><span>IMPORTANT PROJECT LINKS</span><h2>الروابط المهمة</h2>'+
         '<p>اضغط على «اضغط هنا لفتح الرابط» لفتح الشيت مباشرة — '+esc(CFG.city)+'.</p></div>'+
@@ -121,6 +156,8 @@ function render(){
         ).join(''):'<div class="il-empty">لا توجد روابط مطابقة لبحثك.</div>')+
       '</section>'+
     '</div>';
+  const exportBtn=document.getElementById('importantLinksExportBtn');
+  if(exportBtn)exportBtn.onclick=exportLinksReport;
 }
 
 function activate(){
@@ -152,4 +189,5 @@ if(typeof openPage==='function'){
   };
 }
 window.renderImportantLinks=render;
+window.exportImportantLinksReport=exportLinksReport;
 })();
