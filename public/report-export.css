@@ -2054,6 +2054,25 @@ body.vd-report-v2-mode #vdReportV2 td.vd-projects-advice-col{
   padding:.8mm .7mm!important;
 }
 
+/* Main report PDF: keep simple doughnuts centered and fully inside each chart card. */
+body.vd-report-v2-mode #vdReportV2 .vd-report-master-control:not(.vd-report-control-chart-page-single) .vd-report-control-chart-card.vd-report-doughnut-card:not(.vd-report-doughnut-dense):not(.vd-report-doughnut-ultra-dense) .me-chart-box{
+  justify-content:center!important;
+  gap:1mm!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-master-control:not(.vd-report-control-chart-page-single) .vd-report-control-chart-card.vd-report-doughnut-card:not(.vd-report-doughnut-dense):not(.vd-report-doughnut-ultra-dense) .vd-report-chart-image-doughnut{
+  width:72%!important;
+  height:29mm!important;
+  max-height:29mm!important;
+  flex:0 0 29mm!important;
+  object-position:center center!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-master-control:not(.vd-report-control-chart-page-single) .vd-report-control-chart-card.vd-report-doughnut-card:not(.vd-report-doughnut-dense):not(.vd-report-doughnut-ultra-dense) .vd-report-control-doughnut-legend{
+  min-height:6mm!important;
+  max-height:10mm!important;
+  gap:.7mm 1.6mm!important;
+  padding:0 .8mm!important;
+}
+
 /* Violation PDF doughnuts: full-row cards and non-clipping legends. */
 .vd-report-violations-chart-page .vd-report-violation-doughnut-wide{grid-column:1/-1!important;height:63mm!important;min-height:63mm!important;max-height:63mm!important;overflow:visible!important}
 .vd-report-violations-chart-page .vd-report-violation-doughnut-wide .vx-chart{grid-template-columns:minmax(0,.75fr) minmax(0,1.25fr)!important;height:50mm!important;min-height:50mm!important;max-height:none!important;overflow:visible!important}
