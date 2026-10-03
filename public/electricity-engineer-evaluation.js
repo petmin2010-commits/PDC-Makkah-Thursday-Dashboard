@@ -208,13 +208,16 @@ function render(){
   card('دون متابعة جوهرية 3+ أيام',ai.stale,'مؤشر متابعة من وكيل الإفادات',ai.stale?'warn':'ok')
  ];
  host.innerHTML='<div class="eee-wrap"><section class="eee-hero"><div><span>SEC ENGINEER • COMPOSITE PERFORMANCE EVALUATION</span><h2>تقييم مهندسي شركة الكهرباء</h2><p>تقييم مركب يدمج جودة البيانات، التدقيق الذكي، تحليل وكيل الإفادات، ومتوسط نسبة الإنجاز لأوامر العمل التابعة للمهندس في المشاريع والتوصيلات والأصول.</p></div><div class="eee-meta"><small>آخر قراءة</small><b>'+esc(state.data.updatedAt||'—')+'</b></div></section>'+
- '<section class="eee-note"><b>منهجية التقييم النهائي</b><span>يتم احتساب متوسط متساوي للعوامل المتاحة: جودة البيانات + التدقيق الذكي + تقييم وكيل الإفادات + متوسط الإنجاز. عند توفر العوامل الأربعة يكون وزن كل عامل 25%، وإذا تعذر عامل في نطاق معين يعاد توزيع الوزن تلقائيًا على العوامل المتاحة.</span></section>'+
- '<section class="eee-filter"><div class="eee-filter-grid">'+
- '<label><span>المهندس المسؤول</span><select id="eeeEngineer">'+optionList(engineers,f.engineer)+'</select></label>'+
+ '<section class="eee-filter">'+
+ '<div class="eee-filter-title"><div><span>ENGINEER FIRST</span><h3>اختيار مهندس شركة الكهرباء هو محور التقييم</h3><p>اختر مهندسًا واحدًا أولًا، ثم استخدم باقي الفلاتر لتحليل أوامر العمل والإفادات وجودة البيانات الخاصة به.</p></div><b>'+rows.length+' سجل مطابق</b></div>'+
+ '<div class="eee-filter-grid">'+
+ '<label class="eee-engineer-focus"><span>المهندس المراد تقييمه</span><select id="eeeEngineer">'+optionList(engineers,f.engineer)+'</select><small>الفلتر الرئيسي للصفحة</small></label>'+
  '<label><span>السكشن</span><select id="eeeSection"><option value="الكل">الكل</option><option value="projects"'+(f.section==='projects'?' selected':'')+'>المشاريع</option><option value="connections"'+(f.section==='connections'?' selected':'')+'>التوصيلات</option><option value="assets"'+(f.section==='assets'?' selected':'')+'>الأصول</option></select></label>'+
  '<label><span>المقاول</span><select id="eeeContractor">'+optionList(contractors,f.contractor)+'</select></label>'+
  '<label><span>من تاريخ</span><input id="eeeFrom" type="date" value="'+esc(f.from)+'"></label><label><span>إلى تاريخ</span><input id="eeeTo" type="date" value="'+esc(f.to)+'"></label>'+
- '<label class="wide"><span>بحث</span><input id="eeeSearch" value="'+esc(f.search)+'" placeholder="أمر عمل، مقاول، موقع، حالة، إفادة..."></label></div><div class="eee-actions"><button id="eeeReset" class="ghost-btn">مسح الفلاتر</button><button id="eeeRefresh" class="primary-btn">↻ تحديث البيانات</button><strong>'+rows.length+' سجل مطابق</strong>'+((state.cross.component||state.cross.issue||state.cross.stale)?'<span>تفاعلي: '+esc([state.cross.component,state.cross.issue==='__ANY__'?'ملاحظات الجودة':state.cross.issue,state.cross.stale==='3+'?'دون متابعة جوهرية 3+ أيام':''].filter(Boolean).join(' • '))+'</span>':'')+'</div></section>'+
+ '<label class="wide"><span>بحث داخل أوامر وإفادات المهندس</span><input id="eeeSearch" value="'+esc(f.search)+'" placeholder="أمر عمل، مقاول، موقع، حالة، إفادة..."></label></div>'+
+ '<div class="eee-actions"><button id="eeeReset" class="ghost-btn">مسح الفلاتر</button><button id="eeeRefresh" class="primary-btn">↻ تحديث البيانات</button><button id="eeeExportReport" class="vd-tab-report-btn" type="button">↓ تصدير التقرير PDF</button>'+((state.cross.component||state.cross.issue||state.cross.stale)?'<span>تفاعلي: '+esc([state.cross.component,state.cross.issue==='__ANY__'?'ملاحظات الجودة':state.cross.issue,state.cross.stale==='3+'?'دون متابعة جوهرية 3+ أيام':''].filter(Boolean).join(' • '))+'</span>':'')+'</div></section>'+
+ '<section class="eee-note"><b>منهجية التقييم النهائي</b><span>يتم احتساب متوسط متساوي للعوامل المتاحة: جودة البيانات + التدقيق الذكي + تقييم وكيل الإفادات + متوسط الإنجاز. عند توفر العوامل الأربعة يكون وزن كل عامل 25%، وإذا تعذر عامل في نطاق معين يعاد توزيع الوزن تلقائيًا على العوامل المتاحة.</span></section>'+
  '<div class="eee-kpis">'+cards.join('')+'</div><section class="eee-section-grid">'+sectionCards(summary,rows,state.filters.engineer)+'</section>'+
  '<section class="eee-analysis-grid"><article class="panel"><div class="panel-title"><span>SCORE COMPONENTS</span><h3>مكونات التقييم</h3></div><div class="eee-canvas"><canvas id="eeeComponentChart"></canvas></div></article>'+
  '<article class="panel"><div class="panel-title"><span>SECTION SCORE</span><h3>التقييم المركب حسب السكشن</h3></div><div class="eee-canvas"><canvas id="eeeSectionQuality"></canvas></div></article>'+
@@ -246,12 +249,13 @@ window.ElectricityEngineerEvaluationDashboard={
  clearInteractive(){state.cross={component:'',issue:'',stale:''};render()}
 };
 function bind(){
- const bindSel=(id,key)=>{const el=document.getElementById(id);if(el){if(el.tagName==='SELECT'&&window.VDMultiFilter)VDMultiFilter.enhance(el,{selected:state.filters[key],allText:'الكل'});el.onchange=()=>{state.filters[key]=(el.tagName==='SELECT'&&window.VDMultiFilter)?VDMultiFilter.values(el):el.value;render()}}};
- bindSel('eeeEngineer','engineer');bindSel('eeeSection','section');bindSel('eeeContractor','contractor');bindSel('eeeFrom','from');bindSel('eeeTo','to');
+ const bindSel=(id,key,multi=true)=>{const el=document.getElementById(id);if(el){if(el.tagName==='SELECT'&&multi&&window.VDMultiFilter)VDMultiFilter.enhance(el,{selected:state.filters[key],allText:'الكل'});el.onchange=()=>{state.filters[key]=(el.tagName==='SELECT'&&multi&&window.VDMultiFilter)?VDMultiFilter.values(el):el.value;render()}}};
+ bindSel('eeeEngineer','engineer',false);bindSel('eeeSection','section');bindSel('eeeContractor','contractor');bindSel('eeeFrom','from',false);bindSel('eeeTo','to',false);
  const q=document.getElementById('eeeSearch');if(q){let timer;q.oninput=()=>{clearTimeout(timer);timer=setTimeout(()=>{state.filters.search=q.value;render()},180)}}
  document.getElementById('eeeReset')?.addEventListener('click',()=>{state.filters={engineer:'الكل',section:'الكل',contractor:'الكل',from:'',to:'',search:''};state.cross={component:'',issue:'',stale:''};render()});
  document.getElementById('eeeRefresh')?.addEventListener('click',()=>load(true));
- document.querySelectorAll('[data-eee-engineer]').forEach(b=>b.onclick=()=>{state.filters.engineer=[b.dataset.eeeEngineer];render();root()?.scrollIntoView({behavior:'smooth',block:'start'})});
+ document.getElementById('eeeExportReport')?.addEventListener('click',()=>{if(window.VDReportExport?.exportCurrent)window.VDReportExport.exportCurrent();else document.querySelector('#vdUnifiedReportAction .vd-tab-report-btn')?.click()});
+ document.querySelectorAll('[data-eee-engineer]').forEach(b=>b.onclick=()=>{state.filters.engineer=b.dataset.eeeEngineer;render();root()?.scrollIntoView({behavior:'smooth',block:'start'})});
 }
 async function load(force=false){
  const host=root();if(host&&!state.loaded)host.innerHTML='<div class="eee-loading"><div class="spinner"></div><b>جاري تجميع أوامر العمل وتحليل جودة البيانات حسب المهندس...</b></div>';
@@ -262,6 +266,7 @@ async function load(force=false){
  }catch(e){if(host)host.innerHTML='<div class="eee-error">'+esc(e.message||e)+'</div>'}
 }
 function activate(){
+ document.body.classList.add('electricity-engineer-evaluation-active');
  if(typeof S!=='undefined')S.current='electricityEngineerEvaluation';
  document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.page==='electricityEngineerEvaluation'));
  ['masterPage','meetingPage','dataPage','importantLinksPage','hrStaffPage','employeeEvaluationPage'].forEach(id=>document.getElementById(id)?.classList.remove('active'));
@@ -273,6 +278,7 @@ function activate(){
 }
 if(typeof openPage==='function'){const previous=openPage;openPage=function(key){
  if(key==='electricityEngineerEvaluation'){activate();return}
+ document.body.classList.remove('electricity-engineer-evaluation-active');
  document.getElementById('electricityEngineerEvaluationPage')?.classList.remove('active');
  return previous(key);
 };}
