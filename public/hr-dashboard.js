@@ -15,6 +15,7 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const clean=v=>String(v??'').trim();
 const num=v=>{const n=Number(String(v??'').replace(/,/g,''));return Number.isFinite(n)?n:null};
 const unique=a=>[...new Set(a.map(clean).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar'));
+const mfMatch=(v,s)=>window.VDMultiFilter?VDMultiFilter.match(v,s):(!s||s==='الكل'||v===s);
 const pct=(a,b)=>b?Math.round(a/b*100):0;
 const isCompany=r=>clean(r.sponsorship).includes('ابعاد الرؤية');
 const vehicleState=r=>{
@@ -83,13 +84,14 @@ function hrCrossMatch(r,f){
 function filtered(){
   const f=state.filters,q=f.search.trim().toLowerCase();
   const base=state.rows.filter(r=>{
-    if(f.city!=='الكل'&&r.city!==f.city)return false;
-    if(f.role!=='الكل'&&r.role!==f.role)return false;
-    if(f.card!=='الكل'&&r.cardStatus!==f.card)return false;
-    if(f.sponsor!=='الكل'&&(f.sponsor==='أبعاد الرؤية'?!isCompany(r):isCompany(r)))return false;
-    if(f.nationality!=='الكل'&&r.nationality!==f.nationality)return false;
-    if(f.training!=='الكل'&&trainingBand(r)!==f.training)return false;
-    if(f.vehicle!=='الكل'&&vehicleState(r)!==f.vehicle)return false;
+    if(!mfMatch(r.city,f.city))return false;
+    if(!mfMatch(r.role,f.role))return false;
+    if(!mfMatch(r.cardStatus,f.card))return false;
+    const sponsor=isCompany(r)?'أبعاد الرؤية':'غير أبعاد الرؤية';
+    if(!mfMatch(sponsor,f.sponsor))return false;
+    if(!mfMatch(r.nationality,f.nationality))return false;
+    if(!mfMatch(trainingBand(r),f.training))return false;
+    if(!mfMatch(vehicleState(r),f.vehicle))return false;
     if(q&&![r.name,r.nameEn,r.code,r.role,r.project,r.cardStatus,r.qualification,r.sponsorship,r.email,r.phone].join(' ').toLowerCase().includes(q))return false;
     return true;
   });
@@ -148,7 +150,7 @@ function kpis(rows){
 
 function renderShell(rows){
   const f=state.filters;
-  const roles=state.rows.filter(r=>f.city==='الكل'||r.city===f.city).map(r=>r.role);
+  const roles=state.rows.filter(r=>mfMatch(r.city,f.city)).map(r=>r.role);
   return '<div class="hr-wrap">'+
     '<section class="hr-hero">'+
       '<div><span>HUMAN RESOURCES • UNIFIED STAFF MATRIX</span><h2>الموارد البشرية للكادر</h2>'+
@@ -251,7 +253,7 @@ function renderMainTable(rows){
 function bind(){
   const map={hrCity:'city',hrRole:'role',hrCard:'card',hrSponsor:'sponsor',hrNationality:'nationality',hrTraining:'training',hrVehicle:'vehicle'};
   Object.entries(map).forEach(([id,key])=>{
-    const el=document.getElementById(id);if(el)el.onchange=()=>{state.filters[key]=el.value;render()};
+    const el=document.getElementById(id);if(el){if(window.VDMultiFilter)VDMultiFilter.enhance(el,{selected:state.filters[key],allText:'الكل'});el.onchange=()=>{state.filters[key]=window.VDMultiFilter?VDMultiFilter.values(el):el.value;render()}};
   });
   const search=document.getElementById('hrSearch');
   if(search)search.oninput=()=>{state.filters.search=search.value;render();setTimeout(()=>{const n=document.getElementById('hrSearch');if(n){n.focus();n.setSelectionRange(n.value.length,n.value.length)}},0)};

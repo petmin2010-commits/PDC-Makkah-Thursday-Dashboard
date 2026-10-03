@@ -262,22 +262,6 @@ function bindInvestigationRoom(){
  el('irRefresh').onclick=async()=>{el('irLoading').style.display='flex';el('irContent').style.display='none';await loadSmartCenter(true);renderInvestigationRoom()};
  el('irPhenomenon').onchange=renderInvestigationRoom;el('irPeriod').onchange=renderInvestigationRoom;
 }
-function smartFilterValues(id){
- const node=el(id);if(!node)return[];
- return window.VDMultiFilter?VDMultiFilter.values(node):(node.value?[node.value]:[]);
-}
-function smartFilterMatch(value,selection){
- const values=Array.isArray(selection)?selection:(selection?[selection]:[]);
- return !values.length||values.includes(String(value??''));
-}
-function smartFilterEnhance(id,selected){
- const node=el(id);if(!node||node.tagName!=='SELECT'||!window.VDMultiFilter)return;
- VDMultiFilter.enhance(node,{selected:selected===undefined?VDMultiFilter.values(node):selected,allText:'الكل'});
-}
-function smartFilterClear(id,opt={silent:true}){
- const node=el(id);if(!node)return;
- if(window.VDMultiFilter)VDMultiFilter.clear(node,opt);else node.value='';
-}
 function bindExplainableDecision(){
  el('xdRefresh').onclick=async()=>{el('xdLoading').style.display='flex';el('xdContent').style.display='none';await loadSmartCenter(true);renderExplainableDecision()};
  const runSearch=()=>renderDecisionCases();
@@ -975,7 +959,7 @@ function openIssueSource(issue){
 function destroyChart(id){try{SC.charts[id]?.destroy()}catch(e){}delete SC.charts[id]}
 function smartChartClick(id,label){
  if(id==='scQualityChart'){const q=SC.quality.find(x=>clean(x.title)===clean(label));if(q){SC.cross.pageKey=SC.cross.pageKey===q.pageKey?'':q.pageKey;renderExceptions()}return}
- if(id==='scIssueChart'){const c=el('scCategory');if(c){if(window.VDMultiFilter){const cur=VDMultiFilter.values(c);VDMultiFilter.set(c,cur.length===1&&cur[0]===label?[]:[label],{silent:true})}else c.value=c.value===label?'':label;renderExceptions()}return}
+ if(id==='scIssueChart'){const c=el('scCategory');if(c){if(window.VDMultiFilter){const cur=VDMultiFilter.values(c),next=cur.includes(label)?cur.filter(v=>v!==label):[...cur,label];VDMultiFilter.set(c,next,{silent:true})}else c.value=c.value===label?'':label;renderExceptions()}return}
  if(id==='scContractorChart'){SC.cross.contractor=SC.cross.contractor===label?'':label;renderExceptions()}
 }
 function barChart(id,labels,data,horizontal=false,max=100){
