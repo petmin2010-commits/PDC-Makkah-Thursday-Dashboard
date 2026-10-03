@@ -87,7 +87,7 @@ body.vd-report-v2-mode #vdReportV2{display:block!important}
 .vd-tab-report-btn{
   border:0;
   border-radius:9px;
-  background:#d92d20;
+  background:#0b5d3b;
   color:#fff;
   padding:9px 15px;
   font-family:Cairo,Tahoma,Arial,sans-serif;
@@ -95,7 +95,7 @@ body.vd-report-v2-mode #vdReportV2{display:block!important}
   font-weight:900;
   cursor:pointer;
   white-space:nowrap;
-  box-shadow:0 5px 14px rgba(217,45,32,.2);
+  box-shadow:0 5px 14px rgba(11,93,59,.24);
 }
 .vd-tab-report-btn:hover{
   filter:brightness(.96);
