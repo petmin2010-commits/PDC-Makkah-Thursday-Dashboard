@@ -1193,6 +1193,61 @@
         }
       });
 
+      /*
+        Connections PDF: the source table contains many narrow operational columns.
+        Give every column a semantic width class so Arabic words/dates do not collapse
+        into vertical letter-by-letter text in the printed report.
+      */
+      if (config.pageClass === 'vd-report-connections-control') {
+        table.classList.add('vd-connections-detail-table');
+
+        const currentHeaders = [...table.querySelectorAll('thead th')];
+
+        currentHeaders.forEach((th, columnIndex) => {
+          const h = normalizeReportHeader(th.textContent);
+          let className = 'vd-connections-col-default';
+
+          if (h.includes('افاد') && h.includes('استشار') && !h.includes('تاريخ')) {
+            className = 'vd-projects-advice-col';
+          } else if (h.includes('تاريخ') && h.includes('افاد')) {
+            className = 'vd-projects-advice-date-col';
+          } else if (h.includes('امر العمل') || h.includes('رقم المهم') || h.includes('رقم الاشعار')) {
+            className = 'vd-connections-col-workorder';
+          } else if (h.includes('وصف') || h.includes('شرح') || h.includes('تفصيل')) {
+            className = 'vd-connections-col-description';
+          } else if (h.includes('مقاول')) {
+            className = 'vd-connections-col-contractor';
+          } else if (h.includes('مسؤول') || h.includes('مهندس') || h.includes('اسم الاستشاري')) {
+            className = 'vd-connections-col-person';
+          } else if (h.includes('مكتب')) {
+            className = 'vd-connections-col-office';
+          } else if (h.includes('موقع')) {
+            className = 'vd-connections-col-location';
+          } else if (h.includes('حاله المرحله')) {
+            className = 'vd-connections-col-stage-status';
+          } else if (h === normalizeReportHeader('المرحلة') || h.includes('مرحله التنفيذ')) {
+            className = 'vd-connections-col-stage';
+          } else if (h.includes('تصريح')) {
+            className = 'vd-connections-col-permit';
+          } else if (h.includes('تاخير')) {
+            className = 'vd-connections-col-delay';
+          } else if (h.includes('تصنيف') || h.includes('نوع العمل')) {
+            className = 'vd-connections-col-category';
+          } else if (h.includes('تاريخ')) {
+            className = 'vd-connections-col-date';
+          } else if (
+            h === 'aj' || h === 'am' || h === 'an' ||
+            h.includes('spi') || h.includes('نسبه') || h.includes('انجاز')
+          ) {
+            className = 'vd-connections-col-metric';
+          }
+
+          [...table.querySelectorAll('tr')].forEach(row => {
+            row.children[columnIndex]?.classList.add(className);
+          });
+        });
+      }
+
       const headRow = table.querySelector('thead tr');
 
       if (headRow) {

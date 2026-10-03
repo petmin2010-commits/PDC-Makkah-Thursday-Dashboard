@@ -2258,3 +2258,50 @@ body.vd-report-v2-mode #vdReportV2 .vd-report-projects-detail-page .vd-report-de
   white-space:nowrap!important;
   text-align:center!important;
 }
+
+/* Connections PDF — table readability repair (2026-10-03). */
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control.vd-report-control-project-detail-page{
+  min-height:0!important;height:auto!important;overflow:visible!important;padding-bottom:10mm!important;
+  break-after:auto!important;page-break-after:auto!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control .vd-connections-detail-table{
+  width:100%!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control .vd-connections-detail-table th{
+  padding:.45mm .32mm!important;font-size:4.45px!important;line-height:1.14!important;white-space:normal!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control .vd-connections-detail-table td{
+  padding:.50mm .34mm!important;font-size:4.75px!important;line-height:1.22!important;white-space:normal!important;
+  word-break:normal!important;overflow-wrap:break-word!important;vertical-align:top!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control .vd-connections-detail-table th *,
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control .vd-connections-detail-table td *{
+  white-space:inherit!important;word-break:normal!important;overflow-wrap:break-word!important;
+}
+
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control .vd-connections-col-default{width:4.6%!important;}
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control .vd-connections-col-workorder{width:7.0%!important;white-space:nowrap!important;}
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control .vd-connections-col-description{width:10.5%!important;}
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control .vd-connections-col-contractor{width:8.0%!important;}
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control .vd-connections-col-person{width:7.5%!important;}
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control .vd-connections-col-office{width:4.5%!important;}
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control .vd-connections-col-location{width:6.3%!important;}
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control .vd-connections-col-stage{width:5.8%!important;}
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control .vd-connections-col-stage-status{width:7.2%!important;}
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control .vd-connections-col-permit{width:6.5%!important;}
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control .vd-connections-col-delay{width:5.4%!important;}
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control .vd-connections-col-category{width:5.5%!important;}
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control .vd-connections-col-date{width:6.5%!important;white-space:nowrap!important;}
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control .vd-connections-col-metric{width:4.8%!important;white-space:nowrap!important;text-align:center!important;}
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control .vd-projects-advice-col{width:16%!important;min-width:0!important;max-width:none!important;}
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control .vd-projects-advice-date-col{width:6.8%!important;min-width:0!important;max-width:none!important;white-space:nowrap!important;}
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control .vd-projects-serial-col{width:2.6%!important;min-width:0!important;max-width:none!important;}
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control.vd-report-control-project-table-page .vd-report-summary-table table{
+  table-layout:fixed!important;font-size:5.2px!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control.vd-report-control-project-table-page .vd-report-summary-table th,
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control.vd-report-control-project-table-page .vd-report-summary-table td{
+  padding:.62mm .48mm!important;line-height:1.24!important;word-break:normal!important;overflow-wrap:break-word!important;
+}
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control.vd-report-control-project-table-page .vd-report-summary-table th:last-child,
+body.vd-report-v2-mode #vdReportV2 .vd-report-connections-control.vd-report-control-project-table-page .vd-report-summary-table td:last-child{width:25%!important;}
