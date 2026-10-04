@@ -51,7 +51,7 @@ function renderShell(rows,stats,benchmarkRows){
  '<label><span>نوع أمر العمل</span><select id="eeWorkType">'+optionList(state.rows.map(r=>r.workType),f.workType)+'</select></label>'+
  '<label><span>الجهة</span><select id="eeOwner">'+optionList(state.rows.map(r=>r.owner),f.owner)+'</select></label>'+
  '<label><span>من تاريخ</span><input id="eeFrom" type="date" value="'+esc(f.from)+'"></label><label><span>إلى تاريخ</span><input id="eeTo" type="date" value="'+esc(f.to)+'"></label>'+
- '<div class="ee-actions ee-actions-inline"><button id="eeReset" class="ghost-btn">مسح الفلاتر</button><button id="eeRefresh" class="primary-btn">↻ تحديث البيانات</button><button id="eeExportReport" class="vd-tab-report-btn" type="button">↓ تصدير التقرير PDF</button>'+((state.cross.band||state.cross.metric||state.cross.safety)?'<span>تفاعلي: '+esc([state.cross.band,state.cross.metric,state.cross.safety==='with'?'بها مخالفات سلامة':''].filter(Boolean).join(' • '))+'</span>':'')+'</div></div></section>'+
+ '<div class="ee-actions ee-actions-inline"><button id="eeReset" class="ghost-btn">مسح الفلاتر</button><button id="eeRefresh" class="primary-btn">↻ تحديث البيانات</button><button id="eeExportReport" class="vd-tab-report-btn" type="button" title="تقرير المهندس المحدد">↓ تقرير المهندس</button><button id="eeExportGeneralReport" class="vd-tab-report-btn ee-general-report-btn" type="button" title="تقرير عام لجميع مهندسي الكادر">▦ التقرير العام</button>'+((state.cross.band||state.cross.metric||state.cross.safety)?'<span>تفاعلي: '+esc([state.cross.band,state.cross.metric,state.cross.safety==='with'?'بها مخالفات سلامة':''].filter(Boolean).join(' • '))+'</span>':'')+'</div></div></section>'+
  '<section class="ee-note"><b>منهجية الاحتساب</b><span>'+esc(note)+'</span></section>'+
  '<section class="ee-section-head"><div><span>PERFORMANCE KPIs</span><h3>مؤشرات تقييم مهندسي المواقع</h3></div></section><div class="ee-kpis">'+cards.join('')+'</div>'+
  '<div class="ee-charts"><article class="panel ee-chart wide"><div class="panel-title"><span>ENGINEER RANKING</span><h3>التقييم الإجمالي حسب المهندس</h3></div><div class="ee-canvas"><canvas id="eeRankingChart"></canvas></div></article>'+
@@ -65,6 +65,29 @@ function renderTaskDrilldown(rows){if(!mfActive(state.filters.engineer))return '
 function destroyCharts(){Object.values(state.charts).forEach(c=>{try{c.destroy()}catch{}});state.charts={}}
 function draw(id,type,labels,data,opts={}){const el=document.getElementById(id);if(!el||typeof Chart==='undefined')return;const bg=type==='doughnut'?['#2878e8','#13a36d','#e6a500','#dc3d4b','#7a5af8','#00a6a6']: '#2878e8';const scales=type==='doughnut'?{}:(opts.horizontal?{x:{beginAtZero:true,max:opts.percent?100:undefined},y:{}}:{x:{},y:{beginAtZero:true,max:opts.percent?100:undefined}});state.charts[id]=new Chart(el,{type,data:{labels,datasets:[{label:opts.label||'%',data,borderWidth:1,backgroundColor:bg}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:opts.horizontal?'y':'x',plugins:{legend:{display:type==='doughnut'},tooltip:{callbacks:{label:c=>(c.dataset.label?c.dataset.label+': ':'')+c.raw+(opts.percent?'%':'')}}},scales}})}
 function renderCharts(rows,stats){destroyCharts();const top=stats.slice(0,15);draw('eeRankingChart','bar',top.map(x=>x.name),top.map(x=>x.overall),{label:'التقييم',horizontal:true,percent:true});draw('eeMetricChart','bar',metrics().map(m=>m.label),metrics().map(m=>metricAvg(rows,m)),{label:'النسبة',percent:true});const bands={'ممتاز':0,'جيد جدًا':0,'جيد':0,'يحتاج تحسين':0};stats.forEach(x=>bands[band(x.overall)]++);draw('eeBandChart','doughnut',Object.keys(bands),Object.values(bands),{label:'مهندسون'});if(state.available.safetyViolations){const safetyTop=[...stats].sort((a,b)=>b.safety.per100-a.safety.per100).slice(0,15);draw('eeSafetyChart','bar',safetyTop.map(x=>x.name),safetyTop.map(x=>x.safety.per100),{label:'مخالفة لكل 100 مهمة',horizontal:true})}}
+
+function exportGeneralReport(){
+ const previousFilters=JSON.parse(JSON.stringify(state.filters));
+ const previousCross={...state.cross};
+ const previousScope=window.__VD_REPORT_SCOPE_OVERRIDE;
+ const previousMode=window.__VD_EMPLOYEE_EVAL_GENERAL;
+ try{
+  state.filters={engineer:'الكل',contractor:'الكل',workType:'الكل',owner:'الكل',from:'',to:''};
+  state.cross={band:'',metric:'',safety:''};
+  render();
+  window.__VD_EMPLOYEE_EVAL_GENERAL=true;
+  window.__VD_REPORT_SCOPE_OVERRIDE='General';
+  if(window.VDReportExport?.printReport)window.VDReportExport.printReport('full');
+  else alert('أداة تصدير التقرير غير متاحة حاليًا.');
+ }finally{
+  if(previousMode===undefined)delete window.__VD_EMPLOYEE_EVAL_GENERAL;else window.__VD_EMPLOYEE_EVAL_GENERAL=previousMode;
+  if(previousScope===undefined)delete window.__VD_REPORT_SCOPE_OVERRIDE;else window.__VD_REPORT_SCOPE_OVERRIDE=previousScope;
+  state.filters=previousFilters;
+  state.cross=previousCross;
+  render();
+ }
+}
+
 window.EmployeeEvaluationDashboard={
  filterFromChart(id,label){
   if(id==='eeRankingChart'||id==='eeSafetyChart'){state.filters.engineer=state.filters.engineer===label?'الكل':label;render();return true}
@@ -80,7 +103,8 @@ window.EmployeeEvaluationDashboard={
   const m=metrics().find(x=>x.label===t);if(m){state.cross.metric=state.cross.metric===t?'':t;render();return true}
   return false;
  },
- clearInteractive(){state.cross={band:'',metric:'',safety:''};render()}
+ clearInteractive(){state.cross={band:'',metric:'',safety:''};render()},
+ exportGeneralReport
 };
 function bind(){
  const bindSel=(id,key,multi=true)=>{const el=document.getElementById(id);if(el){if(el.tagName==='SELECT'&&multi&&window.VDMultiFilter)VDMultiFilter.enhance(el,{selected:state.filters[key],allText:'الكل'});el.onchange=()=>{state.filters[key]=(el.tagName==='SELECT'&&multi&&window.VDMultiFilter)?VDMultiFilter.values(el):el.value;render()}}};
@@ -88,6 +112,7 @@ function bind(){
  document.getElementById('eeReset')?.addEventListener('click',()=>{state.filters={engineer:'الكل',contractor:'الكل',workType:'الكل',owner:'الكل',from:'',to:''};state.cross={band:'',metric:'',safety:''};render()});
  document.getElementById('eeRefresh')?.addEventListener('click',()=>load(true));
  document.getElementById('eeExportReport')?.addEventListener('click',()=>{if(window.VDReportExport?.exportCurrent)window.VDReportExport.exportCurrent();else document.querySelector('#vdUnifiedReportAction .vd-tab-report-btn')?.click()});
+ document.getElementById('eeExportGeneralReport')?.addEventListener('click',exportGeneralReport);
  document.querySelectorAll('[data-ee-engineer]').forEach(b=>b.onclick=()=>{state.filters.engineer=b.dataset.eeEngineer;render();document.getElementById('employeeEvaluationRoot')?.scrollIntoView({behavior:'smooth',block:'start'})});
 }
 function render(){

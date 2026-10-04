@@ -156,3 +156,23 @@ body.employee-evaluation-active .ee-actions.ee-actions-inline>button{
     flex-wrap:wrap!important;
   }
 }
+
+
+/* General engineer report action */
+body.employee-evaluation-active .ee-actions.ee-actions-inline{flex-wrap:wrap!important}
+body.employee-evaluation-active #eeExportReport,
+body.employee-evaluation-active #eeExportGeneralReport{
+  min-height:38px!important;
+  height:38px!important;
+  padding:0 10px!important;
+  font-size:7.9px!important;
+}
+body.employee-evaluation-active #eeExportGeneralReport{
+  background:#0b6b50!important;
+  border-color:#0b6b50!important;
+  color:#fff!important;
+}
+body.employee-evaluation-active #eeExportGeneralReport:hover{
+  background:#07553f!important;
+  border-color:#07553f!important;
+}

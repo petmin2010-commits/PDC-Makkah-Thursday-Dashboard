@@ -2368,3 +2368,94 @@ body.vd-report-v2-mode #vdReportV2 .vd-report-closures-control .vd-report-pagina
   overflow-wrap:break-word!important;
   white-space:normal!important;
 }
+
+
+/* General site-engineers matrix report — 2026-10-04 */
+.vd-report-employee-matrix-page .vd-report-section-body{
+  margin-top:1.5mm!important;
+  overflow:hidden!important;
+}
+.vd-employee-matrix-summary{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:2mm!important;
+  margin-bottom:2.2mm!important;
+}
+.vd-employee-matrix-summary>div{
+  border:1px solid #cfd8e6!important;
+  border-right:1.2mm solid #1d5f8f!important;
+  border-radius:3.2px!important;
+  background:#f7faff!important;
+  padding:1.6mm 2mm!important;
+  min-height:12mm!important;
+}
+.vd-employee-matrix-summary span{
+  display:block!important;
+  color:#667085!important;
+  font-size:5.7px!important;
+  font-weight:800!important;
+  margin-bottom:.6mm!important;
+}
+.vd-employee-matrix-summary b{
+  display:block!important;
+  color:#172b5f!important;
+  font-size:8px!important;
+  font-weight:900!important;
+  line-height:1.25!important;
+}
+.vd-report-employee-matrix-table{
+  width:100%!important;
+  border-collapse:collapse!important;
+  table-layout:fixed!important;
+  direction:rtl!important;
+  font-size:5.15px!important;
+  color:#000!important;
+}
+.vd-report-employee-matrix-table th,
+.vd-report-employee-matrix-table td{
+  border:1px solid #ccd5e2!important;
+  padding:1.05mm .55mm!important;
+  text-align:center!important;
+  vertical-align:middle!important;
+  line-height:1.22!important;
+  color:#000!important;
+  overflow-wrap:anywhere!important;
+  page-break-inside:avoid!important;
+}
+.vd-report-employee-matrix-table th{
+  background:#eaf1f9!important;
+  font-size:4.9px!important;
+  font-weight:900!important;
+  white-space:normal!important;
+}
+.vd-report-employee-matrix-table tbody tr:nth-child(even) td{
+  background:#f8fafc!important;
+}
+.vd-report-employee-matrix-table th:nth-child(1),
+.vd-report-employee-matrix-table td:nth-child(1){width:2.8%!important}
+.vd-report-employee-matrix-table th:nth-child(2),
+.vd-report-employee-matrix-table td:nth-child(2){width:13.2%!important;text-align:right!important;padding-right:1mm!important}
+.vd-report-employee-matrix-table th:nth-child(3),
+.vd-report-employee-matrix-table td:nth-child(3){width:4.5%!important}
+.vd-report-employee-matrix-table .vd-report-engineer-name{
+  font-size:5.45px!important;
+  font-weight:900!important;
+  color:#111827!important;
+}
+.vd-report-employee-matrix-table .ee-score,
+.vd-report-employee-matrix-table .ee-mini-score{
+  display:inline-block!important;
+  min-width:0!important;
+  padding:.8mm 1mm!important;
+  border-radius:2.4px!important;
+  font-size:5px!important;
+  color:#000!important;
+  background:#f1f5f9!important;
+  box-shadow:none!important;
+}
+.vd-report-employee-matrix-table small{
+  display:block!important;
+  margin-top:.45mm!important;
+  font-size:4.5px!important;
+  color:#475467!important;
+}

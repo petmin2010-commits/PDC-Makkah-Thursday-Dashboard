@@ -2468,10 +2468,91 @@
     return true;
   }
 
+
+  function buildEmployeeEvaluationGeneralReport(report) {
+    const root = document.getElementById('employeeEvaluationRoot');
+    const sourceTable = root?.querySelector('.ee-table:not(.compact)');
+    if (!root || !sourceTable) {
+      alert('تعذر تجهيز جدول التقييم العام للمهندسين.');
+      return false;
+    }
+
+    const rows = [...sourceTable.querySelectorAll('tbody tr')];
+    if (!rows.length) {
+      alert('لا توجد بيانات مهندسين متاحة للتقرير العام.');
+      return false;
+    }
+
+    const brand = getBrandInfo();
+    const headers = [...sourceTable.querySelectorAll('thead th')].map(th => th.textContent.trim());
+    const taskIndex = headers.findIndex(x => x === 'المهام');
+    const scoreIndex = headers.findIndex(x => x === 'التقييم');
+    const totalTasks = rows.reduce((sum, row) => {
+      const text = row.children[taskIndex]?.textContent || '0';
+      const value = Number(String(text).replace(/[^\d.-]/g, ''));
+      return sum + (Number.isFinite(value) ? value : 0);
+    }, 0);
+    const scores = rows.map(row => {
+      const text = row.children[scoreIndex]?.textContent || '';
+      const value = Number(String(text).replace('%','').replace(',','.').replace(/[^\d.-]/g,''));
+      return Number.isFinite(value) ? value : null;
+    }).filter(v => v !== null);
+    const avgScore = scores.length
+      ? Math.round(scores.reduce((a,b) => a + b, 0) / scores.length * 10) / 10
+      : null;
+
+    const rowsPerPage = 13;
+    const groups = chunk(rows, rowsPerPage);
+    groups.forEach((group, index) => {
+      const page = createPage(
+        'التقرير العام لتقييم جميع مهندسي المواقع',
+        'مصفوفة تقييم الموظفين • صفحة ' + (index + 1) + ' من ' + groups.length,
+        'vd-report-employee-matrix-page'
+      );
+      const body = page.querySelector('.vd-report-section-body');
+
+      if (index === 0) {
+        const summary = document.createElement('div');
+        summary.className = 'vd-employee-matrix-summary';
+        summary.innerHTML =
+          '<div><span>المدينة / الإدارة</span><b>' + escapeHtml(brand.city || '—') + '</b></div>' +
+          '<div><span>عدد المهندسين</span><b>' + rows.length + '</b></div>' +
+          '<div><span>إجمالي المهام</span><b>' + totalTasks + '</b></div>' +
+          '<div><span>متوسط التقييم</span><b>' + (avgScore === null ? '—' : escapeHtml(avgScore + '%')) + '</b></div>';
+        body.appendChild(summary);
+      }
+
+      const copy = sourceTable.cloneNode(false);
+      copy.className = 'vd-report-employee-matrix-table';
+      const head = sourceTable.querySelector('thead')?.cloneNode(true);
+      if (head) copy.appendChild(head);
+
+      const tbody = document.createElement('tbody');
+      group.forEach(row => tbody.appendChild(row.cloneNode(true)));
+      copy.appendChild(tbody);
+
+      copy.querySelectorAll('button.ee-engineer-link').forEach(button => {
+        const name = document.createElement('b');
+        name.className = 'vd-report-engineer-name';
+        name.textContent = button.textContent.trim();
+        button.replaceWith(name);
+      });
+      cleanupClone(copy);
+      copy.querySelectorAll('th,td').forEach(cell => cell.setAttribute('dir','auto'));
+      body.appendChild(copy);
+      report.appendChild(page);
+    });
+
+    return true;
+  }
+
   function buildEmployeeEvaluationReport(report) {
     const source = document.getElementById('employeeEvaluationPage');
     const root = document.getElementById('employeeEvaluationRoot');
     const engineerSelect = document.getElementById('eeEngineer');
+    if (window.__VD_EMPLOYEE_EVAL_GENERAL === true || window.__VD_REPORT_SCOPE_OVERRIDE === 'General') {
+      return buildEmployeeEvaluationGeneralReport(report);
+    }
     if (!source || !root || !engineerSelect) return false;
     const engineer = engineerSelect.value?.trim() || '';
     if (!engineer || engineer === 'الكل') {
