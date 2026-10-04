@@ -130,7 +130,14 @@
             <option value="light">أبيض</option><option value="lavender">لافندر</option><option value="purple">موف</option><option value="blue">أزرق</option><option value="sky">سماوي</option><option value="green">أخضر</option><option value="mint">نعناعي</option><option value="orange">برتقالي</option><option value="gold">ذهبي</option><option value="pink">وردي</option><option value="charcoal">فحمي</option><option value="navy">كحلي</option><option value="midnight">ليلي أزرق</option><option value="forest">أخضر داكن</option><option value="plum">موف داكن</option><option value="burgundy">خمري داكن</option>
           </select>
         </div>
-        <button id="topFavoriteBtn" class="top-utility-btn" type="button" title="إضافة الصفحة الحالية إلى المفضلة" aria-pressed="false">☆</button>
+      </div>
+
+      <div id="dashboardContext" class="dashboard-context" data-city="مكة" data-lat="21.3891" data-lon="39.8579" aria-label="التاريخ والوقت ودرجة الحرارة">
+        <span class="dashboard-context-date" id="dashboardDate">—</span>
+        <span class="dashboard-context-sep" aria-hidden="true"></span>
+        <span class="dashboard-context-time" id="dashboardTime">—</span>
+        <span class="dashboard-context-sep" aria-hidden="true"></span>
+        <span class="dashboard-context-temp" id="dashboardTemp" title="درجة الحرارة الحالية"><i aria-hidden="true">🌡</i><b>--°م</b></span>
       </div>
 
       <div id="dashboardUserProfile" class="dashboard-user-profile" hidden>
@@ -608,5 +615,6 @@
     <div id="meetingInfoText" class="meeting-info-text"></div>
   </div>
 </div>
+<script src="/toolbar-context.js?v=20261004-toolbar-weather-1"></script>
 </body>
 </html>
