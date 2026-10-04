@@ -1,7 +1,7 @@
 (()=>{
 'use strict';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const SPEEDS=[0.75,1,1.5,2],SPEED_KEY='vd.projectNews.speed';
+const SPEEDS=[0.75,1,1.5,2,3,4],SPEED_KEY='vd.projectNews.speed';
 let paused=false,lastRows=[],timer=null,offset=0,lastFeedSig='',speed=1;
 function tone(v){const s=String(v||'').trim();if(/عاجل|urgent/i.test(s))return 'urgent';if(/مهم|important|تنبيه/i.test(s))return 'important';if(/إنجاز|انجاز|تحسن|نجاح|achievement|improvement/i.test(s))return 'positive';return 'update'}
 function cleanDate(v){const s=String(v||'').trim();if(!s)return '';const d=new Date(s);if(isNaN(d))return s;try{return new Intl.DateTimeFormat('ar-SA-u-ca-gregory',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}).format(d)}catch{return s}}
