@@ -24,9 +24,14 @@ function norm(value){
 }
 
 const ROOM_CANON=norm('غرفة التدقيق الذكية');
+const EXCEL_CANON=norm('تقارير الاكسيل');
 const aliases=new Map([
   [norm('غرفة التحقيق الذكية'),ROOM_CANON],
-  [norm('غرفة التدقيق الذكية'),ROOM_CANON]
+  [norm('غرفة التدقيق الذكية'),ROOM_CANON],
+  [norm('تقارير الاكسيل'),EXCEL_CANON],
+  [norm('تقارير Excel'),EXCEL_CANON],
+  [norm('تصدير تقرير اكسيل'),EXCEL_CANON],
+  [norm('تصدير تقرير Excel'),EXCEL_CANON]
 ]);
 function canon(value){
   const n=norm(value);
@@ -143,7 +148,7 @@ function wrapOpenPage(){
     minutes:'محاضر مخالفة إثبات الحالة',dataQuality:'جودة البيانات',hrStaff:'الموارد البشرية للكادر',
     employeeEvaluation:'تقييم مهندسي المواقع',electricityEngineerEvaluation:'تقييم مهندسي شركة الكهرباء',
     wednesdayMeeting:'اجتماع الـ PDC',smartThursday:'تقرير الخميس الذكي',
-    reportsCenter:'مركز التقارير',importantLinks:'الروابط المهمة',excelExport:'تصدير تقرير اكسيل'
+    reportsCenter:'مركز التقارير',importantLinks:'الروابط المهمة',excelExport:'تقارير الاكسيل'
   };
   const wrapped=function(key){
     const label=pageLabels[key];
