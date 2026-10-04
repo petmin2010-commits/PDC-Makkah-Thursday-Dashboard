@@ -896,3 +896,7 @@ html[data-theme] body .topbar #printBtn{
 @media print{
  .topbar{display:none!important}
 }
+
+
+/* 2026-10-04: remove PDF / Reports / 360 buttons from top toolbar */
+.topbar #printBtn,.topbar #topReportsBtn,.topbar #top360Btn{display:none!important}
