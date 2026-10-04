@@ -488,9 +488,7 @@
       '<button type="button" data-vd-lang="ar" role="menuitem">العربية <span>AR</span></button>' +
       '<button type="button" data-vd-lang="en" role="menuitem">English <span>EN</span></button></div>';
 
-    const theme = document.getElementById('themePickerWrap');
-    if (theme?.parentNode === host) host.insertBefore(wrap, theme.nextSibling);
-    else host.appendChild(wrap);    const button = wrap.querySelector('#vdLanguageButton');
+    host.appendChild(wrap);    const button = wrap.querySelector('#vdLanguageButton');
     const menu = wrap.querySelector('#vdLanguageMenu');
 
     button.addEventListener('click', ev => {

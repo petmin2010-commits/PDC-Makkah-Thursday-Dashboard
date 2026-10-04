@@ -36,7 +36,7 @@
   <link rel="stylesheet" href="/excel-export.css?v=urgent-parity-20261004-1">
   <link rel="stylesheet" href="/readability.css?v=black-text-20261001-1">
   <link rel="stylesheet" href="/standard-report-controls.css?v=pdf-green-all-tabs-20261003-1">
-  <link rel="stylesheet" href="/fixed-top-shell.css?v=urgent-bars-20261004-1">
+  <link rel="stylesheet" href="/fixed-top-shell.css?v=urgent-topbar-20261004-2">
 </head>
 <body>
 <div id="boot" class="boot boot-soft"><div class="boot-card"><div class="spinner"></div><b>جاري جلب البيانات</b><span>ستظهر الواجهة فورًا بينما تكتمل البيانات</span></div></div>
@@ -86,6 +86,7 @@
       <div class="topbar-page-name" aria-hidden="true"><small>VISION DIMENSIONS</small><h1 id="pageTitle">لوحة المتابعة الرئيسية</h1></div>
       <div class="top-actions">
         <div class="search"><span>⌕</span><input id="globalSearch" placeholder="بحث في الصفحة الحالية..."></div>
+        <button id="refreshBtn" class="primary-btn" type="button" title="تحديث البيانات">↻ تحديث</button>
 
         <div id="themePickerWrap" class="theme-picker-wrap">
           <button id="themePickerButton" class="theme-picker-button" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="themePickerPanel">
@@ -129,8 +130,11 @@
             <option value="light">أبيض</option><option value="lavender">لافندر</option><option value="purple">موف</option><option value="blue">أزرق</option><option value="sky">سماوي</option><option value="green">أخضر</option><option value="mint">نعناعي</option><option value="orange">برتقالي</option><option value="gold">ذهبي</option><option value="pink">وردي</option><option value="charcoal">فحمي</option><option value="navy">كحلي</option><option value="midnight">ليلي أزرق</option><option value="forest">أخضر داكن</option><option value="plum">موف داكن</option><option value="burgundy">خمري داكن</option>
           </select>
         </div>
-        <button id="printBtn" class="ghost-btn">🖨 طباعة</button>
-        <button id="refreshBtn" class="primary-btn">↻ تحديث</button>
+
+        <button id="printBtn" class="ghost-btn top-pdf-button" type="button" title="تصدير التقرير الحالي PDF">تصدير التقرير PDF</button>
+        <button id="topReportsBtn" class="top-utility-btn" type="button" title="مركز التقارير" aria-label="مركز التقارير">▦</button>
+        <button id="top360Btn" class="top-utility-btn" type="button" title="Work Order 360°">360°</button>
+        <button id="topFavoriteBtn" class="top-utility-btn" type="button" title="إضافة الصفحة الحالية إلى المفضلة" aria-pressed="false">☆</button>
       </div>
 
       <div id="dashboardUserProfile" class="dashboard-user-profile" hidden>
@@ -567,6 +571,7 @@
 <script src="/report-naming.js?v=report-identity-20261003-1"></script>
 <script src="/multi-filter.js?v=multiselect-kpi-20261003-2"></script>
 <script src="/app.js?v=excel-export-20261003-1"></script>
+<script src="/top-toolbar.js?v=urgent-topbar-20261004-2"></script>
 <script src="/user-photo.js?v=user-photo-20261003-2"></script>
 <script src="/projects-analytics.js?v=projects-legends-axis-final-20261002-5"></script>
 <script src="/connections-analytics.js?v=connections-hide-duplicate-kpis-20261002-1"></script>
@@ -595,7 +600,7 @@
 <script src="/access-control.js?v=excel-export-permission-20261003-3"></script>
 <script src="/count-up.js?v=countup-cards-20261003-1"></script>
 <script src="/sidebar-navigation.js?v=sidebar-accordion-search-collapse-20261003-1"></script>
-<script src="/i18n.js?v=excel-export-20261003-1"></script>
+<script src="/i18n.js?v=urgent-topbar-20261004-2"></script>
 
 <div id="meetingInfoModal" class="meeting-info-modal" aria-hidden="true">
   <div class="meeting-info-dialog" role="dialog" aria-modal="true" aria-labelledby="meetingInfoTitle">
