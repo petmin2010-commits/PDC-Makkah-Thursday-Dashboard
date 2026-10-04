@@ -40,6 +40,7 @@
 .news-group{display:inline-flex;align-items:center;gap:26px;flex:none;white-space:nowrap;padding-inline:20px;direction:rtl}
 .project-news:hover .news-track,.project-news.is-paused .news-track{animation:none!important}
 .news-item{display:inline-flex;align-items:center;gap:8px;color:#143247;text-decoration:none;font-size:12px;font-weight:800}
+.news-item[href]{cursor:pointer}.news-item[href]:hover .news-title{text-decoration:underline;text-underline-offset:3px}
 .news-source{
   display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;
   font-size:8px;font-weight:900;background:#e6f7fc!important;color:#0b7095!important;

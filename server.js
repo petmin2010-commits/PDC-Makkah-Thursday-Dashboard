@@ -1532,6 +1532,46 @@ async function getFullMonitorData(){
 const PROJECT_NEWS_RETENTION_MS=72*60*60*1000;
 const projectNewsState={snapshot:new Map(),events:new Map(),rowSnapshots:new Map(),violationCounts:new Map(),contractorWeekCounts:new Map(),violationIntelReady:false};
 
+let projectNewsSheetLinksCache={at:0,map:{}};
+async function projectNewsSheetLinks_(){
+  if(Date.now()-projectNewsSheetLinksCache.at<10*60*1000&&Object.keys(projectNewsSheetLinksCache.map).length)return projectNewsSheetLinksCache.map;
+  assertConfig();
+  const sheets=await getSheets();
+  const r=await sheets.spreadsheets.get({spreadsheetId:SPREADSHEET_ID,fields:'sheets.properties(sheetId,title)'});
+  const map={};
+  for(const sh of r.data.sheets||[]){
+    const p=sh.properties||{},title=clean_(p.title);
+    if(title)map[title]='https://docs.google.com/spreadsheets/d/'+SPREADSHEET_ID+'/edit#gid='+String(p.sheetId);
+  }
+  projectNewsSheetLinksCache={at:Date.now(),map};
+  return map;
+}
+function newsPageSheet_(pageKey){
+  const aliases={intelSafetyRows:'safety',intelExecutionRows:'executionViolations',intelMinutesRows:'minutes'};
+  const key=aliases[pageKey]||pageKey;
+  return clean_((APP.PAGES[key]||{}).sheet);
+}
+function newsInferSourceSheet_(key,category){
+  const raw=String(key||''),low=raw.toLowerCase();
+  const row=raw.match(/^row:(?:new|change|burst):([^:]+)/i);
+  if(row){const sh=newsPageSheet_(row[1]);if(sh)return sh}
+  const schema=raw.match(/^(?:schema|limit|dq):([^:]+)/i);
+  if(schema){const sh=newsPageSheet_(schema[1]);if(sh)return sh}
+  const rules=[
+    [/(connections|connection)/,'connections'],[/(permits|permit)/,'permits'],[/(assets|asset)/,'assets'],
+    [/(emergency)/,'emergency'],[/(closures|closure)/,'closures'],[/(tasks|task)/,'tasks'],
+    [/(attachments|attachment)/,'attachments'],[/(safety)/,'safety'],
+    [/(executionviolations|executionviolation)/,'executionViolations'],[/(minutes|minute)/,'minutes'],
+    [/(projects|project)/,'projects'],
+    [/(workorders|workorder|delayedexecution|docsnotreceived|contractor:completed|progress:workorders|smart:completed|smart:delayed|smart:docs)/,'workorders']
+  ];
+  for(const [rx,page] of rules){if(rx.test(low)){const sh=newsPageSheet_(page);if(sh)return sh}}
+  const cat=norm_(category||'');
+  const cr=[['التوصيلات','connections'],['التصاريح','permits'],['الأصول','assets'],['الاصول','assets'],['الطوارئ','emergency'],['الإغلاقات','closures'],['االإغلاقات','closures'],['متابعة المواقع','tasks'],['المرفقات','attachments'],['السلامة','safety'],['محاضر','minutes'],['المخالفات','safety'],['المشاريع','projects'],['التنفير','workorders'],['الم؂اولونون','workorders'],['أوامر العمل','workorders'],['جودة البيانات','projects']];
+  for(const [word,page] of cr){if(cat.includes(norm_(word))){const sh=newsPageSheet_(page);if(sh)return sh}}
+  return newsPageSheet_('workorders')||newsPageSheet_('projects')||'';
+}
+
 function newsExact_(v,x){return norm_(v)===norm_(x)}
 function newsChecked_(v){return v===true||/^(true|نعم|تم|yes|1)$/i.test(clean_(v))}
 function newsBlank_(r,k){return !clean_(r&&r[k])}
@@ -1541,12 +1581,13 @@ function newsPriority_(count,total){
   if(count>=10||rate>=0.08)return 'مهم';
   return 'تحديث';
 }
-function newsEvent_(key,priority,category,title,summary){
+function newsEvent_(key,priority,category,title,summary,sourceSheet){
   const date=DateTime.now().setZone(APP.TZ||'Asia/Riyadh').toISO();
+  const resolvedSource=clean_(sourceSheet)||newsInferSourceSheet_(key,category);
   projectNewsState.events.set(key,{
     show:'نعم',date,priority,category,title,summary:summary||'',
     sender:'',emailUrl:'',messageId:'',syncedAt:now_(),
-    source:'تحليل الشيتات',eventKey:key
+    source:'تحليل الشيتات',sourceSheet:resolvedSource,eventKey:key
   });
 }
 function newsFmt_(v,unit){
@@ -2037,7 +2078,10 @@ async function getProjectNews(){
     .filter(r=>activeIssueKeys.has(r.eventKey)||(Date.parse(r.date)||0)>=cutoff)
     .sort((a,b)=>(Date.parse(b.date)||0)-(Date.parse(a.date)||0)||(order[a.priority]??9)-(order[b.priority]??9)||(activeIssueKeys.has(b.eventKey)?1:0)-(activeIssueKeys.has(a.eventKey)?1:0))
     .slice(0,180);
-  const result={updatedAt:now_(),source:'live-sheet-analysis',retentionHours:72,rows};
+  let sheetLinks={};
+  try{sheetLinks=await projectNewsSheetLinks_()}catch(e){console.warn('Project news sheet-link metadata skipped:',e.message||e)}
+  const linkedRows=rows.map(r=>{const sourceSheet=clean_(r.sourceSheet)||newsInferSourceSheet_(r.eventKey,r.category);return {...r,sourceSheet,sheetUrl:sheetLinks[sourceSheet]||''}});
+  const result={updatedAt:now_(),source:'live-sheet-analysis',retentionHours:72,rows:linkedRows};
   cachePut(key,result,20);
   return result;
 }
