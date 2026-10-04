@@ -8,6 +8,7 @@
       items: [
         ['master','تقرير اللوحة الرئيسية العام','⌂'],
         ['projects','تقرير المشاريع العام','⚡'],
+        ['projectCompletionAnalysis','تحليل أسباب انخفاض إنجاز المشاريع','▧'],
         ['connections','تقرير التوصيلات العام','◉'],
         ['permits','تقرير التصاريح العام','▤'],
         ['assets','تقرير الأصول العام','⬡'],
@@ -55,7 +56,32 @@
 
   function navFor(key) {
     return document.querySelector('.nav-item[data-page="' + key + '"]');
-  }  function activeFilterControls() {
+  }
+
+  function reportAvailable(key) {
+    return key === 'projectCompletionAnalysis' || !!navFor(key);
+  }
+
+  async function exportProjectCompletionAnalysis(button) {
+    const api = window.VDProjectCompletionReport;
+    if (!api || typeof api.exportGeneral !== 'function') {
+      alert('تعذر تشغيل تقرير تحليل إنجاز المشاريع.');
+      return;
+    }
+    const original = button.textContent;
+    button.disabled = true;
+    button.classList.add('is-loading');
+    button.textContent = 'جاري تجهيز التحليل...';
+    try {
+      await api.exportGeneral();
+    } finally {
+      button.disabled = false;
+      button.classList.remove('is-loading');
+      button.textContent = original;
+    }
+  }
+
+  function activeFilterControls() {
     const nodes = [
       ...document.querySelectorAll('#filterBar select, #filterBar input'),
       ...document.querySelectorAll('.page.active select, .page.active input')
@@ -225,10 +251,10 @@
     if (!root) return;
 
     const groups = GROUPS.map(group => {
-      const items = group.items.filter(([key]) => navFor(key));
+      const items = group.items.filter(([key]) => reportAvailable(key));
       if (!items.length) return '';
       const cards = items.map(([key, label, icon]) => {
-        const tabName = navFor(key)?.querySelector('span')?.textContent?.trim() || label;
+        const tabName = key === 'projectCompletionAnalysis' ? '⚡ المشاريع العام' : (navFor(key)?.querySelector('span')?.textContent?.trim() || label);
         return '<article class="rc-card">' +
           '<div class="rc-card-icon">' + icon + '</div>' +
           '<div class="rc-card-copy"><strong>' + label + '</strong><small>المصدر: تاب ' + tabName + '</small></div>' +
@@ -238,13 +264,19 @@
       return '<section class="rc-group"><div class="rc-group-head"><div><h3>' + group.title + '</h3><p>' + group.subtitle + '</p></div><span>' + items.length + ' تقارير</span></div><div class="rc-grid">' + cards + '</div></section>';
     }).join('');
 
-    const total = GROUPS.reduce((sum, g) => sum + g.items.filter(([key]) => navFor(key)).length, 0);
+    const total = GROUPS.reduce((sum, g) => sum + g.items.filter(([key]) => reportAvailable(key)).length, 0);
     root.innerHTML =
       '<div class="rc-hero"><div><span>VISION DIMENSIONS • REPORT CENTER</span><h2>مركز التقارير</h2><p>تجميع موحد لكل تقارير الداشبورد. جميع الأزرار هنا تُنشئ تقريرًا عامًا بدون فلاتر مطبقة.</p></div><div class="rc-total"><b>' + total + '</b><span>تقرير متاح</span></div></div>' +
       groups;
 
     root.querySelectorAll('[data-report-page]').forEach(btn => {
-      btn.addEventListener('click', () => exportGeneral(btn.dataset.reportPage, btn));
+      btn.addEventListener('click', () => {
+        if (btn.dataset.reportPage === 'projectCompletionAnalysis') {
+          exportProjectCompletionAnalysis(btn);
+          return;
+        }
+        exportGeneral(btn.dataset.reportPage, btn);
+      });
     });
   }
 
