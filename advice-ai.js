@@ -24,6 +24,33 @@ function similarity(a,b){
  let inter=0;for(const x of A)if(B.has(x))inter++;
  return inter/Math.max(1,new Set([...A,...B]).size);
 }
+const latinDigits=v=>String(v||'').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+function ksaDateNumber(date=new Date()){
+ const parts=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date).filter(p=>p.type!=='literal').map(p=>[p.type,p.value]));
+ return Number(parts.year)*10000+Number(parts.month)*100+Number(parts.day);
+}
+function waitDateInfo(advice){
+ const raw=latinDigits(clean(advice));if(!raw)return null;
+ const txt=raw.normalize('NFKC').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه');
+ if(!/(متوقف|معلق|مؤجل|انتظار|بانتظار|لحين|حتى|الي حين|موعد|فصل التيار|فصل الكهرباء)/i.test(txt))return null;
+ const found=[];
+ const add=(y,m,d,label)=>{y=Number(y);m=Number(m);d=Number(d);if(y<100)y+=2000;if(y<2000||y>2100||m<1||m>12||d<1||d>31)return;found.push({n:y*10000+m*100+d,label:String(d).padStart(2,'0')+'/'+String(m).padStart(2,'0')+'/'+y})};
+ for(const m of raw.matchAll(/\b(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})\b/g))add(m[3],m[2],m[1],m[0]);
+ for(const m of raw.matchAll(/\b(20\d{2})[\/\-.](\d{1,2})[\/\-.](\d{1,2})\b/g))add(m[1],m[2],m[3],m[0]);
+ if(!found.length)return null;
+ found.sort((a,b)=>b.n-a.n);const latest=found[0],today=ksaDateNumber();
+ return {...latest,isFuture:latest.n>today,isToday:latest.n===today,isPast:latest.n<today};
+}
+function futureWaitAnalysis(item,info=waitDateInfo(item?.advice)){
+ if(!info||info.isPast)return null;
+ return {enabled:true,classification:'مقبولة - انتظار موعد مستقبلي',score:100,reason:'الإفادة توضح توقف/انتظار حتى موعد مستقبلي ('+info.label+')؛ تكرارها قبل حلول الموعد لا يعد إفادة وهمية أو تعديلًا شكليًا.',newInformation:['موعد المتابعة المستقبلي: '+info.label],substantive:true,model:'future-date-rule'};
+}
+function effectiveCurrentAdviceState(h){
+ const info=waitDateInfo(h?.advice);
+ if(info&&!info.isPast)return {...h,classification:'مقبولة - انتظار موعد مستقبلي',score:100,reason:'الإفادة توضح توقف/انتظار حتى موعد محدد ('+info.label+') لم يمر بعد؛ لا تُعاقب بسبب التطابق حتى نهاية الموعد.',substantive:true,lastSubstantiveAt:h.adviceTimestamp||h.capturedAt||h.lastSubstantiveAt,model:h.model||'future-date-rule'};
+ if(info&&!info.isFuture&&h?.classification==='مقبولة - انتظار موعد مستقبلي')return {...h,classification:'ضعيف',score:20,reason:'انتهى الموعد المستقبلي المذكور في الإفادة ('+info.label+') ولم تُسجل إفادة أحدث؛ يلزم تحديث المتابعة.',substantive:false};
+ return h;
+}
 
 async function ensureHistorySheet({sheets,spreadsheetId}){
  const meta=await sheets.spreadsheets.get({spreadsheetId,fields:'sheets.properties(sheetId,title)'});
@@ -73,7 +100,7 @@ async function analyzeWithAI(change){
  const apiKey=process.env.OPENAI_API_KEY||'';
  const model=process.env.ADVICE_AI_MODEL||'gpt-5.6-luna';
  if(!apiKey)return {enabled:false,classification:'بانتظار وكيل الذكاء الاصطناعي',score:null,reason:'لم يتم تفعيل مفتاح OpenAI API بعد.',newInformation:[],substantive:null,model:''};
- const system='أنت وكيل رقابة جودة إفادات أوامر العمل في مشروع هندسي. حلل قيمة المتابعة لا أسلوب الكتابة. لا تعتبر إضافة مسافة أو شرطة أو / أو إعادة صياغة بلا معلومة جديدة متابعة حقيقية. التحديث الجوهري يجب أن يضيف واقعة أو إجراء أو نتيجة أو عائق أو موعد أو خطوة تالية أو تغير حالة يمكن التحقق منه. لا تعاقب الاختصار: إفادة قصيرة قد تكون عالية القيمة. أعد JSON فقط.';
+ const system='أنت وكيل رقابة جودة إفادات أوامر العمل في مشروع هندسي. حلل قيمة المتابعة لا أسلوب الكتابة. لا تعتبر إضافة مسافة أو شرطة أو / أو إعادة صياغة بلا معلومة جديدة متابعة حقيقية. التحديث الجوهري يجب أن يضيف واقعة أو إجراء أو نتيجة أو عائق أو موعد أو خطوة تالية أو تغير حالة يمكن التحقق منه. إذا كانت الإفادة تنص على توقف أو انتظار حتى تاريخ مستقبلي لم يحن بعد، فلا تعتبر تكرارها بلا معلومة جديدة مشكلة قبل حلول ذلك التاريخ. لا تعاقب الاختصار: إفادة قصيرة قد تكون عالية القيمة. أعد JSON فقط.';
  const user={
   task:'قارن الإفادة السابقة بالجديدة وصنف التحديث.',
   source:change.source,work_order:change.workOrder,engineer:change.engineer,contractor:change.contractor,stage:change.stage,
@@ -146,6 +173,7 @@ async function syncAdviceHistory(opts){
   for(const item of changes){
    const prev=latest.get(keyOf(item.source,item.workOrder,item.row)),capturedAt=nowKsa();let analysis;
    if(isClosingStage(item.stage))analysis={enabled:false,classification:'مستبعد - مرحلة الإغلاق',score:null,reason:'أمر العمل في مرحلة الإغلاق؛ يُحفظ التغيير تاريخيًا ولا يُرسل لوكيل الذكاء الاصطناعي ولا يدخل في مؤشرات جودة الإفادات.',newInformation:[],substantive:null,model:''};
+   else if(futureWaitAnalysis(item))analysis=futureWaitAnalysis(item);
    else if(!prev)analysis=baselineAnalysis(item);
    else if(process.env.OPENAI_API_KEY&&aiCalls<maxAi){try{analysis=await analyzeWithAI({...item,previousAdvice:prev.advice,previousTimestamp:prev.adviceTimestamp});aiCalls++;}catch(e){analysis={enabled:false,classification:'بانتظار وكيل الذكاء الاصطناعي',score:null,reason:clean(e.message),newInformation:[],substantive:null,model:''};}}
    else analysis={enabled:false,classification:'بانتظار وكيل الذكاء الاصطناعي',score:null,reason:norm(prev.advice)===norm(item.advice)?'التحقق الأولي يشير إلى تعديل شكلي، لكن الحكم النهائي متروك لوكيل الذكاء الاصطناعي.':'بانتظار وكيل الذكاء الاصطناعي لتحليل القيمة التشغيلية للتغيير.',newInformation:[],substantive:null,model:''};
@@ -172,11 +200,11 @@ function daysSince(v){const d=parseKsaStamp(v);return d?Math.max(0,(Date.now()-d
 function buildSummary(history,meta={}){
  const latest=new Map();for(const h of history)latest.set(keyOf(h.source,h.workOrder,h.sourceRow),h);
  const activeKeys=meta.activeKeys instanceof Set?meta.activeKeys:null;
- const current=[...latest.values()].filter(h=>!activeKeys||activeKeys.has(keyOf(h.source,h.workOrder,h.sourceRow)));
- const events=history.filter(h=>h.classification&&h.classification!=='خط أساس'&&!h.classification.startsWith('مستبعد')&&(!activeKeys||activeKeys.has(keyOf(h.source,h.workOrder,h.sourceRow))));
+ const current=[...latest.values()].filter(h=>!activeKeys||activeKeys.has(keyOf(h.source,h.workOrder,h.sourceRow))).map(effectiveCurrentAdviceState);
+ const events=history.filter(h=>h.classification&&h.classification!=='خط أساس'&&!h.classification.startsWith('مستبعد')&&(!activeKeys||activeKeys.has(keyOf(h.source,h.workOrder,h.sourceRow)))).map(h=>latest.get(keyOf(h.source,h.workOrder,h.sourceRow))?.rowNumber===h.rowNumber?effectiveCurrentAdviceState(h):h);
  const isSusp=h=>h.classification==='شكلي'||h.classification.includes('مشتبه');
  const currentAnalyzed=current.filter(h=>h.classification&&h.classification!=='خط أساس'&&!h.classification.startsWith('مستبعد'));
- const counts={substantive:currentAnalyzed.filter(h=>h.classification==='جوهري').length,weak:currentAnalyzed.filter(h=>h.classification==='ضعيف').length,cosmetic:currentAnalyzed.filter(h=>h.classification==='شكلي').length,suspicious:currentAnalyzed.filter(isSusp).length,pending:currentAnalyzed.filter(h=>h.classification.includes('بانتظار')).length};
+ const counts={substantive:currentAnalyzed.filter(h=>h.classification==='جوهري'||h.classification==='مقبولة - انتظار موعد مستقبلي').length,acceptedFuture:currentAnalyzed.filter(h=>h.classification==='مقبولة - انتظار موعد مستقبلي').length,weak:currentAnalyzed.filter(h=>h.classification==='ضعيف').length,cosmetic:currentAnalyzed.filter(h=>h.classification==='شكلي').length,suspicious:currentAnalyzed.filter(isSusp).length,pending:currentAnalyzed.filter(h=>h.classification.includes('بانتظار')).length};
  const age={fresh:0,old:0,veryOld:0,neglect:0,severe:0,unknown:0};
  current.forEach(h=>{const d=daysSince(h.lastSubstantiveAt);if(d==null)age.unknown++;else if(d>=15)age.severe++;else if(d>=10)age.neglect++;else if(d>=6)age.veryOld++;else if(d>=3)age.old++;else age.fresh++;});
  const engineerMap=new Map();for(const h of events.filter(isSusp)){const k=h.engineer||'غير محدد';engineerMap.set(k,(engineerMap.get(k)||0)+1)}
@@ -193,7 +221,7 @@ async function reanalyzePending({sheets,spreadsheetId,limit=20,activeKeys=null})
  let done=0;
  for(const h of pending){
   try{
-   const analysis=await analyzeWithAI({source:h.source,workOrder:h.workOrder,engineer:h.engineer,contractor:h.contractor,stage:h.stage,advice:h.advice,adviceTimestamp:h.adviceTimestamp,previousAdvice:h.previousAdvice,previousTimestamp:h.previousTimestamp});
+   const analysis=futureWaitAnalysis(h)||await analyzeWithAI({source:h.source,workOrder:h.workOrder,engineer:h.engineer,contractor:h.contractor,stage:h.stage,advice:h.advice,adviceTimestamp:h.adviceTimestamp,previousAdvice:h.previousAdvice,previousTimestamp:h.previousTimestamp});
    const lastSub=analysis.substantive===true?(h.adviceTimestamp||h.capturedAt):h.lastSubstantiveAt;
    const values=[[analysis.classification,analysis.score==null?'':analysis.score,analysis.reason,JSON.stringify(analysis.newInformation||[]),analysis.substantive?'TRUE':'FALSE',lastSub,analysis.model||'',nowKsa()]];
    await sheets.spreadsheets.values.update({spreadsheetId,range:`${qSheet(HISTORY_SHEET)}!O${h.rowNumber}:V${h.rowNumber}`,valueInputOption:'RAW',requestBody:{values}});
