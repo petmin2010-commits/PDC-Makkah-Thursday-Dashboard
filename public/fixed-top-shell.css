@@ -553,3 +553,143 @@ html[data-theme] body .topbar .theme-picker-foot{border-top-color:var(--tl)!impo
   .topbar .theme-picker-wrap{flex-basis:150px!important;width:150px!important}
   .topbar .theme-picker-panel{width:min(350px,calc(100vw - 30px))!important;right:auto!important;left:0!important}
 }
+/* =========================================================
+   URGENT SOLUTIONS TOP USER BAR PARITY — 2026-10-04
+   Shared by PDC Jeddah + PDC Makkah
+   ========================================================= */
+:root{
+  --vd-toolbar-height:58px;
+  --vd-news-height:52px;
+}
+.topbar{
+  height:var(--vd-toolbar-height)!important;
+  min-height:var(--vd-toolbar-height)!important;
+  padding:6px 10px!important;
+  border-radius:18px!important;
+  background:rgba(255,255,255,.965)!important;
+  border-color:#d7e5ef!important;
+  box-shadow:0 8px 24px rgba(12,66,96,.08)!important;
+}
+.topbar .top-actions{gap:8px!important}
+.topbar .top-actions .search{
+  height:42px!important;
+  border-radius:12px!important;
+  border-color:#d8e6ef!important;
+  background:#fbfdff!important;
+}
+.topbar .top-actions .search input{font-size:9.5px!important}
+.topbar .theme-picker-wrap{
+  height:42px!important;
+  flex-basis:168px!important;
+  width:168px!important;
+  border-radius:12px!important;
+  border-color:#d8e6ef!important;
+}
+.topbar #refreshBtn{
+  height:42px!important;
+  min-width:92px!important;
+  border-radius:12px!important;
+  box-shadow:none!important;
+}
+.topbar .dashboard-user-profile{
+  height:44px!important;
+  min-height:44px!important;
+  max-width:380px!important;
+  padding:2px 5px!important;
+  gap:7px!important;
+  border:0!important;
+  border-left:1px solid #e4edf3!important;
+  background:transparent!important;
+}
+.topbar .dashboard-live-badge{
+  height:31px;
+  display:inline-flex;align-items:center;gap:5px;
+  padding:0 9px;
+  border:1px solid #d4e9ef;
+  border-radius:999px;
+  background:#eef8fa;
+  color:#65858f;
+  font:800 7px/1 Cairo,Arial,sans-serif;
+  letter-spacing:.02em;
+  white-space:nowrap;
+}
+.topbar .dashboard-live-badge i{
+  width:7px;height:7px;border-radius:50%;background:#29bc55;
+  box-shadow:0 0 0 3px rgba(41,188,85,.11);
+}
+.topbar .dashboard-user-avatar{
+  width:36px!important;
+  height:36px!important;
+  flex:0 0 36px!important;
+  border-radius:50%!important;
+  border:1.5px solid #c7dce7!important;
+  background:#fff!important;
+  box-shadow:0 3px 10px rgba(14,78,104,.08)!important;
+}
+.topbar .dashboard-user-info{
+  min-width:92px!important;
+  max-width:140px!important;
+}
+.topbar .dashboard-user-info strong{
+  max-width:140px!important;
+  color:#19384b!important;
+  font-size:10px!important;
+  line-height:1.35!important;
+}
+.topbar .dashboard-user-info span{
+  max-width:140px!important;
+  color:#7a8f9a!important;
+  font-size:7.5px!important;
+  line-height:1.25!important;
+}
+.topbar .dashboard-logout-button{
+  height:34px!important;
+  min-width:76px!important;
+  padding:0 9px!important;
+  border:0!important;
+  border-radius:10px!important;
+  background:#edf7fa!important;
+  color:#176583!important;
+  font-size:8px!important;
+  font-weight:900!important;
+}
+.topbar .dashboard-logout-button:hover{
+  background:#e3f2f7!important;color:#0b5877!important;
+}
+#projectNewsTicker.project-news{
+  top:calc(var(--vd-top-gap) + var(--vd-toolbar-height) + 8px)!important;
+  min-height:var(--vd-news-height)!important;
+  height:var(--vd-news-height)!important;
+  border-radius:16px!important;
+}
+main{
+  padding-top:calc(var(--vd-top-gap) + var(--vd-toolbar-height) + 8px + var(--vd-news-height) + 18px)!important;
+}
+html[data-theme] body .topbar .dashboard-live-badge{
+  background:color-mix(in srgb,var(--tc,#fff) 88%,#dff5fa)!important;
+  color:var(--tm,#65858f)!important;
+  border-color:var(--tl,#d4e9ef)!important;
+}
+html[data-theme] body .topbar .dashboard-user-avatar{
+  border-color:var(--tl,#c7dce7)!important;
+}
+html[data-theme] body .topbar .dashboard-logout-button{
+  background:color-mix(in srgb,var(--tc,#fff) 85%,#dff4fa)!important;
+  color:var(--ti,#176583)!important;
+}
+@media(max-width:1100px){
+  .topbar .dashboard-live-badge{display:none}
+  .topbar .dashboard-user-info{min-width:80px!important;max-width:110px!important}
+  .topbar .dashboard-user-info strong,.topbar .dashboard-user-info span{max-width:110px!important}
+}
+@media(max-width:850px){
+  :root{--vd-toolbar-height:62px;--vd-news-height:44px}
+  .topbar .dashboard-user-profile{height:42px!important;min-height:42px!important}
+  .topbar .dashboard-user-avatar{width:34px!important;height:34px!important;flex-basis:34px!important}
+  .topbar .dashboard-logout-button{min-width:40px!important}
+}
+@media(max-width:620px){
+  :root{--vd-toolbar-height:112px;--vd-news-height:44px}
+  .topbar .dashboard-live-badge{display:none}
+  .topbar .dashboard-user-profile{height:42px!important;min-height:42px!important}
+}
