@@ -144,6 +144,17 @@ function getPrepared(report){
   if(clean(report.preparedBy))return clean(report.preparedBy);
   return clean(report.engineer);
 }
+function jpegBuffer(dataUrl){
+  const m=String(dataUrl||'').match(/^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/i);
+  if(!m)return null;
+  try{const b=Buffer.from(m[1],'base64');return b.length?b:null}catch(e){return null}
+}
+function imageSlotMap(){
+  return [
+    {slot:1,media:4,cell:'A13'},{slot:2,media:3,cell:'B13'},{slot:3,media:2,cell:'C13'},{slot:4,media:1,cell:'D13'},
+    {slot:5,media:8,cell:'A25'},{slot:6,media:7,cell:'B25'},{slot:7,media:6,cell:'C25'},{slot:8,media:5,cell:'D25'}
+  ];
+}
 function patchChart(xml,replacements){
   for(const [from,to] of replacements)xml=xml.split(from).join(to);
   xml=xml.replace(/<c:numCache>[\s\S]*?<\/c:numCache>/g,'');
@@ -294,14 +305,21 @@ function buildProjectWorkbook(report){
   }
 
   parts[SHEET1]=strToU8(s1); parts[SHEET2]=strToU8(s2);
+  const projectImages=Array.isArray(report.images)?report.images:[];
+  const bySlot=new Map(projectImages.map(x=>[Number(x.slot),x]));
   if(parts[SHEET3]){
     let s3=strFromU8(parts[SHEET3]);
     s3=clearRange(s3,['A','B','C','D'],13,13);
     s3=clearRange(s3,['A','B','C','D'],24,25);
+    for(const m of imageSlotMap()){
+      const img=bySlot.get(m.slot);
+      s3=setCell(s3,m.cell,clean(img?.caption),'string');
+    }
     parts[SHEET3]=strToU8(s3);
   }
-  for(const name of Object.keys(parts)){
-    if(/^xl\/media\/image\d+\.jpe?g$/i.test(name))parts[name]=new Uint8Array(BLANK_JPEG);
+  for(const m of imageSlotMap()){
+    const img=bySlot.get(m.slot),buf=jpegBuffer(img?.dataUrl);
+    parts['xl/media/image'+m.media+'.jpeg']=new Uint8Array(buf||BLANK_JPEG);
   }
   if(parts[CHART1]){
     const end=Math.max(13,12+Math.max(1,boq.length));
@@ -322,12 +340,13 @@ function buildProjectWorkbook(report){
 }
 
 module.exports=function installProjectsReportExcel(ctx){
-  const {app,requireAuth_,APP,DateTime}=ctx;
+  const {app,requireAuth_,APP,DateTime,loadProjectImages}=ctx;
   app.post('/api/projects-report-engine/excel',requireAuth_,async(req,res)=>{
     try{
       const report=req.body?.report;
       if(!report||!clean(report.workOrder))return res.status(400).json({ok:false,error:'أنشئ التقرير أولاً قبل تصدير Excel.'});
-      const buffer=buildProjectWorkbook(report);
+      const images=typeof loadProjectImages==='function'?await loadProjectImages(report.workOrder):[];
+      const buffer=buildProjectWorkbook({...report,images});
       const city=/مكة|makkah/i.test(APP.TITLE)?'MAK':'JED';
       const stamp=DateTime.now().setZone(APP.TZ||'Asia/Riyadh').toFormat('yyyyLLdd_HHmmss');
       const safeWo=clean(report.workOrder).replace(/[^0-9A-Za-z_-]+/g,'-').slice(0,40);

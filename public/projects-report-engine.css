@@ -67,3 +67,28 @@ body.vd-projects-report-engine-active #filterBar{
 .pre-searchbar .pre-kmz-top-btn{background:#eaf6fb!important;color:#176985!important;border-color:#8bc2d4!important}
 .pre-searchbar .pre-kmz-top-btn.loading{opacity:.62;pointer-events:none}
 .pre-page>#preMapPanel{margin-top:14px}
+
+/* Projects Report Engine — site execution photos */
+.pre-searchbar .pre-photos-top-btn{background:#f4f8ff!important;color:#315b89!important;border-color:#b9cee5!important}
+.pre-photos-manager{scroll-margin-top:18px}
+.pre-photos-help{margin:-2px 0 12px;color:#72859a;font-size:8.5px;line-height:1.75}
+.pre-photos-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.pre-photo-card{min-width:0;padding:9px;border:1px solid #dce6ef;border-radius:15px;background:#fbfdff;transition:.18s ease}
+.pre-photo-card.dirty{border-color:#d7aa55;box-shadow:0 0 0 2px rgba(211,165,74,.12)}
+.pre-photo-head{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:7px}
+.pre-photo-head b{font-size:9px;color:#28445f}.pre-photo-head span{font-size:7px;color:#8091a2}
+.pre-photo-preview{position:relative;aspect-ratio:4/3;overflow:hidden;border:1px solid #e0e8ef;border-radius:11px;background:#eef3f7}
+.pre-photo-preview img{display:block;width:100%;height:100%;object-fit:cover}
+.pre-photo-preview>div{height:100%;display:grid;place-content:center;text-align:center;color:#8697a8}
+.pre-photo-preview>div b{font-size:9px;color:#61778d}.pre-photo-preview>div span{display:block;margin-top:3px;font-size:7px}
+.pre-photo-card textarea{display:block;width:100%;min-height:56px;margin-top:7px;padding:8px 9px;resize:vertical;border:1px solid #dce5ee;border-radius:10px;background:#fff;color:#2f475f;font:600 8px/1.65 Cairo,Arial,sans-serif;outline:none}
+.pre-photo-card textarea:focus{border-color:#82aacd;box-shadow:0 0 0 3px rgba(49,91,137,.08)}
+.pre-photo-actions{display:grid;grid-template-columns:minmax(0,.82fr) minmax(0,1.2fr) auto;gap:5px;margin-top:7px}
+.pre-photo-upload,.pre-photo-actions button{min-height:31px;border-radius:9px;padding:5px 7px;font:800 7.5px Cairo,Arial,sans-serif;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer}
+.pre-photo-upload{border:1px solid #bad2e5;background:#eef7fd;color:#286487}.pre-photo-upload input{display:none!important}
+.pre-photo-save{border:1px solid #90c6b1;background:#edf8f3;color:#17684d}
+.pre-photo-delete{border:1px solid #e2c3c3;background:#fff7f7;color:#a33d43}
+.pre-photo-upload:hover,.pre-photo-actions button:hover:not(:disabled){filter:brightness(.985);transform:translateY(-1px)}
+.pre-photo-upload.disabled,.pre-photo-actions button:disabled,.pre-photo-card textarea:disabled{opacity:.55;cursor:not-allowed;transform:none}
+@media(max-width:1100px){.pre-photos-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.pre-photos-grid{grid-template-columns:1fr}.pre-photo-actions{grid-template-columns:1fr 1fr}.pre-photo-delete{grid-column:1/-1}}

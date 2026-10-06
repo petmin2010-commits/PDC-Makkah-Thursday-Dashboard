@@ -573,7 +573,7 @@ async function syncThursdayProgressHistory(payload){
 
 
 const WO360_HEADER_SCAN_ROWS=40;
-const WO360_SYSTEM_SHEETS=['dp users','dashboard history','🔒 سجل الافادات التاريخي'];
+const WO360_SYSTEM_SHEETS=['dp users','dashboard history','🔒 سجل الافادات التاريخي','projects report engine images'];
 
 function wo360Norm_(v){
   return clean_(v).normalize('NFKC').replace(/[\u064B-\u065F\u0670]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').toLowerCase().replace(/\s+/g,' ').trim();
@@ -2489,11 +2489,22 @@ require('./excel-export-server')({
   DateTime
 });
 
+const projectsReportImages=require('./projects-report-images-server')({
+  app,
+  requireAuth_,
+  getSheets,
+  SPREADSHEET_ID,
+  qSheet,
+  APP,
+  DateTime
+});
+
 require('./projects-report-excel-server')({
   app,
   requireAuth_,
   APP,
-  DateTime
+  DateTime,
+  loadProjectImages:projectsReportImages.loadImages
 });
 
 app.get('/api/hr/staff',requireAuth_,async(req,res)=>{

@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 const PAGE_ID='projectsReportEnginePage',NAV_ID='projectsReportEngineNav',EXTRA_SHEET='Projects Report Engine Data';
-const state={loading:false,data:null,wo:'',extraSheetId:'',report:null,map:null,mapManager:null,mapLocations:[],mapSnapshot:''};
+const state={loading:false,data:null,wo:'',extraSheetId:'',report:null,map:null,mapManager:null,mapLocations:[],mapSnapshot:'',images:[],photoPending:{},photoDraft:{},photoBusy:{}};
 const $=id=>document.getElementById(id);
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clean=v=>String(v==null?'':v).replace(/\s+/g,' ').trim();
@@ -19,12 +19,18 @@ function install(){
  nav.onclick=openPage;document.getElementById('nav')?.addEventListener('click',e=>{const b=e.target.closest('.nav-item');if(b&&b.id!==NAV_ID)leave()});
  $('preSearchBtn').onclick=search;$('preInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();search()}});
  $('prePrintBtn').onclick=openExportChooser;
+ $('prePhotosJumpBtn').onclick=()=>$('prePhotosPanel')?.scrollIntoView({behavior:'smooth',block:'start'});
+ const photosGrid=$('prePhotosGrid');
+ photosGrid?.addEventListener('change',handlePhotoFileChange);
+ photosGrid?.addEventListener('input',handlePhotoCaptionInput);
+ photosGrid?.addEventListener('click',handlePhotoAction);
  $('preExportClose').onclick=closeExportChooser;
  $('preExportPdf').onclick=()=>{closeExportChooser();printReport()};
  $('preExportExcel').onclick=exportProjectExcel;
  $('preExportModal').addEventListener('click',e=>{if(e.target===$('preExportModal'))closeExportChooser()});
  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeExportChooser()});
  const saved=localStorage.getItem('vd.projectsReportEngine.wo')||'';if(saved)$('preInput').value=saved;
+ renderPhotoManager();
 }
 function markup(){return `
 <div class="pre-hero">
@@ -35,10 +41,12 @@ function markup(){return `
  <button id="preSearchBtn" type="button">إنشاء التقرير</button>
  <button id="prePrintBtn" class="pre-search-secondary" type="button">تصدير التقرير</button>
  <button id="preMapKmzUploadBtn" class="pre-search-secondary pre-kmz-top-btn" type="button">⬆ رفع KMZ</button>
+ <button id="prePhotosJumpBtn" class="pre-search-secondary pre-photos-top-btn" type="button">▣ صور التنفيذ</button>
  <input id="preMapKmzFileInput" class="map-file-input" type="file" accept=".kmz,.kml,application/vnd.google-earth.kmz,application/vnd.google-earth.kml+xml" multiple>
 </div>
 <div id="preBody" class="pre-state"><b>محرك التقرير جاهز</b><span>اختر أي رقم أمر عمل. سيُسحب الموجود من أوراق المشروع تلقائيًا، وتُستخدم صفحة Projects Report Engine Data فقط للبيانات غير الموجودة.</span></div>
 ${mapBlock()}
+${photosManagerBlock()}
 <div id="preExportModal" class="pre-export-modal" hidden>
  <div class="pre-export-dialog" role="dialog" aria-modal="true" aria-labelledby="preExportTitle">
   <button id="preExportClose" class="pre-export-close" type="button" aria-label="إغلاق">×</button>
@@ -61,6 +69,7 @@ function leave(){document.body.classList.remove('vd-projects-report-engine-activ
 function openDataSheet(){const u=state.data?.spreadsheetUrl;if(u)window.open(u+(state.extraSheetId?'#gid='+state.extraSheetId:''),'_blank','noopener');else alert('أنشئ التقرير أولاً لتحديد ملف المصدر.')}
 function openExportChooser(){
  if(!state.report){alert('أنشئ التقرير أولاً ثم اختر صيغة التصدير.');return}
+ if(hasUnsavedPhotos()){alert('يوجد صور أو تعليقات غير محفوظة. احفظها أولاً حتى تتطابق نسخة Excel وPDF.');return}
  const m=$('preExportModal');if(m)m.hidden=false;
 }
 function closeExportChooser(){const m=$('preExportModal');if(m)m.hidden=true}
@@ -96,11 +105,14 @@ async function exportProjectExcel(){
 }
 async function search(){
  if(state.loading)return;const wo=clean($('preInput').value);if(!wo){$('preInput').focus();return}
- state.loading=true;state.wo=wo;localStorage.setItem('vd.projectsReportEngine.wo',wo);
+ state.loading=true;state.wo=wo;state.images=[];state.photoPending={};state.photoDraft={};state.photoBusy={};localStorage.setItem('vd.projectsReportEngine.wo',wo);
+ renderPhotoManager('جاري تحميل صور المشروع...');
  $('preBody').className='pre-state';$('preBody').innerHTML='<span class="pre-loader"></span><b>جاري تكوين التقرير...</b><span>تجميع البيانات الأصلية والإضافية الخاصة بأمر العمل.</span>';
- try{state.data=await rpc('getWorkOrder360',[wo]);render(state.data)}
- catch(e){$('preBody').className='pre-state error';$('preBody').innerHTML='<b>تعذر إنشاء التقرير</b><span>'+esc(e.message||e)+'</span>'}
- finally{state.loading=false}
+ try{
+  state.data=await rpc('getWorkOrder360',[wo]);render(state.data);
+  if(state.report){try{await loadProjectImages(wo)}catch(imgErr){console.warn('Project images load failed',imgErr);state.images=[];state.photoPending={};state.photoDraft={};renderPhotoManager('تعذر تحميل الصور المحفوظة')}}
+ }catch(e){$('preBody').className='pre-state error';$('preBody').innerHTML='<b>تعذر إنشاء التقرير</b><span>'+esc(e.message||e)+'</span>'}
+ finally{state.loading=false;renderPhotoManager()}
 }
 function toObj(record){const o={};(record?.fields||[]).forEach(f=>o[clean(f.label)]=f.value);return o}
 function source(data,name){return (data.sources||[]).find(s=>norm(s.sheet)===norm(name))}
@@ -394,6 +406,135 @@ function extraBlock(rows){
  if(!show.length)return '';
  return `<section class="pre-panel pre-print-section"><div class="pre-panel-head"><div><span>REPORT-SPECIFIC DATA</span><h3>بيانات إضافية خاصة بالتقرير</h3></div></div><div class="pre-extra-grid">${show.map(r=>'<div><small>'+esc(r['Field / Item / Permit No.'])+'</small><b>'+esc(extraValue(r)||'—')+'</b></div>').join('')}</div></section>`
 }
+
+function photosManagerBlock(){
+ return '<section class="pre-panel pre-photos-manager" id="prePhotosPanel">'+
+ '<div class="pre-panel-head"><div><span>SITE EXECUTION PHOTOS</span><h3>صور التنفيذ بالموقع</h3></div><div class="pre-mini-kpis"><span id="prePhotosSummary">0 / 8 صور محفوظة</span></div></div>'+
+ '<p class="pre-photos-help">ارفع حتى 8 صور، واكتب تعليق كل صورة ثم اضغط حفظ الصورة والتعليق. ستظهر بنفس الترتيب في Excel وفي صفحة مستقلة بعد الخريطة داخل PDF.</p>'+
+ '<div id="prePhotosGrid" class="pre-photos-grid"></div></section>';
+}
+function imageAt(slot){return (state.images||[]).find(x=>Number(x.slot)===Number(slot))||null}
+function photoCaption(slot){const saved=imageAt(slot)?.caption||'';return Object.prototype.hasOwnProperty.call(state.photoDraft,slot)?state.photoDraft[slot]:saved}
+function isCaptionDirty(slot){return clean(photoCaption(slot))!==clean(imageAt(slot)?.caption||'')}
+function hasUnsavedPhotos(){return Object.keys(state.photoPending||{}).length>0||Array.from({length:8},(_,i)=>i+1).some(isCaptionDirty)}
+function updatePhotoSummary(message){
+ const el=$('prePhotosSummary');if(!el)return;
+ const saved=(state.images||[]).filter(x=>x.dataUrl).length,dirty=hasUnsavedPhotos();
+ el.textContent=message||(saved+' / 8 صور محفوظة'+(dirty?' • توجد تعديلات غير محفوظة':''));
+}
+function renderPhotoManager(message){
+ const grid=$('prePhotosGrid');if(!grid)return;
+ const ready=!!state.report&&!!state.wo&&!state.loading;
+ let html='';
+ for(let slot=1;slot<=8;slot++){
+  const saved=imageAt(slot),pending=state.photoPending[slot],src=pending||saved?.dataUrl||'',caption=photoCaption(slot),busy=!!state.photoBusy[slot],dirty=!!pending||isCaptionDirty(slot);
+  html+='<article class="pre-photo-card'+(dirty?' dirty':'')+'" data-photo-slot="'+slot+'">'+
+   '<div class="pre-photo-head"><b>الصورة '+slot+'</b><span>'+(saved?.dataUrl?'محفوظة':'فارغة')+(pending?' • جديدة':'')+'</span></div>'+
+   '<div class="pre-photo-preview">'+(src?'<img src="'+esc(src)+'" alt="صورة تنفيذ '+slot+'">':'<div><b>لا توجد صورة</b><span>ارفع صورة من الموقع</span></div>')+'</div>'+
+   '<textarea data-photo-caption="'+slot+'" maxlength="800" placeholder="اكتب تعليق الصورة..." '+(!ready||busy?'disabled':'')+'>'+esc(caption)+'</textarea>'+
+   '<div class="pre-photo-actions">'+
+    '<label class="pre-photo-upload'+(!ready||busy?' disabled':'')+'">⬆ '+(src?'استبدال الصورة':'رفع الصورة')+'<input type="file" accept="image/*" data-photo-file="'+slot+'" '+(!ready||busy?'disabled':'')+'></label>'+
+    '<button type="button" class="pre-photo-save" data-photo-save="'+slot+'" '+(!ready||busy||!src?'disabled':'')+'>'+(busy?'جاري الحفظ...':'حفظ الصورة والتعليق')+'</button>'+
+    '<button type="button" class="pre-photo-delete" data-photo-delete="'+slot+'" '+(!ready||busy||(!src&&!saved)?'disabled':'')+'>حذف</button>'+
+   '</div>'+
+  '</article>';
+ }
+ grid.innerHTML=html;
+ updatePhotoSummary(message||(!ready?'أنشئ التقرير أولاً لرفع الصور':''));
+}
+async function loadProjectImages(wo){
+ const r=await fetch('/api/projects-report-engine/images/'+encodeURIComponent(wo),{cache:'no-store'});
+ const j=await r.json().catch(()=>({}));
+ if(!r.ok||j.ok===false)throw new Error(j.error||'تعذر تحميل صور التنفيذ');
+ state.images=Array.isArray(j.images)?j.images:[];
+ state.photoPending={};state.photoDraft={};state.photoBusy={};
+ state.images.forEach(x=>{state.photoDraft[Number(x.slot)]=x.caption||''});
+ renderPhotoManager();
+ return state.images;
+}
+function handlePhotoCaptionInput(e){
+ const t=e.target.closest('[data-photo-caption]');if(!t)return;
+ const slot=Number(t.dataset.photoCaption);state.photoDraft[slot]=t.value;updatePhotoSummary();
+ t.closest('.pre-photo-card')?.classList.toggle('dirty',isCaptionDirty(slot)||!!state.photoPending[slot]);
+}
+async function handlePhotoFileChange(e){
+ const input=e.target.closest('[data-photo-file]');if(!input||!input.files?.[0])return;
+ const slot=Number(input.dataset.photoFile);
+ try{
+  state.photoBusy[slot]=true;renderPhotoManager('جاري تجهيز الصورة '+slot+'...');
+  state.photoPending[slot]=await compressPhotoFile(input.files[0]);
+ }catch(err){alert(err.message||String(err))}
+ finally{state.photoBusy[slot]=false;renderPhotoManager()}
+}
+async function handlePhotoAction(e){
+ const save=e.target.closest('[data-photo-save]'),del=e.target.closest('[data-photo-delete]');
+ if(save){await savePhotoSlot(Number(save.dataset.photoSave));return}
+ if(del){await deletePhotoSlot(Number(del.dataset.photoDelete))}
+}
+function replaceSavedImage(image){
+ const slot=Number(image.slot),rest=(state.images||[]).filter(x=>Number(x.slot)!==slot);
+ state.images=[...rest,image].sort((a,b)=>Number(a.slot)-Number(b.slot));
+}
+async function savePhotoSlot(slot){
+ if(!state.report||!state.wo)return alert('أنشئ التقرير أولاً.');
+ const saved=imageAt(slot),dataUrl=state.photoPending[slot]||saved?.dataUrl||'',caption=photoCaption(slot);
+ if(!dataUrl)return alert('اختر صورة أولاً.');
+ state.photoBusy[slot]=true;renderPhotoManager('جاري حفظ الصورة '+slot+'...');
+ try{
+  const r=await fetch('/api/projects-report-engine/images/'+encodeURIComponent(state.wo)+'/'+slot,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({caption,dataUrl})});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok||j.ok===false)throw new Error(j.error||'تعذر حفظ الصورة');
+  replaceSavedImage(j.image);delete state.photoPending[slot];state.photoDraft[slot]=j.image.caption||'';
+ }catch(err){alert(err.message||String(err))}
+ finally{state.photoBusy[slot]=false;renderPhotoManager()}
+}
+async function deletePhotoSlot(slot){
+ if(!state.report||!state.wo)return;
+ if(!confirm('حذف الصورة '+slot+' وتعليقها من التقرير؟'))return;
+ state.photoBusy[slot]=true;renderPhotoManager('جاري حذف الصورة '+slot+'...');
+ try{
+  const r=await fetch('/api/projects-report-engine/images/'+encodeURIComponent(state.wo)+'/'+slot,{method:'DELETE'});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok||j.ok===false)throw new Error(j.error||'تعذر حذف الصورة');
+  state.images=(state.images||[]).filter(x=>Number(x.slot)!==slot);delete state.photoPending[slot];delete state.photoDraft[slot];
+ }catch(err){alert(err.message||String(err))}
+ finally{state.photoBusy[slot]=false;renderPhotoManager()}
+}
+function canvasBlob(canvas,quality){return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('تعذر ضغط الصورة.')),'image/jpeg',quality))}
+function blobDataUrl(blob){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(new Error('تعذر قراءة الصورة.'));r.readAsDataURL(blob)})}
+async function compressPhotoFile(file){
+ if(!file||!String(file.type||'').startsWith('image/'))throw new Error('اختر ملف صورة صالحًا.');
+ if(file.size>25*1024*1024)throw new Error('حجم الصورة الأصلية كبير جدًا.');
+ const url=URL.createObjectURL(file),img=new Image();
+ try{
+  await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('تعذر فتح الصورة.'));img.src=url});
+  let maxW=1500,maxH=1100,scale=Math.min(1,maxW/img.naturalWidth,maxH/img.naturalHeight);
+  let w=Math.max(1,Math.round(img.naturalWidth*scale)),h=Math.max(1,Math.round(img.naturalHeight*scale));
+  let canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+  let ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);
+  let q=.86,blob=await canvasBlob(canvas,q);
+  while(blob.size>480*1024&&q>.58){q-=.07;blob=await canvasBlob(canvas,q)}
+  if(blob.size>520*1024){
+   const c2=document.createElement('canvas');c2.width=Math.round(w*.78);c2.height=Math.round(h*.78);
+   const c2x=c2.getContext('2d');c2x.fillStyle='#fff';c2x.fillRect(0,0,c2.width,c2.height);c2x.drawImage(canvas,0,0,c2.width,c2.height);
+   canvas=c2;blob=await canvasBlob(canvas,.64);
+  }
+  const dataUrl=await blobDataUrl(blob);
+  if(String(dataUrl).length>880000)throw new Error('لم يمكن ضغط الصورة للحجم المناسب. اختر صورة أصغر.');
+  return dataUrl;
+ }finally{URL.revokeObjectURL(url)}
+}
+function photosPdfBlock(images){
+ const by=new Map((images||[]).map(x=>[Number(x.slot),x]));let cards='';
+ for(let slot=1;slot<=8;slot++){
+  const x=by.get(slot),src=x?.dataUrl||'',caption=clean(x?.caption)||'بدون تعليق';
+  cards+='<article class="pre-photo-pdf-card">'+
+   (src?'<img src="'+esc(src)+'" alt="صورة تنفيذ '+slot+'">':'<div class="pre-photo-pdf-empty">لا توجد صورة</div>')+
+   '<div class="pre-photo-pdf-caption"><b>الصورة '+slot+'</b><span>'+esc(caption)+'</span></div></article>';
+ }
+ return '<section class="pre-panel pre-photos-pdf-panel pre-print-section" id="prePhotosPdfPanel"><div class="pre-panel-head"><div><span>SITE EXECUTION PHOTOS</span><h3>صور التنفيذ بالموقع</h3></div><b>8 خانات</b></div><div class="pre-photos-pdf-grid">'+cards+'</div></section>';
+}
+
 function mapBlock(){
  return '<section class="pre-panel pre-map-panel pre-print-section" id="preMapPanel">'+
  '<div class="pre-panel-head"><div><span>GEOGRAPHIC CONTROL / KMZ</span><h3>خريطة أمر العمل والطبقات الجغرافية</h3></div><div class="pre-mini-kpis"><span id="preMapSummary">جاهزة لرفع KMZ / KML</span></div></div>'+
@@ -557,6 +698,8 @@ async function printReport(){
   mapPanel.innerHTML='<div class="pre-panel-head"><div><span>GEOGRAPHIC CONTROL / KMZ</span><h3>الخريطة والطبقات الجغرافية</h3></div><b>'+esc(summary)+'</b></div>'+
    (mapImage?'<img class="pre-map-pdf-image" src="'+mapImage+'" alt="خريطة أمر العمل والطبقات الجغرافية">':'<div class="pre-map-pdf-missing">تعذر التقاط صورة الخريطة آليًا. أعد فتح التقرير بعد اكتمال تحميل الخريطة.</div>');
  }
+ const photoWrap=document.createElement('div');photoWrap.innerHTML=photosPdfBlock(state.images);
+ const photoPanel=photoWrap.firstElementChild;if(photoPanel){if(mapPanel)mapPanel.after(photoPanel);else clone.appendChild(photoPanel)}
  const css=printCss();
  win.document.open();
  win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>'+css+'</style></head><body>'+
@@ -565,12 +708,16 @@ async function printReport(){
  '<footer class="pdf-footer"><span>Vision Dimensions Engineering Consultancy</span><span>'+esc(brand.contract)+'</span><span>WO '+esc(r.workOrder)+'</span></footer>'+
  '</body></html>');
  win.document.close();
- const go=()=>{setTimeout(()=>{win.focus();win.print()},900)};
+ const go=async()=>{
+  const imgs=[...win.document.images];
+  await Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(resolve=>{img.addEventListener('load',resolve,{once:true});img.addEventListener('error',resolve,{once:true})})));
+  setTimeout(()=>{win.focus();win.print()},350);
+ };
  if(win.document.readyState==='complete')go();else win.addEventListener('load',go,{once:true});
 }
 function printCss(){return `
 @page{size:A4 landscape;margin:17mm 9mm 13mm;@bottom-right{content:"صفحة " counter(page) " من " counter(pages);font:700 8pt Arial;color:#60758d}@bottom-left{content:"Vision Dimensions";font:700 8pt Arial;color:#60758d}}
-*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#243d59;font-family:Arial,Tahoma,sans-serif;direction:rtl;-webkit-print-color-adjust:exact;print-color-adjust:exact}.pdf-header{position:fixed;top:-13mm;left:0;right:0;height:11mm;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #bfcddd;padding-bottom:2mm;background:#fff;z-index:10}.pdf-brand{display:flex;align-items:center;gap:3mm}.pdf-brand img{height:8mm;width:auto}.pdf-brand b{display:block;font-size:9pt;color:#173656}.pdf-brand span{display:block;font-size:6.8pt;color:#6c7e91;margin-top:.5mm}.pdf-meta{text-align:left;direction:ltr}.pdf-meta strong{display:block;font-size:9pt;color:#173656}.pdf-meta span{display:block;font-size:6.8pt;color:#6c7e91;margin-top:.5mm}.pdf-footer{position:fixed;bottom:-9mm;left:0;right:0;height:7mm;border-top:1px solid #ccd7e2;display:flex;justify-content:space-between;align-items:center;font-size:6.5pt;color:#6c7e91;background:#fff}.pdf-main{width:100%}.pre-report{display:block}.pre-summary,.pre-panel{background:#fff;border:1px solid #ccd9e6;border-radius:4mm;padding:4mm;margin:0 0 3.2mm;box-shadow:none}.pre-title{display:flex;justify-content:space-between;gap:6mm;align-items:flex-start}.pre-title>div:first-child{flex:1}.pre-title>div>span,.pre-panel-head span{display:block;font-size:6pt;font-weight:800;letter-spacing:.8pt;color:#527da7;direction:ltr}.pre-title h2{font-size:15pt;margin:1mm 0;color:#173656}.pre-title p{font-size:7.3pt;line-height:1.6;margin:0;color:#60758d}.pre-report-meta{min-width:38mm;text-align:left}.pre-report-meta b{display:block;font-size:6pt;color:#7d8fa1}.pre-report-meta span{display:block;font-size:9pt;font-weight:800;color:#173656;margin-top:.5mm}.pre-report-meta small{display:block;font-size:6.3pt;color:#718398;margin-top:1mm}.pre-facts,.pre-extra-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2mm;margin-top:3mm}.pre-fact,.pre-extra-grid>div{border:1px solid #dce5ed;border-radius:2mm;padding:2mm 2.5mm;background:#fbfdff}.pre-fact small,.pre-extra-grid small{display:block;font-size:5.7pt;color:#8091a3;margin-bottom:.7mm}.pre-fact b,.pre-extra-grid b{font-size:7.3pt;color:#253e5a}.pre-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:2mm;margin:0 0 3.2mm}.pre-kpi{border:1px solid #d8e2ec;border-radius:3mm;padding:2.5mm;background:#fff;min-height:18mm}.pre-kpi small{display:block;font-size:5.5pt;color:#8191a2}.pre-kpi strong{display:block;font-size:14pt;color:#193b60;margin-top:1.5mm}.pre-kpi em{display:block;font-style:normal;font-size:6pt;color:#7a8da1;margin-top:.6mm}.pre-kpi.bad strong,.bad-text{color:#bd3f49!important}.ok-text{color:#187b50!important}.warn-text{color:#a96f0b!important}.expired-text{color:#6f5a34!important}.cancelled-text{color:#68798a!important}.pre-quality-alert{display:flex;flex-direction:column;gap:1mm;padding:2.5mm 3mm;margin:0 0 3mm;border:1px solid #f0d49b;border-radius:3mm;background:#fff9ed;color:#72511b;break-inside:avoid}.pre-quality-alert b{font-size:7pt}.pre-quality-alert span{font-size:6pt;line-height:1.45}.pre-panel-head{display:flex;justify-content:space-between;align-items:center;gap:4mm;margin-bottom:2.5mm}.pre-panel-head h3{font-size:10pt;color:#223f5e;margin:.7mm 0 0}.pre-panel-head>b{font-size:8pt;color:#5f7590}.pre-progress-row{display:grid;grid-template-columns:18mm 1fr 18mm;gap:2mm;align-items:center;margin:2mm 0}.pre-progress-row>b{font-size:7pt}.pre-progress-row>strong{text-align:left;font-size:7.5pt}.pre-track{height:3mm;background:#edf2f6;border-radius:99mm;overflow:hidden}.pre-track i{display:block;height:100%;background:#2c80bf}.pre-progress-row.planned .pre-track i{background:#8ba6be}.pre-summary-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1.8mm;margin-bottom:2.5mm}.pre-boq-summary{grid-template-columns:repeat(6,1fr)}.pre-risk-summary{grid-template-columns:repeat(6,1fr)}.pre-permit-summary{grid-template-columns:repeat(6,1fr)}.pre-summary-strip>div{border:1px solid #dce5ed;border-radius:2mm;padding:1.7mm 2mm;background:#f8fbfd;text-align:center}.pre-summary-strip small{display:block;font-size:5.4pt;color:#74889b}.pre-summary-strip b{display:block;font-size:10pt;color:#203e5e;margin-top:.6mm}.pre-mini-kpis{display:flex;gap:1.5mm;flex-wrap:wrap}.pre-mini-kpis span{font-size:5.7pt;border:1px solid #d8e3ed;border-radius:99mm;padding:1.2mm 2mm}.pre-chart-card{border:1px solid #dbe5ee;border-radius:3mm;padding:2.5mm;margin:2mm 0 2.8mm;background:#fff;break-inside:avoid;page-break-inside:avoid}.pre-chart-title span{display:block;font-size:5.5pt;font-weight:800;letter-spacing:.7pt;color:#557fa7;direction:ltr}.pre-chart-title h4{margin:.6mm 0 2mm;font-size:8pt;color:#29445f}.pre-history-chart svg{display:block;width:100%;height:44mm}.pre-history-chart .grid line{stroke:#e5edf3;stroke-width:1}.pre-history-chart .grid text,.pre-history-chart .axis-labels text{fill:#73879b;font-size:9px}.pre-history-chart .series{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.pre-history-chart .series.planned{stroke:#8ca8bf}.pre-history-chart .series.actual{stroke:#2e82bd}.pre-history-chart circle.planned{fill:#8ca8bf}.pre-history-chart circle.actual{fill:#2e82bd}.pre-chart-legend{display:flex;gap:4mm;margin-top:1.4mm;font-size:5.7pt;color:#667b90}.pre-chart-legend span{display:flex;align-items:center;gap:1.2mm}.pre-chart-legend i{display:inline-block;width:7mm;height:1.6mm;border-radius:99mm}.pre-chart-legend i.planned{background:#8ca8bf}.pre-chart-legend i.actual{background:#2e82bd}.pre-chart-note{display:block;font-size:5.5pt;color:#76899c;margin-top:1mm}.pre-bar-chart{display:flex;flex-direction:column;gap:1.6mm}.pre-bar-row{display:grid;grid-template-columns:52mm 1fr 34mm;gap:2mm;align-items:center}.pre-bar-label{font-size:5.8pt;font-weight:700;color:#425b74;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pre-bar-area{display:flex;flex-direction:column;gap:.8mm}.pre-bar-track{height:1.8mm;background:#edf2f6;border-radius:99mm;overflow:hidden}.pre-bar-track i{display:block;height:100%;border-radius:inherit}.pre-bar-track i.planned{background:#8ca8bf}.pre-bar-track i.actual{background:#2e82bd}.pre-bar-values{display:grid;grid-template-columns:1fr 1fr;gap:1mm;direction:ltr;font-size:5.4pt;text-align:center;color:#71859a}.pre-bar-values b{color:#2e82bd}.pre-table-wrap{border:1px solid #dfe7ee;border-radius:2mm;overflow:visible}.pre-table-wrap table{width:100%;border-collapse:collapse;table-layout:auto}.pre-table-wrap thead{display:table-header-group}.pre-table-wrap tr{break-inside:avoid;page-break-inside:avoid}.pre-table-wrap th{background:#eaf5ee;color:#314e64;font-size:6pt;padding:1.6mm 1.5mm;text-align:right;white-space:nowrap;border-bottom:1px solid #cfe0d6}.pre-table-wrap td{font-size:6.2pt;padding:1.6mm 1.5mm;border-top:1px solid #e4ebf1;color:#2f475f;vertical-align:top}.pre-table-wrap td.status{font-weight:800}.pre-table-wrap td.status.ok{color:#187b50}.pre-table-wrap td.status.warn{color:#a96f0b}.pre-table-wrap td.status.expired{color:#6f5a34}.pre-table-wrap td.status.cancelled{color:#68798a}.pre-table-wrap td.status.bad{color:#bd3f49}.pre-ltr,.pre-num{direction:ltr;unicode-bidi:isolate;text-align:center}.pre-ltr{display:inline-block}.pre-print-section{break-inside:avoid;page-break-inside:avoid}.pre-table-page{break-before:page;page-break-before:always}.pre-boq-panel,.pre-material-panel,.pre-permits-panel,.pre-risk-panel{break-inside:auto;page-break-inside:auto}.pre-boq-panel .pre-panel-head,.pre-boq-panel .pre-summary-strip,.pre-boq-panel .pre-chart-card,.pre-material-panel .pre-panel-head,.pre-material-panel .pre-summary-strip,.pre-permits-panel .pre-panel-head,.pre-permits-panel .pre-summary-strip,.pre-risk-panel .pre-panel-head,.pre-risk-panel .pre-summary-strip{break-inside:avoid;page-break-inside:avoid}.pre-narrative-panel{display:grid;grid-template-columns:repeat(2,1fr);gap:3mm}.pre-narrative-part{border:1px solid #dce5ed;border-radius:3mm;padding:3mm;background:#fbfdff}.pre-narrative-part>span{display:block;font-size:5.5pt;font-weight:800;letter-spacing:.7pt;color:#557fa7;direction:ltr}.pre-narrative-part h3{margin:.8mm 0 1.5mm;font-size:8pt;color:#29445f}.pre-narrative-part p{margin:0 0 1mm;font-size:6.2pt;line-height:1.5;color:#536b83}.pre-map-pdf-panel{break-before:page;page-break-before:always;break-inside:avoid;page-break-inside:avoid}.pre-map-pdf-image{display:block;width:100%;height:auto;max-height:155mm;object-fit:contain;border:1px solid #d7e3ed;border-radius:3mm;background:#eef5f7}.pre-map-pdf-missing{height:70mm;display:grid;place-items:center;border:1px dashed #cbd9e5;border-radius:3mm;color:#6d8196;font-size:8pt;background:#fbfdff}.pre-source-note{display:none}.pre-system-col{display:none!important}.vd-universal-info,.calc-help-btn,.vd-info-modal{display:none!important}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#243d59;font-family:Arial,Tahoma,sans-serif;direction:rtl;-webkit-print-color-adjust:exact;print-color-adjust:exact}.pdf-header{position:fixed;top:-13mm;left:0;right:0;height:11mm;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #bfcddd;padding-bottom:2mm;background:#fff;z-index:10}.pdf-brand{display:flex;align-items:center;gap:3mm}.pdf-brand img{height:8mm;width:auto}.pdf-brand b{display:block;font-size:9pt;color:#173656}.pdf-brand span{display:block;font-size:6.8pt;color:#6c7e91;margin-top:.5mm}.pdf-meta{text-align:left;direction:ltr}.pdf-meta strong{display:block;font-size:9pt;color:#173656}.pdf-meta span{display:block;font-size:6.8pt;color:#6c7e91;margin-top:.5mm}.pdf-footer{position:fixed;bottom:-9mm;left:0;right:0;height:7mm;border-top:1px solid #ccd7e2;display:flex;justify-content:space-between;align-items:center;font-size:6.5pt;color:#6c7e91;background:#fff}.pdf-main{width:100%}.pre-report{display:block}.pre-summary,.pre-panel{background:#fff;border:1px solid #ccd9e6;border-radius:4mm;padding:4mm;margin:0 0 3.2mm;box-shadow:none}.pre-title{display:flex;justify-content:space-between;gap:6mm;align-items:flex-start}.pre-title>div:first-child{flex:1}.pre-title>div>span,.pre-panel-head span{display:block;font-size:6pt;font-weight:800;letter-spacing:.8pt;color:#527da7;direction:ltr}.pre-title h2{font-size:15pt;margin:1mm 0;color:#173656}.pre-title p{font-size:7.3pt;line-height:1.6;margin:0;color:#60758d}.pre-report-meta{min-width:38mm;text-align:left}.pre-report-meta b{display:block;font-size:6pt;color:#7d8fa1}.pre-report-meta span{display:block;font-size:9pt;font-weight:800;color:#173656;margin-top:.5mm}.pre-report-meta small{display:block;font-size:6.3pt;color:#718398;margin-top:1mm}.pre-facts,.pre-extra-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2mm;margin-top:3mm}.pre-fact,.pre-extra-grid>div{border:1px solid #dce5ed;border-radius:2mm;padding:2mm 2.5mm;background:#fbfdff}.pre-fact small,.pre-extra-grid small{display:block;font-size:5.7pt;color:#8091a3;margin-bottom:.7mm}.pre-fact b,.pre-extra-grid b{font-size:7.3pt;color:#253e5a}.pre-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:2mm;margin:0 0 3.2mm}.pre-kpi{border:1px solid #d8e2ec;border-radius:3mm;padding:2.5mm;background:#fff;min-height:18mm}.pre-kpi small{display:block;font-size:5.5pt;color:#8191a2}.pre-kpi strong{display:block;font-size:14pt;color:#193b60;margin-top:1.5mm}.pre-kpi em{display:block;font-style:normal;font-size:6pt;color:#7a8da1;margin-top:.6mm}.pre-kpi.bad strong,.bad-text{color:#bd3f49!important}.ok-text{color:#187b50!important}.warn-text{color:#a96f0b!important}.expired-text{color:#6f5a34!important}.cancelled-text{color:#68798a!important}.pre-quality-alert{display:flex;flex-direction:column;gap:1mm;padding:2.5mm 3mm;margin:0 0 3mm;border:1px solid #f0d49b;border-radius:3mm;background:#fff9ed;color:#72511b;break-inside:avoid}.pre-quality-alert b{font-size:7pt}.pre-quality-alert span{font-size:6pt;line-height:1.45}.pre-panel-head{display:flex;justify-content:space-between;align-items:center;gap:4mm;margin-bottom:2.5mm}.pre-panel-head h3{font-size:10pt;color:#223f5e;margin:.7mm 0 0}.pre-panel-head>b{font-size:8pt;color:#5f7590}.pre-progress-row{display:grid;grid-template-columns:18mm 1fr 18mm;gap:2mm;align-items:center;margin:2mm 0}.pre-progress-row>b{font-size:7pt}.pre-progress-row>strong{text-align:left;font-size:7.5pt}.pre-track{height:3mm;background:#edf2f6;border-radius:99mm;overflow:hidden}.pre-track i{display:block;height:100%;background:#2c80bf}.pre-progress-row.planned .pre-track i{background:#8ba6be}.pre-summary-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1.8mm;margin-bottom:2.5mm}.pre-boq-summary{grid-template-columns:repeat(6,1fr)}.pre-risk-summary{grid-template-columns:repeat(6,1fr)}.pre-permit-summary{grid-template-columns:repeat(6,1fr)}.pre-summary-strip>div{border:1px solid #dce5ed;border-radius:2mm;padding:1.7mm 2mm;background:#f8fbfd;text-align:center}.pre-summary-strip small{display:block;font-size:5.4pt;color:#74889b}.pre-summary-strip b{display:block;font-size:10pt;color:#203e5e;margin-top:.6mm}.pre-mini-kpis{display:flex;gap:1.5mm;flex-wrap:wrap}.pre-mini-kpis span{font-size:5.7pt;border:1px solid #d8e3ed;border-radius:99mm;padding:1.2mm 2mm}.pre-chart-card{border:1px solid #dbe5ee;border-radius:3mm;padding:2.5mm;margin:2mm 0 2.8mm;background:#fff;break-inside:avoid;page-break-inside:avoid}.pre-chart-title span{display:block;font-size:5.5pt;font-weight:800;letter-spacing:.7pt;color:#557fa7;direction:ltr}.pre-chart-title h4{margin:.6mm 0 2mm;font-size:8pt;color:#29445f}.pre-history-chart svg{display:block;width:100%;height:44mm}.pre-history-chart .grid line{stroke:#e5edf3;stroke-width:1}.pre-history-chart .grid text,.pre-history-chart .axis-labels text{fill:#73879b;font-size:9px}.pre-history-chart .series{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.pre-history-chart .series.planned{stroke:#8ca8bf}.pre-history-chart .series.actual{stroke:#2e82bd}.pre-history-chart circle.planned{fill:#8ca8bf}.pre-history-chart circle.actual{fill:#2e82bd}.pre-chart-legend{display:flex;gap:4mm;margin-top:1.4mm;font-size:5.7pt;color:#667b90}.pre-chart-legend span{display:flex;align-items:center;gap:1.2mm}.pre-chart-legend i{display:inline-block;width:7mm;height:1.6mm;border-radius:99mm}.pre-chart-legend i.planned{background:#8ca8bf}.pre-chart-legend i.actual{background:#2e82bd}.pre-chart-note{display:block;font-size:5.5pt;color:#76899c;margin-top:1mm}.pre-bar-chart{display:flex;flex-direction:column;gap:1.6mm}.pre-bar-row{display:grid;grid-template-columns:52mm 1fr 34mm;gap:2mm;align-items:center}.pre-bar-label{font-size:5.8pt;font-weight:700;color:#425b74;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pre-bar-area{display:flex;flex-direction:column;gap:.8mm}.pre-bar-track{height:1.8mm;background:#edf2f6;border-radius:99mm;overflow:hidden}.pre-bar-track i{display:block;height:100%;border-radius:inherit}.pre-bar-track i.planned{background:#8ca8bf}.pre-bar-track i.actual{background:#2e82bd}.pre-bar-values{display:grid;grid-template-columns:1fr 1fr;gap:1mm;direction:ltr;font-size:5.4pt;text-align:center;color:#71859a}.pre-bar-values b{color:#2e82bd}.pre-table-wrap{border:1px solid #dfe7ee;border-radius:2mm;overflow:visible}.pre-table-wrap table{width:100%;border-collapse:collapse;table-layout:auto}.pre-table-wrap thead{display:table-header-group}.pre-table-wrap tr{break-inside:avoid;page-break-inside:avoid}.pre-table-wrap th{background:#eaf5ee;color:#314e64;font-size:6pt;padding:1.6mm 1.5mm;text-align:right;white-space:nowrap;border-bottom:1px solid #cfe0d6}.pre-table-wrap td{font-size:6.2pt;padding:1.6mm 1.5mm;border-top:1px solid #e4ebf1;color:#2f475f;vertical-align:top}.pre-table-wrap td.status{font-weight:800}.pre-table-wrap td.status.ok{color:#187b50}.pre-table-wrap td.status.warn{color:#a96f0b}.pre-table-wrap td.status.expired{color:#6f5a34}.pre-table-wrap td.status.cancelled{color:#68798a}.pre-table-wrap td.status.bad{color:#bd3f49}.pre-ltr,.pre-num{direction:ltr;unicode-bidi:isolate;text-align:center}.pre-ltr{display:inline-block}.pre-print-section{break-inside:avoid;page-break-inside:avoid}.pre-table-page{break-before:page;page-break-before:always}.pre-boq-panel,.pre-material-panel,.pre-permits-panel,.pre-risk-panel{break-inside:auto;page-break-inside:auto}.pre-boq-panel .pre-panel-head,.pre-boq-panel .pre-summary-strip,.pre-boq-panel .pre-chart-card,.pre-material-panel .pre-panel-head,.pre-material-panel .pre-summary-strip,.pre-permits-panel .pre-panel-head,.pre-permits-panel .pre-summary-strip,.pre-risk-panel .pre-panel-head,.pre-risk-panel .pre-summary-strip{break-inside:avoid;page-break-inside:avoid}.pre-narrative-panel{display:grid;grid-template-columns:repeat(2,1fr);gap:3mm}.pre-narrative-part{border:1px solid #dce5ed;border-radius:3mm;padding:3mm;background:#fbfdff}.pre-narrative-part>span{display:block;font-size:5.5pt;font-weight:800;letter-spacing:.7pt;color:#557fa7;direction:ltr}.pre-narrative-part h3{margin:.8mm 0 1.5mm;font-size:8pt;color:#29445f}.pre-narrative-part p{margin:0 0 1mm;font-size:6.2pt;line-height:1.5;color:#536b83}.pre-map-pdf-panel{break-before:page;page-break-before:always;break-inside:avoid;page-break-inside:avoid}.pre-map-pdf-image{display:block;width:100%;height:auto;max-height:155mm;object-fit:contain;border:1px solid #d7e3ed;border-radius:3mm;background:#eef5f7}.pre-map-pdf-missing{height:70mm;display:grid;place-items:center;border:1px dashed #cbd9e5;border-radius:3mm;color:#6d8196;font-size:8pt;background:#fbfdff}.pre-photos-pdf-panel{break-before:page;page-break-before:always;break-inside:avoid;page-break-inside:avoid}.pre-photos-pdf-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm}.pre-photo-pdf-card{border:1px solid #d7e3ed;border-radius:2.5mm;overflow:hidden;background:#fff;break-inside:avoid;page-break-inside:avoid}.pre-photo-pdf-card img,.pre-photo-pdf-empty{display:block;width:100%;height:55mm;object-fit:cover;background:#f2f6f9}.pre-photo-pdf-empty{display:grid;place-items:center;color:#8091a3;font-size:7pt}.pre-photo-pdf-caption{padding:2mm 2.3mm;min-height:15mm;border-top:1px solid #dce5ed}.pre-photo-pdf-caption b{display:block;font-size:6pt;color:#557fa7;margin-bottom:.8mm}.pre-photo-pdf-caption span{display:block;font-size:6.5pt;line-height:1.45;color:#2f475f;overflow-wrap:anywhere}.pre-source-note{display:none}.pre-system-col{display:none!important}.vd-universal-info,.calc-help-btn,.vd-info-modal{display:none!important}
 `}
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(install,260));else setTimeout(install,260);
