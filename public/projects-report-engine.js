@@ -34,8 +34,11 @@ function markup(){return `
  <input id="preInput" inputmode="numeric" autocomplete="off" placeholder="ابحث برقم أمر العمل...">
  <button id="preSearchBtn" type="button">إنشاء التقرير</button>
  <button id="prePrintBtn" class="pre-search-secondary" type="button">تصدير التقرير</button>
+ <button id="preMapKmzUploadBtn" class="pre-search-secondary pre-kmz-top-btn" type="button">⬆ رفع KMZ</button>
+ <input id="preMapKmzFileInput" class="map-file-input" type="file" accept=".kmz,.kml,application/vnd.google-earth.kmz,application/vnd.google-earth.kml+xml" multiple>
 </div>
 <div id="preBody" class="pre-state"><b>محرك التقرير جاهز</b><span>اختر أي رقم أمر عمل. سيُسحب الموجود من أوراق المشروع تلقائيًا، وتُستخدم صفحة Projects Report Engine Data فقط للبيانات غير الموجودة.</span></div>
+${mapBlock()}
 <div id="preExportModal" class="pre-export-modal" hidden>
  <div class="pre-export-dialog" role="dialog" aria-modal="true" aria-labelledby="preExportTitle">
   <button id="preExportClose" class="pre-export-close" type="button" aria-label="إغلاق">×</button>
@@ -52,7 +55,7 @@ function openPage(){
  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));$(PAGE_ID)?.classList.add('active');
  document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.id===NAV_ID));
  const fb=$('filterBar');if(fb)fb.style.display='none';if($('pageTitle'))$('pageTitle').textContent='Projects Report Engine';
- document.body.classList.add('vd-projects-report-engine-active');setTimeout(()=>$('preInput')?.focus(),50)
+ document.body.classList.add('vd-projects-report-engine-active');setTimeout(()=>{if(!state.map)initReportMap(state.data);$('preInput')?.focus()},80)
 }
 function leave(){document.body.classList.remove('vd-projects-report-engine-active');$(PAGE_ID)?.classList.remove('active');const fb=$('filterBar');if(fb&&document.querySelector('.nav-item.active')?.dataset.page!=='reportsCenter')fb.style.display=''}
 function openDataSheet(){const u=state.data?.spreadsheetUrl;if(u)window.open(u+(state.extraSheetId?'#gid='+state.extraSheetId:''),'_blank','noopener');else alert('أنشئ التقرير أولاً لتحديد ملف المصدر.')}
@@ -316,7 +319,6 @@ function render(data){
  ${boqBlock(boq,actual,planned,variance)}
  ${materialsBlock(mats,matSum)}
  ${permitsBlock(permits,permitSum,issuedLen,doneLen,permitExecution)}
- ${mapBlock()}
  ${riskBlock(risks,rdate)}
  ${narrativeBlock(periodRows,managementRows)}
  ${extraBlock(extras)}
@@ -403,8 +405,8 @@ function mapBlock(){
    '<button type="button" class="pre-map-tool" id="preMapFitBtn">⌖ ملاءمة</button>'+
    '<button type="button" class="pre-map-tool" id="preMapResetBtn">↺ إعادة الضبط</button>'+
    '<button type="button" class="pre-map-tool" id="preMapFullscreenBtn">⛶ توسعة</button>'+
-   '<button type="button" class="pre-map-tool pre-map-kmz-upload" id="preMapKmzUploadBtn">⬆ رفع KMZ</button>'+
-   '<input id="preMapKmzFileInput" class="map-file-input" type="file" accept=".kmz,.kml,application/vnd.google-earth.kmz,application/vnd.google-earth.kml+xml" multiple>'+
+
+
   '</div>'+
   '<div class="pre-map-search-wrap"><input id="preMapSearchInput" type="search" autocomplete="off" placeholder="بحث داخل مواقع أمر العمل..."><div id="preMapSearchResults" class="pre-map-search-results"></div></div>'+
  '</div>'+
@@ -546,7 +548,8 @@ async function printReport(){
  const clone=document.querySelector('#preBody.pre-report').cloneNode(true);
  clone.querySelectorAll('.pre-system-col,.pre-source-note').forEach(x=>x.remove());
  clone.querySelectorAll('.pre-table-wrap').forEach(x=>{x.style.overflow='visible'});
- const mapPanel=clone.querySelector('#preMapPanel');
+ let mapPanel=clone.querySelector('#preMapPanel');
+ if(!mapPanel){mapPanel=document.createElement('section');const before=clone.querySelector('.pre-risk-panel,.pre-narrative-panel');if(before)before.before(mapPanel);else clone.appendChild(mapPanel)}
  if(mapPanel){
   const visibleKmz=(window.VDKMZ?.uploads||[]).filter(x=>x.visible).length,totalKmz=(window.VDKMZ?.uploads||[]).length;
   const summary=(state.mapLocations.length?state.mapLocations.length+' موقع من بيانات أمر العمل':'لا توجد إحداثيات مباشرة')+(totalKmz?' • '+visibleKmz+' من '+totalKmz+' طبقة KMZ/KML':'');
