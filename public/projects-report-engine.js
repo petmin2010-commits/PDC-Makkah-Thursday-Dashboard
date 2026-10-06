@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 const PAGE_ID='projectsReportEnginePage',NAV_ID='projectsReportEngineNav',EXTRA_SHEET='Projects Report Engine Data';
-const state={loading:false,data:null,wo:'',extraSheetId:'',report:null};
+const state={loading:false,data:null,wo:'',extraSheetId:'',report:null,map:null,mapManager:null,mapLocations:[],mapSnapshot:''};
 const $=id=>document.getElementById(id);
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clean=v=>String(v==null?'':v).replace(/\s+/g,' ').trim();
@@ -315,10 +315,12 @@ function render(data){
  ${boqBlock(boq,actual,planned,variance)}
  ${materialsBlock(mats,matSum)}
  ${permitsBlock(permits,permitSum,issuedLen,doneLen,permitExecution)}
+ ${mapBlock()}
  ${riskBlock(risks,rdate)}
  ${narrativeBlock(periodRows,managementRows)}
  ${extraBlock(extras)}
  <div class="pre-source-note">تم العثور على أمر العمل في <b>${data.matchedSheets}</b> ورقة / مصدر و <b>${data.totalRecords}</b> سجل. البيانات الموسومة LIVE تأتي من أوراق المشروع الحالية، وEXTRA من صفحة الإدخال الإضافية.</div>`;
+ setTimeout(()=>initReportMap(data),80);
 }
 function fact(k,v,src,isLtr=false){return '<div class="pre-fact"><small>'+esc(k)+' • '+src+'</small><b'+(isLtr?' class="pre-ltr"':'')+'>'+esc(v||'—')+'</b></div>'}
 function progressBlock(actual,planned){
@@ -389,6 +391,140 @@ function extraBlock(rows){
  if(!show.length)return '';
  return `<section class="pre-panel pre-print-section"><div class="pre-panel-head"><div><span>REPORT-SPECIFIC DATA</span><h3>بيانات إضافية خاصة بالتقرير</h3></div></div><div class="pre-extra-grid">${show.map(r=>'<div><small>'+esc(r['Field / Item / Permit No.'])+'</small><b>'+esc(extraValue(r)||'—')+'</b></div>').join('')}</div></section>`
 }
+function mapBlock(){
+ return '<section class="pre-panel pre-map-panel pre-print-section" id="preMapPanel">'+
+ '<div class="pre-panel-head"><div><span>GEOGRAPHIC CONTROL / KMZ</span><h3>خريطة أمر العمل والطبقات الجغرافية</h3></div><div class="pre-mini-kpis"><span id="preMapSummary">جاهزة لرفع KMZ / KML</span></div></div>'+
+ '<div class="pre-map-toolbar">'+
+  '<div class="pre-map-tools">'+
+   '<button type="button" class="pre-map-tool active" id="preMapStreetBtn">خريطة الشوارع</button>'+
+   '<button type="button" class="pre-map-tool" id="preMapSatelliteBtn">صور جوية</button>'+
+   '<button type="button" class="pre-map-tool active" id="preMapLocationLayerBtn">موقع أمر العمل</button>'+
+   '<button type="button" class="pre-map-tool" id="preMapFitBtn">⌖ ملاءمة</button>'+
+   '<button type="button" class="pre-map-tool" id="preMapResetBtn">↺ إعادة الضبط</button>'+
+   '<button type="button" class="pre-map-tool" id="preMapFullscreenBtn">⛶ توسعة</button>'+
+   '<button type="button" class="pre-map-tool pre-map-kmz-upload" id="preMapKmzUploadBtn">⬆ رفع KMZ</button>'+
+   '<input id="preMapKmzFileInput" class="map-file-input" type="file" accept=".kmz,.kml,application/vnd.google-earth.kmz,application/vnd.google-earth.kml+xml" multiple>'+
+  '</div>'+
+  '<div class="pre-map-search-wrap"><input id="preMapSearchInput" type="search" autocomplete="off" placeholder="بحث داخل مواقع أمر العمل..."><div id="preMapSearchResults" class="pre-map-search-results"></div></div>'+
+ '</div>'+
+ '<div id="preMapKmzLayers" class="map-kmz-layers" aria-live="polite"></div>'+
+ '<div class="map-stage pre-map-stage" id="preProjectMapStage"><div id="preProjectMap" class="pre-map-canvas"></div>'+
+ '<div class="pre-map-legend"><span><i class="pre-map-dot"></i> موقع من بيانات أمر العمل</span><span class="map-kmz-legend"><i></i> KMZ / KML</span><em id="preMapVisibleSummary">—</em></div></div>'+
+ '<div id="preMapMessage" class="pre-map-message">يمكن رفع أكثر من ملف KMZ/KML أو سحب الملف وإفلاته مباشرة على الخريطة.</div>'+
+ '</section>';
+}
+function geoDigits(v){
+ return String(v==null?'':v).replace(/[٠-٩]/g,d=>'0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]).replace(/٫/g,'.').replace(/،/g,',');
+}
+function geoPair(a,b){
+ a=Number(a);b=Number(b);
+ const latOk=x=>Number.isFinite(x)&&x>=15&&x<=33,lonOk=x=>Number.isFinite(x)&&x>=34&&x<=56;
+ if(latOk(a)&&lonOk(b))return [a,b];
+ if(lonOk(a)&&latOk(b))return [b,a];
+ return null;
+}
+function geoPairFromText(v){
+ let s=geoDigits(v);try{s=decodeURIComponent(s)}catch(e){}
+ const patterns=[
+  /@(-?\d{1,3}(?:\.\d+)?),\s*(-?\d{1,3}(?:\.\d+)?)/,
+  /[?&](?:q|query|ll|center|destination)=(-?\d{1,3}(?:\.\d+)?)[,\s]+(-?\d{1,3}(?:\.\d+)?)/i,
+  /(-?\d{1,3}(?:\.\d+)?)\s*[,;]\s*(-?\d{1,3}(?:\.\d+)?)/
+ ];
+ for(const re of patterns){const m=s.match(re);if(m){const p=geoPair(m[1],m[2]);if(p)return p}}
+ return null;
+}
+function extractReportLocations(data){
+ const out=[],seen=new Set(),push=(lat,lon,label,source,fields)=>{
+  const p=geoPair(lat,lon);if(!p)return;
+  const key=p[0].toFixed(6)+','+p[1].toFixed(6);if(seen.has(key))return;seen.add(key);
+  out.push({lat:p[0],lon:p[1],label:clean(label)||('موقع '+(out.length+1)),source:clean(source),fields:(fields||[]).filter(x=>clean(x.value)).slice(0,10)});
+ };
+ (data?.sources||[]).forEach(src=>(src.records||[]).forEach(rec=>{
+  const fields=(rec.fields||[]).map(f=>({label:clean(f.label),value:clean(f.value)})).filter(f=>f.label||f.value);
+  let lat=null,lon=null;
+  fields.forEach(f=>{
+   const n=norm(f.label),v=geoDigits(f.value).trim();
+   if(/^-?\d{1,3}(?:\.\d+)?$/.test(v)){
+    if(n==='lat'||n.includes('latitude')||n.includes('خط العرض')||n.includes('احداثي شمال')||n.includes('الاحداثي شمال'))lat=Number(v);
+    if(n==='lon'||n==='lng'||n==='long'||n.includes('longitude')||n.includes('خط الطول')||n.includes('احداثي شرق')||n.includes('الاحداثي شرق'))lon=Number(v);
+   }
+  });
+  const label=fields.find(f=>/وصف|مشروع|موقع|محطه|محطة|station|project|location/i.test(norm(f.label)))?.value||('أمر العمل '+(data.workOrder||''));
+  if(lat!=null&&lon!=null)push(lat,lon,label,src.sheet,fields);
+  fields.forEach(f=>{
+   const n=norm(f.label);
+   if(!/موقع|احداث|coordinate|location|link|رابط|خرائط|maps/i.test(n)&&!/https?:\/\//i.test(f.value))return;
+   const p=geoPairFromText(f.value);if(p)push(p[0],p[1],label,src.sheet,fields);
+  });
+ }));
+ return out;
+}
+function reportMapPopup(loc){
+ const details=(loc.fields||[]).filter(f=>clean(f.label)&&clean(f.value)).slice(0,8).map(f=>'<div><span>'+esc(f.label)+'</span><b>'+esc(f.value)+'</b></div>').join('');
+ return '<div class="map-popup-card"><div class="map-card-head"><span class="map-kind project">أمر العمل</span><b>'+esc(loc.label)+'</b></div><div class="map-card-grid">'+
+ '<div><span>المصدر</span><b>'+esc(loc.source||'بيانات المشروع')+'</b></div><div><span>الإحداثيات</span><b class="pre-ltr">'+loc.lat.toFixed(6)+', '+loc.lon.toFixed(6)+'</b></div>'+details+'</div></div>';
+}
+function initReportMap(data){
+ const host=$('preProjectMap');if(!host)return;
+ if(state.map){try{state.map.remove()}catch(e){}state.map=null;state.mapManager=null}
+ if(!window.L){host.innerHTML='<div class="pre-map-empty"><b>تعذر تحميل الخريطة</b><span>تحقق من الاتصال بالإنترنت ثم أعد تحميل الصفحة.</span></div>';return}
+ const L=window.L,brand=getBrand(),center=brand.code==='MAK'?[21.4225,39.8262]:brand.code==='JED'?[21.5433,39.1728]:[21.5,39.5];
+ const map=L.map(host,{zoomControl:true,attributionControl:true,preferCanvas:true}).setView(center,12);state.map=map;state.mapSnapshot='';
+ const street=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,crossOrigin:true,attribution:'&copy; OpenStreetMap'});
+ const satellite=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,crossOrigin:true,attribution:'Tiles &copy; Esri'});
+ street.addTo(map);
+ const locationLayer=L.layerGroup().addTo(map);
+ L.control.layers({'خريطة الشوارع':street,'صور جوية':satellite},{'موقع أمر العمل':locationLayer},{position:'bottomright',collapsed:true}).addTo(map);
+ const locations=extractReportLocations(data);state.mapLocations=locations;
+ const searchItems=[],locationBounds=L.latLngBounds([]);
+ locations.forEach((loc,i)=>{
+  const marker=L.circleMarker([loc.lat,loc.lon],{radius:7,color:'#fff',weight:2,fillColor:'#168a72',fillOpacity:.96});
+  marker.bindTooltip(esc(loc.label),{direction:'top',sticky:true,opacity:.97,className:'vd-map-tooltip'});
+  marker.bindPopup(reportMapPopup(loc),{maxWidth:440,className:'vd-map-popup'});
+  marker.addTo(locationLayer);locationBounds.extend([loc.lat,loc.lon]);
+  searchItems.push({label:loc.label,search:norm([loc.label,loc.source,...loc.fields.map(f=>f.label+' '+f.value)].join(' ')),marker,lat:loc.lat,lon:loc.lon});
+ });
+ const message=$('preMapMessage'),say=msg=>{if(message)message.textContent=msg};
+ const updateSummary=(kmzVisible,kmzTotal)=>{
+  const summary=$('preMapSummary'),visible=$('preMapVisibleSummary'),parts=[];
+  if(locations.length)parts.push(locations.length+' موقع');else parts.push('لا توجد إحداثيات مباشرة');
+  if(kmzTotal)parts.push(kmzVisible+' / '+kmzTotal+' KMZ');
+  if(summary)summary.textContent=parts.join(' • ');
+  if(visible)visible.textContent=parts.join(' • ');
+ };
+ const fitAll=()=>{
+  const b=L.latLngBounds([]);if(locationBounds.isValid())b.extend(locationBounds);state.mapManager?.extendBounds?.(b);
+  if(b.isValid())map.fitBounds(b,{padding:[42,42],maxZoom:16});else map.setView(center,12);
+ };
+ state.mapManager=window.VDKMZ?.init({
+  map,input:$('preMapKmzFileInput'),button:$('preMapKmzUploadBtn'),host:$('preMapKmzLayers'),stage:$('preProjectMapStage'),toast:say,
+  onSummary:(visible,total)=>{updateSummary(visible,total);setTimeout(fitAll,60)}
+ })||null;
+ updateSummary(state.mapManager?.visibleCount?.()||0,state.mapManager?.totalCount?.()||0);
+ const setBase=which=>{
+  if(which==='satellite'){if(map.hasLayer(street))map.removeLayer(street);if(!map.hasLayer(satellite))satellite.addTo(map)}
+  else{if(map.hasLayer(satellite))map.removeLayer(satellite);if(!map.hasLayer(street))street.addTo(map)}
+  $('preMapStreetBtn')?.classList.toggle('active',which==='street');$('preMapSatelliteBtn')?.classList.toggle('active',which==='satellite');
+ };
+ $('preMapStreetBtn').onclick=()=>setBase('street');$('preMapSatelliteBtn').onclick=()=>setBase('satellite');
+ $('preMapLocationLayerBtn').onclick=e=>{const b=e.currentTarget;if(map.hasLayer(locationLayer)){map.removeLayer(locationLayer);b.classList.remove('active')}else{locationLayer.addTo(map);b.classList.add('active')}};
+ $('preMapFitBtn').onclick=fitAll;
+ $('preMapResetBtn').onclick=()=>{setBase('street');if(!map.hasLayer(locationLayer))locationLayer.addTo(map);$('preMapLocationLayerBtn')?.classList.add('active');const q=$('preMapSearchInput');if(q)q.value='';const rr=$('preMapSearchResults');if(rr){rr.innerHTML='';rr.classList.remove('show')}fitAll();say('تمت إعادة ضبط الخريطة')};
+ const panel=$('preMapPanel'),full=$('preMapFullscreenBtn');
+ if(panel&&full)full.onclick=()=>{panel.classList.toggle('pre-map-fullscreen');document.body.classList.toggle('pre-map-fullscreen-open',panel.classList.contains('pre-map-fullscreen'));full.textContent=panel.classList.contains('pre-map-fullscreen')?'✕ إغلاق التوسعة':'⛶ توسعة';setTimeout(()=>{map.invalidateSize();fitAll()},180)};
+ const q=$('preMapSearchInput'),results=$('preMapSearchResults'),close=()=>{if(results){results.innerHTML='';results.classList.remove('show')}};
+ if(q&&results){q.oninput=()=>{const x=norm(q.value);if(x.length<2){close();return}const hits=searchItems.map((v,i)=>({...v,i})).filter(v=>v.search.includes(x)).slice(0,12);results.innerHTML=hits.length?hits.map(v=>'<button type="button" data-pre-map-result="'+v.i+'"><span>موقع</span><b>'+esc(v.label)+'</b></button>').join(''):'<div class="pre-map-search-empty">لا توجد نتائج مطابقة</div>';results.classList.add('show')};results.onclick=e=>{const b=e.target.closest('[data-pre-map-result]');if(!b)return;const x=searchItems[Number(b.dataset.preMapResult)];if(!x)return;if(!map.hasLayer(locationLayer))locationLayer.addTo(map);map.setView([x.lat,x.lon],17,{animate:true});x.marker.openPopup();q.value=x.label;close()}};
+ setTimeout(()=>{map.invalidateSize();fitAll()},180);
+}
+async function captureReportMap(){
+ const stage=$('preProjectMapStage');if(!stage||!state.map||!window.html2canvas)return '';
+ try{
+  state.map.invalidateSize();await new Promise(r=>setTimeout(r,300));
+  const canvas=await window.html2canvas(stage,{useCORS:true,allowTaint:false,backgroundColor:'#eef5f7',scale:1.6,logging:false,ignoreElements:el=>el.classList?.contains('leaflet-control-container')});
+  state.mapSnapshot=canvas.toDataURL('image/png',.94);return state.mapSnapshot;
+ }catch(e){console.warn('Projects Report map capture failed',e);return ''}
+}
+
 function getBrand(){
  const box=document.querySelector('.brand-copy');
  const city=clean(box?.querySelector('strong')?.textContent)||'إدارة الكهرباء';
@@ -396,15 +532,27 @@ function getBrand(){
  return{city,contract,code:norm(city).includes('مكه')?'MAK':norm(city).includes('جده')?'JED':'PDC'}
 }
 function compactDate(v){const d=dateObj(v);if(!d)return String(v||'').replace(/\D/g,'');return String(d.getFullYear())+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')}
-function printReport(){
+async function printReport(){
  if(!state.report||!document.querySelector('#preBody.pre-report')){alert('أنشئ التقرير أولاً ثم اضغط تصدير التقرير PDF.');return}
- const brand=getBrand(),r=state.report;
+ const brand=getBrand(),r=state.report,title='VD-PDC-'+brand.code+'-WO-'+r.workOrder+'-'+compactDate(r.rdate)+'-R01';
+ const win=window.open('','_blank','width=1400,height=900');
+ if(!win){alert('يرجى السماح بالنوافذ المنبثقة لتصدير PDF.');return}
+ win.document.open();
+ win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+esc(title)+'</title></head><body style="font-family:Arial,Tahoma,sans-serif;padding:40px;text-align:center;color:#36516f">جاري تجهيز التقرير والخريطة...</body></html>');
+ win.document.close();
+ const mapImage=await captureReportMap();
+ if(win.closed)return;
  const clone=document.querySelector('#preBody.pre-report').cloneNode(true);
  clone.querySelectorAll('.pre-system-col,.pre-source-note').forEach(x=>x.remove());
  clone.querySelectorAll('.pre-table-wrap').forEach(x=>{x.style.overflow='visible'});
- const title='VD-PDC-'+brand.code+'-WO-'+r.workOrder+'-'+compactDate(r.rdate)+'-R01';
- const win=window.open('','_blank','width=1400,height=900');
- if(!win){alert('يرجى السماح بالنوافذ المنبثقة لتصدير PDF.');return}
+ const mapPanel=clone.querySelector('#preMapPanel');
+ if(mapPanel){
+  const visibleKmz=(window.VDKMZ?.uploads||[]).filter(x=>x.visible).length,totalKmz=(window.VDKMZ?.uploads||[]).length;
+  const summary=(state.mapLocations.length?state.mapLocations.length+' موقع من بيانات أمر العمل':'لا توجد إحداثيات مباشرة')+(totalKmz?' • '+visibleKmz+' من '+totalKmz+' طبقة KMZ/KML':'');
+  mapPanel.className='pre-panel pre-map-pdf-panel pre-print-section';
+  mapPanel.innerHTML='<div class="pre-panel-head"><div><span>GEOGRAPHIC CONTROL / KMZ</span><h3>الخريطة والطبقات الجغرافية</h3></div><b>'+esc(summary)+'</b></div>'+
+   (mapImage?'<img class="pre-map-pdf-image" src="'+mapImage+'" alt="خريطة أمر العمل والطبقات الجغرافية">':'<div class="pre-map-pdf-missing">تعذر التقاط صورة الخريطة آليًا. أعد فتح التقرير بعد اكتمال تحميل الخريطة.</div>');
+ }
  const css=printCss();
  win.document.open();
  win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>'+css+'</style></head><body>'+
@@ -413,12 +561,12 @@ function printReport(){
  '<footer class="pdf-footer"><span>Vision Dimensions Engineering Consultancy</span><span>'+esc(brand.contract)+'</span><span>WO '+esc(r.workOrder)+'</span></footer>'+
  '</body></html>');
  win.document.close();
- const go=()=>{setTimeout(()=>{win.focus();win.print()},500)};
+ const go=()=>{setTimeout(()=>{win.focus();win.print()},900)};
  if(win.document.readyState==='complete')go();else win.addEventListener('load',go,{once:true});
 }
 function printCss(){return `
 @page{size:A4 landscape;margin:17mm 9mm 13mm;@bottom-right{content:"صفحة " counter(page) " من " counter(pages);font:700 8pt Arial;color:#60758d}@bottom-left{content:"Vision Dimensions";font:700 8pt Arial;color:#60758d}}
-*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#243d59;font-family:Arial,Tahoma,sans-serif;direction:rtl;-webkit-print-color-adjust:exact;print-color-adjust:exact}.pdf-header{position:fixed;top:-13mm;left:0;right:0;height:11mm;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #bfcddd;padding-bottom:2mm;background:#fff;z-index:10}.pdf-brand{display:flex;align-items:center;gap:3mm}.pdf-brand img{height:8mm;width:auto}.pdf-brand b{display:block;font-size:9pt;color:#173656}.pdf-brand span{display:block;font-size:6.8pt;color:#6c7e91;margin-top:.5mm}.pdf-meta{text-align:left;direction:ltr}.pdf-meta strong{display:block;font-size:9pt;color:#173656}.pdf-meta span{display:block;font-size:6.8pt;color:#6c7e91;margin-top:.5mm}.pdf-footer{position:fixed;bottom:-9mm;left:0;right:0;height:7mm;border-top:1px solid #ccd7e2;display:flex;justify-content:space-between;align-items:center;font-size:6.5pt;color:#6c7e91;background:#fff}.pdf-main{width:100%}.pre-report{display:block}.pre-summary,.pre-panel{background:#fff;border:1px solid #ccd9e6;border-radius:4mm;padding:4mm;margin:0 0 3.2mm;box-shadow:none}.pre-title{display:flex;justify-content:space-between;gap:6mm;align-items:flex-start}.pre-title>div:first-child{flex:1}.pre-title>div>span,.pre-panel-head span{display:block;font-size:6pt;font-weight:800;letter-spacing:.8pt;color:#527da7;direction:ltr}.pre-title h2{font-size:15pt;margin:1mm 0;color:#173656}.pre-title p{font-size:7.3pt;line-height:1.6;margin:0;color:#60758d}.pre-report-meta{min-width:38mm;text-align:left}.pre-report-meta b{display:block;font-size:6pt;color:#7d8fa1}.pre-report-meta span{display:block;font-size:9pt;font-weight:800;color:#173656;margin-top:.5mm}.pre-report-meta small{display:block;font-size:6.3pt;color:#718398;margin-top:1mm}.pre-facts,.pre-extra-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2mm;margin-top:3mm}.pre-fact,.pre-extra-grid>div{border:1px solid #dce5ed;border-radius:2mm;padding:2mm 2.5mm;background:#fbfdff}.pre-fact small,.pre-extra-grid small{display:block;font-size:5.7pt;color:#8091a3;margin-bottom:.7mm}.pre-fact b,.pre-extra-grid b{font-size:7.3pt;color:#253e5a}.pre-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:2mm;margin:0 0 3.2mm}.pre-kpi{border:1px solid #d8e2ec;border-radius:3mm;padding:2.5mm;background:#fff;min-height:18mm}.pre-kpi small{display:block;font-size:5.5pt;color:#8191a2}.pre-kpi strong{display:block;font-size:14pt;color:#193b60;margin-top:1.5mm}.pre-kpi em{display:block;font-style:normal;font-size:6pt;color:#7a8da1;margin-top:.6mm}.pre-kpi.bad strong,.bad-text{color:#bd3f49!important}.ok-text{color:#187b50!important}.warn-text{color:#a96f0b!important}.expired-text{color:#6f5a34!important}.cancelled-text{color:#68798a!important}.pre-quality-alert{display:flex;flex-direction:column;gap:1mm;padding:2.5mm 3mm;margin:0 0 3mm;border:1px solid #f0d49b;border-radius:3mm;background:#fff9ed;color:#72511b;break-inside:avoid}.pre-quality-alert b{font-size:7pt}.pre-quality-alert span{font-size:6pt;line-height:1.45}.pre-panel-head{display:flex;justify-content:space-between;align-items:center;gap:4mm;margin-bottom:2.5mm}.pre-panel-head h3{font-size:10pt;color:#223f5e;margin:.7mm 0 0}.pre-panel-head>b{font-size:8pt;color:#5f7590}.pre-progress-row{display:grid;grid-template-columns:18mm 1fr 18mm;gap:2mm;align-items:center;margin:2mm 0}.pre-progress-row>b{font-size:7pt}.pre-progress-row>strong{text-align:left;font-size:7.5pt}.pre-track{height:3mm;background:#edf2f6;border-radius:99mm;overflow:hidden}.pre-track i{display:block;height:100%;background:#2c80bf}.pre-progress-row.planned .pre-track i{background:#8ba6be}.pre-summary-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1.8mm;margin-bottom:2.5mm}.pre-boq-summary{grid-template-columns:repeat(6,1fr)}.pre-risk-summary{grid-template-columns:repeat(6,1fr)}.pre-permit-summary{grid-template-columns:repeat(6,1fr)}.pre-summary-strip>div{border:1px solid #dce5ed;border-radius:2mm;padding:1.7mm 2mm;background:#f8fbfd;text-align:center}.pre-summary-strip small{display:block;font-size:5.4pt;color:#74889b}.pre-summary-strip b{display:block;font-size:10pt;color:#203e5e;margin-top:.6mm}.pre-mini-kpis{display:flex;gap:1.5mm;flex-wrap:wrap}.pre-mini-kpis span{font-size:5.7pt;border:1px solid #d8e3ed;border-radius:99mm;padding:1.2mm 2mm}.pre-chart-card{border:1px solid #dbe5ee;border-radius:3mm;padding:2.5mm;margin:2mm 0 2.8mm;background:#fff;break-inside:avoid;page-break-inside:avoid}.pre-chart-title span{display:block;font-size:5.5pt;font-weight:800;letter-spacing:.7pt;color:#557fa7;direction:ltr}.pre-chart-title h4{margin:.6mm 0 2mm;font-size:8pt;color:#29445f}.pre-history-chart svg{display:block;width:100%;height:44mm}.pre-history-chart .grid line{stroke:#e5edf3;stroke-width:1}.pre-history-chart .grid text,.pre-history-chart .axis-labels text{fill:#73879b;font-size:9px}.pre-history-chart .series{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.pre-history-chart .series.planned{stroke:#8ca8bf}.pre-history-chart .series.actual{stroke:#2e82bd}.pre-history-chart circle.planned{fill:#8ca8bf}.pre-history-chart circle.actual{fill:#2e82bd}.pre-chart-legend{display:flex;gap:4mm;margin-top:1.4mm;font-size:5.7pt;color:#667b90}.pre-chart-legend span{display:flex;align-items:center;gap:1.2mm}.pre-chart-legend i{display:inline-block;width:7mm;height:1.6mm;border-radius:99mm}.pre-chart-legend i.planned{background:#8ca8bf}.pre-chart-legend i.actual{background:#2e82bd}.pre-chart-note{display:block;font-size:5.5pt;color:#76899c;margin-top:1mm}.pre-bar-chart{display:flex;flex-direction:column;gap:1.6mm}.pre-bar-row{display:grid;grid-template-columns:52mm 1fr 34mm;gap:2mm;align-items:center}.pre-bar-label{font-size:5.8pt;font-weight:700;color:#425b74;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pre-bar-area{display:flex;flex-direction:column;gap:.8mm}.pre-bar-track{height:1.8mm;background:#edf2f6;border-radius:99mm;overflow:hidden}.pre-bar-track i{display:block;height:100%;border-radius:inherit}.pre-bar-track i.planned{background:#8ca8bf}.pre-bar-track i.actual{background:#2e82bd}.pre-bar-values{display:grid;grid-template-columns:1fr 1fr;gap:1mm;direction:ltr;font-size:5.4pt;text-align:center;color:#71859a}.pre-bar-values b{color:#2e82bd}.pre-table-wrap{border:1px solid #dfe7ee;border-radius:2mm;overflow:visible}.pre-table-wrap table{width:100%;border-collapse:collapse;table-layout:auto}.pre-table-wrap thead{display:table-header-group}.pre-table-wrap tr{break-inside:avoid;page-break-inside:avoid}.pre-table-wrap th{background:#eaf5ee;color:#314e64;font-size:6pt;padding:1.6mm 1.5mm;text-align:right;white-space:nowrap;border-bottom:1px solid #cfe0d6}.pre-table-wrap td{font-size:6.2pt;padding:1.6mm 1.5mm;border-top:1px solid #e4ebf1;color:#2f475f;vertical-align:top}.pre-table-wrap td.status{font-weight:800}.pre-table-wrap td.status.ok{color:#187b50}.pre-table-wrap td.status.warn{color:#a96f0b}.pre-table-wrap td.status.expired{color:#6f5a34}.pre-table-wrap td.status.cancelled{color:#68798a}.pre-table-wrap td.status.bad{color:#bd3f49}.pre-ltr,.pre-num{direction:ltr;unicode-bidi:isolate;text-align:center}.pre-ltr{display:inline-block}.pre-print-section{break-inside:avoid;page-break-inside:avoid}.pre-table-page{break-before:page;page-break-before:always}.pre-boq-panel,.pre-material-panel,.pre-permits-panel,.pre-risk-panel{break-inside:auto;page-break-inside:auto}.pre-boq-panel .pre-panel-head,.pre-boq-panel .pre-summary-strip,.pre-boq-panel .pre-chart-card,.pre-material-panel .pre-panel-head,.pre-material-panel .pre-summary-strip,.pre-permits-panel .pre-panel-head,.pre-permits-panel .pre-summary-strip,.pre-risk-panel .pre-panel-head,.pre-risk-panel .pre-summary-strip{break-inside:avoid;page-break-inside:avoid}.pre-narrative-panel{display:grid;grid-template-columns:repeat(2,1fr);gap:3mm}.pre-narrative-part{border:1px solid #dce5ed;border-radius:3mm;padding:3mm;background:#fbfdff}.pre-narrative-part>span{display:block;font-size:5.5pt;font-weight:800;letter-spacing:.7pt;color:#557fa7;direction:ltr}.pre-narrative-part h3{margin:.8mm 0 1.5mm;font-size:8pt;color:#29445f}.pre-narrative-part p{margin:0 0 1mm;font-size:6.2pt;line-height:1.5;color:#536b83}.pre-source-note{display:none}.pre-system-col{display:none!important}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#243d59;font-family:Arial,Tahoma,sans-serif;direction:rtl;-webkit-print-color-adjust:exact;print-color-adjust:exact}.pdf-header{position:fixed;top:-13mm;left:0;right:0;height:11mm;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #bfcddd;padding-bottom:2mm;background:#fff;z-index:10}.pdf-brand{display:flex;align-items:center;gap:3mm}.pdf-brand img{height:8mm;width:auto}.pdf-brand b{display:block;font-size:9pt;color:#173656}.pdf-brand span{display:block;font-size:6.8pt;color:#6c7e91;margin-top:.5mm}.pdf-meta{text-align:left;direction:ltr}.pdf-meta strong{display:block;font-size:9pt;color:#173656}.pdf-meta span{display:block;font-size:6.8pt;color:#6c7e91;margin-top:.5mm}.pdf-footer{position:fixed;bottom:-9mm;left:0;right:0;height:7mm;border-top:1px solid #ccd7e2;display:flex;justify-content:space-between;align-items:center;font-size:6.5pt;color:#6c7e91;background:#fff}.pdf-main{width:100%}.pre-report{display:block}.pre-summary,.pre-panel{background:#fff;border:1px solid #ccd9e6;border-radius:4mm;padding:4mm;margin:0 0 3.2mm;box-shadow:none}.pre-title{display:flex;justify-content:space-between;gap:6mm;align-items:flex-start}.pre-title>div:first-child{flex:1}.pre-title>div>span,.pre-panel-head span{display:block;font-size:6pt;font-weight:800;letter-spacing:.8pt;color:#527da7;direction:ltr}.pre-title h2{font-size:15pt;margin:1mm 0;color:#173656}.pre-title p{font-size:7.3pt;line-height:1.6;margin:0;color:#60758d}.pre-report-meta{min-width:38mm;text-align:left}.pre-report-meta b{display:block;font-size:6pt;color:#7d8fa1}.pre-report-meta span{display:block;font-size:9pt;font-weight:800;color:#173656;margin-top:.5mm}.pre-report-meta small{display:block;font-size:6.3pt;color:#718398;margin-top:1mm}.pre-facts,.pre-extra-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2mm;margin-top:3mm}.pre-fact,.pre-extra-grid>div{border:1px solid #dce5ed;border-radius:2mm;padding:2mm 2.5mm;background:#fbfdff}.pre-fact small,.pre-extra-grid small{display:block;font-size:5.7pt;color:#8091a3;margin-bottom:.7mm}.pre-fact b,.pre-extra-grid b{font-size:7.3pt;color:#253e5a}.pre-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:2mm;margin:0 0 3.2mm}.pre-kpi{border:1px solid #d8e2ec;border-radius:3mm;padding:2.5mm;background:#fff;min-height:18mm}.pre-kpi small{display:block;font-size:5.5pt;color:#8191a2}.pre-kpi strong{display:block;font-size:14pt;color:#193b60;margin-top:1.5mm}.pre-kpi em{display:block;font-style:normal;font-size:6pt;color:#7a8da1;margin-top:.6mm}.pre-kpi.bad strong,.bad-text{color:#bd3f49!important}.ok-text{color:#187b50!important}.warn-text{color:#a96f0b!important}.expired-text{color:#6f5a34!important}.cancelled-text{color:#68798a!important}.pre-quality-alert{display:flex;flex-direction:column;gap:1mm;padding:2.5mm 3mm;margin:0 0 3mm;border:1px solid #f0d49b;border-radius:3mm;background:#fff9ed;color:#72511b;break-inside:avoid}.pre-quality-alert b{font-size:7pt}.pre-quality-alert span{font-size:6pt;line-height:1.45}.pre-panel-head{display:flex;justify-content:space-between;align-items:center;gap:4mm;margin-bottom:2.5mm}.pre-panel-head h3{font-size:10pt;color:#223f5e;margin:.7mm 0 0}.pre-panel-head>b{font-size:8pt;color:#5f7590}.pre-progress-row{display:grid;grid-template-columns:18mm 1fr 18mm;gap:2mm;align-items:center;margin:2mm 0}.pre-progress-row>b{font-size:7pt}.pre-progress-row>strong{text-align:left;font-size:7.5pt}.pre-track{height:3mm;background:#edf2f6;border-radius:99mm;overflow:hidden}.pre-track i{display:block;height:100%;background:#2c80bf}.pre-progress-row.planned .pre-track i{background:#8ba6be}.pre-summary-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1.8mm;margin-bottom:2.5mm}.pre-boq-summary{grid-template-columns:repeat(6,1fr)}.pre-risk-summary{grid-template-columns:repeat(6,1fr)}.pre-permit-summary{grid-template-columns:repeat(6,1fr)}.pre-summary-strip>div{border:1px solid #dce5ed;border-radius:2mm;padding:1.7mm 2mm;background:#f8fbfd;text-align:center}.pre-summary-strip small{display:block;font-size:5.4pt;color:#74889b}.pre-summary-strip b{display:block;font-size:10pt;color:#203e5e;margin-top:.6mm}.pre-mini-kpis{display:flex;gap:1.5mm;flex-wrap:wrap}.pre-mini-kpis span{font-size:5.7pt;border:1px solid #d8e3ed;border-radius:99mm;padding:1.2mm 2mm}.pre-chart-card{border:1px solid #dbe5ee;border-radius:3mm;padding:2.5mm;margin:2mm 0 2.8mm;background:#fff;break-inside:avoid;page-break-inside:avoid}.pre-chart-title span{display:block;font-size:5.5pt;font-weight:800;letter-spacing:.7pt;color:#557fa7;direction:ltr}.pre-chart-title h4{margin:.6mm 0 2mm;font-size:8pt;color:#29445f}.pre-history-chart svg{display:block;width:100%;height:44mm}.pre-history-chart .grid line{stroke:#e5edf3;stroke-width:1}.pre-history-chart .grid text,.pre-history-chart .axis-labels text{fill:#73879b;font-size:9px}.pre-history-chart .series{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.pre-history-chart .series.planned{stroke:#8ca8bf}.pre-history-chart .series.actual{stroke:#2e82bd}.pre-history-chart circle.planned{fill:#8ca8bf}.pre-history-chart circle.actual{fill:#2e82bd}.pre-chart-legend{display:flex;gap:4mm;margin-top:1.4mm;font-size:5.7pt;color:#667b90}.pre-chart-legend span{display:flex;align-items:center;gap:1.2mm}.pre-chart-legend i{display:inline-block;width:7mm;height:1.6mm;border-radius:99mm}.pre-chart-legend i.planned{background:#8ca8bf}.pre-chart-legend i.actual{background:#2e82bd}.pre-chart-note{display:block;font-size:5.5pt;color:#76899c;margin-top:1mm}.pre-bar-chart{display:flex;flex-direction:column;gap:1.6mm}.pre-bar-row{display:grid;grid-template-columns:52mm 1fr 34mm;gap:2mm;align-items:center}.pre-bar-label{font-size:5.8pt;font-weight:700;color:#425b74;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pre-bar-area{display:flex;flex-direction:column;gap:.8mm}.pre-bar-track{height:1.8mm;background:#edf2f6;border-radius:99mm;overflow:hidden}.pre-bar-track i{display:block;height:100%;border-radius:inherit}.pre-bar-track i.planned{background:#8ca8bf}.pre-bar-track i.actual{background:#2e82bd}.pre-bar-values{display:grid;grid-template-columns:1fr 1fr;gap:1mm;direction:ltr;font-size:5.4pt;text-align:center;color:#71859a}.pre-bar-values b{color:#2e82bd}.pre-table-wrap{border:1px solid #dfe7ee;border-radius:2mm;overflow:visible}.pre-table-wrap table{width:100%;border-collapse:collapse;table-layout:auto}.pre-table-wrap thead{display:table-header-group}.pre-table-wrap tr{break-inside:avoid;page-break-inside:avoid}.pre-table-wrap th{background:#eaf5ee;color:#314e64;font-size:6pt;padding:1.6mm 1.5mm;text-align:right;white-space:nowrap;border-bottom:1px solid #cfe0d6}.pre-table-wrap td{font-size:6.2pt;padding:1.6mm 1.5mm;border-top:1px solid #e4ebf1;color:#2f475f;vertical-align:top}.pre-table-wrap td.status{font-weight:800}.pre-table-wrap td.status.ok{color:#187b50}.pre-table-wrap td.status.warn{color:#a96f0b}.pre-table-wrap td.status.expired{color:#6f5a34}.pre-table-wrap td.status.cancelled{color:#68798a}.pre-table-wrap td.status.bad{color:#bd3f49}.pre-ltr,.pre-num{direction:ltr;unicode-bidi:isolate;text-align:center}.pre-ltr{display:inline-block}.pre-print-section{break-inside:avoid;page-break-inside:avoid}.pre-table-page{break-before:page;page-break-before:always}.pre-boq-panel,.pre-material-panel,.pre-permits-panel,.pre-risk-panel{break-inside:auto;page-break-inside:auto}.pre-boq-panel .pre-panel-head,.pre-boq-panel .pre-summary-strip,.pre-boq-panel .pre-chart-card,.pre-material-panel .pre-panel-head,.pre-material-panel .pre-summary-strip,.pre-permits-panel .pre-panel-head,.pre-permits-panel .pre-summary-strip,.pre-risk-panel .pre-panel-head,.pre-risk-panel .pre-summary-strip{break-inside:avoid;page-break-inside:avoid}.pre-narrative-panel{display:grid;grid-template-columns:repeat(2,1fr);gap:3mm}.pre-narrative-part{border:1px solid #dce5ed;border-radius:3mm;padding:3mm;background:#fbfdff}.pre-narrative-part>span{display:block;font-size:5.5pt;font-weight:800;letter-spacing:.7pt;color:#557fa7;direction:ltr}.pre-narrative-part h3{margin:.8mm 0 1.5mm;font-size:8pt;color:#29445f}.pre-narrative-part p{margin:0 0 1mm;font-size:6.2pt;line-height:1.5;color:#536b83}.pre-map-pdf-panel{break-before:page;page-break-before:always;break-inside:avoid;page-break-inside:avoid}.pre-map-pdf-image{display:block;width:100%;height:auto;max-height:155mm;object-fit:contain;border:1px solid #d7e3ed;border-radius:3mm;background:#eef5f7}.pre-map-pdf-missing{height:70mm;display:grid;place-items:center;border:1px dashed #cbd9e5;border-radius:3mm;color:#6d8196;font-size:8pt;background:#fbfdff}.pre-source-note{display:none}.pre-system-col{display:none!important}
 `}
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(install,260));else setTimeout(install,260);
