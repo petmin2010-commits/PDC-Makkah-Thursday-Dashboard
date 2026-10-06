@@ -19,7 +19,6 @@ function install(){
  nav.onclick=openPage;document.getElementById('nav')?.addEventListener('click',e=>{const b=e.target.closest('.nav-item');if(b&&b.id!==NAV_ID)leave()});
  $('preSearchBtn').onclick=search;$('preInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();search()}});
  $('prePrintBtn').onclick=openExportChooser;
- $('prePhotosJumpBtn').onclick=()=>$('prePhotosPanel')?.scrollIntoView({behavior:'smooth',block:'start'});
  const photosGrid=$('prePhotosGrid');
  photosGrid?.addEventListener('change',handlePhotoFileChange);
  photosGrid?.addEventListener('input',handlePhotoCaptionInput);
@@ -38,15 +37,12 @@ function markup(){return `
 </div>
 <div class="pre-searchbar">
  <input id="preInput" inputmode="numeric" autocomplete="off" placeholder="ابحث برقم أمر العمل...">
- <button id="preSearchBtn" type="button">إنشاء التقرير</button>
- <button id="prePrintBtn" class="pre-search-secondary" type="button">تصدير التقرير</button>
- <button id="preMapKmzUploadBtn" class="pre-search-secondary pre-kmz-top-btn" type="button">⬆ رفع KMZ</button>
- <button id="prePhotosJumpBtn" class="pre-search-secondary pre-photos-top-btn" type="button">▣ صور التنفيذ</button>
- <input id="preMapKmzFileInput" class="map-file-input" type="file" accept=".kmz,.kml,application/vnd.google-earth.kmz,application/vnd.google-earth.kml+xml" multiple>
+ <button id="preSearchBtn" type="button">سحب بيانات التقرير</button>
 </div>
 <div id="preBody" class="pre-state"><b>محرك التقرير جاهز</b><span>اختر أي رقم أمر عمل. سيُسحب الموجود من أوراق المشروع تلقائيًا، وتُستخدم صفحة Projects Report Engine Data فقط للبيانات غير الموجودة.</span></div>
 ${mapBlock()}
 ${photosManagerBlock()}
+<div class="pre-bottom-export" id="preBottomExport"><button id="prePrintBtn" type="button">تصدير التقرير</button></div>
 <div id="preExportModal" class="pre-export-modal" hidden>
  <div class="pre-export-dialog" role="dialog" aria-modal="true" aria-labelledby="preExportTitle">
   <button id="preExportClose" class="pre-export-close" type="button" aria-label="إغلاق">×</button>
@@ -538,6 +534,7 @@ function photosPdfBlock(images){
 function mapBlock(){
  return '<section class="pre-panel pre-map-panel pre-print-section" id="preMapPanel">'+
  '<div class="pre-panel-head"><div><span>GEOGRAPHIC CONTROL / KMZ</span><h3>خريطة أمر العمل والطبقات الجغرافية</h3></div><div class="pre-mini-kpis"><span id="preMapSummary">جاهزة لرفع KMZ / KML</span></div></div>'+
+ '<div class="pre-map-upload-row"><button id="preMapKmzUploadBtn" class="pre-map-kmz-upload" type="button">⬆ رفع KMZ</button><input id="preMapKmzFileInput" class="map-file-input" type="file" accept=".kmz,.kml,application/vnd.google-earth.kmz,application/vnd.google-earth.kml+xml" multiple><span>أضف ملفات KMZ / KML ثم تحكم بالطبقات على الخريطة</span></div>'+
  '<div class="pre-map-toolbar">'+
   '<div class="pre-map-tools">'+
    '<button type="button" class="pre-map-tool active" id="preMapStreetBtn">خريطة الشوارع</button>'+
