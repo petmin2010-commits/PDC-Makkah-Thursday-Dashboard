@@ -17,7 +17,7 @@ function install(){
  const main=document.querySelector('main');if(!main)return;
  const page=document.createElement('section');page.id=PAGE_ID;page.className='page pre-page';page.innerHTML=markup();main.insertBefore(page,main.firstChild);
  nav.onclick=openPage;document.getElementById('nav')?.addEventListener('click',e=>{const b=e.target.closest('.nav-item');if(b&&b.id!==NAV_ID)leave()});
- $('preSearchBtn').onclick=search;$('preInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();search()}});
+ $('preSearchBtn').onclick=search;$('preInput').addEventListener('input',e=>{e.target.value=String(e.target.value||'').replace(/\D/g,'').slice(0,10)});$('preInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();search()}});
  $('prePrintBtn').onclick=openExportChooser;
  const photosGrid=$('prePhotosGrid');
  photosGrid?.addEventListener('change',handlePhotoFileChange);
@@ -36,7 +36,7 @@ function markup(){return `
  <div><span class="pre-eyebrow">DYNAMIC WORK ORDER REPORTING</span><h2>Projects Report Engine</h2><p>تقرير مشروع ديناميكي يدمج بيانات أمر العمل الحية مع البيانات الإضافية المخصصة للتقرير، بدون تكرار حقول موجودة أصلًا.</p></div>
 </div>
 <div class="pre-searchbar">
- <input id="preInput" inputmode="numeric" autocomplete="off" placeholder="ابحث برقم أمر العمل...">
+ <input id="preInput" inputmode="numeric" maxlength="10" pattern="[0-9]{1,10}" autocomplete="off" placeholder="رقم أمر العمل">
  <button id="preSearchBtn" type="button">سحب بيانات التقرير</button>
 </div>
 <div id="preBody" class="pre-state"><b>محرك التقرير جاهز</b><span>اختر أي رقم أمر عمل. سيُسحب الموجود من أوراق المشروع تلقائيًا، وتُستخدم صفحة Projects Report Engine Data فقط للبيانات غير الموجودة.</span></div>
