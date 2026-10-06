@@ -85,6 +85,44 @@ function permitSummary(rows){
 function miniSummary(items,cls=''){
  return '<div class="pre-summary-strip '+cls+'">'+items.map(x=>'<div><small>'+esc(x[0])+'</small><b class="'+(x[2]||'')+'">'+(x[3]?'':esc(x[1]))+(x[3]||'')+'</b></div>').join('')+'</div>';
 }
+function svgText(v){return esc(clean(v)).replace(/&amp;/g,'&amp;')}
+function shortLabel(v,max=24){const s=clean(v);return s.length>max?s.slice(0,max-1)+'…':s}
+function boqSummary(rows){
+ let running=0,notStarted=0,completed=0;
+ rows.forEach(r=>{const n=norm(r.Status);if(n.includes('مكتمل')||n.includes('تم التنفيذ'))completed++;else if(n.includes('لم يبدأ'))notStarted++;else if(n.includes('جاري')||n.includes('تنفيذ'))running++});
+ return{total:rows.length,running,notStarted,completed};
+}
+function boqChart(rows){
+ if(!rows.length)return '';
+ const max=Math.max(1,...rows.map(r=>Math.max(num(r['Planned / Required Qty'])||0,num(r['Executed / Issued Qty'])||0)));
+ return '<div class="pre-chart-card pre-boq-chart"><div class="pre-chart-title"><span>PLANNED VS EXECUTED</span><h4>مقارنة الكمية المخططة بإجمالي المنفذ لكل بند</h4></div><div class="pre-bar-chart">'+rows.map(r=>{
+   const p=num(r['Planned / Required Qty'])||0,d=num(r['Executed / Issued Qty'])||0;
+   const pw=Math.max(0,Math.min(100,p/max*100)),dw=Math.max(0,Math.min(100,d/max*100));
+   return '<div class="pre-bar-row"><div class="pre-bar-label" title="'+esc(r['Text Value / Description'])+'">'+esc(shortLabel(r['Text Value / Description'],34))+'</div><div class="pre-bar-area"><div class="pre-bar-track"><i class="planned" style="width:'+pw+'%"></i></div><div class="pre-bar-track"><i class="actual" style="width:'+dw+'%"></i></div></div><div class="pre-bar-values"><span>'+fmtNum(p)+'</span><b>'+fmtNum(d)+'</b></div></div>';
+ }).join('')+'</div><div class="pre-chart-legend"><span><i class="planned"></i>المخطط</span><span><i class="actual"></i>المنفذ</span></div></div>';
+}
+function progressHistoryChart(planRows,liveActual,reportDateValue){
+ const points=(planRows||[]).map(r=>{
+  const date=r['Start / Observation Date']||r['End / Expected Date']||'';
+  const planned=pct(r['Weight / Planned Progress %']);
+  const actual=pct(r['Numeric Value']);
+  return{date,planned,actual};
+ }).filter(x=>x.date||x.planned!=null||x.actual!=null);
+ if(!points.length&&reportDateValue)points.push({date:reportDateValue,planned:null,actual:liveActual});
+ if(points.length){
+   const last=points[points.length-1];
+   if(last.actual==null&&liveActual!=null)last.actual=liveActual;
+   if(!last.date&&reportDateValue)last.date=reportDateValue;
+ }
+ points.sort((a,b)=>(dateObj(a.date)?.getTime()||0)-(dateObj(b.date)?.getTime()||0));
+ const n=Math.max(points.length,1),w=820,h=220,padL=42,padR=18,padT=18,padB=42,plotW=w-padL-padR,plotH=h-padT-padB;
+ const x=i=>padL+(n===1?plotW/2:(i/(n-1))*plotW),y=v=>padT+plotH-(Math.max(0,Math.min(100,v||0))/100)*plotH;
+ const line=key=>points.filter(p=>p[key]!=null).map((p,i,arr)=>{const originalIndex=points.indexOf(p);return (i?'L':'M')+x(originalIndex).toFixed(1)+' '+y(p[key]).toFixed(1)}).join(' ');
+ const dots=key=>points.filter(p=>p[key]!=null).map(p=>{const i=points.indexOf(p);return '<circle cx="'+x(i).toFixed(1)+'" cy="'+y(p[key]).toFixed(1)+'" r="3.8" class="'+key+'"></circle>'}).join('');
+ const labels=points.map((p,i)=>'<text x="'+x(i).toFixed(1)+'" y="'+(h-13)+'" text-anchor="middle">'+esc(shortLabel(p.date,10))+'</text>').join('');
+ const grid=[0,25,50,75,100].map(v=>'<line x1="'+padL+'" x2="'+(w-padR)+'" y1="'+y(v)+'" y2="'+y(v)+'"></line><text x="'+(padL-8)+'" y="'+(y(v)+3)+'" text-anchor="end">'+v+'%</text>').join('');
+ return '<div class="pre-chart-card pre-history-chart"><div class="pre-chart-title"><span>CUMULATIVE PROGRESS CURVE</span><h4>منحنى تقدم الإنجاز التراكمي</h4></div><svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="منحنى تقدم الإنجاز التراكمي"><g class="grid">'+grid+'</g><path class="series planned" d="'+line('planned')+'"></path><path class="series actual" d="'+line('actual')+'"></path>'+dots('planned')+dots('actual')+'<g class="axis-labels">'+labels+'</g></svg><div class="pre-chart-legend"><span><i class="planned"></i>المخطط</span><span><i class="actual"></i>الفعلي</span></div>'+(points.length<2?'<small class="pre-chart-note">سيظهر المنحنى التاريخي تلقائيًا مع إضافة نقاط زمنية جديدة للمشروع.</small>':'')+'</div>';
+}
 function render(data){
  const rows=extraRows(data),fs=originalFields(data),extras=rows.filter(r=>r.Section==='PROJECT_EXTRA');
  if(!data.totalRecords){state.report=null;$('preBody').className='pre-state';$('preBody').innerHTML='<b>لم يتم العثور على أمر العمل '+esc(data.workOrder)+'</b><span>لا توجد سجلات مطابقة في ملف المشروع.</span>';return}
@@ -97,7 +135,8 @@ function render(data){
  const stage=val(fs,['مرحلة التنفيذ']);
  const stageStatus=val(fs,['حالة المرحلة','حالة التنفيذ','حالة الامر وفقا لمتابعة المهندس المسئول']);
  const actual=pct(val(fs,['نسبة الانجاز الكلية','نسبة الإنجاز الكلية']));
- const planRow=rows.filter(r=>r.Section==='PLAN_POINT').at(-1),planned=pct(planRow?.['Weight / Planned Progress %']);
+ const planRows=rows.filter(r=>r.Section==='PLAN_POINT');
+ const planRow=planRows.at(-1),planned=pct(planRow?.['Weight / Planned Progress %']);
  const variance=actual!=null&&planned!=null?actual-planned:null;
  const start=ex('ACTUAL_START_DATE')||val(fs,['تاريخ الاسناد','تاريخ الإسناد']);
  const expected=ex('EXPECTED_OPERATION_DATE');
@@ -109,7 +148,7 @@ function render(data){
  const issuedLen=permits.filter(r=>norm(r.Status).includes('اصدار')).reduce((a,r)=>a+(num(r['Planned / Required Qty'])||0),0);
  const doneLen=permits.filter(r=>norm(r.Status).includes('اصدار')).reduce((a,r)=>a+(num(r['Executed / Issued Qty'])||0),0);
  const permitExecution=issuedLen>0?(doneLen/issuedLen)*100:null;
- const report={workOrder:data.workOrder,projectTitle,desc,contractor,location,engineer,stage,stageStatus,actual,planned,variance,start,expected,rdate,elapsed,remaining,boq,mats,permits,matSum,permitSum,issuedLen,doneLen,permitExecution};
+ const report={workOrder:data.workOrder,projectTitle,desc,contractor,location,engineer,stage,stageStatus,actual,planned,variance,start,expected,rdate,elapsed,remaining,boq,mats,permits,matSum,permitSum,issuedLen,doneLen,permitExecution,planRows};
  state.report=report;
  const cards=[
   {label:'الإنجاز الفعلي',value:actual==null?'—':fmtPct(actual),src:'LIVE',ltr:true},
@@ -129,7 +168,8 @@ function render(data){
  </section>
  <div class="pre-kpis pre-print-section">${cards.map(c=>'<article class="pre-kpi '+(c.bad?'bad':'')+'"><small>'+esc(c.label)+' • '+c.src+'</small><strong'+(c.ltr?' class="pre-ltr"':'')+'>'+esc(c.value)+'</strong>'+(c.sub?'<em>'+esc(c.sub)+'</em>':'')+'</article>').join('')}</div>
  ${progressBlock(actual,planned)}
- ${boqBlock(boq)}
+ ${progressHistoryChart(planRows,actual,rdate)}
+ ${boqBlock(boq,actual,planned,variance)}
  ${materialsBlock(mats,matSum)}
  ${permitsBlock(permits,permitSum,issuedLen,doneLen,permitExecution)}
  ${extraBlock(extras)}
@@ -143,8 +183,17 @@ function progressBlock(actual,planned){
  <div class="pre-progress-row planned"><b>المخطط</b><div class="pre-track"><i style="width:${p}%"></i></div><strong class="pre-ltr">${planned==null?'—':planned.toFixed(2)+'%'}</strong></div></section>`
 }
 function cell(v,cls=''){return '<td'+(cls?' class="'+cls+'"':'')+'>'+esc(v==null||v===''?'—':v)+'</td>'}
-function boqBlock(rows){
+function boqBlock(rows,actual,planned,variance){
  if(!rows.length)return '';
+ const sum=boqSummary(rows);
+ const summary=miniSummary([
+  ['إجمالي البنود',sum.total,'pre-ltr'],
+  ['جاري التنفيذ',sum.running,'warn-text'],
+  ['لم يبدأ',sum.notStarted,'bad-text'],
+  ['الإنجاز الفعلي',actual==null?'—':actual.toFixed(2)+'%','pre-ltr'],
+  ['المخطط',planned==null?'—':planned.toFixed(2)+'%','pre-ltr'],
+  ['الانحراف',variance==null?'—':(variance>=0?'+':'')+variance.toFixed(2)+'%',variance!=null&&variance<0?'bad-text':'ok-text']
+ ],'pre-boq-summary');
  const body=rows.map(r=>'<tr>'+
   cell(r['Field / Item / Permit No.'],'pre-system-col')+
   cell(r['Text Value / Description'])+
@@ -155,7 +204,7 @@ function boqBlock(rows){
   cell(r._completion==null?'—':r._completion.toFixed(2)+'%','pre-num')+
   cell(r['Weight / Planned Progress %']?fmtPct(r['Weight / Planned Progress %']):'—','pre-num')+
   cell(r.Status,'status '+statusClass(r.Status))+'</tr>').join('');
- return `<section class="pre-panel pre-print-section"><div class="pre-panel-head"><div><span>BOQ / PROGRESS</span><h3>بنود التنفيذ</h3></div><b>${rows.length}</b></div><div class="pre-table-wrap"><table><thead><tr><th class="pre-system-col">الكود</th><th>البند</th><th>الوحدة</th><th>المخطط</th><th>المنفذ</th><th>الفترة</th><th>% إنجاز البند</th><th>الوزن</th><th>الحالة</th></tr></thead><tbody>${body}</tbody></table></div></section>`
+ return `<section class="pre-panel pre-boq-panel pre-table-page"><div class="pre-panel-head"><div><span>BOQ / PROGRESS</span><h3>بنود التنفيذ</h3></div><b>${rows.length}</b></div>${summary}${boqChart(rows)}<div class="pre-table-wrap"><table><thead><tr><th class="pre-system-col">الكود</th><th>البند</th><th>الوحدة</th><th>المخطط</th><th>المنفذ</th><th>الفترة</th><th>% إنجاز البند</th><th>الوزن</th><th>الحالة</th></tr></thead><tbody>${body}</tbody></table></div></section>`
 }
 function materialsBlock(rows,sum){
  if(!rows.length)return '';
@@ -166,7 +215,7 @@ function materialsBlock(rows,sum){
   ['لم يتم الصرف',sum.none,'bad-text']
  ],'pre-material-summary');
  const body=rows.map(r=>'<tr>'+cell(r['Text Value / Description'])+cell(r.Unit,'pre-num')+cell(fmtNum(r['Planned / Required Qty']),'pre-num')+cell(fmtNum(r['Executed / Issued Qty']),'pre-num')+cell(r.Status,'status '+statusClass(r.Status))+'</tr>').join('');
- return `<section class="pre-panel pre-material-panel pre-print-section"><div class="pre-panel-head"><div><span>MATERIAL CONTROL</span><h3>المواد</h3></div><b>${rows.length}</b></div>${summary}<div class="pre-table-wrap"><table><thead><tr><th>الصنف</th><th>الوحدة</th><th>المطلوب</th><th>المصروف</th><th>الحالة</th></tr></thead><tbody>${body}</tbody></table></div></section>`
+ return `<section class="pre-panel pre-material-panel pre-table-page"><div class="pre-panel-head"><div><span>MATERIAL CONTROL</span><h3>المواد</h3></div><b>${rows.length}</b></div>${summary}<div class="pre-table-wrap"><table><thead><tr><th>الصنف</th><th>الوحدة</th><th>المطلوب</th><th>المصروف</th><th>الحالة</th></tr></thead><tbody>${body}</tbody></table></div></section>`
 }
 function permitsBlock(rows,sum,issuedLen,doneLen,execution){
  if(!rows.length)return '';
@@ -186,7 +235,7 @@ function permitsBlock(rows,sum,issuedLen,doneLen,execution){
   cell(r['End / Expected Date'],'pre-num')+
   cell(fmtNum(r['Planned / Required Qty']),'pre-num')+
   cell(fmtNum(r['Executed / Issued Qty']),'pre-num')+'</tr>').join('');
- return `<section class="pre-panel pre-permits-panel"><div class="pre-panel-head"><div><span>PERMIT PORTFOLIO</span><h3>التصاريح التفصيلية</h3></div><div class="pre-mini-kpis"><span>أطوال الصادر <b class="pre-ltr">${fmtNum(issuedLen)} م</b></span><span>منجز على الصادر <b class="pre-ltr">${fmtNum(doneLen)} م</b></span><span>نسبة التنفيذ <b class="pre-ltr">${execution==null?'—':execution.toFixed(2)+'%'}</b></span></div></div>${summary}<div class="pre-table-wrap"><table><thead><tr><th>رقم / مرحلة التصريح</th><th>الجهة</th><th>الموقع</th><th>الحالة</th><th>البداية</th><th>النهاية</th><th>الطول</th><th>المنجز</th></tr></thead><tbody>${body}</tbody></table></div></section>`
+ return `<section class="pre-panel pre-permits-panel pre-table-page"><div class="pre-panel-head"><div><span>PERMIT PORTFOLIO</span><h3>التصاريح التفصيلية</h3></div><div class="pre-mini-kpis"><span>أطوال الصادر <b class="pre-ltr">${fmtNum(issuedLen)} م</b></span><span>منجز على الصادر <b class="pre-ltr">${fmtNum(doneLen)} م</b></span><span>نسبة التنفيذ <b class="pre-ltr">${execution==null?'—':execution.toFixed(2)+'%'}</b></span></div></div>${summary}<div class="pre-table-wrap"><table><thead><tr><th>رقم / مرحلة التصريح</th><th>الجهة</th><th>الموقع</th><th>الحالة</th><th>البداية</th><th>النهاية</th><th>الطول</th><th>المنجز</th></tr></thead><tbody>${body}</tbody></table></div></section>`
 }
 function extraBlock(rows){
  const hidden=new Set(['PROJECT_TITLE','DETAILED_WORK_DESCRIPTION','ACTUAL_START_DATE','EXPECTED_OPERATION_DATE','SEC_FOLLOWUP_ENGINEER']);
@@ -223,7 +272,7 @@ function printReport(){
 }
 function printCss(){return `
 @page{size:A4 landscape;margin:17mm 9mm 13mm;@bottom-right{content:"صفحة " counter(page) " من " counter(pages);font:700 8pt Arial;color:#60758d}@bottom-left{content:"Vision Dimensions";font:700 8pt Arial;color:#60758d}}
-*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#243d59;font-family:Arial,Tahoma,sans-serif;direction:rtl;-webkit-print-color-adjust:exact;print-color-adjust:exact}.pdf-header{position:fixed;top:-13mm;left:0;right:0;height:11mm;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #bfcddd;padding-bottom:2mm;background:#fff;z-index:10}.pdf-brand{display:flex;align-items:center;gap:3mm}.pdf-brand img{height:8mm;width:auto}.pdf-brand b{display:block;font-size:9pt;color:#173656}.pdf-brand span{display:block;font-size:6.8pt;color:#6c7e91;margin-top:.5mm}.pdf-meta{text-align:left;direction:ltr}.pdf-meta strong{display:block;font-size:9pt;color:#173656}.pdf-meta span{display:block;font-size:6.8pt;color:#6c7e91;margin-top:.5mm}.pdf-footer{position:fixed;bottom:-9mm;left:0;right:0;height:7mm;border-top:1px solid #ccd7e2;display:flex;justify-content:space-between;align-items:center;font-size:6.5pt;color:#6c7e91;background:#fff}.pdf-main{width:100%}.pre-report{display:block}.pre-summary,.pre-panel{background:#fff;border:1px solid #ccd9e6;border-radius:4mm;padding:4mm;margin:0 0 3.2mm;box-shadow:none}.pre-title{display:flex;justify-content:space-between;gap:6mm;align-items:flex-start}.pre-title>div:first-child{flex:1}.pre-title>div>span,.pre-panel-head span{display:block;font-size:6pt;font-weight:800;letter-spacing:.8pt;color:#527da7;direction:ltr}.pre-title h2{font-size:15pt;margin:1mm 0;color:#173656}.pre-title p{font-size:7.3pt;line-height:1.6;margin:0;color:#60758d}.pre-report-meta{min-width:38mm;text-align:left}.pre-report-meta b{display:block;font-size:6pt;color:#7d8fa1}.pre-report-meta span{display:block;font-size:9pt;font-weight:800;color:#173656;margin-top:.5mm}.pre-report-meta small{display:block;font-size:6.3pt;color:#718398;margin-top:1mm}.pre-facts,.pre-extra-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2mm;margin-top:3mm}.pre-fact,.pre-extra-grid>div{border:1px solid #dce5ed;border-radius:2mm;padding:2mm 2.5mm;background:#fbfdff}.pre-fact small,.pre-extra-grid small{display:block;font-size:5.7pt;color:#8091a3;margin-bottom:.7mm}.pre-fact b,.pre-extra-grid b{font-size:7.3pt;color:#253e5a}.pre-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:2mm;margin:0 0 3.2mm}.pre-kpi{border:1px solid #d8e2ec;border-radius:3mm;padding:2.5mm;background:#fff;min-height:18mm}.pre-kpi small{display:block;font-size:5.5pt;color:#8191a2}.pre-kpi strong{display:block;font-size:14pt;color:#193b60;margin-top:1.5mm}.pre-kpi em{display:block;font-style:normal;font-size:6pt;color:#7a8da1;margin-top:.6mm}.pre-kpi.bad strong,.bad-text{color:#bd3f49!important}.ok-text{color:#187b50!important}.warn-text{color:#a96f0b!important}.expired-text{color:#6f5a34!important}.pre-panel-head{display:flex;justify-content:space-between;align-items:center;gap:4mm;margin-bottom:2.5mm}.pre-panel-head h3{font-size:10pt;color:#223f5e;margin:.7mm 0 0}.pre-panel-head>b{font-size:8pt;color:#5f7590}.pre-progress-row{display:grid;grid-template-columns:18mm 1fr 18mm;gap:2mm;align-items:center;margin:2mm 0}.pre-progress-row>b{font-size:7pt}.pre-progress-row>strong{text-align:left;font-size:7.5pt}.pre-track{height:3mm;background:#edf2f6;border-radius:99mm;overflow:hidden}.pre-track i{display:block;height:100%;background:#2c80bf}.pre-progress-row.planned .pre-track i{background:#8ba6be}.pre-summary-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1.8mm;margin-bottom:2.5mm}.pre-permit-summary{grid-template-columns:repeat(5,1fr)}.pre-summary-strip>div{border:1px solid #dce5ed;border-radius:2mm;padding:1.7mm 2mm;background:#f8fbfd;text-align:center}.pre-summary-strip small{display:block;font-size:5.4pt;color:#74889b}.pre-summary-strip b{display:block;font-size:10pt;color:#203e5e;margin-top:.6mm}.pre-mini-kpis{display:flex;gap:1.5mm;flex-wrap:wrap}.pre-mini-kpis span{font-size:5.7pt;border:1px solid #d8e3ed;border-radius:99mm;padding:1.2mm 2mm}.pre-table-wrap{border:1px solid #dfe7ee;border-radius:2mm;overflow:visible}.pre-table-wrap table{width:100%;border-collapse:collapse;table-layout:auto}.pre-table-wrap thead{display:table-header-group}.pre-table-wrap tr{break-inside:avoid;page-break-inside:avoid}.pre-table-wrap th{background:#eaf5ee;color:#314e64;font-size:6pt;padding:1.6mm 1.5mm;text-align:right;white-space:nowrap;border-bottom:1px solid #cfe0d6}.pre-table-wrap td{font-size:6.2pt;padding:1.6mm 1.5mm;border-top:1px solid #e4ebf1;color:#2f475f;vertical-align:top}.pre-table-wrap td.status{font-weight:800}.pre-table-wrap td.status.ok{color:#187b50}.pre-table-wrap td.status.warn{color:#a96f0b}.pre-table-wrap td.status.expired{color:#6f5a34}.pre-table-wrap td.status.bad{color:#bd3f49}.pre-ltr,.pre-num{direction:ltr;unicode-bidi:isolate;text-align:center}.pre-ltr{display:inline-block}.pre-print-section{break-inside:avoid;page-break-inside:avoid}.pre-material-panel{break-inside:avoid}.pre-permits-panel{break-inside:auto;page-break-inside:auto}.pre-permits-panel .pre-panel-head,.pre-permits-panel .pre-summary-strip{break-inside:avoid}.pre-source-note{display:none}.pre-system-col{display:none!important}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#243d59;font-family:Arial,Tahoma,sans-serif;direction:rtl;-webkit-print-color-adjust:exact;print-color-adjust:exact}.pdf-header{position:fixed;top:-13mm;left:0;right:0;height:11mm;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #bfcddd;padding-bottom:2mm;background:#fff;z-index:10}.pdf-brand{display:flex;align-items:center;gap:3mm}.pdf-brand img{height:8mm;width:auto}.pdf-brand b{display:block;font-size:9pt;color:#173656}.pdf-brand span{display:block;font-size:6.8pt;color:#6c7e91;margin-top:.5mm}.pdf-meta{text-align:left;direction:ltr}.pdf-meta strong{display:block;font-size:9pt;color:#173656}.pdf-meta span{display:block;font-size:6.8pt;color:#6c7e91;margin-top:.5mm}.pdf-footer{position:fixed;bottom:-9mm;left:0;right:0;height:7mm;border-top:1px solid #ccd7e2;display:flex;justify-content:space-between;align-items:center;font-size:6.5pt;color:#6c7e91;background:#fff}.pdf-main{width:100%}.pre-report{display:block}.pre-summary,.pre-panel{background:#fff;border:1px solid #ccd9e6;border-radius:4mm;padding:4mm;margin:0 0 3.2mm;box-shadow:none}.pre-title{display:flex;justify-content:space-between;gap:6mm;align-items:flex-start}.pre-title>div:first-child{flex:1}.pre-title>div>span,.pre-panel-head span{display:block;font-size:6pt;font-weight:800;letter-spacing:.8pt;color:#527da7;direction:ltr}.pre-title h2{font-size:15pt;margin:1mm 0;color:#173656}.pre-title p{font-size:7.3pt;line-height:1.6;margin:0;color:#60758d}.pre-report-meta{min-width:38mm;text-align:left}.pre-report-meta b{display:block;font-size:6pt;color:#7d8fa1}.pre-report-meta span{display:block;font-size:9pt;font-weight:800;color:#173656;margin-top:.5mm}.pre-report-meta small{display:block;font-size:6.3pt;color:#718398;margin-top:1mm}.pre-facts,.pre-extra-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2mm;margin-top:3mm}.pre-fact,.pre-extra-grid>div{border:1px solid #dce5ed;border-radius:2mm;padding:2mm 2.5mm;background:#fbfdff}.pre-fact small,.pre-extra-grid small{display:block;font-size:5.7pt;color:#8091a3;margin-bottom:.7mm}.pre-fact b,.pre-extra-grid b{font-size:7.3pt;color:#253e5a}.pre-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:2mm;margin:0 0 3.2mm}.pre-kpi{border:1px solid #d8e2ec;border-radius:3mm;padding:2.5mm;background:#fff;min-height:18mm}.pre-kpi small{display:block;font-size:5.5pt;color:#8191a2}.pre-kpi strong{display:block;font-size:14pt;color:#193b60;margin-top:1.5mm}.pre-kpi em{display:block;font-style:normal;font-size:6pt;color:#7a8da1;margin-top:.6mm}.pre-kpi.bad strong,.bad-text{color:#bd3f49!important}.ok-text{color:#187b50!important}.warn-text{color:#a96f0b!important}.expired-text{color:#6f5a34!important}.pre-panel-head{display:flex;justify-content:space-between;align-items:center;gap:4mm;margin-bottom:2.5mm}.pre-panel-head h3{font-size:10pt;color:#223f5e;margin:.7mm 0 0}.pre-panel-head>b{font-size:8pt;color:#5f7590}.pre-progress-row{display:grid;grid-template-columns:18mm 1fr 18mm;gap:2mm;align-items:center;margin:2mm 0}.pre-progress-row>b{font-size:7pt}.pre-progress-row>strong{text-align:left;font-size:7.5pt}.pre-track{height:3mm;background:#edf2f6;border-radius:99mm;overflow:hidden}.pre-track i{display:block;height:100%;background:#2c80bf}.pre-progress-row.planned .pre-track i{background:#8ba6be}.pre-summary-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1.8mm;margin-bottom:2.5mm}.pre-boq-summary{grid-template-columns:repeat(6,1fr)}.pre-permit-summary{grid-template-columns:repeat(5,1fr)}.pre-summary-strip>div{border:1px solid #dce5ed;border-radius:2mm;padding:1.7mm 2mm;background:#f8fbfd;text-align:center}.pre-summary-strip small{display:block;font-size:5.4pt;color:#74889b}.pre-summary-strip b{display:block;font-size:10pt;color:#203e5e;margin-top:.6mm}.pre-mini-kpis{display:flex;gap:1.5mm;flex-wrap:wrap}.pre-mini-kpis span{font-size:5.7pt;border:1px solid #d8e3ed;border-radius:99mm;padding:1.2mm 2mm}.pre-chart-card{border:1px solid #dbe5ee;border-radius:3mm;padding:2.5mm;margin:2mm 0 2.8mm;background:#fff;break-inside:avoid;page-break-inside:avoid}.pre-chart-title span{display:block;font-size:5.5pt;font-weight:800;letter-spacing:.7pt;color:#557fa7;direction:ltr}.pre-chart-title h4{margin:.6mm 0 2mm;font-size:8pt;color:#29445f}.pre-history-chart svg{display:block;width:100%;height:44mm}.pre-history-chart .grid line{stroke:#e5edf3;stroke-width:1}.pre-history-chart .grid text,.pre-history-chart .axis-labels text{fill:#73879b;font-size:9px}.pre-history-chart .series{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.pre-history-chart .series.planned{stroke:#8ca8bf}.pre-history-chart .series.actual{stroke:#2e82bd}.pre-history-chart circle.planned{fill:#8ca8bf}.pre-history-chart circle.actual{fill:#2e82bd}.pre-chart-legend{display:flex;gap:4mm;margin-top:1.4mm;font-size:5.7pt;color:#667b90}.pre-chart-legend span{display:flex;align-items:center;gap:1.2mm}.pre-chart-legend i{display:inline-block;width:7mm;height:1.6mm;border-radius:99mm}.pre-chart-legend i.planned{background:#8ca8bf}.pre-chart-legend i.actual{background:#2e82bd}.pre-chart-note{display:block;font-size:5.5pt;color:#76899c;margin-top:1mm}.pre-bar-chart{display:flex;flex-direction:column;gap:1.6mm}.pre-bar-row{display:grid;grid-template-columns:52mm 1fr 34mm;gap:2mm;align-items:center}.pre-bar-label{font-size:5.8pt;font-weight:700;color:#425b74;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pre-bar-area{display:flex;flex-direction:column;gap:.8mm}.pre-bar-track{height:1.8mm;background:#edf2f6;border-radius:99mm;overflow:hidden}.pre-bar-track i{display:block;height:100%;border-radius:inherit}.pre-bar-track i.planned{background:#8ca8bf}.pre-bar-track i.actual{background:#2e82bd}.pre-bar-values{display:grid;grid-template-columns:1fr 1fr;gap:1mm;direction:ltr;font-size:5.4pt;text-align:center;color:#71859a}.pre-bar-values b{color:#2e82bd}.pre-table-wrap{border:1px solid #dfe7ee;border-radius:2mm;overflow:visible}.pre-table-wrap table{width:100%;border-collapse:collapse;table-layout:auto}.pre-table-wrap thead{display:table-header-group}.pre-table-wrap tr{break-inside:avoid;page-break-inside:avoid}.pre-table-wrap th{background:#eaf5ee;color:#314e64;font-size:6pt;padding:1.6mm 1.5mm;text-align:right;white-space:nowrap;border-bottom:1px solid #cfe0d6}.pre-table-wrap td{font-size:6.2pt;padding:1.6mm 1.5mm;border-top:1px solid #e4ebf1;color:#2f475f;vertical-align:top}.pre-table-wrap td.status{font-weight:800}.pre-table-wrap td.status.ok{color:#187b50}.pre-table-wrap td.status.warn{color:#a96f0b}.pre-table-wrap td.status.expired{color:#6f5a34}.pre-table-wrap td.status.bad{color:#bd3f49}.pre-ltr,.pre-num{direction:ltr;unicode-bidi:isolate;text-align:center}.pre-ltr{display:inline-block}.pre-print-section{break-inside:avoid;page-break-inside:avoid}.pre-table-page{break-before:page;page-break-before:always}.pre-boq-panel,.pre-material-panel,.pre-permits-panel{break-inside:auto;page-break-inside:auto}.pre-boq-panel .pre-panel-head,.pre-boq-panel .pre-summary-strip,.pre-boq-panel .pre-chart-card,.pre-material-panel .pre-panel-head,.pre-material-panel .pre-summary-strip,.pre-permits-panel .pre-panel-head,.pre-permits-panel .pre-summary-strip{break-inside:avoid;page-break-inside:avoid}.pre-source-note{display:none}.pre-system-col{display:none!important}
 `}
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(install,260));else setTimeout(install,260);
