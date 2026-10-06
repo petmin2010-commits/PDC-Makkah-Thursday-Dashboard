@@ -65,10 +65,37 @@ function updateUnifiedSummary(){
  if(chips){chips.innerHTML=items.length?items.map(x=>'<button type="button" class="vd-filter-chip" data-filter-id="'+e(x.id)+'"><span>'+e(x.label)+': '+e(x.value)+'</span><b>×</b></button>').join(''):'<span class="vd-no-active-filters">لا توجد فلاتر نشطة</span>';chips.querySelectorAll('[data-filter-id]').forEach(btn=>btn.onclick=()=>{const el=document.getElementById(btn.dataset.filterId);if(!el)return;el.value='';el.dispatchEvent(new Event(el.tagName==='INPUT'?'input':'change',{bubbles:true}));});}
  const clear=document.getElementById('clearFilters');if(clear)clear.classList.toggle('has-active',items.length>0||(REPORT_KEYS.has(key)&&periodState(key).preset!=='all'));
 }
+function preReportEngineActive(){
+ return !!(document.getElementById('projectsReportEngineNav')?.classList.contains('active')||document.getElementById('projectsReportEnginePage')?.classList.contains('active'));
+}
+function setPreReportControlHidden(node,hidden){
+ if(!node)return;
+ if(hidden){
+  if(node.dataset.preReportHidden!=='1'){
+   node.dataset.preReportHidden='1';
+   node.dataset.preReportDisplay=node.style.getPropertyValue('display')||'';
+   node.dataset.preReportPriority=node.style.getPropertyPriority('display')||'';
+  }
+  node.style.setProperty('display','none','important');
+  return;
+ }
+ if(node.dataset.preReportHidden==='1'){
+  const value=node.dataset.preReportDisplay||'',priority=node.dataset.preReportPriority||'';
+  if(value)node.style.setProperty('display',value,priority);else node.style.removeProperty('display');
+  delete node.dataset.preReportHidden;delete node.dataset.preReportDisplay;delete node.dataset.preReportPriority;
+ }
+}
+function syncPreReportControls(){
+ const hidden=preReportEngineActive();
+ ['vdUnifiedControls','violationPeriodSlicer','filterBar'].forEach(id=>setPreReportControlHidden(document.getElementById(id),hidden));
+}
 function updatePeriodSlicer(){
  const key=typeof S!=='undefined'?S.current:'',box=document.getElementById('violationPeriodSlicer');
  if(!box)return;
  const dock=ensureUnifiedControls();
+ if(preReportEngineActive()){syncPreReportControls();return;}
+ syncPreReportControls();
+ if(dock)dock.style.removeProperty('display');
  const periodSlot=dock?.querySelector('.vd-unified-period-slot');
  const on=REPORT_KEYS.has(key);
  box.style.display=on?'block':'none';
@@ -256,5 +283,11 @@ if(typeof applyMasterFilters==='function'){
   return result;
  };
 }
+const preReportNav=document.getElementById('nav');
+if(preReportNav){
+ preReportNav.addEventListener('click',()=>setTimeout(syncPreReportControls,0),true);
+ new MutationObserver(()=>syncPreReportControls()).observe(preReportNav,{subtree:true,attributes:true,attributeFilter:['class']});
+}
+setTimeout(syncPreReportControls,0);
 window.renderViolationAnalytics=sync;
 })();

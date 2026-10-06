@@ -2489,6 +2489,13 @@ require('./excel-export-server')({
   DateTime
 });
 
+require('./projects-report-excel-server')({
+  app,
+  requireAuth_,
+  APP,
+  DateTime
+});
+
 app.get('/api/hr/staff',requireAuth_,async(req,res)=>{
   try{
     const result=await getHrStaffData_();

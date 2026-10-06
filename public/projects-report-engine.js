@@ -18,16 +18,33 @@ function install(){
  const page=document.createElement('section');page.id=PAGE_ID;page.className='page pre-page';page.innerHTML=markup();main.insertBefore(page,main.firstChild);
  nav.onclick=openPage;document.getElementById('nav')?.addEventListener('click',e=>{const b=e.target.closest('.nav-item');if(b&&b.id!==NAV_ID)leave()});
  $('preSearchBtn').onclick=search;$('preInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();search()}});
- $('prePrintBtn').onclick=printReport;$('preOpenDataBtn').onclick=openDataSheet;
+ $('prePrintBtn').onclick=openExportChooser;$('preOpenDataBtn').onclick=openDataSheet;
+ $('preExportClose').onclick=closeExportChooser;
+ $('preExportPdf').onclick=()=>{closeExportChooser();printReport()};
+ $('preExportExcel').onclick=exportProjectExcel;
+ $('preExportModal').addEventListener('click',e=>{if(e.target===$('preExportModal'))closeExportChooser()});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeExportChooser()});
  const saved=localStorage.getItem('vd.projectsReportEngine.wo')||'';if(saved)$('preInput').value=saved;
 }
 function markup(){return `
 <div class="pre-hero">
  <div><span class="pre-eyebrow">DYNAMIC WORK ORDER REPORTING</span><h2>Projects Report Engine</h2><p>تقرير مشروع ديناميكي يدمج بيانات أمر العمل الحية مع البيانات الإضافية المخصصة للتقرير، بدون تكرار حقول موجودة أصلًا.</p></div>
- <div class="pre-actions"><button id="preOpenDataBtn" type="button">فتح بيانات التقرير</button><button id="prePrintBtn" type="button">تصدير التقرير PDF</button></div>
+ <div class="pre-actions"><button id="preOpenDataBtn" type="button">فتح بيانات التقرير</button><button id="prePrintBtn" type="button">تصدير التقرير</button></div>
 </div>
 <div class="pre-searchbar"><input id="preInput" inputmode="numeric" autocomplete="off" placeholder="ابحث برقم أمر العمل..."><button id="preSearchBtn" type="button">إنشاء التقرير</button></div>
-<div id="preBody" class="pre-state"><b>محرك التقرير جاهز</b><span>اختر أي رقم أمر عمل. سيُسحب الموجود من أوراق المشروع تلقائيًا، وتُستخدم صفحة Projects Report Engine Data فقط للبيانات غير الموجودة.</span></div>`}
+<div id="preBody" class="pre-state"><b>محرك التقرير جاهز</b><span>اختر أي رقم أمر عمل. سيُسحب الموجود من أوراق المشروع تلقائيًا، وتُستخدم صفحة Projects Report Engine Data فقط للبيانات غير الموجودة.</span></div>
+<div id="preExportModal" class="pre-export-modal" hidden>
+ <div class="pre-export-dialog" role="dialog" aria-modal="true" aria-labelledby="preExportTitle">
+  <button id="preExportClose" class="pre-export-close" type="button" aria-label="إغلاق">×</button>
+  <span class="pre-export-eyebrow">EXPORT PROJECT REPORT</span>
+  <h3 id="preExportTitle">اختر صيغة تصدير التقرير</h3>
+  <p>سيتم تصدير نفس أمر العمل والبيانات الظاهرة حاليًا.</p>
+  <div class="pre-export-options">
+   <button id="preExportPdf" class="pre-export-option" type="button"><b>PDF</b><strong>تقرير PDF رسمي</strong><small>نسخة جاهزة للطباعة والأرشفة.</small></button>
+   <button id="preExportExcel" class="pre-export-option" type="button"><b>XLSX</b><strong>تقرير Excel</strong><small>بنفس نموذج Excel الأصلي مع المعادلات والشارتات.</small></button>
+  </div>
+ </div>
+</div>`}
 function openPage(){
  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));$(PAGE_ID)?.classList.add('active');
  document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.id===NAV_ID));
@@ -36,6 +53,41 @@ function openPage(){
 }
 function leave(){document.body.classList.remove('vd-projects-report-engine-active');$(PAGE_ID)?.classList.remove('active');const fb=$('filterBar');if(fb&&document.querySelector('.nav-item.active')?.dataset.page!=='reportsCenter')fb.style.display=''}
 function openDataSheet(){const u=state.data?.spreadsheetUrl;if(u)window.open(u+(state.extraSheetId?'#gid='+state.extraSheetId:''),'_blank','noopener');else alert('أنشئ التقرير أولاً لتحديد ملف المصدر.')}
+function openExportChooser(){
+ if(!state.report){alert('أنشئ التقرير أولاً ثم اختر صيغة التصدير.');return}
+ const m=$('preExportModal');if(m)m.hidden=false;
+}
+function closeExportChooser(){const m=$('preExportModal');if(m)m.hidden=true}
+function exportFilename(disposition,fallback){
+ const raw=String(disposition||'');
+ const star=raw.match(/filename\*=UTF-8''([^;]+)/i);
+ if(star){try{return decodeURIComponent(star[1])}catch(e){}}
+ const plain=raw.match(/filename="?([^";]+)"?/i);
+ return plain?.[1]||fallback;
+}
+async function exportProjectExcel(){
+ if(!state.report){alert('أنشئ التقرير أولاً ثم اختر Excel.');return}
+ const btn=$('preExportExcel'),old=btn?.innerHTML;
+ try{
+  if(btn){btn.disabled=true;btn.innerHTML='<b>...</b><strong>جاري إنشاء Excel</strong><small>يتم تجهيز القالب والمعادلات والشارتات.</small>'}
+  const response=await fetch('/api/projects-report-engine/excel',{
+   method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({report:state.report})
+  });
+  if(!response.ok){
+   let msg='تعذر تصدير Excel';
+   try{const j=await response.json();msg=j.error||msg}catch(e){}
+   throw new Error(msg);
+  }
+  const blob=await response.blob();
+  const fallback='VD-Project-Report-WO-'+clean(state.report.workOrder)+'.xlsx';
+  const filename=exportFilename(response.headers.get('Content-Disposition'),fallback);
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+  closeExportChooser();
+ }catch(e){alert(e.message||String(e))}
+ finally{if(btn){btn.disabled=false;btn.innerHTML=old}}
+}
 async function search(){
  if(state.loading)return;const wo=clean($('preInput').value);if(!wo){$('preInput').focus();return}
  state.loading=true;state.wo=wo;localStorage.setItem('vd.projectsReportEngine.wo',wo);
@@ -205,6 +257,12 @@ function render(data){
  const engineer=val(fs,['المهندس المسئول','المهندس المسؤول']);
  const stage=val(fs,['مرحلة التنفيذ']);
  const stageStatus=val(fs,['حالة المرحلة','حالة التنفيذ','حالة الامر وفقا لمتابعة المهندس المسئول']);
+ const reportType=ex('REPORT_TYPE')||'يومي';
+ const reportNo=ex('REPORT_NO')||'001';
+ const consultant=ex('CONSULTANT_NAME')||'شركة أبعاد الرؤية للاستشارات الهندسية';
+ const secFollowup=ex('SEC_FOLLOWUP_ENGINEER')||val(fs,['مهندس المتابعة','مهندس شركة الكهرباء','المهندس المسئول','المهندس المسؤول']);
+ const signatureRow=rows.find(r=>r.Section==='SIGNATURE'&&norm(r['Field / Item / Permit No.'])==='prepared_by')||rows.find(r=>r.Section==='SIGNATURE');
+ const preparedBy=extraValue(signatureRow)||engineer;
  const liveActual=pct(val(fs,['نسبة الانجاز الكلية','نسبة الإنجاز الكلية']));
  const planRows=rows.filter(r=>r.Section==='PLAN_POINT');
  const start=ex('ACTUAL_START_DATE')||val(fs,['تاريخ الاسناد','تاريخ الإسناد']);
@@ -229,7 +287,7 @@ function render(data){
  const qualityAlerts=[];
  if(boqMetric.hasWeights&&!boqMetric.valid)qualityAlerts.push('مجموع أوزان البنود = '+boqMetric.totalWeightPct.toFixed(2)+'%؛ لم يتم اعتماد الإنجاز المرجح وتم الرجوع إلى نسبة الإنجاز الحية.');
  if(historyDiff!=null&&Math.abs(historyDiff)>0.5)qualityAlerts.push('آخر إنجاز تاريخي مسجل '+historyLast.actual.toFixed(2)+'% يختلف عن الإنجاز الحالي '+actual.toFixed(2)+'% بفارق '+Math.abs(historyDiff).toFixed(2)+' نقطة.');
- const report={workOrder:data.workOrder,projectTitle,desc,contractor,location,engineer,stage,stageStatus,actual,actualSource,liveActual,planned,variance,start,expected,rdate,elapsed,remaining,boq,boqMetric,mats,permits,risks,periodRows,managementRows,matSum,permitSum,issuedLen,doneLen,permitExecution,planRows,qualityAlerts};
+ const report={workOrder:data.workOrder,projectTitle,desc,contractor,location,engineer,stage,stageStatus,reportType,reportNo,consultant,secFollowup,preparedBy,actual,actualSource,liveActual,planned,variance,start,expected,rdate,elapsed,remaining,boq,boqMetric,mats,permits,risks,periodRows,managementRows,matSum,permitSum,issuedLen,doneLen,permitExecution,planRows,qualityAlerts};
  state.report=report;
  const cards=[
   {label:'الإنجاز الفعلي',value:actual==null?'—':fmtPct(actual),src:actualSource,ltr:true},
@@ -243,7 +301,7 @@ function render(data){
  <section class="pre-summary pre-print-section">
   <div class="pre-title"><div><span>WORK ORDER ${esc(data.workOrder)}</span><h2>${esc(projectTitle)}</h2><p>${esc(desc||'')}</p></div><div class="pre-report-meta"><b>تاريخ التقرير</b><span class="pre-ltr">${esc(rdate)}</span><small>${esc(stage)} ${stageStatus?'• '+esc(stageStatus):''}</small></div></div>
   <div class="pre-facts">
-   ${fact('المقاول',contractor,'LIVE')}${fact('الموقع',location,'LIVE')}${fact('المهندس المسؤول',engineer,'LIVE')}${fact('مهندس متابعة الكهرباء',ex('SEC_FOLLOWUP_ENGINEER'),'EXTRA')}
+   ${fact('المقاول',contractor,'LIVE')}${fact('الموقع',location,'LIVE')}${fact('المهندس المسؤول',engineer,'LIVE')}${fact('مهندس متابعة الكهرباء',secFollowup,ex('SEC_FOLLOWUP_ENGINEER')?'EXTRA':'LIVE')}
    ${fact('تاريخ البدء الفعلي',start,ex('ACTUAL_START_DATE')?'EXTRA':'LIVE',true)}${fact('التشغيل المتوقع',expected,'EXTRA',true)}
   </div>
  </section>
