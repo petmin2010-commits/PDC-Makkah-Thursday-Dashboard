@@ -18,7 +18,7 @@ function install(){
  const page=document.createElement('section');page.id=PAGE_ID;page.className='page pre-page';page.innerHTML=markup();main.insertBefore(page,main.firstChild);
  nav.onclick=openPage;document.getElementById('nav')?.addEventListener('click',e=>{const b=e.target.closest('.nav-item');if(b&&b.id!==NAV_ID)leave()});
  $('preSearchBtn').onclick=search;$('preInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();search()}});
- $('prePrintBtn').onclick=openExportChooser;$('preOpenDataBtn').onclick=openDataSheet;
+ $('prePrintBtn').onclick=openExportChooser;
  $('preExportClose').onclick=closeExportChooser;
  $('preExportPdf').onclick=()=>{closeExportChooser();printReport()};
  $('preExportExcel').onclick=exportProjectExcel;
@@ -33,7 +33,6 @@ function markup(){return `
 <div class="pre-searchbar">
  <input id="preInput" inputmode="numeric" autocomplete="off" placeholder="ابحث برقم أمر العمل...">
  <button id="preSearchBtn" type="button">إنشاء التقرير</button>
- <button id="preOpenDataBtn" class="pre-search-secondary" type="button">فتح بيانات التقرير</button>
  <button id="prePrintBtn" class="pre-search-secondary" type="button">تصدير التقرير</button>
 </div>
 <div id="preBody" class="pre-state"><b>محرك التقرير جاهز</b><span>اختر أي رقم أمر عمل. سيُسحب الموجود من أوراق المشروع تلقائيًا، وتُستخدم صفحة Projects Report Engine Data فقط للبيانات غير الموجودة.</span></div>
