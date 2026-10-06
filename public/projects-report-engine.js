@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 const PAGE_ID='projectsReportEnginePage',NAV_ID='projectsReportEngineNav',EXTRA_SHEET='Projects Report Engine Data';
-const state={loading:false,data:null,wo:'',extraSheetId:''};
+const state={loading:false,data:null,wo:'',extraSheetId:'',report:null};
 const $=id=>document.getElementById(id);
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clean=v=>String(v==null?'':v).replace(/\s+/g,' ').trim();
@@ -10,6 +10,7 @@ const num=v=>{const n=Number(String(v??'').replace(/,/g,'').replace('%','').trim
 const pct=v=>{const n=num(v);return n==null?null:(String(v).includes('%')?n:(Math.abs(n)<=1?n*100:n))};
 const fmtNum=v=>{const n=num(v);return n==null?'—':n.toLocaleString('en-US',{maximumFractionDigits:2})};
 const fmtPct=v=>{const n=pct(v);return n==null?'—':n.toLocaleString('en-US',{maximumFractionDigits:2})+'%'};
+const ltr=v=>'<span class="pre-ltr">'+esc(v==null?'—':v)+'</span>';
 function rpc(method,args=[]){return fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({method,args})}).then(async r=>{const x=await r.json().catch(()=>({}));if(!r.ok||x.ok===false)throw new Error(x.error||('HTTP '+r.status));return x.result})}
 function install(){
  const nav=$(NAV_ID);if(!nav||$(PAGE_ID))return;
@@ -17,13 +18,13 @@ function install(){
  const page=document.createElement('section');page.id=PAGE_ID;page.className='page pre-page';page.innerHTML=markup();main.insertBefore(page,main.firstChild);
  nav.onclick=openPage;document.getElementById('nav')?.addEventListener('click',e=>{const b=e.target.closest('.nav-item');if(b&&b.id!==NAV_ID)leave()});
  $('preSearchBtn').onclick=search;$('preInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();search()}});
- $('prePrintBtn').onclick=()=>window.print();$('preOpenDataBtn').onclick=openDataSheet;
+ $('prePrintBtn').onclick=printReport;$('preOpenDataBtn').onclick=openDataSheet;
  const saved=localStorage.getItem('vd.projectsReportEngine.wo')||'';if(saved)$('preInput').value=saved;
 }
 function markup(){return `
 <div class="pre-hero">
  <div><span class="pre-eyebrow">DYNAMIC WORK ORDER REPORTING</span><h2>Projects Report Engine</h2><p>تقرير مشروع ديناميكي يدمج بيانات أمر العمل الحية مع البيانات الإضافية المخصصة للتقرير، بدون تكرار حقول موجودة أصلًا.</p></div>
- <div class="pre-actions"><button id="preOpenDataBtn" type="button">فتح بيانات التقرير</button><button id="prePrintBtn" type="button">تصدير / طباعة PDF</button></div>
+ <div class="pre-actions"><button id="preOpenDataBtn" type="button">فتح بيانات التقرير</button><button id="prePrintBtn" type="button">تصدير التقرير PDF</button></div>
 </div>
 <div class="pre-searchbar"><input id="preInput" inputmode="numeric" autocomplete="off" placeholder="ابحث برقم أمر العمل..."><button id="preSearchBtn" type="button">إنشاء التقرير</button></div>
 <div id="preBody" class="pre-state"><b>محرك التقرير جاهز</b><span>اختر أي رقم أمر عمل. سيُسحب الموجود من أوراق المشروع تلقائيًا، وتُستخدم صفحة Projects Report Engine Data فقط للبيانات غير الموجودة.</span></div>`}
@@ -46,15 +47,7 @@ async function search(){
 function toObj(record){const o={};(record?.fields||[]).forEach(f=>o[clean(f.label)]=f.value);return o}
 function source(data,name){return (data.sources||[]).find(s=>norm(s.sheet)===norm(name))}
 function extraRows(data){const s=source(data,EXTRA_SHEET);state.extraSheetId=s?.sheetId||'';return (s?.records||[]).map(r=>({...toObj(r),_row:r.rowNumber}))}
-function originalFields(data){
- const out=[];
- (data.sources||[]).filter(s=>norm(s.sheet)!==norm(EXTRA_SHEET)).forEach(s=>{
-  (s.records||[]).forEach(r=>{
-   (r.fields||[]).forEach(f=>out.push({sheet:s.sheet,label:clean(f.label),value:f.value}));
-  });
- });
- return out;
-}
+function originalFields(data){const out=[];(data.sources||[]).filter(s=>norm(s.sheet)!==norm(EXTRA_SHEET)).forEach(s=>{(s.records||[]).forEach(r=>{(r.fields||[]).forEach(f=>out.push({sheet:s.sheet,label:clean(f.label),value:f.value}))})});return out}
 function pick(fs,labels){
  for(const wanted of labels){const nw=norm(wanted);const hit=fs.find(f=>norm(f.label)===nw&&clean(f.value));if(hit)return hit}
  for(const wanted of labels){const nw=norm(wanted);const hit=fs.find(f=>norm(f.label).includes(nw)&&clean(f.value));if(hit)return hit}
@@ -66,10 +59,35 @@ function extraValue(row){return row?.['Text Value / Description']||row?.['Numeri
 function reportDate(rows){const pts=rows.filter(r=>r.Section==='PLAN_POINT').map(r=>r['Start / Observation Date']).filter(Boolean);return pts.at(-1)||''}
 function dateObj(v){const s=clean(v);let m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);if(m)return new Date(+m[3],+m[2]-1,+m[1]);m=s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);if(m)return new Date(+m[1],+m[2]-1,+m[3]);const d=new Date(s);return isNaN(d)?null:d}
 function daysBetween(a,b){const x=dateObj(a),y=dateObj(b);return x&&y?Math.round((y-x)/86400000):null}
-function statusClass(s){const n=norm(s);if(n.includes('تم')||n.includes('كامل')||n.includes('اصدار'))return'ok';if(n.includes('جاري')||n.includes('تنسيق')||n.includes('جزئي'))return'warn';if(n.includes('مرفوض')||n.includes('لم'))return'bad';return''}
+function statusClass(s){
+ const n=norm(s);
+ if(n.includes('مرفوض')||n.includes('لم يتم')||n.startsWith('لم ')||n.includes('غير مصروف'))return'bad';
+ if(n.includes('منتهي'))return'expired';
+ if(n.includes('جزئي')||n.includes('تنسيق')||n.includes('اعتماد')||n.includes('جاري')||n.includes('قيد'))return'warn';
+ if(n.includes('بالكامل')||n.includes('اصدار')||n.includes('مكتمل')||n.includes('تم الصرف'))return'ok';
+ return'';
+}
+function completion(row){
+ const planned=num(row['Planned / Required Qty']),done=num(row['Executed / Issued Qty']);
+ if(planned==null||planned<=0||done==null)return null;
+ return Math.max(0,Math.min(100,(done/planned)*100));
+}
+function materialSummary(rows){
+ const total=rows.length;let full=0,partial=0,none=0;
+ rows.forEach(r=>{const n=norm(r.Status);if(n.includes('بالكامل'))full++;else if(n.includes('جزئي'))partial++;else if(n.includes('لم يتم')||n.startsWith('لم ')||n.includes('غير مصروف'))none++});
+ return{total,full,partial,none,other:Math.max(0,total-full-partial-none)};
+}
+function permitSummary(rows){
+ const out={total:rows.length,issued:0,expired:0,rejected:0,coord:0,other:0};
+ rows.forEach(r=>{const n=norm(r.Status);if(n.includes('مرفوض'))out.rejected++;else if(n.includes('منتهي'))out.expired++;else if(n.includes('تنسيق')||n.includes('اعتماد')||n.includes('قيد'))out.coord++;else if(n.includes('اصدار'))out.issued++;else out.other++});
+ return out;
+}
+function miniSummary(items,cls=''){
+ return '<div class="pre-summary-strip '+cls+'">'+items.map(x=>'<div><small>'+esc(x[0])+'</small><b class="'+(x[2]||'')+'">'+(x[3]?'':esc(x[1]))+(x[3]||'')+'</b></div>').join('')+'</div>';
+}
 function render(data){
  const rows=extraRows(data),fs=originalFields(data),extras=rows.filter(r=>r.Section==='PROJECT_EXTRA');
- if(!data.totalRecords){$('preBody').className='pre-state';$('preBody').innerHTML='<b>لم يتم العثور على أمر العمل '+esc(data.workOrder)+'</b><span>لا توجد سجلات مطابقة في ملف المشروع.</span>';return}
+ if(!data.totalRecords){state.report=null;$('preBody').className='pre-state';$('preBody').innerHTML='<b>لم يتم العثور على أمر العمل '+esc(data.workOrder)+'</b><span>لا توجد سجلات مطابقة في ملف المشروع.</span>';return}
  const ex=k=>extraValue(extraBy(extras,k));
  const projectTitle=ex('PROJECT_TITLE')||val(fs,['وصف امر العمل','وصف امر العمل uds','شرح تفصيل امر العمل'])||'مشروع '+data.workOrder;
  const desc=ex('DETAILED_WORK_DESCRIPTION')||val(fs,['شرح تفصيل امر العمل','وصف امر العمل','وصف امر العمل uds']);
@@ -85,57 +103,128 @@ function render(data){
  const expected=ex('EXPECTED_OPERATION_DATE');
  const rdate=reportDate(rows)||new Date().toLocaleDateString('en-GB');
  const elapsed=daysBetween(start,rdate),remaining=expected?daysBetween(rdate,expected):null;
- const boq=rows.filter(r=>r.Section==='BOQ_ITEM'),mats=rows.filter(r=>r.Section==='MATERIAL'),permits=rows.filter(r=>r.Section==='PERMIT_DETAIL');
- const issued=permits.filter(r=>norm(r.Status).includes('اصدار')).length;
+ const boq=rows.filter(r=>r.Section==='BOQ_ITEM').map(r=>({...r,_completion:completion(r)}));
+ const mats=rows.filter(r=>r.Section==='MATERIAL'),permits=rows.filter(r=>r.Section==='PERMIT_DETAIL');
+ const matSum=materialSummary(mats),permitSum=permitSummary(permits);
  const issuedLen=permits.filter(r=>norm(r.Status).includes('اصدار')).reduce((a,r)=>a+(num(r['Planned / Required Qty'])||0),0);
- const doneLen=permits.reduce((a,r)=>a+(num(r['Executed / Issued Qty'])||0),0);
+ const doneLen=permits.filter(r=>norm(r.Status).includes('اصدار')).reduce((a,r)=>a+(num(r['Executed / Issued Qty'])||0),0);
+ const permitExecution=issuedLen>0?(doneLen/issuedLen)*100:null;
+ const report={workOrder:data.workOrder,projectTitle,desc,contractor,location,engineer,stage,stageStatus,actual,planned,variance,start,expected,rdate,elapsed,remaining,boq,mats,permits,matSum,permitSum,issuedLen,doneLen,permitExecution};
+ state.report=report;
  const cards=[
-  ['الإنجاز الفعلي',actual==null?'—':fmtPct(actual),'live'],
-  ['المخطط حتى تاريخ التقرير',planned==null?'—':fmtPct(planned),'manual'],
-  ['الانحراف',variance==null?'—':(variance>=0?'+':'')+variance.toFixed(2)+'%','calc'],
-  ['الأيام المنقضية',elapsed==null?'—':elapsed,'calc'],
-  ['الأيام المتبقية',remaining==null?'—':remaining,'calc'],
-  ['التصاريح الصادرة',permits.length?issued+' / '+permits.length:'—','manual']
+  {label:'الإنجاز الفعلي',value:actual==null?'—':fmtPct(actual),src:'LIVE',ltr:true},
+  {label:'المخطط حتى تاريخ التقرير',value:planned==null?'—':fmtPct(planned),src:'EXTRA',ltr:true},
+  {label:'الانحراف',value:variance==null?'—':((variance>=0?'+':'')+variance.toFixed(2)+'%'),src:'CALC',ltr:true,bad:variance!=null&&variance<0},
+  {label:'الأيام المنقضية',value:elapsed==null?'—':elapsed,src:'CALC',ltr:true},
+  {label:'الأيام المتبقية',value:remaining==null?'—':remaining,src:'CALC',ltr:true},
+  {label:'التصاريح الصادرة',value:permitSum.issued+' صادر',sub:'من أصل '+permitSum.total+' تصريحًا',src:'EXTRA',ltr:false}
  ];
  $('preBody').className='pre-report';$('preBody').innerHTML=`
- <section class="pre-summary">
-  <div class="pre-title"><div><span>WORK ORDER ${esc(data.workOrder)}</span><h2>${esc(projectTitle)}</h2><p>${esc(desc||'')}</p></div><div class="pre-report-meta"><b>تاريخ التقرير</b><span>${esc(rdate)}</span><small>${esc(stage)} ${stageStatus?'• '+esc(stageStatus):''}</small></div></div>
+ <section class="pre-summary pre-print-section">
+  <div class="pre-title"><div><span>WORK ORDER ${esc(data.workOrder)}</span><h2>${esc(projectTitle)}</h2><p>${esc(desc||'')}</p></div><div class="pre-report-meta"><b>تاريخ التقرير</b><span class="pre-ltr">${esc(rdate)}</span><small>${esc(stage)} ${stageStatus?'• '+esc(stageStatus):''}</small></div></div>
   <div class="pre-facts">
    ${fact('المقاول',contractor,'LIVE')}${fact('الموقع',location,'LIVE')}${fact('المهندس المسؤول',engineer,'LIVE')}${fact('مهندس متابعة الكهرباء',ex('SEC_FOLLOWUP_ENGINEER'),'EXTRA')}
-   ${fact('تاريخ البدء الفعلي',start,ex('ACTUAL_START_DATE')?'EXTRA':'LIVE')}${fact('التشغيل المتوقع',expected,'EXTRA')}
+   ${fact('تاريخ البدء الفعلي',start,ex('ACTUAL_START_DATE')?'EXTRA':'LIVE',true)}${fact('التشغيل المتوقع',expected,'EXTRA',true)}
   </div>
  </section>
- <div class="pre-kpis">${cards.map(c=>'<article class="pre-kpi '+(c[0]==='الانحراف'&&variance<0?'bad':'')+'"><small>'+esc(c[0])+' • '+sourceTag(c[2])+'</small><strong>'+esc(c[1])+'</strong></article>').join('')}</div>
+ <div class="pre-kpis pre-print-section">${cards.map(c=>'<article class="pre-kpi '+(c.bad?'bad':'')+'"><small>'+esc(c.label)+' • '+c.src+'</small><strong'+(c.ltr?' class="pre-ltr"':'')+'>'+esc(c.value)+'</strong>'+(c.sub?'<em>'+esc(c.sub)+'</em>':'')+'</article>').join('')}</div>
  ${progressBlock(actual,planned)}
- ${tableBlock('بنود التنفيذ','BOQ / PROGRESS',boq,['Field / Item / Permit No.','Text Value / Description','Unit','Planned / Required Qty','Executed / Issued Qty','Period Qty','Weight / Planned Progress %','Status'],['الكود','البند','الوحدة','المخطط','المنفذ','الفترة','الوزن','الحالة'])}
- ${tableBlock('المواد','MATERIAL CONTROL',mats,['Text Value / Description','Unit','Planned / Required Qty','Executed / Issued Qty','Status'],['الصنف','الوحدة','المطلوب','المصروف','الحالة'])}
- ${permitsBlock(permits,issuedLen,doneLen)}
+ ${boqBlock(boq)}
+ ${materialsBlock(mats,matSum)}
+ ${permitsBlock(permits,permitSum,issuedLen,doneLen,permitExecution)}
  ${extraBlock(extras)}
  <div class="pre-source-note">تم العثور على أمر العمل في <b>${data.matchedSheets}</b> ورقة / مصدر و <b>${data.totalRecords}</b> سجل. البيانات الموسومة LIVE تأتي من أوراق المشروع الحالية، وEXTRA من صفحة الإدخال الإضافية.</div>`;
 }
-function sourceTag(t){return t==='live'?'LIVE':t==='manual'?'EXTRA':'CALC'}
-function fact(k,v,src){return '<div class="pre-fact"><small>'+esc(k)+' • '+src+'</small><b>'+esc(v||'—')+'</b></div>'}
+function fact(k,v,src,isLtr=false){return '<div class="pre-fact"><small>'+esc(k)+' • '+src+'</small><b'+(isLtr?' class="pre-ltr"':'')+'>'+esc(v||'—')+'</b></div>'}
 function progressBlock(actual,planned){
  const a=Math.max(0,Math.min(100,actual||0)),p=Math.max(0,Math.min(100,planned||0));
- return `<section class="pre-panel"><div class="pre-panel-head"><div><span>PROGRESS CONTROL</span><h3>التقدم الفعلي مقابل المخطط</h3></div></div>
- <div class="pre-progress-row"><b>الفعلي</b><div class="pre-track"><i style="width:${a}%"></i></div><strong>${actual==null?'—':actual.toFixed(2)+'%'}</strong></div>
- <div class="pre-progress-row planned"><b>المخطط</b><div class="pre-track"><i style="width:${p}%"></i></div><strong>${planned==null?'—':planned.toFixed(2)+'%'}</strong></div></section>`
+ return `<section class="pre-panel pre-progress-panel pre-print-section"><div class="pre-panel-head"><div><span>PROGRESS CONTROL</span><h3>التقدم الفعلي مقابل المخطط</h3></div></div>
+ <div class="pre-progress-row"><b>الفعلي</b><div class="pre-track"><i style="width:${a}%"></i></div><strong class="pre-ltr">${actual==null?'—':actual.toFixed(2)+'%'}</strong></div>
+ <div class="pre-progress-row planned"><b>المخطط</b><div class="pre-track"><i style="width:${p}%"></i></div><strong class="pre-ltr">${planned==null?'—':planned.toFixed(2)+'%'}</strong></div></section>`
 }
-function tableBlock(title,en,rows,keys,heads){
+function cell(v,cls=''){return '<td'+(cls?' class="'+cls+'"':'')+'>'+esc(v==null||v===''?'—':v)+'</td>'}
+function boqBlock(rows){
  if(!rows.length)return '';
- return `<section class="pre-panel"><div class="pre-panel-head"><div><span>${en}</span><h3>${esc(title)}</h3></div><b>${rows.length}</b></div><div class="pre-table-wrap"><table><thead><tr>${heads.map(h=>'<th>'+esc(h)+'</th>').join('')}</tr></thead><tbody>${rows.map(r=>'<tr>'+keys.map(k=>'<td'+(k==='Status'?' class="status '+statusClass(r[k])+'"':'')+'>'+esc(r[k]||'—')+'</td>').join('')+'</tr>').join('')}</tbody></table></div></section>`
+ const body=rows.map(r=>'<tr>'+
+  cell(r['Field / Item / Permit No.'],'pre-system-col')+
+  cell(r['Text Value / Description'])+
+  cell(r.Unit,'pre-num')+
+  cell(fmtNum(r['Planned / Required Qty']),'pre-num')+
+  cell(fmtNum(r['Executed / Issued Qty']),'pre-num')+
+  cell(fmtNum(r['Period Qty']),'pre-num')+
+  cell(r._completion==null?'—':r._completion.toFixed(2)+'%','pre-num')+
+  cell(r['Weight / Planned Progress %']?fmtPct(r['Weight / Planned Progress %']):'—','pre-num')+
+  cell(r.Status,'status '+statusClass(r.Status))+'</tr>').join('');
+ return `<section class="pre-panel pre-print-section"><div class="pre-panel-head"><div><span>BOQ / PROGRESS</span><h3>بنود التنفيذ</h3></div><b>${rows.length}</b></div><div class="pre-table-wrap"><table><thead><tr><th class="pre-system-col">الكود</th><th>البند</th><th>الوحدة</th><th>المخطط</th><th>المنفذ</th><th>الفترة</th><th>% إنجاز البند</th><th>الوزن</th><th>الحالة</th></tr></thead><tbody>${body}</tbody></table></div></section>`
 }
-function permitsBlock(rows,issuedLen,doneLen){
+function materialsBlock(rows,sum){
  if(!rows.length)return '';
- const keys=['Field / Item / Permit No.','Responsible / Issuing Authority','Location / Neighborhood','Status','Start / Observation Date','End / Expected Date','Planned / Required Qty','Executed / Issued Qty'];
- const heads=['رقم / مرحلة التصريح','الجهة','الموقع','الحالة','البداية','النهاية','الطول','المنجز'];
- return `<section class="pre-panel"><div class="pre-panel-head"><div><span>PERMIT PORTFOLIO</span><h3>التصاريح التفصيلية</h3></div><div class="pre-mini-kpis"><span>أطوال الصادر <b>${fmtNum(issuedLen)} م</b></span><span>منجز مسجل <b>${fmtNum(doneLen)} م</b></span></div></div><div class="pre-table-wrap"><table><thead><tr>${heads.map(h=>'<th>'+h+'</th>').join('')}</tr></thead><tbody>${rows.map(r=>'<tr>'+keys.map(k=>'<td'+(k==='Status'?' class="status '+statusClass(r[k])+'"':'')+'>'+esc(r[k]||'—')+'</td>').join('')+'</tr>').join('')}</tbody></table></div></section>`
+ const summary=miniSummary([
+  ['إجمالي الأصناف',sum.total,'pre-ltr'],
+  ['مصروف بالكامل',sum.full,'ok-text'],
+  ['مصروف جزئي',sum.partial,'warn-text'],
+  ['لم يتم الصرف',sum.none,'bad-text']
+ ],'pre-material-summary');
+ const body=rows.map(r=>'<tr>'+cell(r['Text Value / Description'])+cell(r.Unit,'pre-num')+cell(fmtNum(r['Planned / Required Qty']),'pre-num')+cell(fmtNum(r['Executed / Issued Qty']),'pre-num')+cell(r.Status,'status '+statusClass(r.Status))+'</tr>').join('');
+ return `<section class="pre-panel pre-material-panel pre-print-section"><div class="pre-panel-head"><div><span>MATERIAL CONTROL</span><h3>المواد</h3></div><b>${rows.length}</b></div>${summary}<div class="pre-table-wrap"><table><thead><tr><th>الصنف</th><th>الوحدة</th><th>المطلوب</th><th>المصروف</th><th>الحالة</th></tr></thead><tbody>${body}</tbody></table></div></section>`
+}
+function permitsBlock(rows,sum,issuedLen,doneLen,execution){
+ if(!rows.length)return '';
+ const summary=miniSummary([
+  ['إجمالي التصاريح',sum.total,'pre-ltr'],
+  ['تم الإصدار',sum.issued,'ok-text'],
+  ['منتهي',sum.expired,'expired-text'],
+  ['مرفوض',sum.rejected,'bad-text'],
+  ['قيد التنسيق والاعتماد',sum.coord,'warn-text']
+ ],'pre-permit-summary');
+ const body=rows.map(r=>'<tr>'+
+  cell(r['Field / Item / Permit No.'])+
+  cell(r['Responsible / Issuing Authority'])+
+  cell(r['Location / Neighborhood'])+
+  cell(r.Status,'status '+statusClass(r.Status))+
+  cell(r['Start / Observation Date'],'pre-num')+
+  cell(r['End / Expected Date'],'pre-num')+
+  cell(fmtNum(r['Planned / Required Qty']),'pre-num')+
+  cell(fmtNum(r['Executed / Issued Qty']),'pre-num')+'</tr>').join('');
+ return `<section class="pre-panel pre-permits-panel"><div class="pre-panel-head"><div><span>PERMIT PORTFOLIO</span><h3>التصاريح التفصيلية</h3></div><div class="pre-mini-kpis"><span>أطوال الصادر <b class="pre-ltr">${fmtNum(issuedLen)} م</b></span><span>منجز على الصادر <b class="pre-ltr">${fmtNum(doneLen)} م</b></span><span>نسبة التنفيذ <b class="pre-ltr">${execution==null?'—':execution.toFixed(2)+'%'}</b></span></div></div>${summary}<div class="pre-table-wrap"><table><thead><tr><th>رقم / مرحلة التصريح</th><th>الجهة</th><th>الموقع</th><th>الحالة</th><th>البداية</th><th>النهاية</th><th>الطول</th><th>المنجز</th></tr></thead><tbody>${body}</tbody></table></div></section>`
 }
 function extraBlock(rows){
  const hidden=new Set(['PROJECT_TITLE','DETAILED_WORK_DESCRIPTION','ACTUAL_START_DATE','EXPECTED_OPERATION_DATE','SEC_FOLLOWUP_ENGINEER']);
  const show=rows.filter(r=>!hidden.has(r['Field / Item / Permit No.']));
  if(!show.length)return '';
- return `<section class="pre-panel"><div class="pre-panel-head"><div><span>REPORT-SPECIFIC DATA</span><h3>بيانات إضافية خاصة بالتقرير</h3></div></div><div class="pre-extra-grid">${show.map(r=>'<div><small>'+esc(r['Field / Item / Permit No.'])+'</small><b>'+esc(extraValue(r)||'—')+'</b></div>').join('')}</div></section>`
+ return `<section class="pre-panel pre-print-section"><div class="pre-panel-head"><div><span>REPORT-SPECIFIC DATA</span><h3>بيانات إضافية خاصة بالتقرير</h3></div></div><div class="pre-extra-grid">${show.map(r=>'<div><small>'+esc(r['Field / Item / Permit No.'])+'</small><b>'+esc(extraValue(r)||'—')+'</b></div>').join('')}</div></section>`
 }
+function getBrand(){
+ const box=document.querySelector('.brand-copy');
+ const city=clean(box?.querySelector('strong')?.textContent)||'إدارة الكهرباء';
+ const contract=clean(box?.querySelector('em')?.textContent)||'';
+ return{city,contract,code:norm(city).includes('مكه')?'MAK':norm(city).includes('جده')?'JED':'PDC'}
+}
+function compactDate(v){const d=dateObj(v);if(!d)return String(v||'').replace(/\D/g,'');return String(d.getFullYear())+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')}
+function printReport(){
+ if(!state.report||!document.querySelector('#preBody.pre-report')){alert('أنشئ التقرير أولاً ثم اضغط تصدير التقرير PDF.');return}
+ const brand=getBrand(),r=state.report;
+ const clone=document.querySelector('#preBody.pre-report').cloneNode(true);
+ clone.querySelectorAll('.pre-system-col,.pre-source-note').forEach(x=>x.remove());
+ clone.querySelectorAll('.pre-table-wrap').forEach(x=>{x.style.overflow='visible'});
+ const title='VD-PDC-'+brand.code+'-WO-'+r.workOrder+'-'+compactDate(r.rdate)+'-R01';
+ const win=window.open('','_blank','width=1400,height=900');
+ if(!win){alert('يرجى السماح بالنوافذ المنبثقة لتصدير PDF.');return}
+ const css=printCss();
+ win.document.open();
+ win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>'+css+'</style></head><body>'+
+ '<header class="pdf-header"><div class="pdf-brand"><img src="'+location.origin+'/company-logo.png" alt=""><div><b>شركة أبعاد الرؤية للاستشارات الهندسية</b><span>'+esc(brand.city)+'</span></div></div><div class="pdf-meta"><strong>Projects Report Engine</strong><span>WO '+esc(r.workOrder)+' • '+esc(r.rdate)+'</span></div></header>'+
+ '<main class="pdf-main">'+clone.outerHTML+'</main>'+
+ '<footer class="pdf-footer"><span>Vision Dimensions Engineering Consultancy</span><span>'+esc(brand.contract)+'</span><span>WO '+esc(r.workOrder)+'</span></footer>'+
+ '</body></html>');
+ win.document.close();
+ const go=()=>{setTimeout(()=>{win.focus();win.print()},500)};
+ if(win.document.readyState==='complete')go();else win.addEventListener('load',go,{once:true});
+}
+function printCss(){return `
+@page{size:A4 landscape;margin:17mm 9mm 13mm;@bottom-right{content:"صفحة " counter(page) " من " counter(pages);font:700 8pt Arial;color:#60758d}@bottom-left{content:"Vision Dimensions";font:700 8pt Arial;color:#60758d}}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#243d59;font-family:Arial,Tahoma,sans-serif;direction:rtl;-webkit-print-color-adjust:exact;print-color-adjust:exact}.pdf-header{position:fixed;top:-13mm;left:0;right:0;height:11mm;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #bfcddd;padding-bottom:2mm;background:#fff;z-index:10}.pdf-brand{display:flex;align-items:center;gap:3mm}.pdf-brand img{height:8mm;width:auto}.pdf-brand b{display:block;font-size:9pt;color:#173656}.pdf-brand span{display:block;font-size:6.8pt;color:#6c7e91;margin-top:.5mm}.pdf-meta{text-align:left;direction:ltr}.pdf-meta strong{display:block;font-size:9pt;color:#173656}.pdf-meta span{display:block;font-size:6.8pt;color:#6c7e91;margin-top:.5mm}.pdf-footer{position:fixed;bottom:-9mm;left:0;right:0;height:7mm;border-top:1px solid #ccd7e2;display:flex;justify-content:space-between;align-items:center;font-size:6.5pt;color:#6c7e91;background:#fff}.pdf-main{width:100%}.pre-report{display:block}.pre-summary,.pre-panel{background:#fff;border:1px solid #ccd9e6;border-radius:4mm;padding:4mm;margin:0 0 3.2mm;box-shadow:none}.pre-title{display:flex;justify-content:space-between;gap:6mm;align-items:flex-start}.pre-title>div:first-child{flex:1}.pre-title>div>span,.pre-panel-head span{display:block;font-size:6pt;font-weight:800;letter-spacing:.8pt;color:#527da7;direction:ltr}.pre-title h2{font-size:15pt;margin:1mm 0;color:#173656}.pre-title p{font-size:7.3pt;line-height:1.6;margin:0;color:#60758d}.pre-report-meta{min-width:38mm;text-align:left}.pre-report-meta b{display:block;font-size:6pt;color:#7d8fa1}.pre-report-meta span{display:block;font-size:9pt;font-weight:800;color:#173656;margin-top:.5mm}.pre-report-meta small{display:block;font-size:6.3pt;color:#718398;margin-top:1mm}.pre-facts,.pre-extra-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2mm;margin-top:3mm}.pre-fact,.pre-extra-grid>div{border:1px solid #dce5ed;border-radius:2mm;padding:2mm 2.5mm;background:#fbfdff}.pre-fact small,.pre-extra-grid small{display:block;font-size:5.7pt;color:#8091a3;margin-bottom:.7mm}.pre-fact b,.pre-extra-grid b{font-size:7.3pt;color:#253e5a}.pre-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:2mm;margin:0 0 3.2mm}.pre-kpi{border:1px solid #d8e2ec;border-radius:3mm;padding:2.5mm;background:#fff;min-height:18mm}.pre-kpi small{display:block;font-size:5.5pt;color:#8191a2}.pre-kpi strong{display:block;font-size:14pt;color:#193b60;margin-top:1.5mm}.pre-kpi em{display:block;font-style:normal;font-size:6pt;color:#7a8da1;margin-top:.6mm}.pre-kpi.bad strong,.bad-text{color:#bd3f49!important}.ok-text{color:#187b50!important}.warn-text{color:#a96f0b!important}.expired-text{color:#6f5a34!important}.pre-panel-head{display:flex;justify-content:space-between;align-items:center;gap:4mm;margin-bottom:2.5mm}.pre-panel-head h3{font-size:10pt;color:#223f5e;margin:.7mm 0 0}.pre-panel-head>b{font-size:8pt;color:#5f7590}.pre-progress-row{display:grid;grid-template-columns:18mm 1fr 18mm;gap:2mm;align-items:center;margin:2mm 0}.pre-progress-row>b{font-size:7pt}.pre-progress-row>strong{text-align:left;font-size:7.5pt}.pre-track{height:3mm;background:#edf2f6;border-radius:99mm;overflow:hidden}.pre-track i{display:block;height:100%;background:#2c80bf}.pre-progress-row.planned .pre-track i{background:#8ba6be}.pre-summary-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1.8mm;margin-bottom:2.5mm}.pre-permit-summary{grid-template-columns:repeat(5,1fr)}.pre-summary-strip>div{border:1px solid #dce5ed;border-radius:2mm;padding:1.7mm 2mm;background:#f8fbfd;text-align:center}.pre-summary-strip small{display:block;font-size:5.4pt;color:#74889b}.pre-summary-strip b{display:block;font-size:10pt;color:#203e5e;margin-top:.6mm}.pre-mini-kpis{display:flex;gap:1.5mm;flex-wrap:wrap}.pre-mini-kpis span{font-size:5.7pt;border:1px solid #d8e3ed;border-radius:99mm;padding:1.2mm 2mm}.pre-table-wrap{border:1px solid #dfe7ee;border-radius:2mm;overflow:visible}.pre-table-wrap table{width:100%;border-collapse:collapse;table-layout:auto}.pre-table-wrap thead{display:table-header-group}.pre-table-wrap tr{break-inside:avoid;page-break-inside:avoid}.pre-table-wrap th{background:#eaf5ee;color:#314e64;font-size:6pt;padding:1.6mm 1.5mm;text-align:right;white-space:nowrap;border-bottom:1px solid #cfe0d6}.pre-table-wrap td{font-size:6.2pt;padding:1.6mm 1.5mm;border-top:1px solid #e4ebf1;color:#2f475f;vertical-align:top}.pre-table-wrap td.status{font-weight:800}.pre-table-wrap td.status.ok{color:#187b50}.pre-table-wrap td.status.warn{color:#a96f0b}.pre-table-wrap td.status.expired{color:#6f5a34}.pre-table-wrap td.status.bad{color:#bd3f49}.pre-ltr,.pre-num{direction:ltr;unicode-bidi:isolate;text-align:center}.pre-ltr{display:inline-block}.pre-print-section{break-inside:avoid;page-break-inside:avoid}.pre-material-panel{break-inside:avoid}.pre-permits-panel{break-inside:auto;page-break-inside:auto}.pre-permits-panel .pre-panel-head,.pre-permits-panel .pre-summary-strip{break-inside:avoid}.pre-source-note{display:none}.pre-system-col{display:none!important}
+`}
+
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(install,260));else setTimeout(install,260);
 })();
