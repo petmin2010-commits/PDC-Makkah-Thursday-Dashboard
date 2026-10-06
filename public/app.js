@@ -10,6 +10,7 @@ const LABELS={
  uploadStatus:'حالة الرفع',payment:'حالة السداد',consultant155:'155 الاستشاري',contractor155:'155 المقاول',value:'القيمة المالية',paymentStatus:'حالة الدفع',statementNo:'المستخلص',
  sapStatus:'حالة SAP',group:'المجموعة',executionEntity:'جهة التنفيذ',evaluation:'التقييم',date:'التاريخ'
 };
+const WORKORDER_H_FILTER_PAGES=new Set(['projects','connections','permits','assets']);
 
 document.addEventListener('DOMContentLoaded',()=>{
  // إخفاء شاشة التحميل بشكل مستقل عن أي زر أو دالة أخرى.
@@ -69,6 +70,8 @@ function bind(){
  const clearFilters=document.getElementById('clearFilters');
  if(clearFilters) clearFilters.onclick=()=>{
    ['f1','f2','f3','f4','f5','f6'].forEach(id=>{const el=document.getElementById(id);if(!el)return;if(window.VDMultiFilter)VDMultiFilter.clear(el,{silent:true});else el.value='';});
+   const hFilter=document.getElementById('workOrderHFilter');
+   if(hFilter){if(window.VDMultiFilter)VDMultiFilter.clear(hFilter,{silent:true});else hFilter.value='';}
    document.querySelectorAll('.workorder-option-search').forEach(input=>input.value='');
    document.getElementById('globalSearch').value='';
    clearChartFilters(S.current);
@@ -78,6 +81,8 @@ function bind(){
    const el=document.getElementById(id);
    if(el) el.onchange=applyFilters;
  });
+ const hFilter=document.getElementById('workOrderHFilter');
+ if(hFilter) hFilter.onchange=applyFilters;
  let t;
  const globalSearch=document.getElementById('globalSearch');
  if(globalSearch) globalSearch.oninput=()=>{clearTimeout(t);t=setTimeout(applyFilters,180)};
@@ -809,14 +814,53 @@ function renderMasterKpis(arr){
  root.querySelectorAll('.master-card').forEach(c=>c.onclick=()=>openPage(c.dataset.page));
 }
 function configureMasterFilters(){
+ configureWorkOrderHFilter([],true);
  const defs=[['region','الإدارة'],['section','القسم'],['contractor','المقاول'],['engineer','المهندس'],['status','الحالة']];
  setupInteractiveFilters(defs,S.masterRows,true,false);
 }
 
 function configurePageFilters(){
  // جميع الفلاتر المعرفة لكل تاب تعمل كتفاعلية مترابطة.
+ configureWorkOrderHFilter(S.raw,true);
  const defs=(S.filterKeys||[]).slice(0,6).map(k=>[k,LABELS[k]||k]);
  setupInteractiveFilters(defs,S.raw,false,true);
+}
+
+function configureWorkOrderHFilter(rows,resetValue){
+ const wrap=document.getElementById('workOrderHFilterWrap');
+ const select=document.getElementById('workOrderHFilter');
+ if(!wrap||!select)return;
+ const enabled=WORKORDER_H_FILTER_PAGES.has(S.current);
+ wrap.style.display=enabled?'block':'none';
+ select.dataset.key=enabled?'workOrderRegion':'';
+ if(!enabled){
+   if(window.VDMultiFilter)VDMultiFilter.clear(select,{silent:true});else select.value='';
+   return;
+ }
+ if(resetValue){
+   if(window.VDMultiFilter)VDMultiFilter.clear(select,{silent:true});else select.value='';
+ }
+ const selected=window.VDMultiFilter?VDMultiFilter.values(select):(select.value?[select.value]:[]);
+ select.innerHTML='<option value="">الكل</option>';
+ unique((rows||[]).map(r=>r.workOrderRegion)).filter(Boolean).sort((a,b)=>String(a).localeCompare(String(b),'ar')).forEach(v=>{
+   const o=document.createElement('option');o.value=v;o.textContent=v;select.appendChild(o);
+ });
+ if(window.VDMultiFilter)VDMultiFilter.enhance(select,{selected,allText:'الكل'});
+ else if(selected[0])select.value=selected[0];
+}
+
+function rebuildWorkOrderHFilterOptions(rows,selections){
+ const wrap=document.getElementById('workOrderHFilterWrap');
+ const select=document.getElementById('workOrderHFilter');
+ if(!wrap||!select||wrap.style.display==='none'||select.dataset.key!=='workOrderRegion')return;
+ const current=Array.isArray(selections.workOrderRegion)?selections.workOrderRegion:[];
+ const compatible=(rows||[]).filter(r=>rowMatchesSelections(r,selections,'workOrderRegion'));
+ const options=unique(compatible.map(r=>r.workOrderRegion)).filter(Boolean).sort((a,b)=>String(a).localeCompare(String(b),'ar'));
+ select.innerHTML='<option value="">الكل</option>';
+ options.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;select.appendChild(o);});
+ const kept=current.filter(v=>options.includes(v));
+ select.value=kept[0]||'';
+ if(window.VDMultiFilter)VDMultiFilter.refresh(select,{selected:kept,allText:'الكل'});
 }
 
 function setupInteractiveFilters(defs,rows,isMaster,resetValues){
@@ -906,6 +950,7 @@ function runWorkOrderSearch(select,input){
  }
  const target=matches[0];
  ['f1','f2','f3','f4','f5','f6'].forEach(id=>{const el=document.getElementById(id);if(!el)return;if(window.VDMultiFilter)VDMultiFilter.clear(el,{silent:true});else el.value='';});
+ const hFilter=document.getElementById('workOrderHFilter');if(hFilter){if(window.VDMultiFilter)VDMultiFilter.clear(hFilter,{silent:true});else hFilter.value='';}
  const gs=document.getElementById('globalSearch');if(gs)gs.value='';
  clearChartFilters(S.current);
  const periodClear=document.getElementById('vpsClear');
@@ -937,6 +982,11 @@ function currentSelections(){
    const s=document.getElementById('f'+i);
    if(s.parentElement.style.display==='none'||!s.dataset.key)continue;
    out[s.dataset.key]=window.VDMultiFilter?VDMultiFilter.values(s):(s.value?[s.value]:[]);
+ }
+ const h=document.getElementById('workOrderHFilter');
+ const hWrap=document.getElementById('workOrderHFilterWrap');
+ if(h&&hWrap&&hWrap.style.display!=='none'&&h.dataset.key){
+   out.workOrderRegion=window.VDMultiFilter?VDMultiFilter.values(h):(h.value?[h.value]:[]);
  }
  return out;
 }
@@ -983,6 +1033,7 @@ function rebuildFilterOptions(rows,isMaster){
      if(search&&search.value)filterWorkOrderSelectOptions(s,search.value);
    }
  }
+ rebuildWorkOrderHFilterOptions(rows,selections);
  updateFilterVisualState();
 }
 
@@ -995,6 +1046,12 @@ function updateFilterVisualState(){
    wrap.classList.toggle('active-filter',on);
    if(on)active++;
  }
+ const h=document.getElementById('workOrderHFilter'),hWrap=document.getElementById('workOrderHFilterWrap');
+ if(h&&hWrap&&hWrap.style.display!=='none'){
+   const on=window.VDMultiFilter?VDMultiFilter.isActive(h):!!h.value;
+   hWrap.classList.toggle('active-filter',on);
+   if(on)active++;
+ }else if(hWrap)hWrap.classList.remove('active-filter');
  const clear=document.getElementById('clearFilters');
  clear.textContent=active?`مسح الفلاتر (${active})`:'مسح الفلاتر';
  clear.classList.toggle('has-active',active>0);

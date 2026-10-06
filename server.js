@@ -1311,6 +1311,31 @@ async function getDataQualityPage_(){
   };
 }
 
+const WORKORDER_H_FILTER_PAGES_=new Set(['projects','connections','permits','assets']);
+
+async function getWorkOrderHLookup_(){
+  const cfg=APP.PAGES.workorders;
+  const values=await valuesGet(`${qSheet(cfg.sheet)}!D:H`);
+  const lookup=new Map();
+  values.slice(1,1+APP.MAX_ROWS).forEach(r=>{
+    const workOrder=cleanWorkOrder_(r?.[0]);
+    if(!workOrder)return;
+    const hValue=clean_(r?.[4]);
+    if(hValue&&!lookup.has(workOrder))lookup.set(workOrder,hValue);
+  });
+  return lookup;
+}
+
+async function enrichWithWorkOrderH_(rows){
+  const lookup=await getWorkOrderHLookup_();
+  return (rows||[]).map(row=>{
+    const hValue=lookup.get(cleanWorkOrder_(row.workOrder))||'';
+    const out={...row,workOrderRegion:hValue};
+    if(hValue)out._search=((out._search||'')+' '+hValue).toLowerCase();
+    return out;
+  });
+}
+
 async function getPageData(pageKey){
   const cfg=APP.PAGES[pageKey];if(!cfg)throw new Error('صفحة غير معرفة: '+pageKey);
   if(pageKey==='dataQuality')return getDataQualityPage_();
@@ -1319,7 +1344,8 @@ async function getPageData(pageKey){
   if(pageKey==='smartThursday')return getSmartThursdayPage_();
   if(pageKey==='violationsCombined')return getCombinedViolationsPage_();
   if(pageKey==='safety')return getSafetyReportPage_();
-  const rows=await readConfiguredSheet_(cfg,pageKey);
+  let rows=await readConfiguredSheet_(cfg,pageKey);
+  if(WORKORDER_H_FILTER_PAGES_.has(pageKey))rows=await enrichWithWorkOrderH_(rows);
   return {key:pageKey,title:cfg.title,updatedAt:now_(),rows,columns:cfg.fields.map(f=>({key:f[0],label:f[1]})),filterKeys:cfg.filters||[]};
 }
 
