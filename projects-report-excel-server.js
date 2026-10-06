@@ -8,6 +8,7 @@ const SHEET2='xl/worksheets/sheet2.xml';
 const SHEET3='xl/worksheets/sheet3.xml';
 const CHART1='xl/charts/chart1.xml';
 const CHART2='xl/charts/chart2.xml';
+const BLANK_JPEG=Buffer.from('/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAAUABQDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD9U6KKKACiiigAooooAKKKKAP/2Q==','base64');
 
 function xmlEsc(v){
   return String(v??'').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'')
@@ -15,7 +16,9 @@ function xmlEsc(v){
 }
 function clean(v){return String(v??'').replace(/\s+/g,' ').trim()}
 function num(v){
-  const n=Number(String(v??'').replace(/,/g,'').replace('%','').trim());
+  const s=String(v??'').replace(/,/g,'').replace('%','').trim();
+  if(!s)return null;
+  const n=Number(s);
   return Number.isFinite(n)?n:null;
 }
 function ratio(v){
@@ -62,7 +65,7 @@ function setCell(xml,ref,value,kind='string'){
     body='<is><t xml:space="preserve">'+xmlEsc(value)+'</t></is>';
   }
   const cell=body?'<c'+attrs+'>'+body+'</c>':'<c'+attrs+'/>';
-  if(hit)return xml.replace(hit.re,cell);
+  if(hit)return xml.replace(hit.re,()=>cell);
   const rowNo=Number((ref.match(/\d+$/)||[])[0]||0);
   const rr=new RegExp('(<row\\b[^>]*\\br="'+rowNo+'"[^>]*>)([\\s\\S]*?)(<\\/row>)');
   if(rr.test(xml))return xml.replace(rr,(m,a,b,c)=>a+b+cell+c);
@@ -74,6 +77,15 @@ function setRowHidden(xml,row,hidden){
     attrs=attrs.replace(/\s+hidden="[^"]*"/g,'');
     return '<row'+attrs+(hidden?' hidden="1"':'')+'>';
   });
+}
+function ensureRow(xml,row,styleRow=3){
+  if(new RegExp('<row\\b[^>]*\\br="'+row+'"[^>]*>').test(xml))return xml;
+  const source=(xml.match(new RegExp('<row\\b[^>]*\\br="'+styleRow+'"[^>]*>[\\s\\S]*?<\\/row>'))||[])[0];
+  if(!source)return xml;
+  let clone=source.replace(new RegExp('r="'+styleRow+'"','g'),'r="'+row+'"');
+  clone=clone.replace(/<c\b([^>]*\br="[A-Z]+)\d+("[^>]*)>[\s\S]*?<\/c>/g,(m,a,b)=>'<c'+a+row+b+'/>');
+  clone=clone.replace(/<c\b([^>]*\br="[A-Z]+)\d+("[^>]*)\/>/g,(m,a,b)=>'<c'+a+row+b+'/>');
+  return xml.replace('</sheetData>',clone+'</sheetData>');
 }
 function clearRange(xml,cols,start,end){
   for(let r=start;r<=end;r++)for(const c of cols)xml=setCell(xml,c+r,null,'string');
@@ -155,10 +167,10 @@ function buildProjectWorkbook(report){
   const mats=Array.isArray(report.mats)?report.mats:[];
   const permits=Array.isArray(report.permits)?report.permits:[];
   const risks=Array.isArray(report.risks)?report.risks:[];
-  if(boq.length>20)throw new Error('عدد بنود التنفيذ أكبر من سعة قالب Excel الحالية (20 بندًا).');
-  if(mats.length>40)throw new Error('عدد المواد أكبر من سعة قالب Excel الحالية (40 صنفًا).');
-  if(permits.length>80)throw new Error('عدد التصاريح أكبر من سعة قالب Excel الحالية (80 تصريحًا).');
-  if(risks.length>20)throw new Error('عدد العوائق أكبر من سعة قالب Excel الحالية (20 عائقًا).');
+  if(boq.length>5)throw new Error('للحفاظ على الشكل الأصلي حرفيًا، قالب Excel يدعم حتى 5 بنود تنفيذ.');
+  if(mats.length>15)throw new Error('للحفاظ على الشكل الأصلي حرفيًا، قالب Excel يدعم حتى 15 صنف مواد.');
+  if(permits.length>31)throw new Error('للحفاظ على الشكل الأصلي حرفيًا، قالب Excel يدعم حتى 31 تصريحًا.');
+  if(risks.length>5)throw new Error('للحفاظ على الشكل الأصلي حرفيًا، قالب Excel يدعم حتى 5 عوائق.');
 
   const reportType=clean(report.reportType)||'يومي';
   const reportNo=clean(report.reportNo)||'001';
@@ -166,14 +178,17 @@ function buildProjectWorkbook(report){
   const secFollowup=clean(report.secFollowup)||clean(report.engineer);
   const preparedBy=getPrepared(report);
   const rd=excelSerial(report.rdate),sd=excelSerial(report.start),ed=excelSerial(report.expected);
+  const contractDuration=num(report.contractDuration);
+  const actualRatio=report.actual==null?null:Number(report.actual)/100;
+  const actualFallback=actualRatio==null?'0':String(actualRatio);
   const header=[
     ['B3',report.workOrder,'string'],['E3',reportType,'string'],['G3',rd,'number'],['I3',reportNo,'string'],
     ['B4',report.projectTitle,'string'],['G4',report.location,'string'],['B5',report.desc,'string'],
     ['B6',report.contractor,'string'],['E6',consultant,'string'],['H6',secFollowup,'string'],
-    ['B7',sd,'number'],['D7',ed,'number'],
-    ['F7','IF(OR($B$7="",$D$7=""),"",$D$7-$B$7)','formula'],
+    ['B7',sd,'number'],['D7',ed,'number'],['F7',contractDuration,'number'],
     ['H7','IF($D$7="","",$D$7-$G$3)','formula'],
-    ['A10','$G$33','formula'],['B10',report.planned==null?null:Number(report.planned)/100,'number'],
+    ['A10','IFERROR(SUM($K$13:$K$17)/SUM($H$13:$H$17),'+actualFallback+')','formula'],
+    ['B10',report.planned==null?null:Number(report.planned)/100,'number'],
     ['D10','$A$10-$B$10','formula'],
     ['E10','IF($A$10>=0.999,"مكتمل",IF($D$10>=0,"وفق المخطط",IF($D$10>=-0.1,"تحت المتابعة","متأخر")))','formula'],
     ['F10',periodProgress(report),'number'],
@@ -181,9 +196,9 @@ function buildProjectWorkbook(report){
   ];
   for(const [ref,v,k] of header)s1=setCell(s1,ref,v,k);
 
-  s1=clearRange(s1,['A','B','C','D','E','F','G','H','I','J','K'],13,32);
-  for(let i=0;i<20;i++){
-    const row=13+i,r=boq[i]; s1=setRowHidden(s1,row,!r); if(!r)continue;
+  s1=clearRange(s1,['A','B','C','D','E','F','G','H','I','K'],13,17);
+  for(let i=0;i<5;i++){
+    const row=13+i,r=boq[i]; if(!r)continue;
     const planned=num(r['Planned / Required Qty']),done=num(r['Executed / Issued Qty']),period=num(r['Period Qty']),weight=ratio(r['Weight / Planned Progress %']);
     s1=setCell(s1,'A'+row,clean(r['Text Value / Description']||r['Field / Item / Permit No.']),'string');
     s1=setCell(s1,'B'+row,clean(r.Unit),'string');
@@ -197,13 +212,14 @@ function buildProjectWorkbook(report){
     s1=setCell(s1,'K'+row,'IF($A'+row+'="",0,IFERROR(MIN($D'+row+'/$C'+row+',1),0)*$H'+row+')','formula');
   }
   for(const [ref,f] of [
-    ['C33','SUM(C13:C32)'],['D33','SUM(D13:D32)'],['E33','SUM(E13:E32)'],['F33','SUM(F13:F32)'],
-    ['G33','SUM(K13:K32)'],['H33','SUM(H13:H32)'],['I33','IF(ABS(H33-1)>0.0001,"⚠ مجموع الأوزان ≠ 100%","✔")']
+    ['C18','SUM(C13:C17)'],['D18','SUM(D13:D17)'],['E18','SUM(E13:E17)'],['F18','SUM(F13:F17)'],
+    ['G18','$A$10'],['H18','SUM(H13:H17)'],
+    ['I18','IF(COUNTA(H13:H17)=0,"⚠ لم يتم إدخال الأوزان",IF(ABS(H18-1)>0.0001,"⚠ مجموع الأوزان ≠ 100%","✔"))']
   ])s1=setCell(s1,ref,f,'formula');
 
-  s1=clearRange(s1,['A','B','C','D','E','F','G','H'],36,75);
-  for(let i=0;i<40;i++){
-    const row=36+i,r=mats[i]; s1=setRowHidden(s1,row,!r); if(!r)continue;
+  s1=clearRange(s1,['A','B','C','D','E','F','G','H'],21,35);
+  for(let i=0;i<15;i++){
+    const row=21+i,r=mats[i]; if(!r)continue;
     s1=setCell(s1,'A'+row,clean(r['Text Value / Description']),'string');
     s1=setCell(s1,'B'+row,clean(r.Unit),'string');
     s1=setCell(s1,'C'+row,num(r['Planned / Required Qty']),'number');
@@ -214,9 +230,9 @@ function buildProjectWorkbook(report){
     s1=setCell(s1,'H'+row,clean(r.Notes),'string');
   }
 
-  s1=clearRange(s1,['A','B','C','D','E','F','G','H','I'],78,157);
-  for(let i=0;i<80;i++){
-    const row=78+i,r=permits[i]; s1=setRowHidden(s1,row,!r); if(!r)continue;
+  s1=clearRange(s1,['A','B','C','D','E','F','G','H','I'],39,69);
+  for(let i=0;i<31;i++){
+    const row=39+i,r=permits[i]; if(!r)continue;
     s1=setCell(s1,'A'+row,clean(r['Field / Item / Permit No.']),'string');
     s1=setCell(s1,'B'+row,clean(r['Responsible / Issuing Authority']),'string');
     s1=setCell(s1,'C'+row,clean(r['Location / Neighborhood']),'string');
@@ -227,11 +243,13 @@ function buildProjectWorkbook(report){
     s1=setCell(s1,'H'+row,num(r['Executed / Issued Qty']),'number');
     s1=setCell(s1,'I'+row,'IF($A'+row+'="","",IFERROR(MIN($H'+row+'/$G'+row+',1),0))','formula');
   }
-  for(const [ref,f] of [['G158','SUM(G78:G157)'],['H158','SUM(H78:H157)'],['I158','IFERROR(H158/G158,0)']])s1=setCell(s1,ref,f,'formula');
+  s1=setCell(s1,'G70','SUM(G39:G69)','formula');
+  s1=setCell(s1,'H70','SUM(H39:H69)','formula');
+  s1=setCell(s1,'I70','IFERROR(H70/G70,0)','formula');
 
-  s1=clearRange(s1,['A','B','C','D','E','F','G','H','I'],161,180);
-  for(let i=0;i<20;i++){
-    const row=161+i,r=risks[i]; s1=setRowHidden(s1,row,!r); if(!r)continue;
+  s1=clearRange(s1,['A','B','C','D','E','F','G','H','I'],73,77);
+  for(let i=0;i<5;i++){
+    const row=73+i,r=risks[i]; if(!r)continue;
     s1=setCell(s1,'A'+row,clean(r['Text Value / Description']),'string');
     s1=setCell(s1,'B'+row,clean(r['Category / Impact']),'string');
     s1=setCell(s1,'C'+row,clean(r['Impact Level']),'string');
@@ -244,16 +262,17 @@ function buildProjectWorkbook(report){
 
   const period=(Array.isArray(report.periodRows)?report.periodRows:[]).map(r=>clean(r['Text Value / Description']||r.Notes)).filter(Boolean).join(' + ');
   const management=(Array.isArray(report.managementRows)?report.managementRows:[]).map(r=>clean(r['Text Value / Description']||r['Action / Support Required']||r.Notes)).filter(Boolean).join(' + ');
-  s1=setCell(s1,'A183',period,'string');
-  s1=setCell(s1,'A185',management,'string');
-  s1=setCell(s1,'A204',preparedBy,'string');
-  s1=setCell(s1,'D204',null,'string');
-  s1=setCell(s1,'G204',null,'string');
+  s1=setCell(s1,'A79',period,'string');
+  s1=setCell(s1,'A81',management,'string');
+  s1=setCell(s1,'A100',preparedBy,'string');
+  s1=setCell(s1,'D100',null,'string');
+  s1=setCell(s1,'G100',null,'string');
 
   const hist=filteredHistory(report);
+  for(let r=3;r<=37;r++)s2=ensureRow(s2,r,3);
   s2=clearRange(s2,['A','B','C','D','E','F'],3,37);
   for(let i=0;i<35;i++){
-    const row=3+i,h=hist[i]; s2=setRowHidden(s2,row,!h); if(!h)continue;
+    const row=3+i,h=hist[i]; if(!h)continue;
     const raw=h.row||{};
     s2=setCell(s2,'A'+row,excelSerial(h.date),'number');
     s2=setCell(s2,'B'+row,h.actual,'number');
@@ -266,23 +285,25 @@ function buildProjectWorkbook(report){
   parts[SHEET1]=strToU8(s1); parts[SHEET2]=strToU8(s2);
   if(parts[SHEET3]){
     let s3=strFromU8(parts[SHEET3]);
-    s3=setCell(s3,'A13',null,'string');
-    s3=setCell(s3,'A24',null,'string');
+    s3=clearRange(s3,['A','B','C','D'],13,13);
+    s3=clearRange(s3,['A','B','C','D'],24,25);
     parts[SHEET3]=strToU8(s3);
   }
+  for(const name of Object.keys(parts)){
+    if(/^xl\/media\/image\d+\.jpe?g$/i.test(name))parts[name]=new Uint8Array(BLANK_JPEG);
+  }
   if(parts[CHART1]){
-    const end=Math.max(13,12+boq.length);
+    const end=Math.max(13,12+Math.max(1,boq.length));
     parts[CHART1]=strToU8(patchChart(strFromU8(parts[CHART1]),[
-      ["'تقرير المشروع'!$A$13:$A$18","'تقرير المشروع'!$A$13:$A$"+end],
-      ["'تقرير المشروع'!$C$13:$C$18","'تقرير المشروع'!$C$13:$C$"+end],
-      ["'تقرير المشروع'!$D$13:$D$18","'تقرير المشروع'!$D$13:$D$"+end]
+      ["'تقرير المشروع'!$A$13:$A$14","'تقرير المشروع'!$A$13:$A$"+end],
+      ["'تقرير المشروع'!$C$13:$C$14","'تقرير المشروع'!$C$13:$C$"+end],
+      ["'تقرير المشروع'!$D$13:$D$14","'تقرير المشروع'!$D$13:$D$"+end]
     ]));
   }
   if(parts[CHART2]){
-    const end=Math.max(3,2+hist.length);
     parts[CHART2]=strToU8(patchChart(strFromU8(parts[CHART2]),[
-      ["'سجل الإنجاز اليومي'!$A$3:$A$59","'سجل الإنجاز اليومي'!$A$3:$A$"+end],
-      ["'سجل الإنجاز اليومي'!$B$3:$B$59","'سجل الإنجاز اليومي'!$B$3:$B$"+end]
+      ["'سجل الإنجاز اليومي'!$A$3:$A$37","'سجل الإنجاز اليومي'!$A$3:$A$37"],
+      ["'سجل الإنجاز اليومي'!$B$3:$B$37","'سجل الإنجاز اليومي'!$B$3:$B$37"]
     ]));
   }
   patchCalc(parts);

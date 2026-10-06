@@ -6,7 +6,7 @@ const $=id=>document.getElementById(id);
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clean=v=>String(v==null?'':v).replace(/\s+/g,' ').trim();
 const norm=v=>clean(v).normalize('NFKC').replace(/[\u064B-\u065F\u0670]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').toLowerCase();
-const num=v=>{const n=Number(String(v??'').replace(/,/g,'').replace('%','').trim());return Number.isFinite(n)?n:null};
+const num=v=>{const s=String(v??'').replace(/,/g,'').replace('%','').trim();if(!s)return null;const n=Number(s);return Number.isFinite(n)?n:null};
 const pct=v=>{const n=num(v);return n==null?null:(String(v).includes('%')?n:(Math.abs(n)<=1?n*100:n))};
 const fmtNum=v=>{const n=num(v);return n==null?'—':n.toLocaleString('en-US',{maximumFractionDigits:2})};
 const fmtPct=v=>{const n=pct(v);return n==null?'—':n.toLocaleString('en-US',{maximumFractionDigits:2})+'%'};
@@ -262,6 +262,7 @@ function render(data){
  const stageStatus=val(fs,['حالة المرحلة','حالة التنفيذ','حالة الامر وفقا لمتابعة المهندس المسئول']);
  const reportType=ex('REPORT_TYPE')||'يومي';
  const reportNo=ex('REPORT_NO')||'001';
+ const contractDuration=ex('CONTRACTUAL_DURATION_DAYS')||val(fs,['المدة التعاقدية','مدة امر العمل','مدة أمر العمل','مدة التنفيذ','مدة المشروع']);
  const consultant=ex('CONSULTANT_NAME')||'شركة أبعاد الرؤية للاستشارات الهندسية';
  const secFollowup=ex('SEC_FOLLOWUP_ENGINEER')||val(fs,['مهندس المتابعة','مهندس شركة الكهرباء','المهندس المسئول','المهندس المسؤول']);
  const signatureRow=rows.find(r=>r.Section==='SIGNATURE'&&norm(r['Field / Item / Permit No.'])==='prepared_by')||rows.find(r=>r.Section==='SIGNATURE');
@@ -290,7 +291,7 @@ function render(data){
  const qualityAlerts=[];
  if(boqMetric.hasWeights&&!boqMetric.valid)qualityAlerts.push('مجموع أوزان البنود = '+boqMetric.totalWeightPct.toFixed(2)+'%؛ لم يتم اعتماد الإنجاز المرجح وتم الرجوع إلى نسبة الإنجاز الحية.');
  if(historyDiff!=null&&Math.abs(historyDiff)>0.5)qualityAlerts.push('آخر إنجاز تاريخي مسجل '+historyLast.actual.toFixed(2)+'% يختلف عن الإنجاز الحالي '+actual.toFixed(2)+'% بفارق '+Math.abs(historyDiff).toFixed(2)+' نقطة.');
- const report={workOrder:data.workOrder,projectTitle,desc,contractor,location,engineer,stage,stageStatus,reportType,reportNo,consultant,secFollowup,preparedBy,actual,actualSource,liveActual,planned,variance,start,expected,rdate,elapsed,remaining,boq,boqMetric,mats,permits,risks,periodRows,managementRows,matSum,permitSum,issuedLen,doneLen,permitExecution,planRows,qualityAlerts};
+ const report={workOrder:data.workOrder,projectTitle,desc,contractor,location,engineer,stage,stageStatus,reportType,reportNo,contractDuration,consultant,secFollowup,preparedBy,actual,actualSource,liveActual,planned,variance,start,expected,rdate,elapsed,remaining,boq,boqMetric,mats,permits,risks,periodRows,managementRows,matSum,permitSum,issuedLen,doneLen,permitExecution,planRows,qualityAlerts};
  state.report=report;
  const cards=[
   {label:'الإنجاز الفعلي',value:actual==null?'—':fmtPct(actual),src:actualSource,ltr:true},
