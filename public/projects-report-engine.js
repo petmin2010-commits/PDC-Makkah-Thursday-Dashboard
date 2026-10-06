@@ -29,9 +29,13 @@ function install(){
 function markup(){return `
 <div class="pre-hero">
  <div><span class="pre-eyebrow">DYNAMIC WORK ORDER REPORTING</span><h2>Projects Report Engine</h2><p>تقرير مشروع ديناميكي يدمج بيانات أمر العمل الحية مع البيانات الإضافية المخصصة للتقرير، بدون تكرار حقول موجودة أصلًا.</p></div>
- <div class="pre-actions"><button id="preOpenDataBtn" type="button">فتح بيانات التقرير</button><button id="prePrintBtn" type="button">تصدير التقرير</button></div>
 </div>
-<div class="pre-searchbar"><input id="preInput" inputmode="numeric" autocomplete="off" placeholder="ابحث برقم أمر العمل..."><button id="preSearchBtn" type="button">إنشاء التقرير</button></div>
+<div class="pre-searchbar">
+ <input id="preInput" inputmode="numeric" autocomplete="off" placeholder="ابحث برقم أمر العمل...">
+ <button id="preSearchBtn" type="button">إنشاء التقرير</button>
+ <button id="preOpenDataBtn" class="pre-search-secondary" type="button">فتح بيانات التقرير</button>
+ <button id="prePrintBtn" class="pre-search-secondary" type="button">تصدير التقرير</button>
+</div>
 <div id="preBody" class="pre-state"><b>محرك التقرير جاهز</b><span>اختر أي رقم أمر عمل. سيُسحب الموجود من أوراق المشروع تلقائيًا، وتُستخدم صفحة Projects Report Engine Data فقط للبيانات غير الموجودة.</span></div>
 <div id="preExportModal" class="pre-export-modal" hidden>
  <div class="pre-export-dialog" role="dialog" aria-modal="true" aria-labelledby="preExportTitle">
