@@ -116,8 +116,15 @@ module.exports=function installProjectImages(ctx){
     const now=DateTime.now().setZone(ctx.APP?.TZ||'Asia/Riyadh').toISO();
     const rows=[[wo,n,'META',0,caption,mime,'',now,clean(updatedBy)]];
     chunks.forEach((c,i)=>rows.push([wo,n,'CHUNK',i+1,'',mime,c,now,clean(updatedBy)]));
-    await sheets.spreadsheets.values.append({
-      spreadsheetId:SPREADSHEET_ID,range:`${qSheet(SHEET)}!A:I`,valueInputOption:'RAW',insertDataOption:'INSERT_ROWS',requestBody:{values:rows}
+    const idx=await indexRows_();
+    const used=idx.filter(x=>clean(x.v[0])).map(x=>x.row);
+    const startRow=used.length?Math.max(...used)+1:2;
+    const endRow=startRow+rows.length-1;
+    await sheets.spreadsheets.values.update({
+      spreadsheetId:SPREADSHEET_ID,
+      range:`${qSheet(SHEET)}!A${startRow}:I${endRow}`,
+      valueInputOption:'RAW',
+      requestBody:{values:rows}
     });
     return {slot:n,caption,mime,dataUrl,updatedAt:now,updatedBy:clean(updatedBy)};
   }
