@@ -258,7 +258,7 @@ function render(data){
  const ex=k=>extraValue(extraBy(extras,k));
  const projectTitle=ex('PROJECT_TITLE')||val(fs,['وصف امر العمل','وصف امر العمل uds','شرح تفصيل امر العمل'])||'مشروع '+data.workOrder;
  const desc=ex('DETAILED_WORK_DESCRIPTION')||val(fs,['شرح تفصيل امر العمل','وصف امر العمل','وصف امر العمل uds']);
- const contractor=val(fs,['المقاول','المقاول uds']);
+ const contractor=ex('CONTRACTOR_REPORT_NAME')||val(fs,['المقاول','المقاول uds']);
  const location=val(fs,['الموقع']);
  const engineer=val(fs,['المهندس المسئول','المهندس المسؤول']);
  const stage=val(fs,['مرحلة التنفيذ']);
@@ -389,7 +389,7 @@ function permitsBlock(rows,sum,issuedLen,doneLen,execution){
  return `<section class="pre-panel pre-permits-panel pre-table-page"><div class="pre-panel-head"><div><span>PERMIT PORTFOLIO</span><h3>التصاريح التفصيلية</h3></div><div class="pre-mini-kpis"><span>أطوال الصادر <b class="pre-ltr">${fmtNum(issuedLen)} م</b></span><span>منجز على الصادر <b class="pre-ltr">${fmtNum(doneLen)} م</b></span><span>نسبة التنفيذ <b class="pre-ltr">${execution==null?'—':execution.toFixed(2)+'%'}</b></span></div></div>${summary}<div class="pre-table-wrap"><table><thead><tr><th>رقم / مرحلة التصريح</th><th>الجهة</th><th>الموقع</th><th>الحالة</th><th>البداية</th><th>النهاية</th><th>الطول</th><th>المنجز</th></tr></thead><tbody>${body}</tbody></table></div></section>`
 }
 function extraBlock(rows){
- const hidden=new Set(['PROJECT_TITLE','DETAILED_WORK_DESCRIPTION','ACTUAL_START_DATE','EXPECTED_OPERATION_DATE','SEC_FOLLOWUP_ENGINEER','REPORT_DATE']);
+ const hidden=new Set(['PROJECT_TITLE','DETAILED_WORK_DESCRIPTION','ACTUAL_START_DATE','EXPECTED_OPERATION_DATE','SEC_FOLLOWUP_ENGINEER','REPORT_DATE','CONTRACTOR_REPORT_NAME','CONTRACTUAL_DURATION_DAYS','CONSULTANT_NAME','REPORT_TYPE','REPORT_NO']);
  const show=rows.filter(r=>!hidden.has(r['Field / Item / Permit No.']));
  if(!show.length)return '';
  return `<section class="pre-panel pre-print-section"><div class="pre-panel-head"><div><span>REPORT-SPECIFIC DATA</span><h3>بيانات إضافية خاصة بالتقرير</h3></div></div><div class="pre-extra-grid">${show.map(r=>'<div><small>'+esc(r['Field / Item / Permit No.'])+'</small><b>'+esc(extraValue(r)||'—')+'</b></div>').join('')}</div></section>`

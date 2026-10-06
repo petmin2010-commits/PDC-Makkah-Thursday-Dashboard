@@ -58,8 +58,11 @@ function setCell(xml,ref,value,kind='string'){
     const f=String(value??'').replace(/^=/,'');
     body='<f>'+xmlEsc(f)+'</f>';
   }else if(kind==='number'){
-    const n=Number(value);
-    if(Number.isFinite(n))body='<v>'+String(n)+'</v>';
+    const raw=value;
+    if(raw!==null&&raw!==undefined&&String(raw).trim()!==''){
+      const n=Number(raw);
+      if(Number.isFinite(n))body='<v>'+String(n)+'</v>';
+    }
   }else if(value!==null&&value!==undefined&&String(value)!==''){
     attrs+=' t="inlineStr"';
     body='<is><t xml:space="preserve">'+xmlEsc(value)+'</t></is>';
@@ -123,12 +126,19 @@ function filteredHistory(report){
   return out.slice(-35);
 }
 function periodProgress(report){
-  let weighted=0,count=0;
+  let weighted=0,count=0,totalWeight=0;
   for(const r of Array.isArray(report.boq)?report.boq:[]){
     const q=num(r?.['Planned / Required Qty']),p=num(r?.['Period Qty']),w=ratio(r?.['Weight / Planned Progress %']);
-    if(q&&q>0&&p!=null&&w!=null){weighted+=w*Math.max(0,p/q);count++}
+    if(q&&q>0&&p!=null&&w!=null){weighted+=w*Math.max(0,p/q);totalWeight+=w;count++}
   }
-  return count?weighted:0;
+  return count&&Math.abs(totalWeight-1)<=0.005?weighted:null;
+}
+function reportNote(v){
+  const s=clean(v);
+  if(!s)return '';
+  if(/^Imported from Excel report\b/i.test(s))return '';
+  if(/^تم الاستيراد من/i.test(s))return '';
+  return s;
 }
 function getPrepared(report){
   if(clean(report.preparedBy))return clean(report.preparedBy);
@@ -187,7 +197,7 @@ function buildProjectWorkbook(report){
     ['B6',report.contractor,'string'],['E6',consultant,'string'],['H6',secFollowup,'string'],
     ['B7',sd,'number'],['D7',ed,'number'],['F7',contractDuration,'number'],
     ['H7','IF($D$7="","",$D$7-$G$3)','formula'],
-    ['A10','IFERROR(SUM($K$13:$K$17)/SUM($H$13:$H$17),'+actualFallback+')','formula'],
+    ['A10','IF(ABS(SUM($H$13:$H$17)-1)<=0.0001,SUM($K$13:$K$17),'+actualFallback+')','formula'],
     ['B10',report.planned==null?null:Number(report.planned)/100,'number'],
     ['D10','$A$10-$B$10','formula'],
     ['E10','IF($A$10>=0.999,"مكتمل",IF($D$10>=0,"وفق المخطط",IF($D$10>=-0.1,"تحت المتابعة","متأخر")))','formula'],
@@ -227,7 +237,7 @@ function buildProjectWorkbook(report){
     s1=setCell(s1,'E'+row,'IF($A'+row+'="","",$C'+row+'-$D'+row+')','formula');
     s1=setCell(s1,'F'+row,'IF($A'+row+'="","",IFERROR($D'+row+'/$C'+row+',0))','formula');
     s1=setCell(s1,'G'+row,clean(r.Status),'string');
-    s1=setCell(s1,'H'+row,clean(r.Notes),'string');
+    s1=setCell(s1,'H'+row,reportNote(r.Notes),'string');
   }
 
   s1=clearRange(s1,['A','B','C','D','E','F','G','H','I'],39,69);
@@ -243,8 +253,9 @@ function buildProjectWorkbook(report){
     s1=setCell(s1,'H'+row,num(r['Executed / Issued Qty']),'number');
     s1=setCell(s1,'I'+row,'IF($A'+row+'="","",IFERROR(MIN($H'+row+'/$G'+row+',1),0))','formula');
   }
-  s1=setCell(s1,'G70','SUM(G39:G69)','formula');
-  s1=setCell(s1,'H70','SUM(H39:H69)','formula');
+  s1=setCell(s1,'A70','إجمالي التصاريح الصادرة','string');
+  s1=setCell(s1,'G70','SUMIF(D39:D69,"تم الإصدار",G39:G69)','formula');
+  s1=setCell(s1,'H70','SUMIF(D39:D69,"تم الإصدار",H39:H69)','formula');
   s1=setCell(s1,'I70','IFERROR(H70/G70,0)','formula');
 
   s1=clearRange(s1,['A','B','C','D','E','F','G','H','I'],73,77);
