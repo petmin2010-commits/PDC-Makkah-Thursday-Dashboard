@@ -117,11 +117,13 @@ function installUi(){
  const thursdayBtn=nav.querySelector('[data-page="smartThursday"]');
  const reportsCenterBtn=nav.querySelector('[data-page="reportsCenter"]');
  const excelExportBtn=nav.querySelector('[data-page="excelExport"]');
+ const projectsReportEngineBtn=nav.querySelector('[data-page="projectsReportEngine"]');
  const anchor=adminLabel||reportsLabel||null;
  nav.insertBefore(label,anchor);nav.insertBefore(btn,anchor);nav.insertBefore(memoryBtn,anchor);nav.insertBefore(investigationBtn,anchor);nav.insertBefore(decisionBtn,anchor);
  if(thursdayBtn)nav.insertBefore(thursdayBtn,anchor);
  if(reportsCenterBtn)nav.insertBefore(reportsCenterBtn,anchor);
  if(excelExportBtn)nav.insertBefore(excelExportBtn,anchor);
+ if(projectsReportEngineBtn)nav.insertBefore(projectsReportEngineBtn,anchor);
  if(reportsLabel)reportsLabel.remove();
  const page=document.createElement('section');page.id='smartCenterPage';page.className='page smart-center-page';page.innerHTML=smartCenterMarkup();
  const memoryPage=document.createElement('section');memoryPage.id='temporalMemoryPage';memoryPage.className='page smart-center-page temporal-memory-page';memoryPage.innerHTML=temporalMemoryMarkup();
