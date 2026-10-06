@@ -31,7 +31,8 @@ const aliases=new Map([
   [norm('تقارير الاكسيل'),EXCEL_CANON],
   [norm('تقارير Excel'),EXCEL_CANON],
   [norm('تصدير تقرير اكسيل'),EXCEL_CANON],
-  [norm('تصدير تقرير Excel'),EXCEL_CANON]
+  [norm('تصدير تقرير Excel'),EXCEL_CANON],
+  [norm('Projects Report Engine'),norm('المشاريع')]
 ]);
 function canon(value){
   const n=norm(value);
