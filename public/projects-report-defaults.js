@@ -10,6 +10,7 @@ const WEIGHT_OPTIONS=Array.from({length:100},(_,i)=>(i+1)+'%');
 const GENERAL=[
  {key:'PROJECT_TITLE',label:'عنوان المشروع',field:'Text Value / Description',type:'text'},
  {key:'DETAILED_WORK_DESCRIPTION',label:'وصف الأعمال التفصيلي',field:'Text Value / Description',type:'textarea',wide:true},
+ {key:'WORK_ORDER_LOCATION',label:'الموقع',field:'Location / Neighborhood',type:'text',auto:true,source:'ورقة أوامر العمل — عمود الموقع'},
  {key:'CONTRACTOR_REPORT_NAME',label:'اسم المقاول في التقرير',field:'Text Value / Description',type:'text',auto:true,source:'ورقة أوامر العمل — عمود المقاول'},
  {key:'ACTUAL_START_DATE',label:'تاريخ البدء الفعلي',field:'Start / Observation Date',type:'date'},
  {key:'EXPECTED_OPERATION_DATE',label:'تاريخ التشغيل المتوقع',field:'End / Expected Date',type:'date'},
@@ -169,6 +170,10 @@ function currentSuggestion(key){
  if(key==='REPORT_DATE')return ksaTodayIso();
  if(key==='CONTRACTOR_REPORT_NAME'){
   const fromData=contractorFromWorkOrdersData(window.__VDProjectsReportEngineData);
+  if(fromData)return fromData;
+ }
+ if(key==='WORK_ORDER_LOCATION'){
+  const fromData=locationFromWorkOrdersData(window.__VDProjectsReportEngineData);
   if(fromData)return fromData;
  }
  if(key==='CONTRACTUAL_DURATION_DAYS'){
