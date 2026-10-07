@@ -220,30 +220,111 @@ function currentSuggestion(key){
  return clean(map[key]);
 }
 
-function recordCard(r,i,displayNo){
- const sec=clean(r.Section)||'BOQ_ITEM',fields=SECTION_FIELDS[sec]||SECTION_FIELDS.BOQ_ITEM;
- const inputs=fields.map(([k,label,type,options])=>{
-  const v=clean(r[k]);
-  if(type==='textarea')return '<label class="prd-field prd-wide"><span>'+esc(label)+'</span><textarea data-ridx="'+i+'" data-rfield="'+esc(k)+'">'+esc(v)+'</textarea></label>';
-  if(type==='select'){
-   const base=Array.isArray(options)?options.slice():[];
-   if(v&&!base.some(x=>clean(x)===v))base.unshift(v);
-   const opts=['',...base].map(x=>'<option value="'+esc(x)+'"'+(clean(x)===v?' selected':'')+'>'+esc(x||'— اختر —')+'</option>').join('');
-   return '<label class="prd-field"><span>'+esc(label)+'</span><select data-ridx="'+i+'" data-rfield="'+esc(k)+'">'+opts+'</select></label>';
-  }
-  return '<label class="prd-field"><span>'+esc(label)+'</span><input type="'+type+'" data-ridx="'+i+'" data-rfield="'+esc(k)+'" value="'+esc(type==='date'?valueInputDate(v):v)+'"></label>';
- }).join('');
- return '<article class="prd-record" data-record="'+i+'"><div class="prd-record-head"><div><b>'+esc(SECTION_LABELS[sec]||sec)+'</b><small>سجل '+displayNo+'</small></div><div><select data-section="'+i+'">'+Object.entries(SECTION_LABELS).map(([k,v])=>'<option value="'+k+'"'+(k===sec?' selected':'')+'>'+esc(v)+'</option>').join('')+'</select><button type="button" data-remove="'+i+'">حذف</button></div></div><div class="prd-record-grid">'+inputs+'</div></article>';
+const TABLE_COLUMNS={
+ BOQ_ITEM:[
+  ['Text Value / Description','البند','text'],
+  ['Unit','الوحدة','select',UNIT_OPTIONS],
+  ['Planned / Required Qty','الكمية المخططة','text'],
+  ['Executed / Issued Qty','إجمالي المنفذ','text'],
+  ['Period Qty','المنفذ خلال الفترة','text'],
+  ['@remaining','المتبقي','calc'],
+  ['@progress','نسبة الإنجاز','calc'],
+  ['Weight / Planned Progress %','الوزن %','select',WEIGHT_OPTIONS],
+  ['Status','الحالة','select',BOQ_STATUS_OPTIONS]
+ ],
+ MATERIAL:[
+  ['Text Value / Description','المادة','text'],
+  ['Unit','الوحدة','select',UNIT_OPTIONS],
+  ['Planned / Required Qty','الكمية المطلوبة','text'],
+  ['Executed / Issued Qty','المنصرف','text'],
+  ['@remaining','المتبقي','calc'],
+  ['@progress','نسبة الصرف','calc'],
+  ['Status','حالة الصرف','select',MATERIAL_STATUS_OPTIONS],
+  ['Notes','ملاحظات','text']
+ ],
+ PERMIT_DETAIL:[
+  ['Field / Item / Permit No.','رقم التصريح / المرحلة','text'],
+  ['Responsible / Issuing Authority','الجهة المصدرة','text'],
+  ['Location / Neighborhood','الموقع / الحي','text'],
+  ['Status','حالة التصريح','select',SECTION_FIELDS.PERMIT_DETAIL.find(x=>x[0]==='Status')?.[3]||[]],
+  ['Start / Observation Date','تاريخ البدء','date'],
+  ['End / Expected Date','تاريخ الانتهاء','date'],
+  ['Planned / Required Qty','الطول (م)','text'],
+  ['Executed / Issued Qty','المنجز (م)','text'],
+  ['@progress','نسبة الإنجاز','calc']
+ ],
+ PLAN_POINT:[
+  ['Start / Observation Date','التاريخ','date'],
+  ['Weight / Planned Progress %','المخطط %','text'],
+  ['Numeric Value','الفعلي %','text'],
+  ['Notes','ملاحظات','text']
+ ],
+ MILESTONE:[
+  ['Field / Item / Permit No.','المعلم / الكود','text'],
+  ['Text Value / Description','الوصف','text'],
+  ['Start / Observation Date','تاريخ البداية','date'],
+  ['End / Expected Date','التاريخ المتوقع','date'],
+  ['Responsible / Issuing Authority','المسؤول','text'],
+  ['Status','الحالة','text'],
+  ['Notes','ملاحظات','text']
+ ],
+ ISSUE_RISK:[
+  ['Text Value / Description','التحدي / العائق','text'],
+  ['Category / Impact','التصنيف / درجة الأثر','text'],
+  ['Action / Support Required','الإجراء / الدعم المطلوب','text'],
+  ['Responsible / Issuing Authority','الجهة المسؤولة','text'],
+  ['Start / Observation Date','تاريخ الرصد','date'],
+  ['@age','عمر العائق (يوم)','calc'],
+  ['Status','الحالة','text'],
+  ['Notes','ملاحظات','text']
+ ],
+ PERIOD_SUMMARY:[
+  ['Text Value / Description','ملخص الأعمال المنفذة خلال الفترة','textarea'],
+  ['Start / Observation Date','من تاريخ','date'],
+  ['End / Expected Date','إلى تاريخ','date'],
+  ['Notes','ملاحظات','text']
+ ],
+ MANAGEMENT_NOTE:[
+  ['Text Value / Description','الملاحظة الإدارية','textarea'],
+  ['Action / Support Required','الإجراء / الدعم المطلوب','textarea'],
+  ['Responsible / Issuing Authority','المسؤول','text'],
+  ['Notes','ملاحظات','text']
+ ]
+};
+function tableNumber(v){const s=String(v??'').replace(/,/g,'').replace('%','').trim();if(!s)return null;const n=Number(s);return Number.isFinite(n)?n:null}
+function tableCalc(sec,r,key){
+ const planned=tableNumber(r['Planned / Required Qty']),done=tableNumber(r['Executed / Issued Qty']);
+ if(key==='@remaining')return planned==null?'—':Math.max(0,planned-(done||0)).toLocaleString('en-US',{maximumFractionDigits:2});
+ if(key==='@progress')return planned&&done!=null?((done/planned)*100).toFixed(2)+'%':'—';
+ if(key==='@age'){
+  const iso=valueInputDate(r['Start / Observation Date']);if(!iso)return '—';
+  const a=new Date(iso+'T12:00:00'),b=new Date(ksaTodayIso()+'T12:00:00');
+  return Number.isNaN(a.getTime())?'—':Math.max(0,Math.floor((b-a)/86400000))+'';
+ }
+ return '—';
 }
-function addControls(def){
- if(!def.sections.length)return '';
- const opts=def.sections.map(k=>'<option value="'+k+'">'+esc(SECTION_LABELS[k])+'</option>').join('');
- return '<div class="prd-section-actions">'+(def.sections.length>1?'<select id="prdNewSection">'+opts+'</select>':'<input id="prdNewSection" type="hidden" value="'+def.sections[0]+'">')+'<button id="prdAddRow" type="button">+ إضافة سجل</button></div>';
+function tableEditor(r,i,col){
+ const [key,label,type,options]=col,v=clean(r[key]);
+ if(type==='calc')return '<td class="prd-calc" data-calc-ridx="'+i+'" data-calc-key="'+esc(key)+'">'+esc(tableCalc(r.Section,r,key))+'</td>';
+ if(type==='select'){
+  const base=Array.isArray(options)?options.slice():[];
+  if(v&&!base.some(x=>clean(x)===v))base.unshift(v);
+  const opts=['',...base].map(x=>'<option value="'+esc(x)+'"'+(clean(x)===v?' selected':'')+'>'+esc(x||'— اختر —')+'</option>').join('');
+  return '<td><select aria-label="'+esc(label)+'" data-ridx="'+i+'" data-rfield="'+esc(key)+'">'+opts+'</select></td>';
+ }
+ if(type==='textarea')return '<td class="prd-cell-wide"><textarea rows="1" aria-label="'+esc(label)+'" data-ridx="'+i+'" data-rfield="'+esc(key)+'">'+esc(v)+'</textarea></td>';
+ return '<td><input aria-label="'+esc(label)+'" type="'+type+'" data-ridx="'+i+'" data-rfield="'+esc(key)+'" value="'+esc(type==='date'?valueInputDate(v):v)+'"></td>';
 }
-function paginationMarkup(total,page){
- if(total<=PAGE_SIZE)return '';
- const pages=Math.max(1,Math.ceil(total/PAGE_SIZE));
- return '<div class="prd-pagination"><button type="button" data-page-dir="-1"'+(page<=1?' disabled':'')+'>‹ السابق</button><span>صفحة <b>'+page+'</b> من <b>'+pages+'</b> • '+total+' سجل</span><button type="button" data-page-dir="1"'+(page>=pages?' disabled':'')+'>التالي ›</button></div>';
+function sectionTable(sec){
+ const cols=TABLE_COLUMNS[sec]||[];
+ const entries=details.map((r,i)=>({r,i})).filter(x=>x.r.Section===sec);
+ const head='<th class="prd-row-no">#</th>'+cols.map(c=>'<th>'+esc(c[1])+'</th>').join('')+'<th class="prd-action-col">إجراء</th>';
+ const body=entries.length?entries.map((x,n)=>'<tr data-table-row="'+x.i+'"><td class="prd-row-no">'+(n+1)+'</td>'+cols.map(c=>tableEditor(x.r,x.i,c)).join('')+'<td class="prd-action-col"><button type="button" class="prd-row-delete" data-remove="'+x.i+'">حذف</button></td></tr>').join(''):'<tr><td class="prd-table-empty" colspan="'+(cols.length+2)+'">لا توجد بيانات بعد. اضغط «إضافة صف» للبدء.</td></tr>';
+ return '<div class="prd-sheet-block"><div class="prd-sheet-title"><div><b>'+esc(SECTION_LABELS[sec]||sec)+'</b><span>'+entries.length+' صف — إدخال جدولي شبيه بـ Excel</span></div><button type="button" data-add-section="'+esc(sec)+'">+ إضافة صف</button></div><div class="prd-table-wrap"><table class="prd-entry-table"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div></div>';
+}
+function refreshCalculatedRow(idx){
+ const r=details[idx];if(!r)return;
+ document.querySelectorAll('[data-calc-ridx="'+idx+'"]').forEach(el=>{el.textContent=tableCalc(r.Section,r,el.dataset.calcKey)});
 }
 function renderTabs(){
  const nav=document.getElementById('prdTabs');if(!nav)return;
@@ -253,14 +334,11 @@ function renderContent(){
  const box=document.getElementById('prdTabContent');if(!box)return;
  const def=tabDef();
  if(def.id==='general'){
-  box.innerHTML='<section class="prd-section prd-section-current"><div class="prd-section-head"><div><b>البيانات الأساسية</b><span>قيم ثابتة وافتراضية خاصة بالتقرير</span></div></div><div id="prdGeneral" class="prd-general-grid">'+GENERAL.map(generalField).join('')+'</div></section>';
+  box.innerHTML='<section class="prd-section prd-section-current"><div class="prd-section-head"><div><b>البيانات الأساسية</b><span>إدخال منظم في خلايا شبيهة بالجدول</span></div></div><div id="prdGeneral" class="prd-general-grid prd-general-sheet">'+GENERAL.map(generalField).join('')+'</div></section>';
   return;
  }
- const entries=tabEntries(),pages=Math.max(1,Math.ceil(entries.length/PAGE_SIZE));
- let page=Math.min(Math.max(1,pageByTab[activeTab]||1),pages);pageByTab[activeTab]=page;
- const start=(page-1)*PAGE_SIZE,view=entries.slice(start,start+PAGE_SIZE);
- const records=view.length?view.map((x,n)=>recordCard(x.r,x.i,start+n+1)).join(''):'<div class="prd-empty">لا توجد سجلات محفوظة في هذا القسم. اضغط «إضافة سجل» للبدء.</div>';
- box.innerHTML='<section class="prd-section prd-section-current"><div class="prd-section-head"><div><b>'+esc(def.label)+'</b><span>'+entries.length+' سجل محفوظ في هذا القسم</span></div>'+addControls(def)+'</div><div id="prdRecords">'+records+'</div>'+paginationMarkup(entries.length,page)+'</section>';
+ const total=tabEntries().length;
+ box.innerHTML='<section class="prd-section prd-section-current prd-sheet-section"><div class="prd-section-head"><div><b>'+esc(def.label)+'</b><span>'+total+' سجل — أدخل البيانات مباشرة في صفوف وأعمدة مثل ملف Excel</span></div></div>'+def.sections.map(sectionTable).join('')+'</section>';
 }
 function render(){
  document.getElementById('prdWo').textContent=currentWo||'—';
@@ -389,25 +467,28 @@ async function deleteAll(){
  }catch(e){setStatus(e.message||String(e),'error')}
  finally{setBusy(false)}
 }
-function addRow(){
- const def=tabDef(),sec=document.getElementById('prdNewSection')?.value||def.sections[0]||'BOQ_ITEM';
+function addRow(forcedSection=''){
+ const def=tabDef(),sec=clean(forcedSection)||def.sections[0]||'BOQ_ITEM';
  const row={Section:sec,Sequence:details.filter(x=>x.Section===sec).length+1};
  if(sec==='PERMIT_DETAIL'&&clean(liveAuto.WORK_ORDER_LOCATION))row['Location / Neighborhood']=clean(liveAuto.WORK_ORDER_LOCATION);
  details.push(row);
  activeTab=tabForSection(sec);
- const total=tabEntries(activeTab).length;pageByTab[activeTab]=Math.max(1,Math.ceil(total/PAGE_SIZE));
  render();
- setTimeout(()=>document.querySelector('#prdRecords .prd-record:last-of-type')?.scrollIntoView({behavior:'smooth',block:'nearest'}),50);
+ setTimeout(()=>{
+  const idx=details.length-1,rowEl=document.querySelector('[data-table-row="'+idx+'"]');
+  rowEl?.scrollIntoView({behavior:'smooth',block:'center'});
+  rowEl?.querySelector('input,select,textarea')?.focus();
+ },50);
 }
 function handleInput(e){
  const g=e.target.dataset.general;if(g){generalDraft[g]=e.target.value;if(g==='ACTUAL_START_DATE')refreshCalculatedGeneral();return}
  const idx=Number(e.target.dataset.ridx),field=e.target.dataset.rfield;
- if(Number.isInteger(idx)&&details[idx]&&field)details[idx][field]=e.target.value;
+ if(Number.isInteger(idx)&&details[idx]&&field){details[idx][field]=e.target.value;refreshCalculatedRow(idx)}
 }
 function handleChange(e){
  const g=e.target.dataset.general;if(g){generalDraft[g]=e.target.value;if(g==='ACTUAL_START_DATE')refreshCalculatedGeneral();return}
  const ridx=Number(e.target.dataset.ridx),rfield=e.target.dataset.rfield;
- if(Number.isInteger(ridx)&&details[ridx]&&rfield){details[ridx][rfield]=e.target.value;return}
+ if(Number.isInteger(ridx)&&details[ridx]&&rfield){details[ridx][rfield]=e.target.value;refreshCalculatedRow(ridx);return}
  const idx=Number(e.target.dataset.section);
  if(Number.isInteger(idx)&&details[idx]){
   const oldTab=activeTab,newSec=e.target.value,oldRow=details[idx];
@@ -425,12 +506,8 @@ function handleContentClick(e){
   }
   return;
  }
- const dir=e.target.closest('[data-page-dir]');
- if(dir){
-  const step=Number(dir.dataset.pageDir)||0,total=tabEntries().length,pages=Math.max(1,Math.ceil(total/PAGE_SIZE));
-  pageByTab[activeTab]=Math.min(pages,Math.max(1,(pageByTab[activeTab]||1)+step));render();return;
- }
- if(e.target.closest('#prdAddRow'))addRow();
+ const add=e.target.closest('[data-add-section]');
+ if(add){addRow(add.dataset.addSection);return}
 }
 function switchTab(id){
  if(!TAB_DEFS.some(t=>t.id===id)||id===activeTab)return;

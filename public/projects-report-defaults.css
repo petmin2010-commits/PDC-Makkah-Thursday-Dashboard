@@ -85,3 +85,45 @@
 .prd-source-hint{display:block;margin-top:2px;color:#2d6f9f;font:800 7px/1.5 Cairo,Arial,sans-serif}
 .prd-field>select{min-width:0;text-overflow:ellipsis}
 .prd-field-auto input[type="date"][readonly]{background:#eaf4fb;color:#183f61;border-color:#a9cbe2;font-weight:900;pointer-events:none}
+
+/* Project defaults — Excel-like section entry tables */
+.prd-dialog{width:min(1540px,98.5vw)}
+.prd-sheet-section{padding:12px}
+.prd-general-sheet{gap:0;border:1px solid #cfdce7;border-radius:12px;overflow:hidden;background:#fff}
+.prd-general-sheet .prd-field{padding:7px 8px;border-left:1px solid #d8e2ea;border-bottom:1px solid #d8e2ea;background:#fbfdff}
+.prd-general-sheet .prd-field>span{min-height:17px;color:#496780}
+.prd-general-sheet .prd-field input,.prd-general-sheet .prd-field select,.prd-general-sheet .prd-field textarea{border-radius:5px;box-shadow:none}
+.prd-general-sheet .prd-wide{grid-column:1/-1}
+.prd-sheet-block{margin-top:11px;border:1px solid #cfdce7;border-radius:13px;background:#fff;overflow:hidden}
+.prd-sheet-block:first-of-type{margin-top:0}
+.prd-sheet-title{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;background:#eef4f8;border-bottom:1px solid #d8e3ec}
+.prd-sheet-title b{display:block;color:#294864;font:900 10px Cairo,Arial,sans-serif}
+.prd-sheet-title span{display:block;margin-top:1px;color:#71869a;font:700 7px Cairo,Arial,sans-serif}
+.prd-sheet-title button{height:31px;border:1px solid #9fc2dc;border-radius:8px;background:#e8f3fb;color:#215f89;font:900 8px Cairo,Arial,sans-serif;padding:0 11px;cursor:pointer;white-space:nowrap}
+.prd-sheet-title button:hover{background:#dcedf8}
+.prd-table-wrap{width:100%;overflow:auto;background:#fff;scrollbar-width:thin}
+.prd-entry-table{width:100%;min-width:max-content;border-collapse:separate;border-spacing:0;table-layout:auto;direction:rtl}
+.prd-entry-table th{position:sticky;top:0;z-index:3;height:34px;padding:0 8px;border-left:1px solid #c8d5df;border-bottom:1px solid #b8c9d6;background:#dfeaf2;color:#294a65;font:900 7.5px Cairo,Arial,sans-serif;text-align:center;white-space:nowrap;min-width:116px}
+.prd-entry-table td{height:36px;padding:0;border-left:1px solid #d7e1e9;border-bottom:1px solid #dfe7ed;background:#fff;vertical-align:middle}
+.prd-entry-table tbody tr:nth-child(even) td{background:#fbfdff}
+.prd-entry-table tbody tr:hover td{background:#f4f9fc}
+.prd-entry-table input,.prd-entry-table select,.prd-entry-table textarea{display:block;width:100%;min-width:116px;height:35px;border:0;border-radius:0;background:transparent;color:#203b53;font:800 8px/1.4 Cairo,Arial,sans-serif;padding:0 7px;outline:none;box-shadow:none}
+.prd-entry-table input:focus,.prd-entry-table select:focus,.prd-entry-table textarea:focus{position:relative;z-index:2;background:#fff;box-shadow:inset 0 0 0 2px #5791bd}
+.prd-entry-table select{padding-inline-end:25px;cursor:pointer}
+.prd-entry-table textarea{min-width:270px;min-height:35px;height:35px;padding:7px;resize:vertical}
+.prd-entry-table th:nth-child(2),.prd-entry-table td:nth-child(2){min-width:230px}
+.prd-entry-table .prd-cell-wide{min-width:300px}
+.prd-entry-table .prd-calc{min-width:100px;padding:0 8px;background:#edf6fb!important;color:#1c5c86;font:900 8px Arial,Cairo,sans-serif;text-align:center;direction:ltr}
+.prd-entry-table .prd-row-no{position:sticky;right:0;z-index:4;min-width:38px;width:38px;background:#f1f5f8!important;color:#6b7f91;font:900 7px Arial,sans-serif;text-align:center}
+.prd-entry-table thead .prd-row-no{z-index:6;background:#d3e2ec!important}
+.prd-entry-table .prd-action-col{position:sticky;left:0;z-index:4;min-width:66px;width:66px;background:#f8fafc!important;text-align:center}
+.prd-entry-table thead .prd-action-col{z-index:6;background:#d3e2ec!important}
+.prd-row-delete{height:27px;border:1px solid #e1bcbc;border-radius:7px;background:#fff4f4;color:#9f3d43;font:900 7px Cairo,Arial,sans-serif;padding:0 8px;cursor:pointer}
+.prd-row-delete:hover{background:#ffeaea}
+.prd-table-empty{height:58px!important;text-align:center!important;color:#73879a!important;font:800 8px Cairo,Arial,sans-serif!important;background:#f8fbfd!important}
+@media(max-width:760px){
+ .prd-sheet-title{align-items:stretch;flex-direction:column}
+ .prd-sheet-title button{align-self:flex-start}
+ .prd-entry-table th,.prd-entry-table input,.prd-entry-table select{min-width:105px}
+ .prd-entry-table th:nth-child(2),.prd-entry-table td:nth-child(2){min-width:190px}
+}
