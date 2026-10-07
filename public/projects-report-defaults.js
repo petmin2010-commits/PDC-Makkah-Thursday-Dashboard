@@ -9,9 +9,9 @@ const GENERAL=[
  {key:'EXPECTED_OPERATION_DATE',label:'تاريخ التشغيل المتوقع',field:'End / Expected Date',type:'date'},
  {key:'SEC_FOLLOWUP_ENGINEER',label:'مهندس متابعة شركة الكهرباء',field:'Responsible / Issuing Authority',type:'text'},
  {key:'CONTRACTUAL_DURATION_DAYS',label:'المدة التعاقدية بالأيام',field:'Numeric Value',type:'number',auto:true,source:'ورقة أوامر العمل — عمود المدة uds'},
- {key:'CONSULTANT_NAME',label:'اسم الاستشاري',field:'Text Value / Description',type:'text'},
+ {key:'CONSULTANT_NAME',label:'اسم الاستشاري',field:'Text Value / Description',type:'text',fixed:true,value:'شركة أبعاد الرؤية للاستشارات الهندسية'},
  {key:'REPORT_TYPE',label:'نوع التقرير',field:'Text Value / Description',type:'text'},
- {key:'REPORT_NO',label:'رقم التقرير',field:'Text Value / Description',type:'text'},
+ {key:'REPORT_NO',label:'رقم التقرير',field:'Text Value / Description',type:'select',options:Array.from({length:100},(_,i)=>String(i+1))},
  {key:'REPORT_DATE',label:'تاريخ التقرير الافتراضي',field:'Start / Observation Date',type:'date'},
  {key:'PREPARED_BY',label:'إعداد التقرير / التوقيع',field:'Responsible / Issuing Authority',type:'text',signature:true}
 ];
@@ -46,7 +46,7 @@ const SECTION_FIELDS={
  ],
  PERMIT_DETAIL:[
   ['Field / Item / Permit No.','رقم التصريح / المرحلة','text'],['Responsible / Issuing Authority','الجهة المصدرة','text'],
-  ['Location / Neighborhood','الموقع / الحي','text'],['Status','الحالة','text'],['Start / Observation Date','تاريخ البداية','date'],
+  ['Location / Neighborhood','الموقع / الحي','text'],['Status','الحالة','select',["لا يتطلب","لم يتم ادخال التصريح","انتهاء التنسيق -رفض","تم اصدار التصريح","ملغي","تم تعديل التصريح","قيد التنسيق والاعتماد","بانتظار السداد","مسودة","انتهت فترة السداد","انتهاء التنسيق - قبول","تصريح مدن فقط"]],['Start / Observation Date','تاريخ البداية','date'],
   ['End / Expected Date','تاريخ النهاية','date'],['Planned / Required Qty','الطول / الكمية','text'],['Executed / Issued Qty','المنفذ','text'],['Notes','ملاحظات','textarea']
  ],
  PLAN_POINT:[
@@ -119,6 +119,7 @@ function workOrdersValue(data,label){
 function contractorFromWorkOrdersData(data){return workOrdersValue(data,'المقاول')}
 function durationFromWorkOrdersData(data){return workOrdersValue(data,'المدة uds')}
 function generalValue(g){
+ if(g.fixed)return clean(g.value);
  if(g.auto)return clean(liveAuto[g.key]||currentSuggestion(g.key));
  if(Object.prototype.hasOwnProperty.call(generalDraft,g.key))return generalDraft[g.key];
  const r=g.signature?preparedRow():generalRow(g.key);
@@ -126,7 +127,13 @@ function generalValue(g){
 }
 function generalField(g){
  const val=generalValue(g),placeholder=currentSuggestion(g.key);
+ if(g.fixed)return '<label class="prd-field prd-field-auto"><span>'+esc(g.label)+'</span><input type="text" value="'+esc(val)+'" readonly aria-readonly="true"><small>قيمة ثابتة افتراضية</small></label>';
  if(g.auto)return '<label class="prd-field prd-field-auto"><span>'+esc(g.label)+'</span><input type="text" value="'+esc(val)+'" readonly aria-readonly="true"><small>آلي من '+esc(g.source||'مصدر البيانات')+'</small></label>';
+ if(g.type==='select'){
+  const selected=clean(val)||clean(placeholder)||clean(g.options?.[0]);
+  const opts=(g.options||[]).map(x=>'<option value="'+esc(x)+'"'+(String(x)===String(selected)?' selected':'')+'>'+esc(x)+'</option>').join('');
+  return '<label class="prd-field"><span>'+esc(g.label)+'</span><select data-general="'+g.key+'">'+opts+'</select></label>';
+ }
  if(g.type==='textarea')return '<label class="prd-field prd-wide"><span>'+esc(g.label)+'</span><textarea data-general="'+g.key+'" placeholder="'+esc(placeholder)+'">'+esc(val)+'</textarea></label>';
  return '<label class="prd-field'+(g.wide?' prd-wide':'')+'"><span>'+esc(g.label)+'</span><input data-general="'+g.key+'" type="'+g.type+'" value="'+esc(g.type==='date'?valueInputDate(val):val)+'" placeholder="'+esc(placeholder)+'"></label>';
 }
@@ -152,9 +159,15 @@ function currentSuggestion(key){
 
 function recordCard(r,i,displayNo){
  const sec=clean(r.Section)||'BOQ_ITEM',fields=SECTION_FIELDS[sec]||SECTION_FIELDS.BOQ_ITEM;
- const inputs=fields.map(([k,label,type])=>{
+ const inputs=fields.map(([k,label,type,options])=>{
   const v=clean(r[k]);
   if(type==='textarea')return '<label class="prd-field prd-wide"><span>'+esc(label)+'</span><textarea data-ridx="'+i+'" data-rfield="'+esc(k)+'">'+esc(v)+'</textarea></label>';
+  if(type==='select'){
+   const base=Array.isArray(options)?options.slice():[];
+   if(v&&!base.some(x=>clean(x)===v))base.unshift(v);
+   const opts=['',...base].map(x=>'<option value="'+esc(x)+'"'+(clean(x)===v?' selected':'')+'>'+esc(x||'— اختر —')+'</option>').join('');
+   return '<label class="prd-field"><span>'+esc(label)+'</span><select data-ridx="'+i+'" data-rfield="'+esc(k)+'">'+opts+'</select></label>';
+  }
   return '<label class="prd-field"><span>'+esc(label)+'</span><input type="'+type+'" data-ridx="'+i+'" data-rfield="'+esc(k)+'" value="'+esc(type==='date'?valueInputDate(v):v)+'"></label>';
  }).join('');
  return '<article class="prd-record" data-record="'+i+'"><div class="prd-record-head"><div><b>'+esc(SECTION_LABELS[sec]||sec)+'</b><small>سجل '+displayNo+'</small></div><div><select data-section="'+i+'">'+Object.entries(SECTION_LABELS).map(([k,v])=>'<option value="'+k+'"'+(k===sec?' selected':'')+'>'+esc(v)+'</option>').join('')+'</select><button type="button" data-remove="'+i+'">حذف</button></div></div><div class="prd-record-grid">'+inputs+'</div></article>';
@@ -196,7 +209,7 @@ function setBusy(on,msg){busy=on;document.getElementById('prdSave')?.toggleAttri
 function loadGeneralDraft(){
  generalDraft={};
  for(const g of GENERAL){
-  if(g.auto){generalDraft[g.key]='';continue}
+  if(g.auto||g.fixed){generalDraft[g.key]='';continue}
   const r=g.signature?preparedRow():generalRow(g.key);
   generalDraft[g.key]=r?clean(r[g.field]):'';
  }
@@ -241,7 +254,7 @@ function closeModal(){const m=document.getElementById('preDefaultsModal');if(m&&
 function buildGeneralRows(){
  const out=[];
  for(const g of GENERAL){
-  if(g.auto)continue;
+  if(g.auto||g.fixed)continue;
   const v=clean(generalDraft[g.key]);if(!v)continue;
   if(g.signature){
    const r={...(preparedRow()||{}),Section:'SIGNATURE','Field / Item / Permit No.':'PREPARED_BY'};
@@ -301,6 +314,9 @@ function handleInput(e){
  if(Number.isInteger(idx)&&details[idx]&&field)details[idx][field]=e.target.value;
 }
 function handleChange(e){
+ const g=e.target.dataset.general;if(g){generalDraft[g]=e.target.value;return}
+ const ridx=Number(e.target.dataset.ridx),rfield=e.target.dataset.rfield;
+ if(Number.isInteger(ridx)&&details[ridx]&&rfield){details[ridx][rfield]=e.target.value;return}
  const idx=Number(e.target.dataset.section);
  if(Number.isInteger(idx)&&details[idx]){
   const oldTab=activeTab,newSec=e.target.value;
