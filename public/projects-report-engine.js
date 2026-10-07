@@ -112,6 +112,13 @@ async function search(){
 }
 function toObj(record){const o={};(record?.fields||[]).forEach(f=>o[clean(f.label)]=f.value);return o}
 function source(data,name){return (data.sources||[]).find(s=>norm(s.sheet)===norm(name))}
+function sourceLike(data,name){const n=norm(name);return (data.sources||[]).find(s=>norm(s.sheet)===n||norm(s.sheet).includes(n))}
+function sourceExactValue(data,sheetName,label){
+ const s=sourceLike(data,sheetName);if(!s)return '';
+ const wanted=norm(label);
+ for(const r of s.records||[])for(const f of r.fields||[])if(norm(f.label)===wanted&&clean(f.value))return f.value;
+ return '';
+}
 function extraRows(data){const s=source(data,EXTRA_SHEET);state.extraSheetId=s?.sheetId||'';return (s?.records||[]).map(r=>({...toObj(r),_row:r.rowNumber}))}
 function originalFields(data){const out=[];(data.sources||[]).filter(s=>norm(s.sheet)!==norm(EXTRA_SHEET)).forEach(s=>{(s.records||[]).forEach(r=>{(r.fields||[]).forEach(f=>out.push({sheet:s.sheet,label:clean(f.label),value:f.value}))})});return out}
 function pick(fs,labels){
@@ -266,7 +273,7 @@ function render(data){
  const ex=k=>extraValue(extraBy(extras,k));
  const projectTitle=ex('PROJECT_TITLE')||val(fs,['وصف امر العمل','وصف امر العمل uds','شرح تفصيل امر العمل'])||'مشروع '+data.workOrder;
  const desc=ex('DETAILED_WORK_DESCRIPTION')||val(fs,['شرح تفصيل امر العمل','وصف امر العمل','وصف امر العمل uds']);
- const contractor=ex('CONTRACTOR_REPORT_NAME')||val(fs,['المقاول','المقاول uds']);
+ const contractor=sourceExactValue(data,'اوامر العمل','المقاول')||val(fs,['المقاول','المقاول uds'])||ex('CONTRACTOR_REPORT_NAME');
  const location=val(fs,['الموقع']);
  const engineer=val(fs,['المهندس المسئول','المهندس المسؤول']);
  const stage=val(fs,['مرحلة التنفيذ']);
@@ -304,6 +311,8 @@ function render(data){
  if(historyDiff!=null&&Math.abs(historyDiff)>0.5)qualityAlerts.push('آخر إنجاز تاريخي مسجل '+historyLast.actual.toFixed(2)+'% يختلف عن الإنجاز الحالي '+actual.toFixed(2)+'% بفارق '+Math.abs(historyDiff).toFixed(2)+' نقطة.');
  const report={workOrder:data.workOrder,projectTitle,desc,contractor,location,engineer,stage,stageStatus,reportType,reportNo,contractDuration,consultant,secFollowup,preparedBy,actual,actualSource,liveActual,planned,variance,start,expected,rdate,elapsed,remaining,boq,boqMetric,mats,permits,risks,periodRows,managementRows,matSum,permitSum,issuedLen,doneLen,permitExecution,planRows,qualityAlerts};
  state.report=report;
+ window.__VDProjectsReportEngineReport=report;
+ window.__VDProjectsReportEngineData=data;
  const cards=[
   {label:'الإنجاز الفعلي',value:actual==null?'—':fmtPct(actual),src:actualSource,ltr:true},
   {label:'المخطط حتى تاريخ التقرير',value:planned==null?'—':fmtPct(planned),src:'EXTRA',ltr:true},

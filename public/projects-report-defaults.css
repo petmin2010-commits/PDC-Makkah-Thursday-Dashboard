@@ -72,3 +72,7 @@
  .prd-body .prd-tabs button{flex:0 0 108px;width:108px;min-width:108px;min-height:44px}
  .prd-body .prd-scroll{overflow:visible;padding:9px}
 }
+
+/* Auto-sourced contractor field */
+.prd-field-auto input[readonly]{background:#eaf4fb;color:#183f61;border-color:#a9cbe2;font-weight:900;cursor:default}
+.prd-field-auto small{display:block;margin-top:1px;color:#2d6f9f;font:800 7px/1.5 Cairo,Arial,sans-serif}

@@ -4,7 +4,7 @@
 const GENERAL=[
  {key:'PROJECT_TITLE',label:'عنوان المشروع',field:'Text Value / Description',type:'text'},
  {key:'DETAILED_WORK_DESCRIPTION',label:'وصف الأعمال التفصيلي',field:'Text Value / Description',type:'textarea',wide:true},
- {key:'CONTRACTOR_REPORT_NAME',label:'اسم المقاول في التقرير',field:'Text Value / Description',type:'text'},
+ {key:'CONTRACTOR_REPORT_NAME',label:'اسم المقاول في التقرير',field:'Text Value / Description',type:'text',auto:true,source:'ورقة أوامر العمل — عمود المقاول'},
  {key:'ACTUAL_START_DATE',label:'تاريخ البدء الفعلي',field:'Start / Observation Date',type:'date'},
  {key:'EXPECTED_OPERATION_DATE',label:'تاريخ التشغيل المتوقع',field:'End / Expected Date',type:'date'},
  {key:'SEC_FOLLOWUP_ENGINEER',label:'مهندس متابعة شركة الكهرباء',field:'Responsible / Issuing Authority',type:'text'},
@@ -77,7 +77,7 @@ const ALL_FIELDS=[
 const PAGE_SIZE=4;
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clean=v=>String(v==null?'':v).trim();
-let rows=[],details=[],passthrough=[],generalDraft={},currentWo='',busy=false,installed=false,activeTab='general',pageByTab={};
+let rows=[],details=[],passthrough=[],generalDraft={},liveAuto={},currentWo='',busy=false,installed=false,activeTab='general',pageByTab={};
 
 function valueInputDate(v){
  const s=clean(v);let m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
@@ -110,17 +110,29 @@ function modalMarkup(){
   '</div></div>';
 }
 
+function contractorFromWorkOrdersData(data){
+ const sources=data?.sources||[];
+ const src=sources.find(s=>clean(s.sheet).includes('اوامر العمل'));if(!src)return '';
+ for(const rec of src.records||[])for(const f of rec.fields||[])if(clean(f.label)==='المقاول'&&clean(f.value))return clean(f.value);
+ return '';
+}
 function generalValue(g){
+ if(g.auto)return clean(liveAuto[g.key]||currentSuggestion(g.key));
  if(Object.prototype.hasOwnProperty.call(generalDraft,g.key))return generalDraft[g.key];
  const r=g.signature?preparedRow():generalRow(g.key);
  return r?clean(r[g.field]):'';
 }
 function generalField(g){
  const val=generalValue(g),placeholder=currentSuggestion(g.key);
+ if(g.auto)return '<label class="prd-field prd-field-auto"><span>'+esc(g.label)+'</span><input type="text" value="'+esc(val)+'" readonly aria-readonly="true"><small>آلي من '+esc(g.source||'مصدر البيانات')+'</small></label>';
  if(g.type==='textarea')return '<label class="prd-field prd-wide"><span>'+esc(g.label)+'</span><textarea data-general="'+g.key+'" placeholder="'+esc(placeholder)+'">'+esc(val)+'</textarea></label>';
  return '<label class="prd-field'+(g.wide?' prd-wide':'')+'"><span>'+esc(g.label)+'</span><input data-general="'+g.key+'" type="'+g.type+'" value="'+esc(g.type==='date'?valueInputDate(val):val)+'" placeholder="'+esc(placeholder)+'"></label>';
 }
 function currentSuggestion(key){
+ if(key==='CONTRACTOR_REPORT_NAME'){
+  const fromData=contractorFromWorkOrdersData(window.__VDProjectsReportEngineData);
+  if(fromData)return fromData;
+ }
  const r=window.__VDProjectsReportEngineReport||null;
  if(!r)return '';
  const map={
@@ -178,9 +190,25 @@ function setBusy(on,msg){busy=on;document.getElementById('prdSave')?.toggleAttri
 function loadGeneralDraft(){
  generalDraft={};
  for(const g of GENERAL){
+  if(g.auto){generalDraft[g.key]='';continue}
   const r=g.signature?preparedRow():generalRow(g.key);
   generalDraft[g.key]=r?clean(r[g.field]):'';
  }
+}
+async function ensureLiveAuto(wo){
+ liveAuto={};
+ const existing=window.__VDProjectsReportEngineData;
+ if(existing&&String(existing.workOrder||'')===String(wo)){
+  liveAuto.CONTRACTOR_REPORT_NAME=contractorFromWorkOrdersData(existing);return;
+ }
+ try{
+  const res=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({method:'getWorkOrder360',args:[wo]})});
+  const j=await res.json().catch(()=>({}));
+  if(res.ok&&j.ok!==false&&j.result){
+   window.__VDProjectsReportEngineData=j.result;
+   liveAuto.CONTRACTOR_REPORT_NAME=contractorFromWorkOrdersData(j.result);
+  }
+ }catch(e){console.warn('Live contractor lookup failed',e)}
 }
 async function loadDefaults(wo){
  setBusy(true,'جاري تحميل البيانات الافتراضية...');
@@ -191,6 +219,7 @@ async function loadDefaults(wo){
   rows=Array.isArray(j.rows)?j.rows:[];
   details=rows.filter(r=>SECTION_LABELS[r.Section]).map(r=>({...r}));
   passthrough=rows.filter(r=>!SECTION_LABELS[r.Section]&&!isKnownGeneral(r)&&!isPrepared(r)).map(r=>({...r}));
+  await ensureLiveAuto(wo);
   loadGeneralDraft();pageByTab={};render();setStatus(rows.length?'تم تحميل '+rows.length+' سجل محفوظ':'لا توجد بيانات افتراضية محفوظة بعد','ok');
  }catch(e){rows=[];details=[];passthrough=[];generalDraft={};render();setStatus(e.message||String(e),'error')}
  finally{setBusy(false)}
@@ -204,6 +233,7 @@ function closeModal(){const m=document.getElementById('preDefaultsModal');if(m&&
 function buildGeneralRows(){
  const out=[];
  for(const g of GENERAL){
+  if(g.auto)continue;
   const v=clean(generalDraft[g.key]);if(!v)continue;
   if(g.signature){
    const r={...(preparedRow()||{}),Section:'SIGNATURE','Field / Item / Permit No.':'PREPARED_BY'};
