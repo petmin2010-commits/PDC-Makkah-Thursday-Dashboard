@@ -16,7 +16,7 @@ const GENERAL=[
  {key:'EXPECTED_OPERATION_DATE',label:'تاريخ التشغيل المتوقع',field:'End / Expected Date',type:'date'},
  {key:'SEC_FOLLOWUP_ENGINEER',label:'مهندس متابعة شركة الكهرباء',field:'Responsible / Issuing Authority',type:'text'},
  {key:'CONTRACTUAL_DURATION_DAYS',label:'المدة التعاقدية بالأيام',field:'Numeric Value',type:'number',auto:true,source:'ورقة أوامر العمل — عمود المدة uds'},
- {key:'CONTRACT_DURATION_WITH_WEEKENDS',label:'المدة التعاقدية شاملة الجمعة والسبت (يوم)',field:'Numeric Value',type:'number',auto:true,source:'حساب آلي من تاريخ البدء الفعلي + أيام الجمعة والسبت'},
+ {key:'CONTRACT_DURATION_WITH_WEEKENDS',label:'المدة التعاقدية شاملة الجمعة (يوم)',field:'Numeric Value',type:'number',auto:true,source:'حساب آلي من تاريخ البدء الفعلي + أيام الجمعة الواقعة داخل المدة التعاقدية'},
  {key:'CONSULTANT_NAME',label:'اسم الاستشاري',field:'Text Value / Description',type:'text',fixed:true,value:'شركة أبعاد الرؤية للاستشارات الهندسية'},
  {key:'REPORT_TYPE',label:'نوع التقرير',field:'Text Value / Description',type:'select',options:REPORT_TYPE_OPTIONS},
  {key:'REPORT_NO',label:'رقم التقرير',field:'Text Value / Description',type:'select',options:Array.from({length:100},(_,i)=>String(i+1))},
@@ -108,13 +108,12 @@ function contractDurationWithWeekends(startValue,durationValue){
  if(!iso||target==null||target<=0)return '';
  const d=new Date(iso+'T12:00:00');
  if(Number.isNaN(d.getTime()))return '';
- let weekendDays=0;
+ let fridayDays=0;
  for(let i=0;i<target;i++){
-  const day=d.getDay();
-  if(day===5||day===6)weekendDays++;
+  if(d.getDay()===5)fridayDays++;
   d.setDate(d.getDate()+1);
  }
- return String(target+weekendDays);
+ return String(target+fridayDays);
 }
 function calculatedContractDuration(){
  const liveStart=document.querySelector('[data-general="ACTUAL_START_DATE"]')?.value;

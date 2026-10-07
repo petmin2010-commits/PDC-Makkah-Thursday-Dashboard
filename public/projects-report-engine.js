@@ -142,13 +142,12 @@ function contractDurationWithWeekends(startValue,durationValue){
  const start=dateObj(startValue),raw=num(durationValue),target=raw==null?null:Math.floor(raw);
  if(!start||target==null||target<=0)return null;
  const d=new Date(start.getFullYear(),start.getMonth(),start.getDate(),12,0,0);
- let weekendDays=0;
+ let fridayDays=0;
  for(let i=0;i<target;i++){
-  const day=d.getDay();
-  if(day===5||day===6)weekendDays++;
+  if(d.getDay()===5)fridayDays++;
   d.setDate(d.getDate()+1);
  }
- return target+weekendDays;
+ return target+fridayDays;
 }
 function statusClass(s){
  const n=norm(s);
@@ -346,7 +345,7 @@ function render(data){
   <div class="pre-facts">
    ${fact('المقاول',contractor,'LIVE')}${fact('الموقع',location,'LIVE')}${fact('المهندس المسؤول',engineer,'LIVE')}${fact('مهندس متابعة الكهرباء',secFollowup,ex('SEC_FOLLOWUP_ENGINEER')?'EXTRA':'LIVE')}
    ${fact('تاريخ البدء الفعلي',start,ex('ACTUAL_START_DATE')?'EXTRA':'LIVE',true)}${fact('التشغيل المتوقع',expected,'EXTRA',true)}
-   ${fact('المدة التعاقدية',contractDuration,'LIVE',true)}${fact('المدة شاملة الجمعة والسبت',contractDurationCalendar==null?'—':contractDurationCalendar+' يوم','CALC',true)}
+   ${fact('المدة التعاقدية',contractDuration,'LIVE',true)}${fact('المدة شاملة الجمعة',contractDurationCalendar==null?'—':contractDurationCalendar+' يوم','CALC',true)}
   </div>
  </section>
  <div class="pre-kpis pre-print-section">${cards.map(c=>'<article class="pre-kpi '+(c.bad?'bad':'')+'"><small>'+esc(c.label)+' • '+c.src+'</small><strong'+(c.ltr?' class="pre-ltr"':'')+'>'+esc(c.value)+'</strong>'+(c.sub?'<em>'+esc(c.sub)+'</em>':'')+'</article>').join('')}</div>
