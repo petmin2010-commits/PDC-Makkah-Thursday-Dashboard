@@ -108,23 +108,23 @@ function contractDurationWithWeekends(startValue,durationValue){
  if(!iso||target==null||target<=0)return '';
  const d=new Date(iso+'T12:00:00');
  if(Number.isNaN(d.getTime()))return '';
- let working=0,calendar=0;
- while(working<target&&calendar<5000){
+ let weekendDays=0;
+ for(let i=0;i<target;i++){
   const day=d.getDay();
-  calendar++;
-  if(day!==5&&day!==6)working++;
+  if(day===5||day===6)weekendDays++;
   d.setDate(d.getDate()+1);
  }
- return working===target?String(calendar):'';
+ return String(target+weekendDays);
 }
 function calculatedContractDuration(){
- const start=clean(generalDraft.ACTUAL_START_DATE)||currentSuggestion('ACTUAL_START_DATE');
+ const liveStart=document.querySelector('[data-general="ACTUAL_START_DATE"]')?.value;
+ const start=clean(liveStart)||clean(generalDraft.ACTUAL_START_DATE)||currentSuggestion('ACTUAL_START_DATE');
  const duration=clean(liveAuto.CONTRACTUAL_DURATION_DAYS)||currentSuggestion('CONTRACTUAL_DURATION_DAYS');
  return contractDurationWithWeekends(start,duration);
 }
 function refreshCalculatedGeneral(){
- const el=document.querySelector('[data-auto-general="CONTRACT_DURATION_WITH_WEEKENDS"]');
- if(el)el.value=calculatedContractDuration();
+ const update=()=>{const el=document.querySelector('[data-auto-general="CONTRACT_DURATION_WITH_WEEKENDS"]');if(el)el.value=calculatedContractDuration()};
+ update();setTimeout(update,0);
 }
 function woValue(){return clean(document.getElementById('preInput')?.value).replace(/\D/g,'').slice(0,10)}
 function rowKey(r){return clean(r?.['Field / Item / Permit No.']).toUpperCase()}

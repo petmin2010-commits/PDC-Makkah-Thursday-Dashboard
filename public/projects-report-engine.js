@@ -142,14 +142,13 @@ function contractDurationWithWeekends(startValue,durationValue){
  const start=dateObj(startValue),raw=num(durationValue),target=raw==null?null:Math.floor(raw);
  if(!start||target==null||target<=0)return null;
  const d=new Date(start.getFullYear(),start.getMonth(),start.getDate(),12,0,0);
- let working=0,calendar=0;
- while(working<target&&calendar<5000){
+ let weekendDays=0;
+ for(let i=0;i<target;i++){
   const day=d.getDay();
-  calendar++;
-  if(day!==5&&day!==6)working++;
+  if(day===5||day===6)weekendDays++;
   d.setDate(d.getDate()+1);
  }
- return working===target?calendar:null;
+ return target+weekendDays;
 }
 function statusClass(s){
  const n=norm(s);
