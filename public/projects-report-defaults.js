@@ -25,6 +25,15 @@ const SECTION_LABELS={
  PERIOD_SUMMARY:'ملخص الفترة',
  MANAGEMENT_NOTE:'ملاحظات الإدارة'
 };
+const TAB_DEFS=[
+ {id:'general',label:'البيانات الأساسية',icon:'◆',sections:[]},
+ {id:'boq',label:'بنود التنفيذ',icon:'▦',sections:['BOQ_ITEM']},
+ {id:'materials',label:'المواد',icon:'◫',sections:['MATERIAL']},
+ {id:'permits',label:'التصاريح',icon:'▤',sections:['PERMIT_DETAIL']},
+ {id:'plan',label:'الخطة والمعالم',icon:'◈',sections:['PLAN_POINT','MILESTONE']},
+ {id:'risks',label:'المخاطر',icon:'!',sections:['ISSUE_RISK']},
+ {id:'notes',label:'الملخص والملاحظات',icon:'≡',sections:['PERIOD_SUMMARY','MANAGEMENT_NOTE']}
+];
 const SECTION_FIELDS={
  BOQ_ITEM:[
   ['Field / Item / Permit No.','الكود / رقم البند','text'],['Text Value / Description','وصف البند','text'],
@@ -65,9 +74,10 @@ const ALL_FIELDS=[
  'Executed / Issued Qty','Period Qty','Weight / Planned Progress %','Status','Start / Observation Date','End / Expected Date',
  'Responsible / Issuing Authority','Location / Neighborhood','Category / Impact','Action / Support Required','URL / Attachment','Notes'
 ];
+const PAGE_SIZE=4;
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clean=v=>String(v==null?'':v).trim();
-let rows=[],details=[],passthrough=[],currentWo='',busy=false,installed=false;
+let rows=[],details=[],passthrough=[],generalDraft={},currentWo='',busy=false,installed=false,activeTab='general',pageByTab={};
 
 function valueInputDate(v){
  const s=clean(v);let m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
@@ -81,25 +91,29 @@ function isKnownGeneral(r){return r?.Section==='PROJECT_EXTRA'&&GENERAL.some(g=>
 function isPrepared(r){return r?.Section==='SIGNATURE'&&rowKey(r)==='PREPARED_BY'}
 function generalRow(key){return rows.find(r=>r.Section==='PROJECT_EXTRA'&&rowKey(r)===key)||null}
 function preparedRow(){return rows.find(isPrepared)||null}
+function tabDef(id=activeTab){return TAB_DEFS.find(t=>t.id===id)||TAB_DEFS[0]}
+function tabForSection(section){return TAB_DEFS.find(t=>t.sections.includes(section))?.id||'general'}
+function tabEntries(id=activeTab){
+ const def=tabDef(id);
+ return details.map((r,i)=>({r,i})).filter(x=>def.sections.includes(x.r.Section));
+}
+function countForTab(t){return t.id==='general'?GENERAL.filter(g=>clean(generalDraft[g.key])).length:tabEntries(t.id).length}
 
 function modalMarkup(){
- const opts=Object.entries(SECTION_LABELS).map(([k,v])=>'<option value="'+k+'">'+esc(v)+'</option>').join('');
  return '<div id="preDefaultsModal" class="prd-modal" hidden>'+
   '<div class="prd-dialog" role="dialog" aria-modal="true" aria-labelledby="prdTitle">'+
    '<header class="prd-head"><div><span>PROJECT DEFAULT DATA</span><h3 id="prdTitle">بيانات التقرير الافتراضية</h3><p>تُحفظ في Projects Report Engine Data وتُستدعى تلقائيًا لاحقًا لنفس أمر العمل.</p></div><button id="prdClose" type="button">×</button></header>'+
    '<div class="prd-wo-line"><div><small>أمر العمل</small><b id="prdWo">—</b></div><div id="prdStatus">جاهز</div></div>'+
-   '<div class="prd-scroll">'+
-    '<section class="prd-section"><div class="prd-section-head"><div><b>البيانات الأساسية</b><span>قيم ثابتة وافتراضية خاصة بالتقرير</span></div></div><div id="prdGeneral" class="prd-general-grid"></div></section>'+
-    '<section class="prd-section"><div class="prd-section-head"><div><b>السجلات التفصيلية</b><span>بنود، مواد، تصاريح، خطة، مخاطر وملاحظات</span></div><div class="prd-section-actions"><select id="prdNewSection">'+opts+'</select><button id="prdAddRow" type="button">+ إضافة سجل</button></div></div><div id="prdRecords"></div></section>'+
-   '</div>'+
+   '<nav id="prdTabs" class="prd-tabs" aria-label="أقسام البيانات الافتراضية"></nav>'+
+   '<div class="prd-scroll"><div id="prdTabContent"></div></div>'+
    '<footer class="prd-foot"><button id="prdDeleteAll" class="prd-danger" type="button">مسح البيانات الافتراضية</button><div><button id="prdCancel" type="button">إلغاء</button><button id="prdSave" class="prd-primary" type="button">حفظ كبيانات افتراضية</button></div></footer>'+
   '</div></div>';
 }
 
 function generalValue(g){
+ if(Object.prototype.hasOwnProperty.call(generalDraft,g.key))return generalDraft[g.key];
  const r=g.signature?preparedRow():generalRow(g.key);
- if(!r)return '';
- return clean(r[g.field]);
+ return r?clean(r[g.field]):'';
 }
 function generalField(g){
  const val=generalValue(g),placeholder=currentSuggestion(g.key);
@@ -118,24 +132,56 @@ function currentSuggestion(key){
  return clean(map[key]);
 }
 
-function recordCard(r,i){
+function recordCard(r,i,displayNo){
  const sec=clean(r.Section)||'BOQ_ITEM',fields=SECTION_FIELDS[sec]||SECTION_FIELDS.BOQ_ITEM;
  const inputs=fields.map(([k,label,type])=>{
-  const v=clean(r[k]),wide=type==='textarea';
+  const v=clean(r[k]);
   if(type==='textarea')return '<label class="prd-field prd-wide"><span>'+esc(label)+'</span><textarea data-ridx="'+i+'" data-rfield="'+esc(k)+'">'+esc(v)+'</textarea></label>';
   return '<label class="prd-field"><span>'+esc(label)+'</span><input type="'+type+'" data-ridx="'+i+'" data-rfield="'+esc(k)+'" value="'+esc(type==='date'?valueInputDate(v):v)+'"></label>';
  }).join('');
- return '<article class="prd-record" data-record="'+i+'"><div class="prd-record-head"><div><b>'+esc(SECTION_LABELS[sec]||sec)+'</b><small>سجل '+(i+1)+'</small></div><div><select data-section="'+i+'">'+Object.entries(SECTION_LABELS).map(([k,v])=>'<option value="'+k+'"'+(k===sec?' selected':'')+'>'+esc(v)+'</option>').join('')+'</select><button type="button" data-remove="'+i+'">حذف</button></div></div><div class="prd-record-grid">'+inputs+'</div></article>';
+ return '<article class="prd-record" data-record="'+i+'"><div class="prd-record-head"><div><b>'+esc(SECTION_LABELS[sec]||sec)+'</b><small>سجل '+displayNo+'</small></div><div><select data-section="'+i+'">'+Object.entries(SECTION_LABELS).map(([k,v])=>'<option value="'+k+'"'+(k===sec?' selected':'')+'>'+esc(v)+'</option>').join('')+'</select><button type="button" data-remove="'+i+'">حذف</button></div></div><div class="prd-record-grid">'+inputs+'</div></article>';
+}
+function addControls(def){
+ if(!def.sections.length)return '';
+ const opts=def.sections.map(k=>'<option value="'+k+'">'+esc(SECTION_LABELS[k])+'</option>').join('');
+ return '<div class="prd-section-actions">'+(def.sections.length>1?'<select id="prdNewSection">'+opts+'</select>':'<input id="prdNewSection" type="hidden" value="'+def.sections[0]+'">')+'<button id="prdAddRow" type="button">+ إضافة سجل</button></div>';
+}
+function paginationMarkup(total,page){
+ if(total<=PAGE_SIZE)return '';
+ const pages=Math.max(1,Math.ceil(total/PAGE_SIZE));
+ return '<div class="prd-pagination"><button type="button" data-page-dir="-1"'+(page<=1?' disabled':'')+'>‹ السابق</button><span>صفحة <b>'+page+'</b> من <b>'+pages+'</b> • '+total+' سجل</span><button type="button" data-page-dir="1"'+(page>=pages?' disabled':'')+'>التالي ›</button></div>';
+}
+function renderTabs(){
+ const nav=document.getElementById('prdTabs');if(!nav)return;
+ nav.innerHTML=TAB_DEFS.map(t=>'<button type="button" class="'+(t.id===activeTab?'active':'')+'" data-tab="'+t.id+'"><i>'+t.icon+'</i><span>'+esc(t.label)+'</span><b>'+countForTab(t)+'</b></button>').join('');
+}
+function renderContent(){
+ const box=document.getElementById('prdTabContent');if(!box)return;
+ const def=tabDef();
+ if(def.id==='general'){
+  box.innerHTML='<section class="prd-section prd-section-current"><div class="prd-section-head"><div><b>البيانات الأساسية</b><span>قيم ثابتة وافتراضية خاصة بالتقرير</span></div></div><div id="prdGeneral" class="prd-general-grid">'+GENERAL.map(generalField).join('')+'</div></section>';
+  return;
+ }
+ const entries=tabEntries(),pages=Math.max(1,Math.ceil(entries.length/PAGE_SIZE));
+ let page=Math.min(Math.max(1,pageByTab[activeTab]||1),pages);pageByTab[activeTab]=page;
+ const start=(page-1)*PAGE_SIZE,view=entries.slice(start,start+PAGE_SIZE);
+ const records=view.length?view.map((x,n)=>recordCard(x.r,x.i,start+n+1)).join(''):'<div class="prd-empty">لا توجد سجلات محفوظة في هذا القسم. اضغط «إضافة سجل» للبدء.</div>';
+ box.innerHTML='<section class="prd-section prd-section-current"><div class="prd-section-head"><div><b>'+esc(def.label)+'</b><span>'+entries.length+' سجل محفوظ في هذا القسم</span></div>'+addControls(def)+'</div><div id="prdRecords">'+records+'</div>'+paginationMarkup(entries.length,page)+'</section>';
 }
 function render(){
- const g=document.getElementById('prdGeneral'),list=document.getElementById('prdRecords');
- if(g)g.innerHTML=GENERAL.map(generalField).join('');
- if(list)list.innerHTML=details.length?details.map(recordCard).join(''):'<div class="prd-empty">لا توجد سجلات تفصيلية محفوظة. اختر النوع ثم اضغط «إضافة سجل».</div>';
  document.getElementById('prdWo').textContent=currentWo||'—';
+ renderTabs();renderContent();
 }
 function setStatus(msg,kind=''){const el=document.getElementById('prdStatus');if(el){el.textContent=msg;el.className=kind?'prd-status '+kind:'prd-status'}}
 function setBusy(on,msg){busy=on;document.getElementById('prdSave')?.toggleAttribute('disabled',on);document.getElementById('prdDeleteAll')?.toggleAttribute('disabled',on);if(msg)setStatus(msg,on?'working':'')}
 
+function loadGeneralDraft(){
+ generalDraft={};
+ for(const g of GENERAL){
+  const r=g.signature?preparedRow():generalRow(g.key);
+  generalDraft[g.key]=r?clean(r[g.field]):'';
+ }
+}
 async function loadDefaults(wo){
  setBusy(true,'جاري تحميل البيانات الافتراضية...');
  try{
@@ -145,21 +191,20 @@ async function loadDefaults(wo){
   rows=Array.isArray(j.rows)?j.rows:[];
   details=rows.filter(r=>SECTION_LABELS[r.Section]).map(r=>({...r}));
   passthrough=rows.filter(r=>!SECTION_LABELS[r.Section]&&!isKnownGeneral(r)&&!isPrepared(r)).map(r=>({...r}));
-  render();setStatus(rows.length?'تم تحميل '+rows.length+' سجل محفوظ':'لا توجد بيانات افتراضية محفوظة بعد','ok');
- }catch(e){rows=[];details=[];passthrough=[];render();setStatus(e.message||String(e),'error')}
+  loadGeneralDraft();pageByTab={};render();setStatus(rows.length?'تم تحميل '+rows.length+' سجل محفوظ':'لا توجد بيانات افتراضية محفوظة بعد','ok');
+ }catch(e){rows=[];details=[];passthrough=[];generalDraft={};render();setStatus(e.message||String(e),'error')}
  finally{setBusy(false)}
 }
 function openModal(){
  const wo=woValue();if(!wo){alert('أدخل رقم أمر العمل أولاً.');document.getElementById('preInput')?.focus();return}
- currentWo=wo;const m=document.getElementById('preDefaultsModal');if(!m)return;m.hidden=false;loadDefaults(wo);
+ currentWo=wo;activeTab='general';pageByTab={};const m=document.getElementById('preDefaultsModal');if(!m)return;m.hidden=false;loadDefaults(wo);
 }
 function closeModal(){const m=document.getElementById('preDefaultsModal');if(m&&!busy)m.hidden=true}
 
 function buildGeneralRows(){
  const out=[];
  for(const g of GENERAL){
-  const el=document.querySelector('[data-general="'+g.key+'"]'),v=clean(el?.value);
-  if(!v)continue;
+  const v=clean(generalDraft[g.key]);if(!v)continue;
   if(g.signature){
    const r={...(preparedRow()||{}),Section:'SIGNATURE','Field / Item / Permit No.':'PREPARED_BY'};
    ['Text Value / Description','Numeric Value','Start / Observation Date','End / Expected Date'].forEach(k=>r[k]='');
@@ -188,7 +233,7 @@ async function save(){
   const res=await fetch('/api/projects-report-engine/defaults/'+encodeURIComponent(currentWo),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({rows:payload})});
   const j=await res.json().catch(()=>({}));
   if(!res.ok||j.ok===false)throw new Error(j.error||'تعذر حفظ البيانات الافتراضية');
-  rows=Array.isArray(j.rows)?j.rows:payload;setStatus('تم الحفظ بنجاح — ستظهر هذه القيم تلقائيًا لاحقًا','ok');
+  rows=Array.isArray(j.rows)?j.rows:payload;loadGeneralDraft();setStatus('تم الحفظ بنجاح — ستظهر هذه القيم تلقائيًا لاحقًا','ok');
   setTimeout(()=>{document.getElementById('preSearchBtn')?.click()},150);
  }catch(e){setStatus(e.message||String(e),'error');alert(e.message||String(e))}
  finally{setBusy(false);render()}
@@ -200,26 +245,46 @@ async function deleteAll(){
   const res=await fetch('/api/projects-report-engine/defaults/'+encodeURIComponent(currentWo),{method:'DELETE'});
   const j=await res.json().catch(()=>({}));
   if(!res.ok||j.ok===false)throw new Error(j.error||'تعذر مسح البيانات');
-  rows=[];details=[];passthrough=[];render();setStatus('تم مسح البيانات الافتراضية','ok');setTimeout(()=>document.getElementById('preSearchBtn')?.click(),150);
+  rows=[];details=[];passthrough=[];generalDraft={};pageByTab={};render();setStatus('تم مسح البيانات الافتراضية','ok');setTimeout(()=>document.getElementById('preSearchBtn')?.click(),150);
  }catch(e){setStatus(e.message||String(e),'error')}
  finally{setBusy(false)}
 }
 function addRow(){
- const sec=document.getElementById('prdNewSection')?.value||'BOQ_ITEM';
+ const def=tabDef(),sec=document.getElementById('prdNewSection')?.value||def.sections[0]||'BOQ_ITEM';
  details.push({Section:sec,Sequence:details.filter(x=>x.Section===sec).length+1});
- render();setTimeout(()=>document.querySelector('[data-record="'+(details.length-1)+'"]')?.scrollIntoView({behavior:'smooth',block:'center'}),50);
+ activeTab=tabForSection(sec);
+ const total=tabEntries(activeTab).length;pageByTab[activeTab]=Math.max(1,Math.ceil(total/PAGE_SIZE));
+ render();
+ setTimeout(()=>document.querySelector('#prdRecords .prd-record:last-of-type')?.scrollIntoView({behavior:'smooth',block:'nearest'}),50);
 }
 function handleInput(e){
- const idx=Number(e.target.dataset.ridx);const field=e.target.dataset.rfield;
+ const g=e.target.dataset.general;if(g){generalDraft[g]=e.target.value;return}
+ const idx=Number(e.target.dataset.ridx),field=e.target.dataset.rfield;
  if(Number.isInteger(idx)&&details[idx]&&field)details[idx][field]=e.target.value;
 }
 function handleChange(e){
  const idx=Number(e.target.dataset.section);
- if(Number.isInteger(idx)&&details[idx]){details[idx]={Section:e.target.value,Sequence:details[idx].Sequence};render()}
+ if(Number.isInteger(idx)&&details[idx]){
+  const oldTab=activeTab,newSec=e.target.value;
+  details[idx]={Section:newSec,Sequence:details[idx].Sequence};
+  activeTab=tabForSection(newSec);pageByTab[oldTab]=1;pageByTab[activeTab]=Math.max(1,Math.ceil(tabEntries(activeTab).length/PAGE_SIZE));render();
+ }
 }
-function handleClick(e){
- const b=e.target.closest('[data-remove]');if(!b)return;
- const idx=Number(b.dataset.remove);if(Number.isInteger(idx)){details.splice(idx,1);render()}
+function handleContentClick(e){
+ const remove=e.target.closest('[data-remove]');
+ if(remove){
+  const idx=Number(remove.dataset.remove);if(Number.isInteger(idx)){details.splice(idx,1);render()}return;
+ }
+ const dir=e.target.closest('[data-page-dir]');
+ if(dir){
+  const step=Number(dir.dataset.pageDir)||0,total=tabEntries().length,pages=Math.max(1,Math.ceil(total/PAGE_SIZE));
+  pageByTab[activeTab]=Math.min(pages,Math.max(1,(pageByTab[activeTab]||1)+step));render();return;
+ }
+ if(e.target.closest('#prdAddRow'))addRow();
+}
+function switchTab(id){
+ if(!TAB_DEFS.some(t=>t.id===id)||id===activeTab)return;
+ activeTab=id;render();
 }
 function install(){
  if(installed)return;
@@ -234,10 +299,10 @@ function install(){
  document.getElementById('prdCancel').onclick=closeModal;
  document.getElementById('prdSave').onclick=save;
  document.getElementById('prdDeleteAll').onclick=deleteAll;
- document.getElementById('prdAddRow').onclick=addRow;
- document.getElementById('prdRecords').addEventListener('input',handleInput);
- document.getElementById('prdRecords').addEventListener('change',handleChange);
- document.getElementById('prdRecords').addEventListener('click',handleClick);
+ document.getElementById('prdTabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)switchTab(b.dataset.tab)});
+ document.getElementById('prdTabContent').addEventListener('input',handleInput);
+ document.getElementById('prdTabContent').addEventListener('change',handleChange);
+ document.getElementById('prdTabContent').addEventListener('click',handleContentClick);
  document.getElementById('preDefaultsModal').addEventListener('click',e=>{if(e.target.id==='preDefaultsModal')closeModal()});
  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 }
