@@ -138,6 +138,19 @@ function extraValue(row){return row?.['Text Value / Description']||row?.['Numeri
 function reportDate(rows){const pts=rows.filter(r=>r.Section==='PLAN_POINT').map(r=>r['Start / Observation Date']).filter(Boolean).map(v=>({v,d:dateObj(v)})).filter(x=>x.d).sort((a,b)=>a.d-b.d);return pts.at(-1)?.v||''}
 function dateObj(v){const s=clean(v);let m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);if(m)return new Date(+m[3],+m[2]-1,+m[1]);m=s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);if(m)return new Date(+m[1],+m[2]-1,+m[3]);const d=new Date(s);return isNaN(d)?null:d}
 function daysBetween(a,b){const x=dateObj(a),y=dateObj(b);return x&&y?Math.round((y-x)/86400000):null}
+function contractDurationWithWeekends(startValue,durationValue){
+ const start=dateObj(startValue),raw=num(durationValue),target=raw==null?null:Math.floor(raw);
+ if(!start||target==null||target<=0)return null;
+ const d=new Date(start.getFullYear(),start.getMonth(),start.getDate(),12,0,0);
+ let working=0,calendar=0;
+ while(working<target&&calendar<5000){
+  const day=d.getDay();
+  calendar++;
+  if(day!==5&&day!==6)working++;
+  d.setDate(d.getDate()+1);
+ }
+ return working===target?calendar:null;
+}
 function statusClass(s){
  const n=norm(s);
  if(n.includes('مرفوض')||n.includes('لم يتم')||n.startsWith('لم ')||n.includes('غير مصروف'))return'bad';
@@ -296,6 +309,7 @@ function render(data){
  const start=ex('ACTUAL_START_DATE')||val(fs,['تاريخ الاسناد','تاريخ الإسناد']);
  const expected=ex('EXPECTED_OPERATION_DATE');
  const rdate=ksaTodayDmy();
+ const contractDurationCalendar=contractDurationWithWeekends(start,contractDuration);
  const validPlanPoints=historyPoints(planRows,start,rdate,null,false).filter(p=>p.planned!=null);
  const planned=validPlanPoints.at(-1)?.planned??null;
  const elapsed=daysBetween(start,rdate),remaining=expected?daysBetween(rdate,expected):null;
@@ -315,7 +329,7 @@ function render(data){
  const qualityAlerts=[];
  if(boqMetric.hasWeights&&!boqMetric.valid)qualityAlerts.push('مجموع أوزان البنود = '+boqMetric.totalWeightPct.toFixed(2)+'%؛ لم يتم اعتماد الإنجاز المرجح وتم الرجوع إلى نسبة الإنجاز الحية.');
  if(historyDiff!=null&&Math.abs(historyDiff)>0.5)qualityAlerts.push('آخر إنجاز تاريخي مسجل '+historyLast.actual.toFixed(2)+'% يختلف عن الإنجاز الحالي '+actual.toFixed(2)+'% بفارق '+Math.abs(historyDiff).toFixed(2)+' نقطة.');
- const report={workOrder:data.workOrder,projectTitle,desc,contractor,location,engineer,stage,stageStatus,reportType,reportNo,contractDuration,consultant,secFollowup,preparedBy,actual,actualSource,liveActual,planned,variance,start,expected,rdate,elapsed,remaining,boq,boqMetric,mats,permits,risks,periodRows,managementRows,matSum,permitSum,issuedLen,doneLen,permitExecution,planRows,qualityAlerts};
+ const report={workOrder:data.workOrder,projectTitle,desc,contractor,location,engineer,stage,stageStatus,reportType,reportNo,contractDuration,contractDurationCalendar,consultant,secFollowup,preparedBy,actual,actualSource,liveActual,planned,variance,start,expected,rdate,elapsed,remaining,boq,boqMetric,mats,permits,risks,periodRows,managementRows,matSum,permitSum,issuedLen,doneLen,permitExecution,planRows,qualityAlerts};
  state.report=report;
  window.__VDProjectsReportEngineReport=report;
  window.__VDProjectsReportEngineData=data;
@@ -333,6 +347,7 @@ function render(data){
   <div class="pre-facts">
    ${fact('المقاول',contractor,'LIVE')}${fact('الموقع',location,'LIVE')}${fact('المهندس المسؤول',engineer,'LIVE')}${fact('مهندس متابعة الكهرباء',secFollowup,ex('SEC_FOLLOWUP_ENGINEER')?'EXTRA':'LIVE')}
    ${fact('تاريخ البدء الفعلي',start,ex('ACTUAL_START_DATE')?'EXTRA':'LIVE',true)}${fact('التشغيل المتوقع',expected,'EXTRA',true)}
+   ${fact('المدة التعاقدية',contractDuration,'LIVE',true)}${fact('المدة شاملة الجمعة والسبت',contractDurationCalendar==null?'—':contractDurationCalendar+' يوم','CALC',true)}
   </div>
  </section>
  <div class="pre-kpis pre-print-section">${cards.map(c=>'<article class="pre-kpi '+(c.bad?'bad':'')+'"><small>'+esc(c.label)+' • '+c.src+'</small><strong'+(c.ltr?' class="pre-ltr"':'')+'>'+esc(c.value)+'</strong>'+(c.sub?'<em>'+esc(c.sub)+'</em>':'')+'</article>').join('')}</div>

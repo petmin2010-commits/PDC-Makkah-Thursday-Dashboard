@@ -16,6 +16,7 @@ const GENERAL=[
  {key:'EXPECTED_OPERATION_DATE',label:'تاريخ التشغيل المتوقع',field:'End / Expected Date',type:'date'},
  {key:'SEC_FOLLOWUP_ENGINEER',label:'مهندس متابعة شركة الكهرباء',field:'Responsible / Issuing Authority',type:'text'},
  {key:'CONTRACTUAL_DURATION_DAYS',label:'المدة التعاقدية بالأيام',field:'Numeric Value',type:'number',auto:true,source:'ورقة أوامر العمل — عمود المدة uds'},
+ {key:'CONTRACT_DURATION_WITH_WEEKENDS',label:'المدة التعاقدية شاملة الجمعة والسبت (يوم)',field:'Numeric Value',type:'number',auto:true,source:'حساب آلي من تاريخ البدء الفعلي + أيام الجمعة والسبت'},
  {key:'CONSULTANT_NAME',label:'اسم الاستشاري',field:'Text Value / Description',type:'text',fixed:true,value:'شركة أبعاد الرؤية للاستشارات الهندسية'},
  {key:'REPORT_TYPE',label:'نوع التقرير',field:'Text Value / Description',type:'select',options:REPORT_TYPE_OPTIONS},
  {key:'REPORT_NO',label:'رقم التقرير',field:'Text Value / Description',type:'select',options:Array.from({length:100},(_,i)=>String(i+1))},
@@ -97,6 +98,34 @@ function ksaTodayIso(){
  const p={};parts.forEach(x=>{if(x.type!=='literal')p[x.type]=x.value});
  return (p.year||'')+'-'+(p.month||'')+'-'+(p.day||'');
 }
+function numericDays(v){
+ const m=String(v??'').replace(/,/g,'').match(/-?\d+(?:\.\d+)?/);
+ const n=m?Number(m[0]):NaN;
+ return Number.isFinite(n)?Math.floor(n):null;
+}
+function contractDurationWithWeekends(startValue,durationValue){
+ const iso=valueInputDate(startValue),target=numericDays(durationValue);
+ if(!iso||target==null||target<=0)return '';
+ const d=new Date(iso+'T12:00:00');
+ if(Number.isNaN(d.getTime()))return '';
+ let working=0,calendar=0;
+ while(working<target&&calendar<5000){
+  const day=d.getDay();
+  calendar++;
+  if(day!==5&&day!==6)working++;
+  d.setDate(d.getDate()+1);
+ }
+ return working===target?String(calendar):'';
+}
+function calculatedContractDuration(){
+ const start=clean(generalDraft.ACTUAL_START_DATE)||currentSuggestion('ACTUAL_START_DATE');
+ const duration=clean(liveAuto.CONTRACTUAL_DURATION_DAYS)||currentSuggestion('CONTRACTUAL_DURATION_DAYS');
+ return contractDurationWithWeekends(start,duration);
+}
+function refreshCalculatedGeneral(){
+ const el=document.querySelector('[data-auto-general="CONTRACT_DURATION_WITH_WEEKENDS"]');
+ if(el)el.value=calculatedContractDuration();
+}
 function woValue(){return clean(document.getElementById('preInput')?.value).replace(/\D/g,'').slice(0,10)}
 function rowKey(r){return clean(r?.['Field / Item / Permit No.']).toUpperCase()}
 function isKnownGeneral(r){return r?.Section==='PROJECT_EXTRA'&&GENERAL.some(g=>!g.signature&&g.key===rowKey(r))}
@@ -148,7 +177,7 @@ function generalField(g){
  }
  if(g.fixedToday)return '<label class="prd-field prd-field-auto"><span>'+esc(g.label)+'</span><input type="date" value="'+esc(val)+'" readonly aria-readonly="true"><small>تاريخ اليوم تلقائيًا — توقيت السعودية</small></label>';
  if(g.fixed)return '<label class="prd-field prd-field-auto"><span>'+esc(g.label)+'</span><input type="text" value="'+esc(val)+'" readonly aria-readonly="true"><small>قيمة ثابتة افتراضية</small></label>';
- if(g.auto)return '<label class="prd-field prd-field-auto"><span>'+esc(g.label)+'</span><input type="text" value="'+esc(val)+'" readonly aria-readonly="true"><small>آلي من '+esc(g.source||'مصدر البيانات')+'</small></label>';
+ if(g.auto)return '<label class="prd-field prd-field-auto"><span>'+esc(g.label)+'</span><input data-auto-general="'+esc(g.key)+'" type="text" value="'+esc(val)+'" readonly aria-readonly="true"><small>آلي من '+esc(g.source||'مصدر البيانات')+'</small></label>';
  if(g.type==='staff-select'){
   const selected=clean(val)||clean(placeholder);
   const base=staffNames.slice();
@@ -180,6 +209,7 @@ function currentSuggestion(key){
   const fromData=durationFromWorkOrdersData(window.__VDProjectsReportEngineData);
   if(fromData)return fromData;
  }
+ if(key==='CONTRACT_DURATION_WITH_WEEKENDS')return calculatedContractDuration();
  const r=window.__VDProjectsReportEngineReport||null;
  if(!r)return '';
  const map={
@@ -371,12 +401,12 @@ function addRow(){
  setTimeout(()=>document.querySelector('#prdRecords .prd-record:last-of-type')?.scrollIntoView({behavior:'smooth',block:'nearest'}),50);
 }
 function handleInput(e){
- const g=e.target.dataset.general;if(g){generalDraft[g]=e.target.value;return}
+ const g=e.target.dataset.general;if(g){generalDraft[g]=e.target.value;if(g==='ACTUAL_START_DATE')refreshCalculatedGeneral();return}
  const idx=Number(e.target.dataset.ridx),field=e.target.dataset.rfield;
  if(Number.isInteger(idx)&&details[idx]&&field)details[idx][field]=e.target.value;
 }
 function handleChange(e){
- const g=e.target.dataset.general;if(g){generalDraft[g]=e.target.value;return}
+ const g=e.target.dataset.general;if(g){generalDraft[g]=e.target.value;if(g==='ACTUAL_START_DATE')refreshCalculatedGeneral();return}
  const ridx=Number(e.target.dataset.ridx),rfield=e.target.dataset.rfield;
  if(Number.isInteger(ridx)&&details[ridx]&&rfield){details[ridx][rfield]=e.target.value;return}
  const idx=Number(e.target.dataset.section);
