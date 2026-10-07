@@ -117,44 +117,73 @@ module.exports=function installProjectDefaults(ctx){
   return v;
  }
 
- async function saveDefaults(workOrder,rows,updatedBy){
+ function stableKey_(r){
+  return [clean(r?.Section).toUpperCase(),Number(r?.Sequence)||0,clean(r?.['Field / Item / Permit No.']).toUpperCase()].join('|');
+ }
+
+ async function saveDefaults(workOrder,rows,updatedBy,deletedRows=[]){
   const wo=safeWo(workOrder);if(!wo)throw new Error('رقم أمر العمل غير صالح.');
   if(!Array.isArray(rows))throw new Error('بيانات الحفظ غير صالحة.');
   if(rows.length>MAX_ROWS_PER_WO)throw new Error('عدد السجلات أكبر من الحد المسموح.');
-  const {sheets}=await ensureSheet(),idx=await indexRows_();
-  const existing=idx.filter(x=>x.wo===wo).map(x=>x.row).sort((a,b)=>a-b);
+  const {sheets}=await ensureSheet();
+  const idx=await indexRows_(true);
+  const existing=await loadDefaults(wo);
+  const existingRows=new Set(existing.map(x=>Number(x._row)).filter(Number.isFinite));
+  const byKey=new Map(existing.map(x=>[stableKey_(x),x]));
+  const occupied=idx.filter(x=>x.wo).map(x=>x.row);
+  let next=Math.max(1,...occupied)+1;
+  const now=DateTime.now().setZone(APP?.TZ||'Asia/Riyadh').toISO();
+  const by=safeText(updatedBy,500);
+  const counters={};
+  const data=[];
+  const touched=new Set();
+
+  for(const raw of rows){
+   const sec=clean(raw?.Section).toUpperCase();
+   counters[sec]=(counters[sec]||0)+1;
+   let target=Number(raw?._row);
+   if(!Number.isFinite(target)||!existingRows.has(target)){
+    const hit=byKey.get(stableKey_(raw));
+    target=hit?Number(hit._row):next++;
+   }
+   const values=normalizeRow_(raw,wo,counters[sec],now,by);
+   data.push({range:`${qSheet(SHEET)}!B${target}:W${target}`,values:[values]});
+   touched.add(target);
+  }
+
+  if(data.length){
+   await sheets.spreadsheets.values.batchUpdate({
+    spreadsheetId:SPREADSHEET_ID,
+    requestBody:{valueInputOption:'RAW',data}
+   });
+  }
+
+  const deletions=[...new Set((deletedRows||[]).map(Number).filter(n=>existingRows.has(n)&&!touched.has(n)))];
+  if(deletions.length){
+   await sheets.spreadsheets.values.batchClear({
+    spreadsheetId:SPREADSHEET_ID,
+    requestBody:{ranges:deletions.map(n=>`${qSheet(SHEET)}!B${n}:W${n}`)}
+   });
+  }
+
+  indexCache={at:0,rows:null};
+  if(typeof invalidateProjectReportDataCache==='function')invalidateProjectReportDataCache();
+  return loadDefaults(wo);
+ }
+
+ async function clearDefaults(workOrder){
+  const wo=safeWo(workOrder);if(!wo)throw new Error('رقم أمر العمل غير صالح.');
+  const {sheets}=await ensureSheet(),idx=await indexRows_(true);
+  const existing=idx.filter(x=>x.wo===wo).map(x=>x.row);
   if(existing.length){
    await sheets.spreadsheets.values.batchClear({
     spreadsheetId:SPREADSHEET_ID,
     requestBody:{ranges:existing.map(n=>`${qSheet(SHEET)}!B${n}:W${n}`)}
    });
   }
-  let saved=[];
-  let assigned=[];
-  if(rows.length){
-   const occupied=idx.filter(x=>x.wo&&x.wo!==wo).map(x=>x.row);
-   let next=Math.max(1,...occupied,...existing)+1;
-   for(let i=0;i<rows.length;i++)assigned.push(i<existing.length?existing[i]:next++);
-   const now=DateTime.now().setZone(APP?.TZ||'Asia/Riyadh').toISO();
-   const by=safeText(updatedBy,500);
-   const counters={};
-   const data=rows.map((raw,i)=>{
-    const sec=clean(raw?.Section).toUpperCase();
-    counters[sec]=(counters[sec]||0)+1;
-    const values=normalizeRow_(raw,wo,counters[sec],now,by);
-    return {range:`${qSheet(SHEET)}!B${assigned[i]}:W${assigned[i]}`,values:[values]};
-   });
-   await sheets.spreadsheets.values.batchUpdate({
-    spreadsheetId:SPREADSHEET_ID,
-    requestBody:{valueInputOption:'RAW',data}
-   });
-   saved=data.map((d,i)=>objectFromRow_(d.values[0],assigned[i]));
-  }
-  const kept=idx.filter(x=>x.wo!==wo);
-  const added=saved.map((r,i)=>({row:assigned[i],wo,section:clean(r.Section)}));
-  indexCache={at:Date.now(),rows:[...kept,...added].sort((a,b)=>a.row-b.row)};
+  indexCache={at:0,rows:null};
   if(typeof invalidateProjectReportDataCache==='function')invalidateProjectReportDataCache();
-  return saved;
+  return [];
  }
 
  app.get('/api/projects-report-engine/defaults/:workOrder',requireAuth_,async(req,res)=>{
@@ -170,7 +199,7 @@ module.exports=function installProjectDefaults(ctx){
 
  app.put('/api/projects-report-engine/defaults/:workOrder',requireAuth_,async(req,res)=>{
   try{
-   const rows=await saveDefaults(req.params.workOrder,req.body?.rows||[],userLabel(req));
+   const rows=await saveDefaults(req.params.workOrder,req.body?.rows||[],userLabel(req),req.body?.deletedRows||[]);
    res.set('Cache-Control','no-store');
    res.json({ok:true,workOrder:safeWo(req.params.workOrder),rows});
   }catch(e){
@@ -181,7 +210,7 @@ module.exports=function installProjectDefaults(ctx){
 
  app.delete('/api/projects-report-engine/defaults/:workOrder',requireAuth_,async(req,res)=>{
   try{
-   await saveDefaults(req.params.workOrder,[],userLabel(req));
+   await clearDefaults(req.params.workOrder);
    res.set('Cache-Control','no-store');
    res.json({ok:true,workOrder:safeWo(req.params.workOrder),rows:[]});
   }catch(e){
@@ -190,5 +219,5 @@ module.exports=function installProjectDefaults(ctx){
   }
  });
 
- return {loadDefaults,saveDefaults,ensureSheet};
+ return {loadDefaults,saveDefaults,clearDefaults,ensureSheet};
 };

@@ -83,7 +83,7 @@ const ALL_FIELDS=[
 const PAGE_SIZE=4;
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clean=v=>String(v==null?'':v).trim();
-let rows=[],details=[],passthrough=[],generalDraft={},liveAuto={},staffNames=[],currentWo='',busy=false,installed=false,activeTab='general',pageByTab={};
+let rows=[],details=[],passthrough=[],generalDraft={},liveAuto={},staffNames=[],deletedRows=[],currentWo='',busy=false,installed=false,activeTab='general',pageByTab={};
 
 function valueInputDate(v){
  const s=clean(v);let m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
@@ -290,12 +290,13 @@ async function loadDefaults(wo){
   const j=await res.json().catch(()=>({}));
   if(!res.ok||j.ok===false)throw new Error(j.error||'تعذر تحميل البيانات الافتراضية');
   rows=Array.isArray(j.rows)?j.rows:[];
+  deletedRows=[];
   details=rows.filter(r=>SECTION_LABELS[r.Section]).map(r=>({...r}));
   passthrough=rows.filter(r=>!SECTION_LABELS[r.Section]&&!isKnownGeneral(r)&&!isPrepared(r)).map(r=>({...r}));
   await Promise.all([ensureLiveAuto(wo),ensureStaffNames()]);
   applyDetailDefaults();
   loadGeneralDraft();pageByTab={};render();setStatus(rows.length?'تم تحميل '+rows.length+' سجل محفوظ':'لا توجد بيانات افتراضية محفوظة بعد','ok');
- }catch(e){rows=[];details=[];passthrough=[];generalDraft={};render();setStatus(e.message||String(e),'error')}
+ }catch(e){rows=[];details=[];passthrough=[];generalDraft={};deletedRows=[];render();setStatus(e.message||String(e),'error')}
  finally{setBusy(false)}
 }
 function openModal(){
@@ -322,6 +323,7 @@ function buildGeneralRows(){
 }
 function compactDetail(r){
  const out={Section:r.Section};
+ if(Number.isFinite(Number(r?._row)))out._row=Number(r._row);
  for(const k of ALL_FIELDS){
   if(k==='Section')continue;
   const v=r[k];
@@ -334,10 +336,10 @@ async function save(){
  const payload=[...buildGeneralRows(),...passthrough.map(compactDetail),...details.map(compactDetail).filter(r=>r.Section)];
  setBusy(true,'جاري حفظ البيانات الافتراضية...');
  try{
-  const res=await fetch('/api/projects-report-engine/defaults/'+encodeURIComponent(currentWo),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({rows:payload})});
+  const res=await fetch('/api/projects-report-engine/defaults/'+encodeURIComponent(currentWo),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({rows:payload,deletedRows})});
   const j=await res.json().catch(()=>({}));
   if(!res.ok||j.ok===false)throw new Error(j.error||'تعذر حفظ البيانات الافتراضية');
-  rows=Array.isArray(j.rows)?j.rows:payload;loadGeneralDraft();setStatus('تم الحفظ بنجاح — ستظهر هذه القيم تلقائيًا لاحقًا','ok');
+  rows=Array.isArray(j.rows)?j.rows:payload;deletedRows=[];loadGeneralDraft();setStatus('تم الحفظ بنجاح — ستظهر هذه القيم تلقائيًا لاحقًا','ok');
   setTimeout(()=>{document.getElementById('preSearchBtn')?.click()},150);
  }catch(e){setStatus(e.message||String(e),'error');alert(e.message||String(e))}
  finally{setBusy(false);render()}
@@ -349,7 +351,7 @@ async function deleteAll(){
   const res=await fetch('/api/projects-report-engine/defaults/'+encodeURIComponent(currentWo),{method:'DELETE'});
   const j=await res.json().catch(()=>({}));
   if(!res.ok||j.ok===false)throw new Error(j.error||'تعذر مسح البيانات');
-  rows=[];details=[];passthrough=[];generalDraft={};pageByTab={};render();setStatus('تم مسح البيانات الافتراضية','ok');setTimeout(()=>document.getElementById('preSearchBtn')?.click(),150);
+  rows=[];details=[];passthrough=[];generalDraft={};deletedRows=[];pageByTab={};render();setStatus('تم مسح البيانات الافتراضية','ok');setTimeout(()=>document.getElementById('preSearchBtn')?.click(),150);
  }catch(e){setStatus(e.message||String(e),'error')}
  finally{setBusy(false)}
 }
@@ -374,15 +376,20 @@ function handleChange(e){
  if(Number.isInteger(ridx)&&details[ridx]&&rfield){details[ridx][rfield]=e.target.value;return}
  const idx=Number(e.target.dataset.section);
  if(Number.isInteger(idx)&&details[idx]){
-  const oldTab=activeTab,newSec=e.target.value;
-  details[idx]={Section:newSec,Sequence:details[idx].Sequence};
+  const oldTab=activeTab,newSec=e.target.value,oldRow=details[idx];
+  details[idx]={Section:newSec,Sequence:oldRow.Sequence,_row:oldRow._row};
   activeTab=tabForSection(newSec);pageByTab[oldTab]=1;pageByTab[activeTab]=Math.max(1,Math.ceil(tabEntries(activeTab).length/PAGE_SIZE));render();
  }
 }
 function handleContentClick(e){
  const remove=e.target.closest('[data-remove]');
  if(remove){
-  const idx=Number(remove.dataset.remove);if(Number.isInteger(idx)){details.splice(idx,1);render()}return;
+  const idx=Number(remove.dataset.remove);
+  if(Number.isInteger(idx)&&details[idx]){
+   const rowNo=Number(details[idx]._row);if(Number.isFinite(rowNo))deletedRows.push(rowNo);
+   details.splice(idx,1);render();
+  }
+  return;
  }
  const dir=e.target.closest('[data-page-dir]');
  if(dir){
