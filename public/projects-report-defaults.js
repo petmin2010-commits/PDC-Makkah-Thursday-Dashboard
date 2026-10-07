@@ -17,7 +17,7 @@ const GENERAL=[
  {key:'CONTRACTUAL_DURATION_DAYS',label:'المدة التعاقدية بالأيام',field:'Numeric Value',type:'number',auto:true,source:'ورقة أوامر العمل — عمود المدة uds'},
  {key:'CONSULTANT_NAME',label:'اسم الاستشاري',field:'Text Value / Description',type:'text',fixed:true,value:'شركة أبعاد الرؤية للاستشارات الهندسية'},
  {key:'REPORT_TYPE',label:'نوع التقرير',field:'Text Value / Description',type:'select',options:REPORT_TYPE_OPTIONS},
- {key:'REPORT_NO',label:'رقم التقرير',field:'Text Value / Description',type:'text'},
+ {key:'REPORT_NO',label:'رقم التقرير',field:'Text Value / Description',type:'select',options:Array.from({length:100},(_,i)=>String(i+1))},
  {key:'REPORT_DATE',label:'تاريخ التقرير',field:'Start / Observation Date',type:'date',fixedToday:true},
  {key:'PREPARED_BY',label:'إعداد التقرير / التوقيع',field:'Responsible / Issuing Authority',type:'staff-select',signature:true}
 ];
@@ -139,7 +139,12 @@ function generalValue(g){
  return r?clean(r[g.field]):'';
 }
 function generalField(g){
- const val=generalValue(g),placeholder=currentSuggestion(g.key);
+ let val=generalValue(g),placeholder=currentSuggestion(g.key);
+ if(g.key==='REPORT_NO'){
+  const n=parseInt(val||placeholder||'1',10);
+  val=Number.isFinite(n)&&n>=1&&n<=100?String(n):'1';
+  placeholder=val;
+ }
  if(g.fixedToday)return '<label class="prd-field prd-field-auto"><span>'+esc(g.label)+'</span><input type="date" value="'+esc(val)+'" readonly aria-readonly="true"><small>تاريخ اليوم تلقائيًا — توقيت السعودية</small></label>';
  if(g.fixed)return '<label class="prd-field prd-field-auto"><span>'+esc(g.label)+'</span><input type="text" value="'+esc(val)+'" readonly aria-readonly="true"><small>قيمة ثابتة افتراضية</small></label>';
  if(g.auto)return '<label class="prd-field prd-field-auto"><span>'+esc(g.label)+'</span><input type="text" value="'+esc(val)+'" readonly aria-readonly="true"><small>آلي من '+esc(g.source||'مصدر البيانات')+'</small></label>';
@@ -235,7 +240,12 @@ function loadGeneralDraft(){
  for(const g of GENERAL){
   if(g.auto||g.fixed||g.fixedToday){generalDraft[g.key]='';continue}
   const r=g.signature?preparedRow():generalRow(g.key);
-  generalDraft[g.key]=r?clean(r[g.field]):'';
+  let v=r?clean(r[g.field]):'';
+  if(g.key==='REPORT_NO'){
+   const n=parseInt(v||'1',10);
+   v=Number.isFinite(n)&&n>=1&&n<=100?String(n):'1';
+  }
+  generalDraft[g.key]=v;
  }
 }
 async function ensureStaffNames(){
