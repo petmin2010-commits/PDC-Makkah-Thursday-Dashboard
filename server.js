@@ -2489,6 +2489,21 @@ require('./excel-export-server')({
   DateTime
 });
 
+require('./projects-report-defaults-server')({
+  app,
+  requireAuth_,
+  getSheets,
+  SPREADSHEET_ID,
+  qSheet,
+  APP,
+  DateTime,
+  invalidateProjectReportDataCache:()=>{
+    for(const key of valuesCache.keys()){
+      if(String(key).toLowerCase().includes('projects report engine data'))valuesCache.delete(key);
+    }
+  }
+});
+
 const projectsReportImages=require('./projects-report-images-server')({
   app,
   requireAuth_,
