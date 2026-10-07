@@ -93,6 +93,23 @@ function valueInputDate(v){
  m=s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
  return m?m[1]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[3]).padStart(2,'0'):'';
 }
+function dateDisplayDMY(v){
+ const iso=valueInputDate(v);if(!iso)return clean(v);
+ const p=iso.split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:clean(v);
+}
+function normalizeDateDisplay(v){
+ const s=clean(v).replace(/[.\-]/g,'/');
+ let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+ if(!m){
+  const d=s.replace(/\D/g,'');
+  if(d.length===8)m=[d,d.slice(0,2),d.slice(2,4),d.slice(4)];
+ }
+ if(!m)return s;
+ const dd=String(m[1]).padStart(2,'0'),mm=String(m[2]).padStart(2,'0'),yyyy=String(m[3]);
+ const dt=new Date(Number(yyyy),Number(mm)-1,Number(dd),12,0,0);
+ if(dt.getFullYear()!==Number(yyyy)||dt.getMonth()!==Number(mm)-1||dt.getDate()!==Number(dd))return s;
+ return dd+'/'+mm+'/'+yyyy;
+}
 function ksaTodayIso(){
  const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
  const p={};parts.forEach(x=>{if(x.type!=='literal')p[x.type]=x.value});
@@ -174,7 +191,7 @@ function generalField(g){
   val=Number.isFinite(n)&&n>=1&&n<=100?String(n):'1';
   placeholder=val;
  }
- if(g.fixedToday)return '<label class="prd-field prd-field-auto"><span>'+esc(g.label)+'</span><input type="date" value="'+esc(val)+'" readonly aria-readonly="true"><small>تاريخ اليوم تلقائيًا — توقيت السعودية</small></label>';
+ if(g.fixedToday)return '<label class="prd-field prd-field-auto"><span>'+esc(g.label)+'</span><input type="text" data-date-dmy="1" value="'+esc(dateDisplayDMY(val))+'" readonly aria-readonly="true"><small>تاريخ اليوم تلقائيًا — توقيت السعودية • dd/mm/yyyy</small></label>';
  if(g.fixed)return '<label class="prd-field prd-field-auto"><span>'+esc(g.label)+'</span><input type="text" value="'+esc(val)+'" readonly aria-readonly="true"><small>قيمة ثابتة افتراضية</small></label>';
  if(g.auto)return '<label class="prd-field prd-field-auto"><span>'+esc(g.label)+'</span><input data-auto-general="'+esc(g.key)+'" type="text" value="'+esc(val)+'" readonly aria-readonly="true"><small>آلي من '+esc(g.source||'مصدر البيانات')+'</small></label>';
  if(g.type==='staff-select'){
@@ -192,7 +209,8 @@ function generalField(g){
   return '<label class="prd-field"><span>'+esc(g.label)+'</span><select data-general="'+g.key+'">'+opts+'</select></label>';
  }
  if(g.type==='textarea')return '<label class="prd-field prd-wide"><span>'+esc(g.label)+'</span><textarea data-general="'+g.key+'" placeholder="'+esc(placeholder)+'">'+esc(val)+'</textarea></label>';
- return '<label class="prd-field'+(g.wide?' prd-wide':'')+'"><span>'+esc(g.label)+'</span><input data-general="'+g.key+'" type="'+g.type+'" value="'+esc(g.type==='date'?valueInputDate(val):val)+'" placeholder="'+esc(placeholder)+'"></label>';
+ if(g.type==='date')return '<label class="prd-field'+(g.wide?' prd-wide':'')+'"><span>'+esc(g.label)+'</span><input data-general="'+g.key+'" data-date-dmy="1" type="text" inputmode="numeric" maxlength="10" value="'+esc(dateDisplayDMY(val))+'" placeholder="dd/mm/yyyy"></label>';
+ return '<label class="prd-field'+(g.wide?' prd-wide':'')+'"><span>'+esc(g.label)+'</span><input data-general="'+g.key+'" type="'+g.type+'" value="'+esc(val)+'" placeholder="'+esc(placeholder)+'"></label>';
 }
 function currentSuggestion(key){
  if(key==='REPORT_DATE')return ksaTodayIso();
@@ -313,7 +331,8 @@ function tableEditor(r,i,col){
   return '<td><select aria-label="'+esc(label)+'" data-ridx="'+i+'" data-rfield="'+esc(key)+'">'+opts+'</select></td>';
  }
  if(type==='textarea')return '<td class="prd-cell-wide"><textarea rows="1" aria-label="'+esc(label)+'" data-ridx="'+i+'" data-rfield="'+esc(key)+'">'+esc(v)+'</textarea></td>';
- return '<td><input aria-label="'+esc(label)+'" type="'+type+'" data-ridx="'+i+'" data-rfield="'+esc(key)+'" value="'+esc(type==='date'?valueInputDate(v):v)+'"></td>';
+ if(type==='date')return '<td><input aria-label="'+esc(label)+'" type="text" inputmode="numeric" maxlength="10" data-date-dmy="1" data-ridx="'+i+'" data-rfield="'+esc(key)+'" value="'+esc(dateDisplayDMY(v))+'" placeholder="dd/mm/yyyy"></td>';
+ return '<td><input aria-label="'+esc(label)+'" type="'+type+'" data-ridx="'+i+'" data-rfield="'+esc(key)+'" value="'+esc(v)+'"></td>';
 }
 function sectionTable(sec){
  const cols=TABLE_COLUMNS[sec]||[];
@@ -486,9 +505,17 @@ function handleInput(e){
  if(Number.isInteger(idx)&&details[idx]&&field){details[idx][field]=e.target.value;refreshCalculatedRow(idx)}
 }
 function handleChange(e){
- const g=e.target.dataset.general;if(g){generalDraft[g]=e.target.value;if(g==='ACTUAL_START_DATE')refreshCalculatedGeneral();return}
+ const g=e.target.dataset.general;if(g){
+  const value=e.target.dataset.dateDmy==='1'?normalizeDateDisplay(e.target.value):e.target.value;
+  if(e.target.dataset.dateDmy==='1')e.target.value=value;
+  generalDraft[g]=value;if(g==='ACTUAL_START_DATE')refreshCalculatedGeneral();return
+ }
  const ridx=Number(e.target.dataset.ridx),rfield=e.target.dataset.rfield;
- if(Number.isInteger(ridx)&&details[ridx]&&rfield){details[ridx][rfield]=e.target.value;refreshCalculatedRow(ridx);return}
+ if(Number.isInteger(ridx)&&details[ridx]&&rfield){
+  const value=e.target.dataset.dateDmy==='1'?normalizeDateDisplay(e.target.value):e.target.value;
+  if(e.target.dataset.dateDmy==='1')e.target.value=value;
+  details[ridx][rfield]=value;refreshCalculatedRow(ridx);return
+ }
  const idx=Number(e.target.dataset.section);
  if(Number.isInteger(idx)&&details[idx]){
   const oldTab=activeTab,newSec=e.target.value,oldRow=details[idx];

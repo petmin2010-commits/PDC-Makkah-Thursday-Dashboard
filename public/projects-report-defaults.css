@@ -127,3 +127,6 @@
  .prd-entry-table th,.prd-entry-table input,.prd-entry-table select{min-width:105px}
  .prd-entry-table th:nth-child(2),.prd-entry-table td:nth-child(2){min-width:190px}
 }
+
+/* Visible date format: dd/mm/yyyy */
+.prd-field input[data-date-dmy="1"],.prd-entry-table input[data-date-dmy="1"]{direction:ltr;text-align:left;font-variant-numeric:tabular-nums;letter-spacing:.2px}
