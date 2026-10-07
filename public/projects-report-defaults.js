@@ -8,7 +8,7 @@ const GENERAL=[
  {key:'ACTUAL_START_DATE',label:'تاريخ البدء الفعلي',field:'Start / Observation Date',type:'date'},
  {key:'EXPECTED_OPERATION_DATE',label:'تاريخ التشغيل المتوقع',field:'End / Expected Date',type:'date'},
  {key:'SEC_FOLLOWUP_ENGINEER',label:'مهندس متابعة شركة الكهرباء',field:'Responsible / Issuing Authority',type:'text'},
- {key:'CONTRACTUAL_DURATION_DAYS',label:'المدة التعاقدية بالأيام',field:'Numeric Value',type:'number'},
+ {key:'CONTRACTUAL_DURATION_DAYS',label:'المدة التعاقدية بالأيام',field:'Numeric Value',type:'number',auto:true,source:'ورقة أوامر العمل — عمود المدة uds'},
  {key:'CONSULTANT_NAME',label:'اسم الاستشاري',field:'Text Value / Description',type:'text'},
  {key:'REPORT_TYPE',label:'نوع التقرير',field:'Text Value / Description',type:'text'},
  {key:'REPORT_NO',label:'رقم التقرير',field:'Text Value / Description',type:'text'},
@@ -110,12 +110,14 @@ function modalMarkup(){
   '</div></div>';
 }
 
-function contractorFromWorkOrdersData(data){
+function workOrdersValue(data,label){
  const sources=data?.sources||[];
  const src=sources.find(s=>clean(s.sheet).includes('اوامر العمل'));if(!src)return '';
- for(const rec of src.records||[])for(const f of rec.fields||[])if(clean(f.label)==='المقاول'&&clean(f.value))return clean(f.value);
+ for(const rec of src.records||[])for(const f of rec.fields||[])if(clean(f.label)===label&&clean(f.value))return clean(f.value);
  return '';
 }
+function contractorFromWorkOrdersData(data){return workOrdersValue(data,'المقاول')}
+function durationFromWorkOrdersData(data){return workOrdersValue(data,'المدة uds')}
 function generalValue(g){
  if(g.auto)return clean(liveAuto[g.key]||currentSuggestion(g.key));
  if(Object.prototype.hasOwnProperty.call(generalDraft,g.key))return generalDraft[g.key];
@@ -131,6 +133,10 @@ function generalField(g){
 function currentSuggestion(key){
  if(key==='CONTRACTOR_REPORT_NAME'){
   const fromData=contractorFromWorkOrdersData(window.__VDProjectsReportEngineData);
+  if(fromData)return fromData;
+ }
+ if(key==='CONTRACTUAL_DURATION_DAYS'){
+  const fromData=durationFromWorkOrdersData(window.__VDProjectsReportEngineData);
   if(fromData)return fromData;
  }
  const r=window.__VDProjectsReportEngineReport||null;
@@ -199,7 +205,8 @@ async function ensureLiveAuto(wo){
  liveAuto={};
  const existing=window.__VDProjectsReportEngineData;
  if(existing&&String(existing.workOrder||'')===String(wo)){
-  liveAuto.CONTRACTOR_REPORT_NAME=contractorFromWorkOrdersData(existing);return;
+  liveAuto.CONTRACTOR_REPORT_NAME=contractorFromWorkOrdersData(existing);
+  liveAuto.CONTRACTUAL_DURATION_DAYS=durationFromWorkOrdersData(existing);return;
  }
  try{
   const res=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({method:'getWorkOrder360',args:[wo]})});
@@ -207,6 +214,7 @@ async function ensureLiveAuto(wo){
   if(res.ok&&j.ok!==false&&j.result){
    window.__VDProjectsReportEngineData=j.result;
    liveAuto.CONTRACTOR_REPORT_NAME=contractorFromWorkOrdersData(j.result);
+   liveAuto.CONTRACTUAL_DURATION_DAYS=durationFromWorkOrdersData(j.result);
   }
  }catch(e){console.warn('Live contractor lookup failed',e)}
 }
