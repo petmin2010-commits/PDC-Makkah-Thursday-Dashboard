@@ -11,6 +11,12 @@ const pct=v=>{const n=num(v);return n==null?null:(String(v).includes('%')?n:(Mat
 const fmtNum=v=>{const n=num(v);return n==null?'—':n.toLocaleString('en-US',{maximumFractionDigits:2})};
 const fmtPct=v=>{const n=pct(v);return n==null?'—':n.toLocaleString('en-US',{maximumFractionDigits:2})+'%'};
 const ltr=v=>'<span class="pre-ltr">'+esc(v==null?'—':v)+'</span>';
+function ksaTodayIso(){
+ const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+ const p={};parts.forEach(x=>{if(x.type!=='literal')p[x.type]=x.value});
+ return (p.year||'')+'-'+(p.month||'')+'-'+(p.day||'');
+}
+function ksaTodayDmy(){const s=ksaTodayIso().split('-');return s.length===3?s[2]+'/'+s[1]+'/'+s[0]:new Date().toLocaleDateString('en-GB')}
 function rpc(method,args=[]){return fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({method,args})}).then(async r=>{const x=await r.json().catch(()=>({}));if(!r.ok||x.ok===false)throw new Error(x.error||('HTTP '+r.status));return x.result})}
 function install(){
  const nav=$(NAV_ID);if(!nav||$(PAGE_ID))return;
@@ -279,7 +285,7 @@ function render(data){
  const stage=val(fs,['مرحلة التنفيذ']);
  const stageStatus=val(fs,['حالة المرحلة','حالة التنفيذ','حالة الامر وفقا لمتابعة المهندس المسئول']);
  const reportType=ex('REPORT_TYPE')||'يومي';
- const reportNo=ex('REPORT_NO')||'1';
+ const reportNo=ex('REPORT_NO')||'001';
  const contractDuration=sourceExactValue(data,'اوامر العمل','المدة uds')||val(fs,['المدة التعاقدية','مدة امر العمل','مدة أمر العمل','مدة التنفيذ','مدة المشروع'])||ex('CONTRACTUAL_DURATION_DAYS');
  const consultant='شركة أبعاد الرؤية للاستشارات الهندسية';
  const secFollowup=ex('SEC_FOLLOWUP_ENGINEER')||val(fs,['مهندس المتابعة','مهندس شركة الكهرباء','المهندس المسئول','المهندس المسؤول']);
@@ -289,7 +295,7 @@ function render(data){
  const planRows=rows.filter(r=>r.Section==='PLAN_POINT');
  const start=ex('ACTUAL_START_DATE')||val(fs,['تاريخ الاسناد','تاريخ الإسناد']);
  const expected=ex('EXPECTED_OPERATION_DATE');
- const rdate=ex('REPORT_DATE')||reportDate(rows)||new Date().toLocaleDateString('en-GB');
+ const rdate=ksaTodayDmy();
  const validPlanPoints=historyPoints(planRows,start,rdate,null,false).filter(p=>p.planned!=null);
  const planned=validPlanPoints.at(-1)?.planned??null;
  const elapsed=daysBetween(start,rdate),remaining=expected?daysBetween(rdate,expected):null;
@@ -543,7 +549,7 @@ function photosPdfBlock(images){
 function mapBlock(){
  return '<section class="pre-panel pre-map-panel pre-print-section" id="preMapPanel">'+
  '<div class="pre-panel-head"><div><span>GEOGRAPHIC CONTROL / KMZ</span><h3>خريطة أمر العمل والطبقات الجغرافية</h3></div><div class="pre-mini-kpis"><span id="preMapSummary">جاهزة لرفع KMZ / KML</span></div></div>'+
- '<div class="pre-map-upload-row"><button id="preMapKmzUploadBtn" class="pre-map-kmz-upload" type="button">⬆ رفع KMZ</button><input id="preMapKmzFileInput" class="map-file-input" type="file" accept=".kmz,.kml,application/vnd.google-earth.kmz,application/vnd.google-earth.kml+xml" multiple><span>أضف ملفات KMZ / KML ثم تحكم بالطبقات على الخريطة</span></div>'+
+ '<div class="pre-map-upload-row"><button id="preMapKmzUploadBtn" class="pre-map-kmz-upload" type="button">⬆ رفع KMZ متعدد</button><input id="preMapKmzFileInput" class="map-file-input" type="file" accept=".kmz,.kml,application/vnd.google-earth.kmz,application/vnd.google-earth.kml+xml" multiple><span>يمكن اختيار أكثر من ملف KMZ / KML في نفس المرة أو إضافة ملفات جديدة لاحقًا؛ كل ملف يظهر كطبقة مستقلة.</span></div>'+
  '<div class="pre-map-toolbar">'+
   '<div class="pre-map-tools">'+
    '<button type="button" class="pre-map-tool active" id="preMapStreetBtn">خريطة الشوارع</button>'+

@@ -153,6 +153,7 @@ function layerBounds(layer){
 function init(options={}){
  const map=options.map,input=options.input,button=options.button,host=options.host,stage=options.stage;
  if(!map||!window.L||!input||!button||!host)return null;
+ input.multiple=true;
  const layers=new Map();
  active={map,layers};
  const say=msg=>typeof options.toast==='function'?options.toast(msg):void 0;
@@ -167,6 +168,11 @@ function init(options={}){
   summary();
  };
  const fitUpload=u=>{const layer=layers.get(u.id),b=layerBounds(layer);if(b)map.fitBounds(b,{padding:[42,42],maxZoom:17})};
+ const fitAllVisible=()=>{
+  const b=window.L.latLngBounds([]);
+  uploads.filter(x=>x.visible).forEach(u=>{const ub=layerBounds(layers.get(u.id));if(ub)b.extend(ub)});
+  if(b.isValid())map.fitBounds(b,{padding:[42,42],maxZoom:16});
+ };
  const loadFiles=async files=>{
   const list=[...files].filter(Boolean);if(!list.length)return;
   button.classList.add('loading');button.disabled=true;
@@ -180,7 +186,10 @@ function init(options={}){
   }
   render();
   button.classList.remove('loading');button.disabled=false;input.value='';
-  if(added){say('تمت إضافة '+added+' طبقة جغرافية');if(last)fitUpload(last)}
+  if(added){
+   say('تمت إضافة '+added+' طبقة جغرافية'+(added>1?' معًا':''));
+   if(added>1)fitAllVisible();else if(last)fitUpload(last);
+  }
  };
  button.addEventListener('click',()=>input.click());
  input.addEventListener('change',()=>loadFiles(input.files));
