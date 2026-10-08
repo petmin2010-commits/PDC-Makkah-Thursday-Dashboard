@@ -896,7 +896,39 @@ html,body{color:#1d334a;font-family:Tahoma,Arial,sans-serif;font-size:9pt}
 .pre-guide-item:nth-child(3n+3){border-right-color:#159574;background:#f0faf5}
 .pre-guide-item>b{color:#187b94;font-size:10pt}.pre-guide-item h3{font-size:9.5pt;margin:0 0 1mm}
 .pre-guide-item p{font-size:7.2pt;line-height:1.5;margin:0}
-.pre-guide-foot{margin-top:3mm;padding:3mm;background:#fff7e9;border:1px solid #ebd19c;border-radius:2mm;font-size:8pt}`}
+.pre-guide-foot{margin-top:3mm;padding:3mm;background:#fff7e9;border:1px solid #ebd19c;border-radius:2mm;font-size:8pt}
+/* Premium engineering-report art direction */
+.pre-summary{padding:6mm;border-top:4px solid #0d6280;background:linear-gradient(120deg,#ebf6fc,#fff 80%)}
+.pre-title h2{font-size:22pt;font-weight:900;color:#113c59}
+.pre-title p{font-size:9.5pt;color:#3f6379}
+.pre-report-meta{background:#fff;border:1px solid #c5dce9;border-radius:3mm;padding:3mm}
+.pre-fact,.pre-extra-grid>div{background:#fff;border-radius:3mm;padding:3mm;min-height:15mm}
+.pre-fact b,.pre-extra-grid b{font-size:9.5pt;color:#153c54}
+.pre-kpi{min-height:24mm;border-radius:3mm;padding:3mm;border-top-width:3px}
+.pre-kpi small{font-size:7.4pt;font-weight:700}
+.pre-kpi strong{font-size:18pt;font-weight:900}
+.pre-kpi.bad{background:#fff0f0;border-color:#efc7ca}
+.pre-panel-head h3{font-size:15pt;font-weight:900;color:#123c57}
+.pre-summary-strip>div{padding:3mm 2mm;border-radius:2.5mm}
+.pre-summary-strip b{font-size:13pt;font-weight:900}
+.pre-chart-card{padding:4mm;background:#f8fbfe;border-radius:3mm}
+.pre-chart-title h4{font-size:11pt;font-weight:900}
+.pre-track{height:4mm}
+.pre-bar-track{height:3mm}
+.pre-table-wrap th{background:#103d5a!important;color:#fff!important;font-size:8pt;font-weight:900}
+.pre-table-wrap td{font-size:8pt;line-height:1.4;color:#244459}
+.pre-table-wrap tr:nth-child(even) td{background:#edf5fa}
+.pre-photo-pdf-card{border:1px solid #bcd5e4;border-radius:3mm}
+.pre-photo-pdf-card img,.pre-photo-pdf-empty{height:53mm}
+.pre-photo-pdf-caption{background:#f2f8fc;min-height:18mm;padding:2.5mm}
+.pre-photo-pdf-caption b{font-size:8.5pt;color:#116982}
+.pre-photo-pdf-caption span{font-size:8.2pt;line-height:1.5}
+.pre-map-pdf-image{max-height:150mm;border:2px solid #bbd7e6}
+.pre-guide-title{background:linear-gradient(110deg,#123a60,#087d93);padding:6mm}
+.pre-guide-item{padding:3mm}
+.pre-guide-item h3{font-size:10.2pt}
+.pre-guide-item p{font-size:7.6pt;line-height:1.55}
+`}
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(install,260));else setTimeout(install,260);
 })();
