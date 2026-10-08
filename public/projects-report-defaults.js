@@ -1,61 +1,76 @@
 (function(){
 'use strict';
 
-const UNIT_OPTIONS=['M','EA','KIT','LS','KM','NO'];
-const BOQ_STATUS_OPTIONS=['جاري','لم يبدأ'];
+const UNIT_OPTIONS=['M','M2','EA','KIT','LS','KM','NO'];
+const BOQ_STATUS_OPTIONS=['متقدم','وفق المخطط','متأخر','جاري','لم يبدأ','مكتمل'];
 const MATERIAL_STATUS_OPTIONS=['لم يتم الصرف','تم الصرف جزئي','تم الصرف بالكامل'];
+const PERMIT_STATUS_OPTIONS=['تم الإصدار','قيد التنسيق','قيد التنسيق والاعتماد','مرفوض','منتهي','ملغي','بانتظار السداد','مسودة','انتهت فترة السداد','لا يتطلب','تصريح مدن فقط'];
+const RISK_IMPACT_OPTIONS=['عالي','متوسط','منخفض'];
+const RISK_STATUS_OPTIONS=['قيد المتابعة','تم الحل','مغلق'];
 const REPORT_TYPE_OPTIONS=['يومي','أسبوعي','شهري'];
 const WEIGHT_OPTIONS=Array.from({length:100},(_,i)=>(i+1)+'%');
 
 const GENERAL=[
- {key:'PROJECT_TITLE',label:'عنوان المشروع',field:'Text Value / Description',type:'text'},
- {key:'DETAILED_WORK_DESCRIPTION',label:'وصف الأعمال التفصيلي',field:'Text Value / Description',type:'textarea',wide:true},
- {key:'WORK_ORDER_LOCATION',label:'الموقع',field:'Location / Neighborhood',type:'text',auto:true,source:'ورقة أوامر العمل — عمود الموقع'},
- {key:'CONTRACTOR_REPORT_NAME',label:'اسم المقاول في التقرير',field:'Text Value / Description',type:'text',auto:true,source:'ورقة أوامر العمل — عمود المقاول'},
- {key:'ACTUAL_START_DATE',label:'تاريخ البدء الفعلي',field:'Start / Observation Date',type:'date'},
- {key:'EXPECTED_OPERATION_DATE',label:'تاريخ التشغيل المتوقع',field:'End / Expected Date',type:'date'},
- {key:'SEC_FOLLOWUP_ENGINEER',label:'مهندس متابعة شركة الكهرباء',field:'Responsible / Issuing Authority',type:'text'},
- {key:'CONTRACTUAL_DURATION_DAYS',label:'المدة التعاقدية بالأيام',field:'Numeric Value',type:'number',auto:true,source:'ورقة أوامر العمل — عمود المدة uds'},
- {key:'CONTRACT_DURATION_WITH_WEEKENDS',label:'المدة التعاقدية شاملة الجمعة (يوم)',field:'Numeric Value',type:'number',auto:true,source:'حساب آلي من تاريخ البدء الفعلي + أيام الجمعة الواقعة داخل المدة التعاقدية'},
- {key:'CONSULTANT_NAME',label:'اسم الاستشاري',field:'Text Value / Description',type:'text',fixed:true,value:'شركة أبعاد الرؤية للاستشارات الهندسية'},
  {key:'REPORT_TYPE',label:'نوع التقرير',field:'Text Value / Description',type:'select',options:REPORT_TYPE_OPTIONS},
- {key:'REPORT_NO',label:'رقم التقرير',field:'Text Value / Description',type:'select',options:Array.from({length:100},(_,i)=>String(i+1))},
  {key:'REPORT_DATE',label:'تاريخ التقرير',field:'Start / Observation Date',type:'date',fixedToday:true},
- {key:'PREPARED_BY',label:'إعداد التقرير / التوقيع',field:'Responsible / Issuing Authority',type:'staff-select',signature:true}
+ {key:'REPORT_NO',label:'رقم التقرير',field:'Text Value / Description',type:'select',options:Array.from({length:100},(_,i)=>String(i+1))},
+ {key:'PROJECT_TITLE',label:'اسم المشروع',field:'Text Value / Description',type:'text',span:3},
+ {key:'WORK_ORDER_LOCATION',label:'الموقع / المنطقة',field:'Location / Neighborhood',type:'text',auto:true,source:'ورقة أوامر العمل — عمود الموقع'},
+ {key:'DETAILED_WORK_DESCRIPTION',label:'وصف العمل',field:'Text Value / Description',type:'textarea',wide:true},
+ {key:'CONTRACTOR_REPORT_NAME',label:'المقاول',field:'Text Value / Description',type:'text',auto:true,source:'ورقة أوامر العمل — عمود المقاول',span:2},
+ {key:'CONSULTANT_NAME',label:'الاستشاري',field:'Text Value / Description',type:'text',fixed:true,value:'شركة أبعاد الرؤية للاستشارات الهندسية'},
+ {key:'SEC_FOLLOWUP_ENGINEER',label:'مهندس المتابعة (SEC)',field:'Responsible / Issuing Authority',type:'text'},
+ {key:'ACTUAL_START_DATE',label:'تاريخ بدء التنفيذ',field:'Start / Observation Date',type:'date'},
+ {key:'EXPECTED_OPERATION_DATE',label:'تاريخ التشغيل المتوقع',field:'End / Expected Date',type:'date'},
+ {key:'CONTRACTUAL_DURATION_DAYS',label:'المدة التعاقدية (يوم)',field:'Numeric Value',type:'number',auto:true,source:'ورقة أوامر العمل — عمود المدة uds'},
+ {key:'CONTRACT_DURATION_WITH_WEEKENDS',label:'المتبقي على التشغيل (يوم)',field:'Numeric Value',type:'number',auto:true,source:'المدة التعاقدية + أيام الجمعة الواقعة داخلها بداية من تاريخ بدء التنفيذ'},
+ {key:'PREPARED_BY',label:'معد التقرير (الاستشاري / مهندس المتابعة)',field:'Responsible / Issuing Authority',type:'staff-select',signature:true},
+ {key:'REVIEWED_BY',label:'مراجعة: رئيس القسم',field:'Responsible / Issuing Authority',type:'staff-select',signature:true},
+ {key:'APPROVED_BY',label:'اعتماد: مدير الدائرة / الإدارة',field:'Responsible / Issuing Authority',type:'staff-select',signature:true}
 ];
+const INDICATOR_INPUTS=[
+ {key:'PLANNED_PROGRESS',label:'نسبة الإنجاز المخططة',field:'Numeric Value',type:'percent'},
+ {key:'PERIOD_PROGRESS',label:'إنجاز الفترة',field:'Numeric Value',type:'percent'}
+];
+const INPUT_DEFS=[...GENERAL,...INDICATOR_INPUTS];
+
 const SECTION_LABELS={
- BOQ_ITEM:'بنود التنفيذ',
- MATERIAL:'المواد',
- PERMIT_DETAIL:'التصاريح',
- PLAN_POINT:'نقاط الخطة والإنجاز',
- MILESTONE:'المعالم الرئيسية',
- ISSUE_RISK:'العوائق والمخاطر',
- PERIOD_SUMMARY:'ملخص الفترة',
- MANAGEMENT_NOTE:'ملاحظات الإدارة'
+ BOQ_ITEM:'ثانياً: الكميات ونسب التنفيذ',
+ MATERIAL:'ثالثاً: المواد (المطلوب / المنصرف / المتبقي)',
+ PERMIT_DETAIL:'رابعاً: التصاريح والرخص',
+ ISSUE_RISK:'خامساً: أبرز التحديات والعوائق وحالة كل تحدي',
+ PERIOD_SUMMARY:'سادساً: ملخص المنفذ خلال الفترة',
+ MANAGEMENT_NOTE:'سابعاً: ملاحظات وتنبيهات / الإجراءات المطلوبة والدعم المطلوب من الإدارة',
+ PLAN_POINT:'بيانات تاريخية للمنحنى',
+ MILESTONE:'بيانات معالم سابقة'
 };
 const TAB_DEFS=[
  {id:'general',label:'البيانات الأساسية',icon:'◆',sections:[]},
- {id:'boq',label:'بنود التنفيذ',icon:'▦',sections:['BOQ_ITEM']},
- {id:'materials',label:'المواد',icon:'◫',sections:['MATERIAL']},
- {id:'permits',label:'التصاريح',icon:'▤',sections:['PERMIT_DETAIL']},
- {id:'plan',label:'الخطة والمعالم',icon:'◈',sections:['PLAN_POINT','MILESTONE']},
- {id:'risks',label:'المخاطر',icon:'!',sections:['ISSUE_RISK']},
- {id:'notes',label:'الملخص والملاحظات',icon:'≡',sections:['PERIOD_SUMMARY','MANAGEMENT_NOTE']}
+ {id:'indicators',label:'أولاً: مؤشرات أداء المشروع',icon:'◉',sections:[]},
+ {id:'boq',label:'ثانياً: الكميات ونسب التنفيذ',icon:'▦',sections:['BOQ_ITEM']},
+ {id:'materials',label:'ثالثاً: المواد',icon:'◫',sections:['MATERIAL']},
+ {id:'permits',label:'رابعاً: التصاريح والرخص',icon:'▤',sections:['PERMIT_DETAIL']},
+ {id:'risks',label:'خامساً: التحديات والعوائق',icon:'!',sections:['ISSUE_RISK']},
+ {id:'summary',label:'سادساً: ملخص المنفذ خلال الفترة',icon:'≡',sections:['PERIOD_SUMMARY']},
+ {id:'management',label:'سابعاً: الملاحظات والدعم المطلوب',icon:'☷',sections:['MANAGEMENT_NOTE']},
+ {id:'charts',label:'ثامناً: الرسوم البيانية',icon:'▥',sections:[]}
 ];
 const SECTION_FIELDS={
  BOQ_ITEM:[
-  ['Field / Item / Permit No.','الكود / رقم البند','text'],['Text Value / Description','وصف البند','text'],
-  ['Unit','الوحدة','select',UNIT_OPTIONS],['Planned / Required Qty','الكمية المخططة','text'],['Executed / Issued Qty','المنفذ','text'],
-  ['Period Qty','كمية الفترة','text'],['Weight / Planned Progress %','الوزن %','select',WEIGHT_OPTIONS],['Status','الحالة','select',BOQ_STATUS_OPTIONS]
+  ['Text Value / Description','البند','text'],['Unit','الوحدة','select',UNIT_OPTIONS],
+  ['Planned / Required Qty','الكمية المخططة','text'],['Executed / Issued Qty','إجمالي المنفذ','text'],
+  ['Period Qty','المنفذ خلال الفترة','text'],['Weight / Planned Progress %','الوزن %','select',WEIGHT_OPTIONS],['Status','الحالة','select',BOQ_STATUS_OPTIONS]
  ],
  MATERIAL:[
-  ['Field / Item / Permit No.','كود المادة','text'],['Text Value / Description','وصف المادة','text'],['Unit','الوحدة','select',UNIT_OPTIONS],
-  ['Planned / Required Qty','المطلوب','text'],['Executed / Issued Qty','المصروف / المتاح','text'],['Status','الحالة','select',MATERIAL_STATUS_OPTIONS],['Notes','ملاحظات','textarea']
+  ['Text Value / Description','المادة','text'],['Unit','الوحدة','select',UNIT_OPTIONS],
+  ['Planned / Required Qty','الكمية المطلوبة','text'],['Executed / Issued Qty','المنصرف','text'],
+  ['Status','حالة الصرف','select',MATERIAL_STATUS_OPTIONS],['Notes','ملاحظات','textarea']
  ],
  PERMIT_DETAIL:[
-  ['Field / Item / Permit No.','رقم التصريح / المرحلة','text'],['Responsible / Issuing Authority','الجهة المصدرة','text'],
-  ['Location / Neighborhood','الموقع / الحي','text'],['Status','الحالة','select',["لا يتطلب","لم يتم ادخال التصريح","انتهاء التنسيق -رفض","تم اصدار التصريح","ملغي","تم تعديل التصريح","قيد التنسيق والاعتماد","بانتظار السداد","مسودة","انتهت فترة السداد","انتهاء التنسيق - قبول","تصريح مدن فقط"]],['Start / Observation Date','تاريخ البداية','date'],
-  ['End / Expected Date','تاريخ النهاية','date'],['Planned / Required Qty','الطول / الكمية','text'],['Executed / Issued Qty','المنفذ','text'],['Notes','ملاحظات','textarea']
+  ['Field / Item / Permit No.','رقم التصريح','text'],['Responsible / Issuing Authority','الجهة المصدرة','text'],
+  ['Location / Neighborhood','الموقع / الحي','text'],['Status','حالة التصريح','select',PERMIT_STATUS_OPTIONS],
+  ['Start / Observation Date','تاريخ البدء','date'],['End / Expected Date','تاريخ الانتهاء','date'],
+  ['Planned / Required Qty','الطول (م)','text'],['Executed / Issued Qty','المنجز (م)','text']
  ],
  PLAN_POINT:[
   ['Start / Observation Date','التاريخ','date'],['Weight / Planned Progress %','المخطط %','text'],['Numeric Value','الفعلي %','text'],['Notes','ملاحظات','textarea']
@@ -65,16 +80,15 @@ const SECTION_FIELDS={
   ['End / Expected Date','التاريخ المتوقع','date'],['Responsible / Issuing Authority','المسؤول','text'],['Status','الحالة','text'],['Notes','ملاحظات','textarea']
  ],
  ISSUE_RISK:[
-  ['Field / Item / Permit No.','الكود','text'],['Text Value / Description','التحدي / العائق','textarea'],['Category / Impact','التصنيف / الأثر','text'],
-  ['Action / Support Required','الإجراء / الدعم المطلوب','textarea'],['Responsible / Issuing Authority','الجهة المسؤولة','text'],
-  ['Start / Observation Date','تاريخ الرصد','date'],['Status','الحالة','text'],['Notes','ملاحظات','textarea']
+  ['Text Value / Description','التحدي / العائق','textarea'],['Category / Impact','التصنيف','text'],['Notes','درجة الأثر','select',RISK_IMPACT_OPTIONS],
+  ['Action / Support Required','الإجراء المتخذ','textarea'],['Responsible / Issuing Authority','الجهة المسؤولة','text'],
+  ['Start / Observation Date','تاريخ الرصد','date'],['Status','الحالة','select',RISK_STATUS_OPTIONS]
  ],
  PERIOD_SUMMARY:[
-  ['Text Value / Description','ملخص الأعمال المنفذة خلال الفترة','textarea'],['Start / Observation Date','من تاريخ','date'],['End / Expected Date','إلى تاريخ','date'],['Notes','ملاحظات','textarea']
+  ['Text Value / Description','ملخص المنفذ خلال الفترة','textarea']
  ],
  MANAGEMENT_NOTE:[
-  ['Text Value / Description','الملاحظة الإدارية','textarea'],['Action / Support Required','الإجراء / الدعم المطلوب','textarea'],
-  ['Responsible / Issuing Authority','المسؤول','text'],['Notes','ملاحظات','textarea']
+  ['Text Value / Description','ملاحظات وتنبيهات / الإجراءات المطلوبة والدعم المطلوب من الإدارة','textarea']
  ]
 };
 const ALL_FIELDS=[
@@ -144,17 +158,22 @@ function refreshCalculatedGeneral(){
 }
 function woValue(){return clean(document.getElementById('preInput')?.value).replace(/\D/g,'').slice(0,10)}
 function rowKey(r){return clean(r?.['Field / Item / Permit No.']).toUpperCase()}
-function isKnownGeneral(r){return r?.Section==='PROJECT_EXTRA'&&GENERAL.some(g=>!g.signature&&g.key===rowKey(r))}
-function isPrepared(r){return r?.Section==='SIGNATURE'&&rowKey(r)==='PREPARED_BY'}
+function isKnownGeneral(r){return r?.Section==='PROJECT_EXTRA'&&INPUT_DEFS.some(g=>!g.signature&&g.key===rowKey(r))}
+function isSignature(r){return r?.Section==='SIGNATURE'&&GENERAL.some(g=>g.signature&&g.key===rowKey(r))}
 function generalRow(key){return rows.find(r=>r.Section==='PROJECT_EXTRA'&&rowKey(r)===key)||null}
-function preparedRow(){return rows.find(isPrepared)||null}
+function signatureRow(key){return rows.find(r=>r.Section==='SIGNATURE'&&rowKey(r)===key)||null}
 function tabDef(id=activeTab){return TAB_DEFS.find(t=>t.id===id)||TAB_DEFS[0]}
 function tabForSection(section){return TAB_DEFS.find(t=>t.sections.includes(section))?.id||'general'}
 function tabEntries(id=activeTab){
  const def=tabDef(id);
  return details.map((r,i)=>({r,i})).filter(x=>def.sections.includes(x.r.Section));
 }
-function countForTab(t){return t.id==='general'?GENERAL.filter(g=>clean(generalDraft[g.key])).length:tabEntries(t.id).length}
+function countForTab(t){
+ if(t.id==='general')return GENERAL.filter(g=>clean(generalValue(g))).length;
+ if(t.id==='indicators')return 6;
+ if(t.id==='charts')return 2;
+ return tabEntries(t.id).length;
+}
 
 function modalMarkup(){
  return '<div id="preDefaultsModal" class="prd-modal" hidden>'+
@@ -181,7 +200,7 @@ function generalValue(g){
  if(g.fixed)return clean(g.value);
  if(g.auto)return clean(liveAuto[g.key]||currentSuggestion(g.key));
  if(Object.prototype.hasOwnProperty.call(generalDraft,g.key))return generalDraft[g.key];
- const r=g.signature?preparedRow():generalRow(g.key);
+ const r=g.signature?signatureRow(g.key):generalRow(g.key);
  return r?clean(r[g.field]):'';
 }
 function generalField(g){
@@ -191,26 +210,28 @@ function generalField(g){
   val=Number.isFinite(n)&&n>=1&&n<=100?String(n):'1';
   placeholder=val;
  }
- if(g.fixedToday)return '<label class="prd-field prd-field-auto"><span>'+esc(g.label)+'</span><input type="text" data-date-dmy="1" value="'+esc(dateDisplayDMY(val))+'" readonly aria-readonly="true"><small>تاريخ اليوم تلقائيًا — توقيت السعودية • dd/mm/yyyy</small></label>';
- if(g.fixed)return '<label class="prd-field prd-field-auto"><span>'+esc(g.label)+'</span><input type="text" value="'+esc(val)+'" readonly aria-readonly="true"><small>قيمة ثابتة افتراضية</small></label>';
- if(g.auto)return '<label class="prd-field prd-field-auto"><span>'+esc(g.label)+'</span><input data-auto-general="'+esc(g.key)+'" type="text" value="'+esc(val)+'" readonly aria-readonly="true"><small>آلي من '+esc(g.source||'مصدر البيانات')+'</small></label>';
+ const baseClass='prd-field'+(g.wide?' prd-wide':'')+(g.span?' prd-span-'+g.span:'');
+ const autoClass=baseClass+' prd-field-auto';
+ if(g.fixedToday)return '<label class="'+autoClass+'"><span>'+esc(g.label)+'</span><input type="text" data-date-dmy="1" value="'+esc(dateDisplayDMY(val))+'" readonly aria-readonly="true"><small>تاريخ اليوم تلقائيًا — توقيت السعودية • dd/mm/yyyy</small></label>';
+ if(g.fixed)return '<label class="'+autoClass+'"><span>'+esc(g.label)+'</span><input type="text" value="'+esc(val)+'" readonly aria-readonly="true"><small>قيمة ثابتة افتراضية</small></label>';
+ if(g.auto)return '<label class="'+autoClass+'"><span>'+esc(g.label)+'</span><input data-auto-general="'+esc(g.key)+'" type="text" value="'+esc(val)+'" readonly aria-readonly="true"><small>آلي من '+esc(g.source||'مصدر البيانات')+'</small></label>';
  if(g.type==='staff-select'){
   const selected=clean(val)||clean(placeholder);
   const base=staffNames.slice();
   if(selected&&!base.includes(selected))base.unshift(selected);
   const opts=['',...base].map(x=>'<option value="'+esc(x)+'"'+(x===selected?' selected':'')+'>'+esc(x||'— اختر من الكادر —')+'</option>').join('');
-  return '<label class="prd-field"><span>'+esc(g.label)+'</span><select data-general="'+g.key+'">'+opts+'</select><small class="prd-source-hint">من الموارد البشرية</small></label>';
+  return '<label class="'+baseClass+'"><span>'+esc(g.label)+'</span><select data-general="'+g.key+'">'+opts+'</select><small class="prd-source-hint">من الموارد البشرية</small></label>';
  }
  if(g.type==='select'){
   const selected=clean(val)||clean(placeholder)||clean(g.options?.[0]);
   const base=(g.options||[]).slice();
   if(selected&&!base.includes(selected))base.unshift(selected);
   const opts=base.map(x=>'<option value="'+esc(x)+'"'+(String(x)===String(selected)?' selected':'')+'>'+esc(x)+'</option>').join('');
-  return '<label class="prd-field"><span>'+esc(g.label)+'</span><select data-general="'+g.key+'">'+opts+'</select></label>';
+  return '<label class="'+baseClass+'"><span>'+esc(g.label)+'</span><select data-general="'+g.key+'">'+opts+'</select></label>';
  }
- if(g.type==='textarea')return '<label class="prd-field prd-wide"><span>'+esc(g.label)+'</span><textarea data-general="'+g.key+'" placeholder="'+esc(placeholder)+'">'+esc(val)+'</textarea></label>';
- if(g.type==='date')return '<label class="prd-field'+(g.wide?' prd-wide':'')+'"><span>'+esc(g.label)+'</span><input data-general="'+g.key+'" data-date-dmy="1" type="text" inputmode="numeric" maxlength="10" value="'+esc(dateDisplayDMY(val))+'" placeholder="dd/mm/yyyy"></label>';
- return '<label class="prd-field'+(g.wide?' prd-wide':'')+'"><span>'+esc(g.label)+'</span><input data-general="'+g.key+'" type="'+g.type+'" value="'+esc(val)+'" placeholder="'+esc(placeholder)+'"></label>';
+ if(g.type==='textarea')return '<label class="'+baseClass+'"><span>'+esc(g.label)+'</span><textarea data-general="'+g.key+'" placeholder="'+esc(placeholder)+'">'+esc(val)+'</textarea></label>';
+ if(g.type==='date')return '<label class="'+baseClass+'"><span>'+esc(g.label)+'</span><input data-general="'+g.key+'" data-date-dmy="1" type="text" inputmode="numeric" maxlength="10" value="'+esc(dateDisplayDMY(val))+'" placeholder="dd/mm/yyyy"></label>';
+ return '<label class="'+baseClass+'"><span>'+esc(g.label)+'</span><input data-general="'+g.key+'" type="'+g.type+'" value="'+esc(val)+'" placeholder="'+esc(placeholder)+'"></label>';
 }
 function currentSuggestion(key){
  if(key==='REPORT_DATE')return ksaTodayIso();
@@ -233,7 +254,8 @@ function currentSuggestion(key){
   PROJECT_TITLE:r.projectTitle,DETAILED_WORK_DESCRIPTION:r.desc,CONTRACTOR_REPORT_NAME:r.contractor,
   ACTUAL_START_DATE:r.start,EXPECTED_OPERATION_DATE:r.expected,SEC_FOLLOWUP_ENGINEER:r.secFollowup,
   CONTRACTUAL_DURATION_DAYS:r.contractDuration,CONSULTANT_NAME:r.consultant,REPORT_TYPE:r.reportType,
-  REPORT_NO:r.reportNo,REPORT_DATE:r.rdate,PREPARED_BY:r.preparedBy
+  REPORT_NO:r.reportNo,REPORT_DATE:r.rdate,PREPARED_BY:r.preparedBy,REVIEWED_BY:r.reviewedBy,APPROVED_BY:r.approvedBy,
+  PLANNED_PROGRESS:r.planned,PERIOD_PROGRESS:r.periodProgress
  };
  return clean(map[key]);
 }
@@ -288,25 +310,19 @@ const TABLE_COLUMNS={
  ],
  ISSUE_RISK:[
   ['Text Value / Description','التحدي / العائق','text'],
-  ['Category / Impact','التصنيف / درجة الأثر','text'],
-  ['Action / Support Required','الإجراء / الدعم المطلوب','text'],
+  ['Category / Impact','التصنيف','text'],
+  ['Notes','درجة الأثر','select',RISK_IMPACT_OPTIONS],
+  ['Action / Support Required','الإجراء المتخذ','text'],
   ['Responsible / Issuing Authority','الجهة المسؤولة','text'],
   ['Start / Observation Date','تاريخ الرصد','date'],
   ['@age','عمر العائق (يوم)','calc'],
-  ['Status','الحالة','text'],
-  ['Notes','ملاحظات','text']
+  ['Status','الحالة','select',RISK_STATUS_OPTIONS]
  ],
  PERIOD_SUMMARY:[
-  ['Text Value / Description','ملخص الأعمال المنفذة خلال الفترة','textarea'],
-  ['Start / Observation Date','من تاريخ','date'],
-  ['End / Expected Date','إلى تاريخ','date'],
-  ['Notes','ملاحظات','text']
+  ['Text Value / Description','ملخص المنفذ خلال الفترة','textarea']
  ],
  MANAGEMENT_NOTE:[
-  ['Text Value / Description','الملاحظة الإدارية','textarea'],
-  ['Action / Support Required','الإجراء / الدعم المطلوب','textarea'],
-  ['Responsible / Issuing Authority','المسؤول','text'],
-  ['Notes','ملاحظات','text']
+  ['Text Value / Description','ملاحظات وتنبيهات / الإجراءات المطلوبة والدعم المطلوب من الإدارة','textarea']
  ]
 };
 function tableNumber(v){const s=String(v??'').replace(/,/g,'').replace('%','').trim();if(!s)return null;const n=Number(s);return Number.isFinite(n)?n:null}
@@ -315,6 +331,7 @@ function tableCalc(sec,r,key){
  if(key==='@remaining')return planned==null?'—':Math.max(0,planned-(done||0)).toLocaleString('en-US',{maximumFractionDigits:2});
  if(key==='@progress')return planned&&done!=null?((done/planned)*100).toFixed(2)+'%':'—';
  if(key==='@age'){
+  const status=clean(r.Status);if(status.includes('تم الحل')||status.includes('مغلق'))return 'مغلق';
   const iso=valueInputDate(r['Start / Observation Date']);if(!iso)return '—';
   const a=new Date(iso+'T12:00:00'),b=new Date(ksaTodayIso()+'T12:00:00');
   return Number.isNaN(a.getTime())?'—':Math.max(0,Math.floor((b-a)/86400000))+'';
@@ -345,6 +362,64 @@ function refreshCalculatedRow(idx){
  const r=details[idx];if(!r)return;
  document.querySelectorAll('[data-calc-ridx="'+idx+'"]').forEach(el=>{el.textContent=tableCalc(r.Section,r,el.dataset.calcKey)});
 }
+function ratioValue(v){
+ const s=clean(v);if(!s)return null;
+ const n=Number(s.replace(/,/g,'').replace('%',''));if(!Number.isFinite(n))return null;
+ return s.includes('%')||Math.abs(n)>1?n/100:n;
+}
+function percentInputValue(v){
+ const n=ratioValue(v);if(n==null)return '';
+ const x=(n*100).toFixed(2);return x.replace(/\.00$/,'').replace(/(\.\d)0$/,'$1');
+}
+function percentDisplay(v){
+ const n=typeof v==='number'?v:ratioValue(v);return n==null?'—':(n*100).toLocaleString('en-US',{maximumFractionDigits:2})+'%';
+}
+function weightedActualRatio(){
+ let weighted=0,totalWeight=0;
+ for(const r of details.filter(x=>x.Section==='BOQ_ITEM')){
+  const planned=tableNumber(r['Planned / Required Qty']),done=tableNumber(r['Executed / Issued Qty']),weight=ratioValue(r['Weight / Planned Progress %']);
+  if(planned&&planned>0&&done!=null&&weight!=null){weighted+=Math.min(Math.max(done/planned,0),1)*weight;totalWeight+=weight}
+ }
+ if(totalWeight>0)return weighted/totalWeight;
+ const live=window.__VDProjectsReportEngineReport?.actual;
+ return live==null?null:ratioValue(live);
+}
+function indicatorState(){
+ const actual=weightedActualRatio();
+ const planned=ratioValue(generalDraft.PLANNED_PROGRESS||currentSuggestion('PLANNED_PROGRESS'));
+ const variance=actual!=null&&planned!=null?actual-planned:null;
+ const status=actual==null?'—':actual>=.999?'مكتمل':variance==null?'—':variance>=0?'وفق المخطط':variance>=-.1?'تحت المتابعة':'متأخر';
+ const period=ratioValue(generalDraft.PERIOD_PROGRESS||currentSuggestion('PERIOD_PROGRESS'));
+ const days=numericDays(calculatedContractDuration());
+ const daily=actual!=null&&days?Math.max(0,(1-actual)/Math.max(days,1)):null;
+ return {actual,planned,variance,status,period,daily};
+}
+function indicatorPanel(){
+ const s=indicatorState();
+ const plannedValue=percentInputValue(generalDraft.PLANNED_PROGRESS||currentSuggestion('PLANNED_PROGRESS'));
+ const periodValue=percentInputValue(generalDraft.PERIOD_PROGRESS||currentSuggestion('PERIOD_PROGRESS'));
+ return '<section class="prd-section prd-section-current prd-indicators-section"><div class="prd-section-head"><div><b>أولاً: مؤشرات أداء المشروع</b><span>مطابقة لبنود الورقة الأولى — القيم المحسوبة آلية، والمخطط وإنجاز الفترة قابلان للإدخال</span></div></div>'+
+ '<div class="prd-indicator-grid">'+
+ '<label class="prd-indicator-card prd-readonly"><span>نسبة الإنجاز الكلية</span><strong data-indicator-output="actual">'+esc(percentDisplay(s.actual))+'</strong><small>محسوبة من الكميات × الأوزان</small></label>'+
+ '<label class="prd-indicator-card"><span>نسبة الإنجاز المخططة</span><div class="prd-percent-input"><input data-indicator="PLANNED_PROGRESS" inputmode="decimal" value="'+esc(plannedValue)+'" placeholder="0.00"><b>%</b></div><small>إدخال مطابق للخلية B10</small></label>'+
+ '<label class="prd-indicator-card prd-readonly"><span>الانحراف</span><strong data-indicator-output="variance">'+esc(s.variance==null?'—':((s.variance>=0?'+':'')+(s.variance*100).toFixed(2)+'%'))+'</strong><small>الفعلي − المخطط</small></label>'+
+ '<label class="prd-indicator-card prd-readonly"><span>حالة المشروع</span><strong data-indicator-output="status">'+esc(s.status)+'</strong><small>مكتمل / وفق المخطط / تحت المتابعة / متأخر</small></label>'+
+ '<label class="prd-indicator-card"><span>إنجاز الفترة</span><div class="prd-percent-input"><input data-indicator="PERIOD_PROGRESS" inputmode="decimal" value="'+esc(periodValue)+'" placeholder="0.00"><b>%</b></div><small>إدخال مطابق للخلية F10</small></label>'+
+ '<label class="prd-indicator-card prd-readonly"><span>المعدل اليومي المطلوب</span><strong data-indicator-output="daily">'+esc(percentDisplay(s.daily))+'</strong><small>(100% − الإنجاز) ÷ المتبقي على التشغيل</small></label>'+
+ '</div></section>';
+}
+function refreshIndicatorOutputs(){
+ const s=indicatorState(),map={actual:percentDisplay(s.actual),variance:s.variance==null?'—':((s.variance>=0?'+':'')+(s.variance*100).toFixed(2)+'%'),status:s.status,daily:percentDisplay(s.daily)};
+ Object.entries(map).forEach(([k,v])=>{const el=document.querySelector('[data-indicator-output="'+k+'"]');if(el)el.textContent=v});
+}
+function chartsPanel(){
+ const s=indicatorState(),actual=Math.max(0,Math.min(100,(s.actual||0)*100)),planned=Math.max(0,Math.min(100,(s.planned||0)*100));
+ const boq=details.filter(r=>r.Section==='BOQ_ITEM').slice(0,8);
+ const rows=boq.length?boq.map(r=>{const p=tableNumber(r['Planned / Required Qty']),d=tableNumber(r['Executed / Issued Qty']);const pc=p&&d!=null?Math.max(0,Math.min(100,(d/p)*100)):0;return '<div class="prd-chart-row"><span>'+esc(r['Text Value / Description']||'بند')+'</span><div><i style="width:'+pc+'%"></i></div><b>'+pc.toFixed(1)+'%</b></div>'}).join(''):'<div class="prd-chart-empty">أضف بنود الكميات أولاً لعرض معاينة الرسم.</div>';
+ return '<section class="prd-section prd-section-current prd-charts-section"><div class="prd-section-head"><div><b>ثامناً: الرسوم البيانية</b><span>تُنشأ تلقائيًا من نفس بيانات الورقة الأولى ولا تحتاج إدخالًا مستقلًا</span></div></div>'+
+ '<div class="prd-chart-preview"><div class="prd-chart-card"><h4>الإنجاز الفعلي مقابل المخطط</h4><div class="prd-progress-preview"><span>الفعلي <b>'+actual.toFixed(2)+'%</b></span><div><i style="width:'+actual+'%"></i></div><span>المخطط <b>'+planned.toFixed(2)+'%</b></span><div class="planned"><i style="width:'+planned+'%"></i></div></div></div>'+
+ '<div class="prd-chart-card"><h4>نسب تنفيذ بنود الكميات</h4>'+rows+'</div></div></section>';
+}
 function renderTabs(){
  const nav=document.getElementById('prdTabs');if(!nav)return;
  nav.innerHTML=TAB_DEFS.map(t=>'<button type="button" class="'+(t.id===activeTab?'active':'')+'" data-tab="'+t.id+'"><i>'+t.icon+'</i><span>'+esc(t.label)+'</span><b>'+countForTab(t)+'</b></button>').join('');
@@ -353,9 +428,11 @@ function renderContent(){
  const box=document.getElementById('prdTabContent');if(!box)return;
  const def=tabDef();
  if(def.id==='general'){
-  box.innerHTML='<section class="prd-section prd-section-current"><div class="prd-section-head"><div><b>البيانات الأساسية</b><span>إدخال منظم في خلايا شبيهة بالجدول</span></div></div><div id="prdGeneral" class="prd-general-grid prd-general-sheet">'+GENERAL.map(generalField).join('')+'</div></section>';
+  box.innerHTML='<section class="prd-section prd-section-current"><div class="prd-section-head"><div><b>البيانات الأساسية</b><span>مطابقة لترتيب الجزء العلوي من الورقة الأولى</span></div></div><div id="prdGeneral" class="prd-general-grid prd-general-sheet">'+GENERAL.map(generalField).join('')+'</div></section>';
   return;
  }
+ if(def.id==='indicators'){box.innerHTML=indicatorPanel();return}
+ if(def.id==='charts'){box.innerHTML=chartsPanel();return}
  const total=tabEntries().length;
  box.innerHTML='<section class="prd-section prd-section-current prd-sheet-section"><div class="prd-section-head"><div><b>'+esc(def.label)+'</b><span>'+total+' سجل — أدخل البيانات مباشرة في صفوف وأعمدة مثل ملف Excel</span></div></div>'+def.sections.map(sectionTable).join('')+'</section>';
 }
@@ -368,9 +445,9 @@ function setBusy(on,msg){busy=on;document.getElementById('prdSave')?.toggleAttri
 
 function loadGeneralDraft(){
  generalDraft={};
- for(const g of GENERAL){
+ for(const g of INPUT_DEFS){
   if(g.auto||g.fixed||g.fixedToday){generalDraft[g.key]='';continue}
-  const r=g.signature?preparedRow():generalRow(g.key);
+  const r=g.signature?signatureRow(g.key):generalRow(g.key);
   let v=r?clean(r[g.field]):'';
   if(g.key==='REPORT_NO'){
    const n=parseInt(v||'1',10);
@@ -423,7 +500,7 @@ async function loadDefaults(wo){
   rows=Array.isArray(j.rows)?j.rows:[];
   deletedRows=[];
   details=rows.filter(r=>SECTION_LABELS[r.Section]).map(r=>({...r}));
-  passthrough=rows.filter(r=>!SECTION_LABELS[r.Section]&&!isKnownGeneral(r)&&!isPrepared(r)).map(r=>({...r}));
+  passthrough=rows.filter(r=>!SECTION_LABELS[r.Section]&&!isKnownGeneral(r)&&!isSignature(r)).map(r=>({...r}));
   await Promise.all([ensureLiveAuto(wo),ensureStaffNames()]);
   applyDetailDefaults();
   loadGeneralDraft();pageByTab={};render();setStatus(rows.length?'تم تحميل '+rows.length+' سجل محفوظ':'لا توجد بيانات افتراضية محفوظة بعد','ok');
@@ -438,11 +515,11 @@ function closeModal(){const m=document.getElementById('preDefaultsModal');if(m&&
 
 function buildGeneralRows(){
  const out=[];
- for(const g of GENERAL){
+ for(const g of INPUT_DEFS){
   if(g.auto||g.fixed||g.fixedToday)continue;
   const v=clean(generalDraft[g.key]);if(!v)continue;
   if(g.signature){
-   const r={...(preparedRow()||{}),Section:'SIGNATURE','Field / Item / Permit No.':'PREPARED_BY'};
+   const r={...(signatureRow(g.key)||{}),Section:'SIGNATURE','Field / Item / Permit No.':g.key};
    ['Text Value / Description','Numeric Value','Start / Observation Date','End / Expected Date'].forEach(k=>r[k]='');
    r['Responsible / Issuing Authority']=v;out.push(r);continue;
   }
@@ -500,11 +577,16 @@ function addRow(forcedSection=''){
  },50);
 }
 function handleInput(e){
+ const indicator=e.target.dataset.indicator;if(indicator){generalDraft[indicator]=e.target.value;refreshIndicatorOutputs();return}
  const g=e.target.dataset.general;if(g){generalDraft[g]=e.target.value;if(g==='ACTUAL_START_DATE')refreshCalculatedGeneral();return}
  const idx=Number(e.target.dataset.ridx),field=e.target.dataset.rfield;
  if(Number.isInteger(idx)&&details[idx]&&field){details[idx][field]=e.target.value;refreshCalculatedRow(idx)}
 }
 function handleChange(e){
+ const indicator=e.target.dataset.indicator;if(indicator){
+  const n=ratioValue(e.target.value),value=n==null?'':((n*100).toFixed(2)+'%');
+  generalDraft[indicator]=value;e.target.value=percentInputValue(value);refreshIndicatorOutputs();return
+ }
  const g=e.target.dataset.general;if(g){
   const value=e.target.dataset.dateDmy==='1'?normalizeDateDisplay(e.target.value):e.target.value;
   if(e.target.dataset.dateDmy==='1')e.target.value=value;

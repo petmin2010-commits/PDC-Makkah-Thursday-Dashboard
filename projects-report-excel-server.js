@@ -212,7 +212,7 @@ function buildProjectWorkbook(report){
     ['B10',report.planned==null?null:Number(report.planned)/100,'number'],
     ['D10','$A$10-$B$10','formula'],
     ['E10','IF($A$10>=0.999,"مكتمل",IF($D$10>=0,"وفق المخطط",IF($D$10>=-0.1,"تحت المتابعة","متأخر")))','formula'],
-    ['F10',periodProgress(report),'number'],
+    ['F10',report.periodProgress==null?periodProgress(report):Number(report.periodProgress)/100,'number'],
     ['H10','IFERROR(MAX(0,(1-$A$10)/MAX($H$7,1)),0)','formula']
   ];
   for(const [ref,v,k] of header)s1=setCell(s1,ref,v,k);
@@ -274,7 +274,7 @@ function buildProjectWorkbook(report){
     const row=73+i,r=risks[i]; if(!r)continue;
     s1=setCell(s1,'A'+row,clean(r['Text Value / Description']),'string');
     s1=setCell(s1,'B'+row,clean(r['Category / Impact']),'string');
-    s1=setCell(s1,'C'+row,clean(r['Impact Level']),'string');
+    s1=setCell(s1,'C'+row,clean(r['Impact Level']||r.Notes),'string');
     s1=setCell(s1,'D'+row,clean(r['Action / Support Required']),'string');
     s1=setCell(s1,'F'+row,clean(r['Responsible / Issuing Authority']),'string');
     s1=setCell(s1,'G'+row,excelSerial(r['Start / Observation Date']),'number');

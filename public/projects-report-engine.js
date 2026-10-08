@@ -203,7 +203,7 @@ function boqSummary(rows){
 function riskSummary(rows){
  const out={total:rows.length,open:0,solved:0,high:0,medium:0,low:0};
  rows.forEach(r=>{
-  const st=norm(r.Status),impact=norm(r['Impact Level']||'');
+  const st=norm(r.Status),impact=norm(r['Impact Level']||r.Notes||'');
   if(st.includes('تم الحل')||st.includes('مغلق'))out.solved++;else out.open++;
   if(impact.includes('عالي'))out.high++;else if(impact.includes('متوسط'))out.medium++;else if(impact.includes('منخفض'))out.low++;
  });
@@ -223,7 +223,7 @@ function riskBlock(rows,reportDateValue){
  const body=rows.map(r=>{
   const solved=norm(r.Status).includes('تم الحل')||norm(r.Status).includes('مغلق');
   const age=solved?'مغلق':(daysBetween(r['Start / Observation Date'],reportDateValue)??'—');
-  return '<tr>'+cell(r['Text Value / Description'])+cell(r['Category / Impact'])+cell(r['Impact Level'])+cell(r['Action / Support Required'])+cell(r['Responsible / Issuing Authority'])+cell(r['Start / Observation Date'],'pre-num')+cell(age,'pre-num')+cell(r.Status,'status '+statusClass(r.Status))+'</tr>';
+  return '<tr>'+cell(r['Text Value / Description'])+cell(r['Category / Impact'])+cell(r['Impact Level']||r.Notes)+cell(r['Action / Support Required'])+cell(r['Responsible / Issuing Authority'])+cell(r['Start / Observation Date'],'pre-num')+cell(age,'pre-num')+cell(r.Status,'status '+statusClass(r.Status))+'</tr>';
  }).join('');
  return '<section class="pre-panel pre-risk-panel pre-table-page"><div class="pre-panel-head"><div><span>ISSUES / RISKS</span><h3>أبرز التحديات والعوائق</h3></div><b>'+rows.length+'</b></div>'+summary+'<div class="pre-table-wrap"><table><thead><tr><th>التحدي / العائق</th><th>التصنيف</th><th>درجة الأثر</th><th>الإجراء المتخذ</th><th>الجهة المسؤولة</th><th>تاريخ الرصد</th><th>العمر</th><th>الحالة</th></tr></thead><tbody>'+body+'</tbody></table></div></section>';
 }
@@ -300,8 +300,10 @@ function render(data){
  const contractDuration=sourceExactValue(data,'اوامر العمل','المدة uds')||val(fs,['المدة التعاقدية','مدة امر العمل','مدة أمر العمل','مدة التنفيذ','مدة المشروع'])||ex('CONTRACTUAL_DURATION_DAYS');
  const consultant='شركة أبعاد الرؤية للاستشارات الهندسية';
  const secFollowup=ex('SEC_FOLLOWUP_ENGINEER')||val(fs,['مهندس المتابعة','مهندس شركة الكهرباء','المهندس المسئول','المهندس المسؤول']);
- const signatureRow=rows.find(r=>r.Section==='SIGNATURE'&&norm(r['Field / Item / Permit No.'])==='prepared_by')||rows.find(r=>r.Section==='SIGNATURE');
- const preparedBy=extraValue(signatureRow)||engineer;
+ const signatureValue=key=>extraValue(rows.find(r=>r.Section==='SIGNATURE'&&norm(r['Field / Item / Permit No.'])===norm(key)));
+ const preparedBy=signatureValue('PREPARED_BY')||engineer;
+ const reviewedBy=signatureValue('REVIEWED_BY');
+ const approvedBy=signatureValue('APPROVED_BY');
  const liveActual=pct(val(fs,['نسبة الانجاز الكلية','نسبة الإنجاز الكلية']));
  const planRows=rows.filter(r=>r.Section==='PLAN_POINT');
  const start=ex('ACTUAL_START_DATE')||val(fs,['تاريخ الاسناد','تاريخ الإسناد']);
@@ -309,13 +311,17 @@ function render(data){
  const rdate=ksaTodayDmy();
  const contractDurationCalendar=contractDurationWithWeekends(start,contractDuration);
  const validPlanPoints=historyPoints(planRows,start,rdate,null,false).filter(p=>p.planned!=null);
- const planned=validPlanPoints.at(-1)?.planned??null;
+ const plannedExtra=pct(ex('PLANNED_PROGRESS'));
+ const planned=plannedExtra??validPlanPoints.at(-1)?.planned??null;
+ const periodProgress=pct(ex('PERIOD_PROGRESS'));
  const elapsed=daysBetween(start,rdate),remaining=expected?daysBetween(rdate,expected):null;
  const boq=rows.filter(r=>r.Section==='BOQ_ITEM').map(r=>({...r,_completion:completion(r)}));
  const boqMetric=weightedBoqMetrics(boq);
  const actual=boqMetric.valid?boqMetric.progress:liveActual;
  const actualSource=boqMetric.valid?'CALC-BOQ':'LIVE';
  const variance=actual!=null&&planned!=null?actual-planned:null;
+ const projectStatus=actual==null?'':actual>=99.9?'مكتمل':variance==null?'':variance>=0?'وفق المخطط':variance>=-10?'تحت المتابعة':'متأخر';
+ const dailyRequired=actual!=null&&contractDurationCalendar?Math.max(0,(100-actual)/Math.max(contractDurationCalendar,1)):null;
  const mats=rows.filter(r=>r.Section==='MATERIAL'),permits=rows.filter(r=>r.Section==='PERMIT_DETAIL');
  const risks=rows.filter(r=>r.Section==='ISSUE_RISK'),periodRows=rows.filter(r=>r.Section==='PERIOD_SUMMARY'),managementRows=rows.filter(r=>r.Section==='MANAGEMENT_NOTE');
  const matSum=materialSummary(mats),permitSum=permitSummary(permits);
@@ -327,25 +333,25 @@ function render(data){
  const qualityAlerts=[];
  if(boqMetric.hasWeights&&!boqMetric.valid)qualityAlerts.push('مجموع أوزان البنود = '+boqMetric.totalWeightPct.toFixed(2)+'%؛ لم يتم اعتماد الإنجاز المرجح وتم الرجوع إلى نسبة الإنجاز الحية.');
  if(historyDiff!=null&&Math.abs(historyDiff)>0.5)qualityAlerts.push('آخر إنجاز تاريخي مسجل '+historyLast.actual.toFixed(2)+'% يختلف عن الإنجاز الحالي '+actual.toFixed(2)+'% بفارق '+Math.abs(historyDiff).toFixed(2)+' نقطة.');
- const report={workOrder:data.workOrder,projectTitle,desc,contractor,location,engineer,stage,stageStatus,reportType,reportNo,contractDuration,contractDurationCalendar,consultant,secFollowup,preparedBy,actual,actualSource,liveActual,planned,variance,start,expected,rdate,elapsed,remaining,boq,boqMetric,mats,permits,risks,periodRows,managementRows,matSum,permitSum,issuedLen,doneLen,permitExecution,planRows,qualityAlerts};
+ const report={workOrder:data.workOrder,projectTitle,desc,contractor,location,engineer,stage,stageStatus,reportType,reportNo,contractDuration,contractDurationCalendar,consultant,secFollowup,preparedBy,reviewedBy,approvedBy,actual,actualSource,liveActual,planned,periodProgress,variance,projectStatus,dailyRequired,start,expected,rdate,elapsed,remaining,boq,boqMetric,mats,permits,risks,periodRows,managementRows,matSum,permitSum,issuedLen,doneLen,permitExecution,planRows,qualityAlerts};
  state.report=report;
  window.__VDProjectsReportEngineReport=report;
  window.__VDProjectsReportEngineData=data;
  const cards=[
-  {label:'الإنجاز الفعلي',value:actual==null?'—':fmtPct(actual),src:actualSource,ltr:true},
-  {label:'المخطط حتى تاريخ التقرير',value:planned==null?'—':fmtPct(planned),src:'EXTRA',ltr:true},
+  {label:'نسبة الإنجاز الكلية',value:actual==null?'—':fmtPct(actual),src:actualSource,ltr:true},
+  {label:'نسبة الإنجاز المخططة',value:planned==null?'—':fmtPct(planned),src:plannedExtra!=null?'EXTRA':'HISTORY',ltr:true},
   {label:'الانحراف',value:variance==null?'—':((variance>=0?'+':'')+variance.toFixed(2)+'%'),src:'CALC',ltr:true,bad:variance!=null&&variance<0},
-  {label:'الأيام المنقضية',value:elapsed==null?'—':elapsed,src:'CALC',ltr:true},
-  {label:'الأيام المتبقية',value:remaining==null?'—':remaining,src:'CALC',ltr:true},
-  {label:'التصاريح الصادرة',value:permitSum.issued+' صادر',sub:'من أصل '+permitSum.total+' تصريحًا',src:'EXTRA',ltr:false}
+  {label:'حالة المشروع',value:projectStatus||'—',src:'CALC',ltr:false,bad:projectStatus==='متأخر'},
+  {label:'إنجاز الفترة',value:periodProgress==null?'—':fmtPct(periodProgress),src:'EXTRA',ltr:true},
+  {label:'المعدل اليومي المطلوب',value:dailyRequired==null?'—':fmtPct(dailyRequired),src:'CALC',ltr:true}
  ];
  $('preBody').className='pre-report';$('preBody').innerHTML=`
  <section class="pre-summary pre-print-section">
   <div class="pre-title"><div><span>WORK ORDER ${esc(data.workOrder)}</span><h2>${esc(projectTitle)}</h2><p>${esc(desc||'')}</p></div><div class="pre-report-meta"><b>تاريخ التقرير</b><span class="pre-ltr">${esc(rdate)}</span><small>${esc(stage)} ${stageStatus?'• '+esc(stageStatus):''}</small></div></div>
   <div class="pre-facts">
    ${fact('المقاول',contractor,'LIVE')}${fact('الموقع',location,'LIVE')}${fact('المهندس المسؤول',engineer,'LIVE')}${fact('مهندس متابعة الكهرباء',secFollowup,ex('SEC_FOLLOWUP_ENGINEER')?'EXTRA':'LIVE')}
-   ${fact('تاريخ البدء الفعلي',start,ex('ACTUAL_START_DATE')?'EXTRA':'LIVE',true)}${fact('التشغيل المتوقع',expected,'EXTRA',true)}
-   ${fact('المدة التعاقدية',contractDuration,'LIVE',true)}${fact('المدة شاملة الجمعة',contractDurationCalendar==null?'—':contractDurationCalendar+' يوم','CALC',true)}
+   ${fact('تاريخ بدء التنفيذ',start,ex('ACTUAL_START_DATE')?'EXTRA':'LIVE',true)}${fact('تاريخ التشغيل المتوقع',expected,'EXTRA',true)}
+   ${fact('المدة التعاقدية (يوم)',contractDuration,'LIVE',true)}${fact('المتبقي على التشغيل (يوم)',contractDurationCalendar==null?'—':contractDurationCalendar,'CALC',true)}
   </div>
  </section>
  <div class="pre-kpis pre-print-section">${cards.map(c=>'<article class="pre-kpi '+(c.bad?'bad':'')+'"><small>'+esc(c.label)+' • '+c.src+'</small><strong'+(c.ltr?' class="pre-ltr"':'')+'>'+esc(c.value)+'</strong>'+(c.sub?'<em>'+esc(c.sub)+'</em>':'')+'</article>').join('')}</div>

@@ -131,23 +131,52 @@
 /* Visible date format: dd/mm/yyyy */
 .prd-field input[data-date-dmy="1"],.prd-entry-table input[data-date-dmy="1"]{direction:ltr;text-align:left;font-variant-numeric:tabular-nums;letter-spacing:.2px}
 
-/* First tab only — compact basic-data layout */
-.prd-general-sheet{grid-auto-flow:row}
-.prd-general-sheet .prd-field{gap:2px;padding:4px 6px}
+/* First worksheet parity — compact basic-data layout */
+.prd-general-sheet{grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-flow:row}
+.prd-general-sheet .prd-field{gap:2px;padding:4px 6px;min-height:0}
 .prd-general-sheet .prd-field>span{min-height:12px;line-height:1.25}
 .prd-general-sheet .prd-field input,.prd-general-sheet .prd-field>select{height:31px}
-.prd-general-sheet .prd-field textarea{min-height:46px;height:46px;padding:5px 7px}
+.prd-general-sheet .prd-field textarea{min-height:44px;height:44px;padding:5px 7px}
 .prd-general-sheet .prd-field small,.prd-general-sheet .prd-source-hint{margin-top:0;line-height:1.2}
-.prd-general-sheet .prd-field:nth-child(1){grid-column:3/4;grid-row:1}
-.prd-general-sheet .prd-field:nth-child(2){grid-column:1/3;grid-row:1}
-.prd-general-sheet .prd-field:nth-child(2) textarea{height:48px;min-height:48px}
-.prd-general-sheet .prd-field:nth-child(n+3){min-height:0}
+.prd-general-sheet .prd-span-2{grid-column:span 2}
+.prd-general-sheet .prd-span-3{grid-column:span 3}
+.prd-general-sheet .prd-span-4,.prd-general-sheet .prd-wide{grid-column:1/-1}
 .prd-section:has(.prd-general-sheet){padding:10px 12px}
 .prd-section:has(.prd-general-sheet) .prd-section-head{margin-bottom:7px;padding-bottom:6px}
-@media(max-width:1000px){
- .prd-general-sheet .prd-field:nth-child(1),.prd-general-sheet .prd-field:nth-child(2){grid-column:auto;grid-row:auto}
- .prd-general-sheet .prd-field:nth-child(2){grid-column:1/-1}
+
+/* First worksheet — project KPI section */
+.prd-indicator-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.prd-indicator-card{display:flex;flex-direction:column;justify-content:center;gap:5px;min-height:112px;padding:12px;border:1px solid #cfdee9;border-radius:12px;background:#fff}
+.prd-indicator-card>span{color:#526d84;font:900 8px Cairo,Arial,sans-serif}
+.prd-indicator-card>strong{color:#173e60;font:900 22px Arial,Cairo,sans-serif;direction:ltr;text-align:center}
+.prd-indicator-card>small{color:#7890a4;font:700 7px/1.5 Cairo,Arial,sans-serif}
+.prd-indicator-card.prd-readonly{background:#edf6fb;border-color:#b8d4e6}
+.prd-percent-input{display:flex;align-items:center;gap:0;direction:ltr}
+.prd-percent-input input{width:100%;height:42px;border:1px solid #b9cddd;border-radius:8px 0 0 8px;padding:0 10px;color:#173e60;font:900 18px Arial,sans-serif;outline:none}
+.prd-percent-input b{height:42px;min-width:42px;display:grid;place-items:center;border:1px solid #b9cddd;border-left:0;border-radius:0 8px 8px 0;background:#e8f2f9;color:#315f82;font:900 13px Arial,sans-serif}
+.prd-percent-input input:focus{border-color:#5f95bd;box-shadow:0 0 0 2px rgba(61,116,158,.10)}
+
+/* First worksheet — charts section preview */
+.prd-chart-preview{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.prd-chart-card{padding:12px;border:1px solid #d4e0e8;border-radius:12px;background:#fff}
+.prd-chart-card h4{margin:0 0 10px;color:#294864;font:900 10px Cairo,Arial,sans-serif}
+.prd-progress-preview{display:grid;gap:5px}
+.prd-progress-preview>span{display:flex;align-items:center;justify-content:space-between;color:#4f687e;font:800 8px Cairo,Arial,sans-serif}
+.prd-progress-preview>div,.prd-chart-row>div{height:11px;overflow:hidden;border-radius:999px;background:#e8eef3}
+.prd-progress-preview i,.prd-chart-row i{display:block;height:100%;background:#3e7dab;border-radius:999px}
+.prd-progress-preview .planned i{background:#82a8c4}
+.prd-chart-row{display:grid;grid-template-columns:minmax(150px,1fr) 2fr 58px;gap:8px;align-items:center;margin:7px 0}
+.prd-chart-row>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#536b80;font:800 7px Cairo,Arial,sans-serif}
+.prd-chart-row>b{direction:ltr;color:#315f82;font:900 8px Arial,sans-serif;text-align:left}
+.prd-chart-empty{padding:25px;text-align:center;color:#7b8fa1;font:800 8px Cairo,Arial,sans-serif}
+
+@media(max-width:1150px){
+ .prd-general-sheet{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .prd-general-sheet .prd-span-3,.prd-general-sheet .prd-span-4,.prd-general-sheet .prd-wide{grid-column:1/-1}
+ .prd-indicator-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
-@media(max-width:650px){
- .prd-general-sheet .prd-field:nth-child(1),.prd-general-sheet .prd-field:nth-child(2){grid-column:1/-1;grid-row:auto}
+@media(max-width:700px){
+ .prd-general-sheet{grid-template-columns:1fr}
+ .prd-general-sheet .prd-span-2,.prd-general-sheet .prd-span-3,.prd-general-sheet .prd-span-4,.prd-general-sheet .prd-wide{grid-column:1}
+ .prd-indicator-grid,.prd-chart-preview{grid-template-columns:1fr}
 }
