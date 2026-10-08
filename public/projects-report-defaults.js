@@ -53,7 +53,6 @@ const TAB_DEFS=[
  {id:'risks',label:'خامساً: التحديات والعوائق',icon:'!',sections:['ISSUE_RISK']},
  {id:'summary',label:'سادساً: ملخص المنفذ خلال الفترة',icon:'≡',sections:['PERIOD_SUMMARY']},
  {id:'management',label:'سابعاً: الملاحظات والدعم المطلوب',icon:'☷',sections:['MANAGEMENT_NOTE']},
- {id:'charts',label:'ثامناً: الرسوم البيانية',icon:'▥',sections:[]},
  {id:'dailylog',label:'سجل الإنجاز اليومي',icon:'▦',sections:['PLAN_POINT']}
 ];
 const SECTION_FIELDS={
