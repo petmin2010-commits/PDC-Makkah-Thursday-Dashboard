@@ -831,7 +831,24 @@ html,body{color:#1d334a;font-family:Tahoma,Arial,sans-serif;font-size:9pt}
 .pre-print-section:not(.pre-map-pdf-panel):not(.pre-photos-pdf-panel){scroll-margin:0}
 .pre-map-pdf-image{max-height:130mm}
 .pre-photo-pdf-card img,.pre-photo-pdf-empty{height:50mm}
-.pre-photos-pdf-grid{gap:2.4mm}`}
+.pre-photos-pdf-grid{gap:2.4mm}
+/* 2026-10-08 PRINT FIX: Chromium page margin elements, no fixed overlays */
+@page{
+ size:A4 landscape;
+ margin:15mm 11mm 14mm;
+ @top-left{content:"Vision Dimensions | PROJECT CONTROL";color:#294b69;font:700 8pt Arial}
+ @top-right{content:"PDC • WO REPORT";color:#177e91;font:700 8pt Arial}
+ @bottom-left{content:"Vision Dimensions Engineering Consultancy";color:#526b82;font:700 7.5pt Arial}
+ @bottom-right{content:"Page " counter(page) " / " counter(pages);color:#526b82;font:700 7.5pt Arial}
+}
+.pdf-header,.pdf-footer{display:none!important}
+.pdf-main{margin:0;padding:0;width:100%}
+.pre-summary,.pre-panel{margin-top:0}
+.pre-history-chart{overflow:hidden}
+.pre-history-chart svg{max-width:100%;width:100%;height:77mm;margin:0;overflow:visible}
+.pre-panel-head>div{max-width:100%}
+.pre-chart-card{break-inside:avoid}
+.pre-map-pdf-panel,.pre-photos-pdf-panel{break-before:page;page-break-before:always}`}
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(install,260));else setTimeout(install,260);
 })();
