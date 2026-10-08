@@ -336,6 +336,8 @@ function buildProjectWorkbook(report){
     s2=setCell(s2,'F'+row,clean(raw['Responsible / Issuing Authority']||preparedBy),'string');
   }
 
+  // Remove template row hiding and cramped heights from exported report rows.
+  s1=s1.replace(/<row\b[^>]*>/g,tag=>tag.replace(/\s+hidden="[^"]*"/g,'').replace(/\s+ht="[^"]*"/g,'').replace(/\s+customHeight="[^"]*"/g,''));
   parts[SHEET1]=strToU8(s1); parts[SHEET2]=strToU8(s2);
   const projectImages=Array.isArray(report.images)?report.images:[];
   const bySlot=new Map(projectImages.map(x=>[Number(x.slot),x]));
@@ -343,6 +345,14 @@ function buildProjectWorkbook(report){
     let s3=strFromU8(parts[SHEET3]);
     s3=clearRange(s3,['A','B','C','D'],13,13);
     s3=clearRange(s3,['A','B','C','D'],24,25);
+    // Enlarge both photo galleries and give their captions generous space.
+    s3=s3.replace(/<col\b[^>]*>/g,tag=>tag.replace(/\bwidth="[^"]*"/,'width="34"'));
+    s3=s3.replace(/<row\b[^>]*>/g,tag=>{
+      const n=Number((tag.match(/\br="(\d+)"/)||[])[1]);
+      const height=n===13||n===25?56:((n>=2&&n<=12)||(n>=14&&n<=24)?29:null);
+      if(height==null)return tag;
+      return tag.replace(/\s+ht="[^"]*"/g,'').replace(/\s+customHeight="[^"]*"/g,'').replace(/>$/,' ht="'+height+'" customHeight="1">');
+    });
     for(const m of imageSlotMap()){
       const img=bySlot.get(m.slot);
       s3=setCell(s3,m.cell,clean(img?.caption),'string');
