@@ -455,6 +455,13 @@ function indicatorState(){
  const daily=actual!=null&&days?Math.max(0,(1-actual)/Math.max(days,1)):null;
  return {actual,planned,variance,status,period,daily};
 }
+window.__VDReportInputIndicators=function(workOrder){
+ if(String(workOrder||'')!==String(currentWo||'')||!details.length)return null;
+ const k=indicatorState();
+ return {actual:k.actual==null?null:k.actual*100,planned:k.planned==null?null:k.planned*100,
+ variance:k.variance==null?null:k.variance*100,status:k.status,
+ period:k.period==null?null:k.period*100,daily:k.daily==null?null:k.daily*100};
+};
 function indicatorPanel(){
  const s=indicatorState();
  const plannedValue=percentInputValue(calculatedPlannedProgress());

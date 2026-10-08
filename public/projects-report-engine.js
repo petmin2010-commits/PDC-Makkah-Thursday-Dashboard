@@ -349,13 +349,22 @@ function render(data){
  state.report=report;
  window.__VDProjectsReportEngineReport=report;
  window.__VDProjectsReportEngineData=data;
+ // Read the identical six KPI results calculated inside the report input tabs.
+ // This prevents report summary cards from drifting from the data-entry indicators.
+ const inputKpis=window.__VDReportInputIndicators?.(data.workOrder)||null;
+ const summaryActual=inputKpis?inputKpis.actual:actual;
+ const summaryPlanned=inputKpis?inputKpis.planned:(contractDurationCalendar>0?100/contractDurationCalendar:null);
+ const summaryVariance=inputKpis?.variance??(summaryActual!=null&&summaryPlanned!=null?summaryActual-summaryPlanned:null);
+ const summaryStatus=inputKpis?.status||projectStatus;
+ const summaryPeriod=inputKpis?inputKpis.period:periodProgress;
+ const summaryDaily=inputKpis?inputKpis.daily:dailyRequired;
  const cards=[
   {label:'نسبة الإنجاز الكلية',value:actual==null?'—':fmtPct(actual),src:actualSource,ltr:true},
-  {label:'نسبة الإنجاز المخططة',value:contractDurationCalendar>0?fmtPct(100/contractDurationCalendar):'—',src:'CALC',ltr:true},
-  {label:'الانحراف',value:variance==null?'—':((variance>=0?'+':'')+variance.toFixed(2)+'%'),src:'CALC',ltr:true,bad:variance!=null&&variance<0},
-  {label:'حالة المشروع',value:projectStatus||'—',src:'CALC',ltr:false,bad:projectStatus==='متأخر'},
-  {label:'إنجاز الفترة منذ آخر تقرير (اليوم السابق)',value:periodProgress==null?'—':fmtPct(periodProgress),src:'EXTRA',ltr:true},
-  {label:'المعدل اليومي المطلوب',value:dailyRequired==null?'—':fmtPct(dailyRequired),src:'CALC',ltr:true}
+  {label:'نسبة الإنجاز المخططة',value:summaryPlanned==null?'—':fmtPct(summaryPlanned),src:'CALC',ltr:true},
+  {label:'الانحراف',value:summaryVariance==null?'—':((summaryVariance>=0?'+':'')+summaryVariance.toFixed(2)+'%'),src:'CALC',ltr:true,bad:summaryVariance!=null&&summaryVariance<0},
+  {label:'حالة المشروع',value:summaryStatus||'—',src:'CALC',ltr:false,bad:summaryStatus==='متأخر'},
+  {label:'إنجاز الفترة منذ آخر تقرير (اليوم السابق)',value:summaryPeriod==null?'—':fmtPct(summaryPeriod),src:'EXTRA',ltr:true},
+  {label:'المعدل اليومي المطلوب',value:summaryDaily==null?'—':fmtPct(summaryDaily),src:'CALC',ltr:true}
  ];
  $('preBody').className='pre-report';$('preBody').innerHTML=`
  <section class="pre-summary pre-print-section">
