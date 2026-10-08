@@ -323,6 +323,11 @@ function buildProjectWorkbook(report){
   s1=setCell(s1,'G100',null,'string');
 
   const hist=filteredHistory(report);
+  const todayKey=parseDate(report.rdate)?.toISOString().slice(0,10);
+  const prior=hist.filter(h=>h.date<todayKey&&h.actual!=null).at(-1);
+  const currentActual=actualRatio;
+  // Daily progress is the delta against the most recent earlier cumulative snapshot.
+  s1=setCell(s1,'F10',prior&&currentActual!=null?Math.max(0,currentActual-prior.actual):null,'number');
   for(let r=3;r<=37;r++)s2=ensureRow(s2,r,3);
   s2=clearRange(s2,['A','B','C','D','E','F'],3,37);
   for(let i=0;i<35;i++){
@@ -351,7 +356,9 @@ function buildProjectWorkbook(report){
       const n=Number((tag.match(/\br="(\d+)"/)||[])[1]);
       const height=n===13||n===25?56:((n>=2&&n<=12)||(n>=14&&n<=24)?29:null);
       if(height==null)return tag;
-      return tag.replace(/\s+ht="[^"]*"/g,'').replace(/\s+customHeight="[^"]*"/g,'').replace(/>$/,' ht="'+height+'" customHeight="1">');
+      const selfClosing=/\/\s*>$/.test(tag);
+      const base=tag.replace(/\s+ht="[^"]*"/g,'').replace(/\s+customHeight="[^"]*"/g,'');
+      return base.replace(/\/?>$/, '')+' ht="'+height+'" customHeight="1"'+(selfClosing?'/>':'>');
     });
     for(const m of imageSlotMap()){
       const img=bySlot.get(m.slot);

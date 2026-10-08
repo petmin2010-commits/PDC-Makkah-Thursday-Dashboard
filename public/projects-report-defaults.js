@@ -572,10 +572,10 @@ function dailyLogPanel(){
  const rows=dailyLogRowsWithCurrent();
  const body=rows.length?rows.map((r,i)=>{
   const actual=ratioValue(r['Numeric Value']);
-  return '<tr><td class="prd-row-no">'+(i+1)+'</td><td class="prd-date-cell">'+esc(dateDisplayDMY(r['Start / Observation Date']))+'</td><td class="prd-calc">'+esc(percentDisplay(actual))+'</td><td class="prd-num-cell">'+esc(clean(r['Period Qty'])||'—')+'</td><td class="prd-num-cell">'+esc(clean(r['Planned / Required Qty'])||'—')+'</td><td class="prd-log-summary">'+esc(clean(r['Text Value / Description'])||'—')+'</td><td>'+esc(clean(r['Responsible / Issuing Authority'])||'—')+'</td></tr>';
+  return '<tr><td class="prd-row-no">'+(i+1)+'</td><td class="prd-date-cell">'+esc(dateDisplayDMY(r['Start / Observation Date']))+'</td><td><input type="number" min="0" max="100" step="0.01" data-history-date="'+esc(valueInputDate(r['Start / Observation Date']))+'" value="'+esc(actual==null?'':(actual*100).toFixed(2))+'"'+(r._virtual?' readonly':'')+' aria-label="الإنجاز التراكمي %"></td><td class="prd-num-cell">'+esc(clean(r['Period Qty'])||'—')+'</td><td class="prd-num-cell">'+esc(clean(r['Planned / Required Qty'])||'—')+'</td><td class="prd-log-summary">'+esc(clean(r['Text Value / Description'])||'—')+'</td><td>'+esc(clean(r['Responsible / Issuing Authority'])||'—')+'</td></tr>';
  }).join(''):'<tr><td colspan="7" class="prd-table-empty">سيتم إنشاء سجل اليوم تلقائيًا عند الحفظ.</td></tr>';
  return '<section class="prd-section prd-section-current prd-sheet-section prd-daily-log-section"><div class="prd-section-head"><div><b>سجل الإنجاز اليومي / الأسبوعي للمشروع</b><span>تاب رقم 10 — يُملأ بالكامل آليًا من بيانات التقرير ولا يحتاج إدخالًا يدويًا</span></div></div>'+
- '<div class="prd-sheet-block"><div class="prd-sheet-title"><div><b>السجل التراكمي</b><span>يتم تحديث صف تاريخ اليوم عند كل حفظ، بدون إنشاء تكرار لنفس التاريخ</span></div></div><div class="prd-table-wrap"><table class="prd-entry-table prd-daily-log-table"><thead><tr><th class="prd-row-no">#</th><th>التاريخ</th><th>نسبة الإنجاز الكلية %</th><th>المنفذ خلال اليوم (كمية)</th><th>المستهدف اليومي (كمية)</th><th>ملخص الأعمال المنفذة</th><th>معد التقرير</th></tr></thead><tbody>'+body+'</tbody></table></div></div>'+
+ '<div class="prd-sheet-block"><div class="prd-sheet-title"><div><b>السجل التراكمي</b><span>يمكن إدخال نسب الإنجاز التراكمية للأيام السابقة لحساب إنجاز الفترة تلقائيًا</span></div><button type="button" data-add-history="1">+ إضافة إنجاز يوم سابق</button></div><div class="prd-table-wrap"><table class="prd-entry-table prd-daily-log-table"><thead><tr><th class="prd-row-no">#</th><th>التاريخ</th><th>نسبة الإنجاز الكلية %</th><th>المنفذ خلال اليوم (كمية)</th><th>المستهدف اليومي (كمية)</th><th>ملخص الأعمال المنفذة</th><th>معد التقرير</th></tr></thead><tbody>'+body+'</tbody></table></div></div>'+
  '<div class="prd-auto-note">يُستخرج «المنفذ خلال اليوم» من بند الحفر عند وجوده، وإلا من البند الخطي النشط. ويُرحّل المستهدف اليومي من آخر سجل، وعند عدم وجود سجل سابق يُحسب من كمية البند ÷ المدة التعاقدية.</div></section>';
 }
 function renderTabs(){
@@ -755,6 +755,12 @@ function addRow(forcedSection=''){
  },50);
 }
 function handleInput(e){
+ const historyDate=e.target.dataset.historyDate;
+ if(historyDate){
+  const r=details.find(x=>x.Section==='PLAN_POINT'&&valueInputDate(x['Start / Observation Date'])===historyDate);
+  if(r){const n=Number(e.target.value);if(e.target.value!==''&&Number.isFinite(n)&&n>=0&&n<=100)r['Numeric Value']=n.toFixed(2)+'%';else if(e.target.value==='')r['Numeric Value']='';}
+  return;
+ }
  const indicator=e.target.dataset.indicator;if(indicator){generalDraft[indicator]=e.target.value;refreshIndicatorOutputs();return}
  const g=e.target.dataset.general;if(g){generalDraft[g]=e.target.value;if(g==='ACTUAL_START_DATE'){refreshCalculatedGeneral();details.forEach((r,i)=>{if(r.Section==='BOQ_ITEM')refreshCalculatedRow(i)})}return}
  const idx=Number(e.target.dataset.ridx),field=e.target.dataset.rfield;
@@ -784,6 +790,16 @@ function handleChange(e){
  }
 }
 function handleContentClick(e){
+ if(e.target.closest('[data-add-history]')){
+  const date=prompt('تاريخ الإنجاز السابق (dd/mm/yyyy):');if(date===null)return;
+  const iso=valueInputDate(normalizeDateDisplay(date)),today=reportReferenceIso();
+  if(!iso||iso>=today){alert('أدخل تاريخًا صحيحًا يسبق تاريخ التقرير.');return}
+  if(details.some(r=>r.Section==='PLAN_POINT'&&valueInputDate(r['Start / Observation Date'])===iso)){alert('التاريخ موجود مسبقًا؛ عدّل نسبة الإنجاز في الجدول.');return}
+  const raw=prompt('نسبة الإنجاز التراكمية في ذلك اليوم (0 إلى 100):');if(raw===null)return;
+  const n=Number(raw);if(!Number.isFinite(n)||n<0||n>100){alert('النسبة يجب أن تكون من 0 إلى 100.');return}
+  details.push({Section:'PLAN_POINT',Sequence:details.filter(r=>r.Section==='PLAN_POINT').length+1,'Start / Observation Date':iso,'Numeric Value':n.toFixed(2)+'%'});
+  render();return;
+ }
  const remove=e.target.closest('[data-remove]');
  if(remove){
   const idx=Number(remove.dataset.remove);
