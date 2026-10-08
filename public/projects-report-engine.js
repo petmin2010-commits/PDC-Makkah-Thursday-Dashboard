@@ -742,20 +742,26 @@ function getBrand(){
 }
 function compactDate(v){const d=dateObj(v);if(!d)return String(v||'').replace(/\D/g,'');return String(d.getFullYear())+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')}
 function methodologyAppendix(){
+ const calculationExamples=[["إنجاز البند", "نسبة الإنجاز = MIN(100, 100 × إجمالي المنفذ ÷ الكمية المخططة)", "2,000 ÷ 6,900 × 100 = 28.99%"], ["مساهمة البند", "مساهمة البند = وزن البند (%) × نسبة إنجازه (%) ÷ 100", "25 × 20 ÷ 100 = 5 نقاط"], ["الإنجاز الكلي", "الإنجاز الكلي = مجموع مساهمات البنود، بشرط مجموع الأوزان = 100%", "مجموع المساهمات الموزونة"], ["المدة النهائية", "المدة النهائية = المدة التعاقدية + أيام الجمعة داخلها بدءاً من تاريخ البدء", "40 + 6 = 46 يوماً"], ["المخطط التراكمي", "المخطط = MIN(100, الأيام المنقضية × 100 ÷ المدة النهائية)", "3 × 100 ÷ 46 = 6.52%"], ["الانحراف", "الانحراف بالنقاط = الإنجاز الفعلي الكلي − المخطط التراكمي", "10.16 − 6.52 = +3.64 نقطة"], ["إنجاز الفترة", "إنجاز الفترة = الإنجاز الحالي − أحدث إنجاز سابق مؤرخ؛ السالب/المفقود يعرض —", "10.16 − 8.20 = 1.96 نقطة"], ["المتبقي من الكميات", "المتبقي = MAX(0, الكمية المخططة − إجمالي المنفذ)", "6,900 − 2,000 = 4,900 متر"], ["حالة البند", "عند صفر: لم يبدأ؛ عند 100%: مكتمل؛ خلاف ذلك تُقارن المساهمة الفعلية بالمخططة", "متقدم / حسب المخطط / متأخر"], ["المعدل اليومي المطلوب", "المعدل = (100 − الإنجاز الكلي) ÷ المدة المستخدمة بالمؤشر", "معدل تقديري وليس المنفذ اليومي"], ["نسبة صرف المادة", "نسبة الصرف = 100 × المصروف ÷ المطلوب", "يحسب لكل مادة ووحدتها"], ["تنفيذ أطوال التصاريح", "نسبة التنفيذ = 100 × مجموع المنجز الصادر ÷ مجموع الأطوال الصادرة", "تستبعد الحالات غير الصادرة"]];
+
  const sections=[
  ['01','مصادر البيانات','يجمع التقرير بيانات أوامر العمل والسجلات التكميلية في Projects Report Engine Data. LIVE مصدر مباشر، EXTRA بيانات مكملة، CALC حساب آلي، وCALC-BOQ حساب من جدول البنود.'],
- ['02','إنجاز البند','نسبة إنجاز البند = إجمالي المنفذ ÷ الكمية المخططة × 100، وتُحدّد بحد أقصى 100%. إذا كانت الكمية المخططة صفراً أو فارغة، لا تُحسب النسبة.'],
- ['03','الإنجاز الكلي','النسبة الكلية = مجموع حاصل ضرب وزن كل بند في نسبة إنجازه، باستخدام أوزان مجموعها 100%. يجب اكتمال كميات البنود والأوزان قبل اعتماد الإجمالي.'],
- ['04','الإنجاز المخطط','النسبة اليومية المخططة = 100 ÷ المدة النهائية بالأيام. الإنجاز المخطط التراكمي = النسبة اليومية × عدد الأيام المنقضية منذ بداية العمل شاملة يوم البداية، بحد أقصى 100%.'],
+ ['02','إنجاز البند','يُقرأ إجمالي التنفيذ التراكمي والكمية المستهدفة لنفس البند وبنفس الوحدة. نسبة الإنجاز = (إجمالي المنفذ ÷ الكمية المخططة) × 100، ويُحدّد العرض عند 100% حتى إذا تجاوز التنفيذ الكمية. مثال: تنفيذ 2,000 متر من 6,900 متر = 28.99%. عند غياب الكمية المخططة أو كونها صفراً لا يُعتمد المؤشر، وتُراجع قيمة البند قبل إصدار التقرير.'],
+ ['03','الإنجاز الكلي','يُضرب إنجاز كل بند في وزنه النسبي، ثم تُجمع مساهمات البنود للحصول على الإنجاز الكلي للمشروع: مجموع (وزن البند × نسبة إنجازه). مثال: بند وزنه 25% وإنجازه 20% يضيف 5 نقاط مئوية إلى الإجمالي. يجب أن يبلغ مجموع أوزان جميع البنود 100% وأن تكون الكميات صحيحة، ولا يجوز جمع أطوال وأعداد ووحدات مختلفة مباشرة بوصفها نسبة إنجاز واحدة.'],
+ ['04','الإنجاز المخطط','المدة النهائية المستخدمة في التخطيط = المدة التعاقدية + أيام الجمعة الواقعة داخل المدة التعاقدية ابتداءً من تاريخ بدء التنفيذ الفعلي، وفق قاعدة المشروع المعتمدة. يُحسب معدل التخطيط اليومي = 100 ÷ المدة النهائية؛ ثم الإنجاز التراكمي المخطط = المعدل × الأيام المنقضية حتى تاريخ التقرير، ويُحصر بين 0 و100%. يجب تدقيق تاريخ البدء ومرجع يوم التقرير عند مراجعة أي اختلاف.'],
  ['05','الانحراف والحالة','الانحراف بالنقاط المئوية = الإنجاز الفعلي الكلي − الإنجاز المخطط التراكمي. موجب يعني التقدم، وسالب التأخر، وصفر المطابقة؛ بينما الحالة تتبع قواعد التصنيف المبرمجة.'],
- ['06','إنجاز الفترة منذ آخر تقرير','إنجاز الفترة = إنجاز اليوم الكلي − آخر إنجاز سابق مؤرخ في سجل DAILY_PROGRESS / PLAN_POINT. إن لم يتوفر تقرير سابق لا يُفترض أنه صفر؛ والقيمة السالبة تتطلب مراجعة فعلية.'],
+ ['06','إنجاز الفترة منذ آخر تقرير','إنجاز الفترة هو الفرق بالنقاط المئوية بين الإنجاز التراكمي الحالي المحسوب من البنود الموزونة، وأحدث إنجاز تراكمي سابق مؤرخ في سجل PLAN_POINT. مثال: 10.16% حالياً مقابل 8.20% سابقاً = 1.96 نقطة. إذا غاب السجل السابق تظهر (—) بدلاً من اعتبار البداية صفراً. وإذا كانت القراءة السابقة أكبر من الحالية تُوقف النتيجة السالبة ويُلزم تدقيق التاريخ أو الكميات قبل اعتماد التقرير.'],
  ['07','المعدل اليومي المطلوب','المعدل اليومي المطلوب = (100 − الإنجاز الكلي) ÷ المدة النهائية المستخدمة في الحقل. وهو مؤشر تقديري منفصل عن كمية التنفيذ اليومية.'],
  ['08','رقم التقرير','يُعد تلقائياً من الأيام منذ تاريخ البدء حتى تاريخ التقرير، مع احتساب البداية واستبعاد أيام الجمعة فقط. السبت يوم محسوب.'],
  ['09','الكميات والمواد','المتبقي = المطلوب − المنفذ/المنصرف. حالة التنفيذ: لم يبدأ عند الصفر، جاري عند التنفيذ الجزئي، ومنجز عند اكتمال المطلوب. وحالة المواد تعكس عدم الصرف أو الصرف الجزئي أو الكامل.'],
  ['10','التصاريح والوثائق','ملخص التصاريح يحصي الحالات المسجلة. تعرض الخريطة مواقع وطبقات KMZ/KML الظاهرة عند التصدير؛ الصور وتعليقاتها توثيق للأعمال ولا تحل محل قياس الكميات.'],
- ['11','العوائق والتحقق','تُعرض المخاطر بحسب أثرها وحالتها وتاريخها. راجع أوزان البنود، تواريخ آخر تقرير، الكميات، ومصدر كل مؤشر قبل اعتماد النتائج.']
+ ['11','العوائق والتحقق','تُعرض المخاطر بحسب أثرها وحالتها وتاريخها. راجع أوزان البنود، تواريخ آخر تقرير، الكميات، ومصدر كل مؤشر قبل اعتماد النتائج.'],
+ ['12','التحقق من الجودة','تُراجع مصادر المؤشرات قبل اعتماد التقرير: هل مجموع الأوزان 100%؟ هل تتطابق كميات البنود مع سجل المقاول؟ هل أحدث سجل إنجاز أقدم من تاريخ التقرير؟ وهل توجد اختلافات بين الجدول والكارت والرسم البياني؟ عند وجود اختلاف توضح الملاحظة مصدره دون استبدال البيانات تلقائياً.'],
+ ['13','تفسير الرسم التراكمي','المنحنى الأزرق يمثل نسب الإنجاز التراكمية الفعلية المسجلة في تواريخها، والمنحنى الآخر يمثل نسب التخطيط في التواريخ ذاتها. انحدار الخط يوضح سرعة التقدم لا حجم الأعمال وحده، وتقارب الخطين يعني تقارب الأداء، ولا تُستنتج نتيجة نهائية من نقطة واحدة.'],
+ ['14','التوثيق والاعتماد','صور التنفيذ توثيق بصري للموقع وتشمل أوصاف الأعمال وتواريخها وفق المتاح. الخريطة وسيلة لتحديد مواقع الأعمال وليست اعتماداً مساحياً للكميات. يتحقق معد التقرير من المرفقات والأوصاف والمواقع، ويعتمد المسؤول النتائج بعد مطابقتها مع سجلات المشروع.'],
+ ['15','قراءة الإشارات اللونية','الأخضر يبرز الحالات المكتملة أو السليمة، والأزرق يعرض المعلومات ومؤشرات المتابعة، والبرتقالي ينبه إلى حالات تتطلب متابعة، والأحمر يشير إلى تعثر أو ملاحظة تستوجب التحقق. لا تُعتمد الألوان وحدها؛ اقرأ النص والقيمة وتاريخها والمصدر المصاحب.']
  ];
- return '<section class="pre-guide-appendix"><header class="pre-guide-title"><span>APPENDIX · REPORT METHODOLOGY</span><h2>دليل قراءة التقرير ومنهجية الاحتساب</h2><p>ملحق تفسيري ثابت، يُرفق تلقائياً بتقرير PDF ولا يُغيّر البيانات الأساسية.</p></header><div class="pre-guide-grid">'+sections.map(s=>'<article class="pre-guide-item"><b>'+s[0]+'</b><div><h3>'+s[1]+'</h3><p>'+s[2]+'</p></div></article>').join('')+'</div><div class="pre-guide-foot"><strong>ملاحظة اعتماد:</strong> في حال اختلاف قيمة داخل البطاقة عن الرسم البياني أو السجل التاريخي، يجب مراجعة المصدر وتاريخ التقرير قبل الاعتماد النهائي.</div></section>';
+ return '<section class="pre-guide-appendix"><header class="pre-guide-title"><span>APPENDIX · REPORT METHODOLOGY</span><h2>دليل قراءة التقرير ومنهجية الاحتساب</h2><p>ملحق تفسيري ثابت، يُرفق تلقائياً بتقرير PDF ولا يُغيّر البيانات الأساسية.</p></header><div class="pre-guide-grid">'+sections.map(s=>'<article class="pre-guide-item"><b>'+s[0]+'</b><div><h3>'+s[1]+'</h3><p>'+s[2]+'</p></div></article>').join('')+'</div><section class="pre-formula-appendix"><h2>معادلات الاحتساب وأمثلة تطبيقية</h2><p>توضيحات حسابية مرجعية للبطاقات والمؤشرات.</p><div class="pre-formula-grid">'+calculationExamples.map((f,i)=>'<article class="pre-formula-card"><b>'+String(i+1).padStart(2,'0')+'</b><div><h3>'+f[0]+'</h3><p>'+f[1]+'</p><small>'+f[2]+'</small></div></article>').join('')+'</div></section><div class="pre-guide-foot"><strong>ملاحظة اعتماد:</strong> في حال اختلاف قيمة داخل البطاقة عن الرسم البياني أو السجل التاريخي، يجب مراجعة المصدر وتاريخ التقرير قبل الاعتماد النهائي.</div></section>';
 }
 async function printReport(){
  if(!state.report||!document.querySelector('#preBody.pre-report')){alert('أنشئ التقرير أولاً ثم اضغط تصدير التقرير PDF.');return}
@@ -785,7 +791,8 @@ async function printReport(){
  const css=printCss();
  win.document.open();
  win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>'+css+'</style></head><body>'+
- '<header class="pdf-header"><div class="pdf-brand"><img src="'+location.origin+'/company-logo.png" alt=""><div><b>شركة أبعاد الرؤية للاستشارات الهندسية</b><span>'+esc(brand.city)+'</span></div></div><div class="pdf-meta"><strong>Projects Report Engine</strong><span>WO '+esc(r.workOrder)+' • '+esc(r.rdate)+'</span></div></header>'+
+ '<div class="pdf-watermark" aria-hidden="true"><img src="'+location.origin+'/company-logo.png" alt=""></div>'+
+ '<header class="pdf-header"><div class="pdf-brand"><img src="'+location.origin+'/company-logo.png" alt="شعار أبعاد الرؤية"><div><b>شركة أبعاد الرؤية للاستشارات الهندسية</b><span>'+esc(brand.city)+'</span></div></div><div class="pdf-meta"><span>PROJECT CONTROL • WO '+esc(r.workOrder)+'</span><img class="pdf-pdc-logo" src="'+location.origin+'/pdc-logo.jpg" alt="شعار PDC"></div></header>'+
  '<main class="pdf-main">'+clone.outerHTML+'</main>'+
  '<footer class="pdf-footer"><span>Vision Dimensions Engineering Consultancy</span><span>'+esc(brand.contract)+'</span><span>WO '+esc(r.workOrder)+'</span></footer>'+
  '</body></html>');
@@ -928,6 +935,32 @@ html,body{color:#1d334a;font-family:Tahoma,Arial,sans-serif;font-size:9pt}
 .pre-guide-item{padding:3mm}
 .pre-guide-item h3{font-size:10.2pt}
 .pre-guide-item p{font-size:7.6pt;line-height:1.55}
+/* Branded printable masthead and translucent watermark */
+@page{size:A4 landscape;margin:25mm 11mm 15mm;@top-left{content:none}@top-right{content:none}}
+.pdf-header{display:flex!important;position:fixed;top:-22mm;left:0;right:0;height:19mm;padding:2mm 1mm;background:#fff;border-bottom:2px solid #13849b;z-index:50;align-items:center;justify-content:space-between}
+.pdf-brand img{height:14mm;width:24mm;max-width:24mm;object-fit:contain}
+.pdf-brand b{font-size:9pt}.pdf-brand span{font-size:7pt}
+.pdf-meta{display:flex;align-items:center;gap:4mm;direction:ltr}
+.pdf-meta>span{font-size:7pt;font-weight:700;color:#56758a}
+.pdf-pdc-logo{height:14mm;width:26mm;object-fit:contain}
+.pdf-watermark{position:fixed;top:52mm;right:76mm;width:130mm;height:110mm;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:-1;opacity:.045}
+.pdf-watermark img{width:100mm;max-height:100mm;object-fit:contain}
+.pdf-main{position:relative;z-index:1;background:transparent}
+.pre-guide-item p{font-size:8.3pt;line-height:1.7}
+.pre-guide-item h3{font-size:11pt}
+.pre-guide-item{break-inside:avoid;page-break-inside:avoid}
+.pre-guide-foot{font-size:9pt;line-height:1.65}
+
+.pre-formula-appendix{break-before:page;page-break-before:always;padding-top:2mm}
+.pre-formula-appendix>h2{font-size:16pt;color:#103b5a;margin:0 0 2mm;border-bottom:2px solid #11869d;padding-bottom:3mm}
+.pre-formula-appendix>p{font-size:8.5pt;color:#537086;margin:0 0 4mm}
+.pre-formula-grid{display:grid;grid-template-columns:1fr 1fr;gap:3mm 4mm}
+.pre-formula-card{display:flex;gap:2.5mm;padding:3mm;background:#f2f8fc;border:1px solid #c8dfe9;border-right:3px solid #12899c;border-radius:2.5mm;break-inside:avoid}
+.pre-formula-card>b{font-size:12pt;color:#0b8395}
+.pre-formula-card h3{font-size:9.5pt;color:#133f5a;margin:0 0 1mm}
+.pre-formula-card p{font-size:8.1pt;line-height:1.65;margin:0 0 1mm}
+.pre-formula-card small{font-size:7.5pt;color:#167b70;font-weight:700}
+
 `}
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(install,260));else setTimeout(install,260);
