@@ -151,6 +151,11 @@
 .prd-indicator-card>strong{color:#173e60;font:900 22px Arial,Cairo,sans-serif;direction:ltr;text-align:center}
 .prd-indicator-card>small{color:#7890a4;font:700 7px/1.5 Cairo,Arial,sans-serif}
 .prd-indicator-card.prd-readonly{background:#edf6fb;border-color:#b8d4e6}
+.prd-indicator-card.prd-editable-kpi{background:#edf6fb;border-color:#b8d4e6}
+.prd-editable-kpi .prd-percent-input{justify-content:center;gap:2px}
+.prd-editable-kpi .prd-percent-input input{width:auto;min-width:0;max-width:150px;height:auto;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;color:#173e60;font:900 22px/1.15 Arial,Cairo,sans-serif;text-align:center}
+.prd-editable-kpi .prd-percent-input b{height:auto;min-width:0;border:0;background:transparent;color:#173e60;font:900 20px/1.15 Arial,sans-serif;padding:0}
+.prd-editable-kpi .prd-percent-input input:focus{border:0;box-shadow:none;outline:1px dashed #7ca8c7;outline-offset:3px}
 .prd-percent-input{display:flex;align-items:center;gap:0;direction:ltr}
 .prd-percent-input input{width:100%;height:42px;border:1px solid #b9cddd;border-radius:8px 0 0 8px;padding:0 10px;color:#173e60;font:900 18px Arial,sans-serif;outline:none}
 .prd-percent-input b{height:42px;min-width:42px;display:grid;place-items:center;border:1px solid #b9cddd;border-left:0;border-radius:0 8px 8px 0;background:#e8f2f9;color:#315f82;font:900 13px Arial,sans-serif}
