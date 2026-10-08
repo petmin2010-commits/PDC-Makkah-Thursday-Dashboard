@@ -64,7 +64,7 @@ const SECTION_FIELDS={
  MATERIAL:[
   ['Text Value / Description','المادة','text'],['Unit','الوحدة','select',UNIT_OPTIONS],
   ['Planned / Required Qty','الكمية المطلوبة','text'],['Executed / Issued Qty','المنصرف','text'],
-  ['Status','حالة الصرف','select',MATERIAL_STATUS_OPTIONS],['Notes','ملاحظات','textarea']
+  ['Status','حالة الصرف','calc'],['Notes','ملاحظات','textarea']
  ],
  PERMIT_DETAIL:[
   ['Field / Item / Permit No.','رقم التصريح','text'],['Responsible / Issuing Authority','الجهة المصدرة','text'],
@@ -291,7 +291,7 @@ const TABLE_COLUMNS={
   ['Executed / Issued Qty','المنصرف','text'],
   ['@remaining','المتبقي','calc'],
   ['@progress','نسبة الصرف','calc'],
-  ['Status','حالة الصرف','select',MATERIAL_STATUS_OPTIONS],
+  ['Status','حالة الصرف','calc'],
   ['Notes','ملاحظات','text']
  ],
  PERMIT_DETAIL:[
@@ -349,9 +349,21 @@ function boqAutomaticStatus(r){
 function updateBoqStatus(r){
  if(r&&r.Section==='BOQ_ITEM')r.Status=boqAutomaticStatus(r);
 }
+function materialAutomaticStatus(r){
+ const required=tableNumber(r['Planned / Required Qty']);
+ const issued=tableNumber(r['Executed / Issued Qty']);
+ if(required==null||required<=0)return 'غير محدد';
+ if(issued==null||issued<=0)return 'لم يتم الصرف';
+ if(issued>=required)return 'تم الصرف بالكامل';
+ return 'تم الصرف جزئي';
+}
+function updateMaterialStatus(r){
+ if(r&&r.Section==='MATERIAL')r.Status=materialAutomaticStatus(r);
+}
 function tableCalc(sec,r,key){
  const planned=tableNumber(r['Planned / Required Qty']),done=tableNumber(r['Executed / Issued Qty']);
  if(key==='Status'&&sec==='BOQ_ITEM')return boqAutomaticStatus(r);
+ if(key==='Status'&&sec==='MATERIAL')return materialAutomaticStatus(r);
  if(key==='@remaining')return planned==null?'—':Math.max(0,planned-(done||0)).toLocaleString('en-US',{maximumFractionDigits:2});
  if(key==='@progress')return planned&&done!=null?((done/planned)*100).toFixed(2)+'%':'—';
  if(key==='@age'){
@@ -363,6 +375,7 @@ function tableCalc(sec,r,key){
  return '—';
 }
 function tableEditor(r,i,col){
+ if(r.Section==='MATERIAL'&&col[0]==='Status')return '<td class="prd-calc" data-calc-ridx="'+i+'" data-calc-key="Status">'+esc(materialAutomaticStatus(r))+'</td>';
  if(r.Section==='BOQ_ITEM'&&col[0]==='Status')return '<td class="prd-calc" data-calc-ridx="'+i+'" data-calc-key="Status">'+esc(boqAutomaticStatus(r))+'</td>';
  const [key,label,type,options]=col,v=clean(r[key]);
  if(type==='calc')return '<td class="prd-calc" data-calc-ridx="'+i+'" data-calc-key="'+esc(key)+'">'+esc(tableCalc(r.Section,r,key))+'</td>';
@@ -386,6 +399,7 @@ function sectionTable(sec){
 function refreshCalculatedRow(idx){
  const r=details[idx];if(!r)return;
  updateBoqStatus(r);
+ updateMaterialStatus(r);
  document.querySelectorAll('[data-calc-ridx="'+idx+'"]').forEach(el=>{el.textContent=tableCalc(r.Section,r,el.dataset.calcKey)});
 }
 function ratioValue(v){
@@ -502,7 +516,7 @@ async function ensureStaffNames(){
  return staffNames;
 }
 function applyDetailDefaults(){
- details.forEach(updateBoqStatus);
+ details.forEach(updateBoqStatus);details.forEach(updateMaterialStatus);
  const loc=clean(liveAuto.WORK_ORDER_LOCATION);
  if(!loc)return;
  details.forEach(r=>{if(r.Section==='PERMIT_DETAIL'&&!clean(r['Location / Neighborhood']))r['Location / Neighborhood']=loc});
@@ -591,7 +605,7 @@ function validateBoqWeights(){
 async function save(){
  if(busy)return;
  const warning=validateBoqWeights();if(warning){setStatus(warning,'error');alert(warning);activeTab='boq';renderTabs();renderContent();return;}
- details.forEach(updateBoqStatus);
+ details.forEach(updateBoqStatus);details.forEach(updateMaterialStatus);
  const payload=[...buildGeneralRows(),...passthrough.map(compactDetail),...details.map(compactDetail).filter(r=>r.Section)];
  setBusy(true,'جاري حفظ البيانات الافتراضية...');
  try{
