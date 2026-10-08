@@ -138,6 +138,16 @@ function extraValue(row){return row?.['Text Value / Description']||row?.['Numeri
 function reportDate(rows){const pts=rows.filter(r=>r.Section==='PLAN_POINT').map(r=>r['Start / Observation Date']).filter(Boolean).map(v=>({v,d:dateObj(v)})).filter(x=>x.d).sort((a,b)=>a.d-b.d);return pts.at(-1)?.v||''}
 function dateObj(v){const s=clean(v);let m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);if(m)return new Date(+m[3],+m[2]-1,+m[1]);m=s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);if(m)return new Date(+m[1],+m[2]-1,+m[3]);const d=new Date(s);return isNaN(d)?null:d}
 function daysBetween(a,b){const x=dateObj(a),y=dateObj(b);return x&&y?Math.round((y-x)/86400000):null}
+function reportDayNumber(startValue,endValue){
+ const first=dateObj(startValue),last=dateObj(endValue);
+ if(!first||!last)return null;
+ const d=new Date(first.getFullYear(),first.getMonth(),first.getDate(),12);
+ const end=new Date(last.getFullYear(),last.getMonth(),last.getDate(),12);
+ if(d>end)return 0;
+ let count=0;
+ while(d<=end){if(d.getDay()!==5)count++;d.setDate(d.getDate()+1)}
+ return count;
+}
 function contractDurationWithWeekends(startValue,durationValue){
  const start=dateObj(startValue),raw=num(durationValue),target=raw==null?null:Math.floor(raw);
  if(!start||target==null||target<=0)return null;
@@ -296,7 +306,7 @@ function render(data){
  const stage=val(fs,['مرحلة التنفيذ']);
  const stageStatus=val(fs,['حالة المرحلة','حالة التنفيذ','حالة الامر وفقا لمتابعة المهندس المسئول']);
  const reportType=ex('REPORT_TYPE')||'يومي';
- const reportNo=String(Math.min(100,Math.max(1,parseInt(ex('REPORT_NO')||'1',10)||1)));
+ const reportNo=String(reportDayNumber(ex('ACTUAL_START_DATE')||val(fs,['تاريخ المباشرة','تاريخ البدء']),ksaTodayDmy())??'');
  const contractDuration=sourceExactValue(data,'اوامر العمل','المدة uds')||val(fs,['المدة التعاقدية','مدة امر العمل','مدة أمر العمل','مدة التنفيذ','مدة المشروع'])||ex('CONTRACTUAL_DURATION_DAYS');
  const consultant='شركة أبعاد الرؤية للاستشارات الهندسية';
  const secFollowup=ex('SEC_FOLLOWUP_ENGINEER')||val(fs,['مهندس المتابعة','مهندس شركة الكهرباء','المهندس المسئول','المهندس المسؤول']);

@@ -13,7 +13,7 @@ const WEIGHT_OPTIONS=Array.from({length:100},(_,i)=>(i+1)+'%');
 const GENERAL=[
  {key:'REPORT_TYPE',label:'نوع التقرير',field:'Text Value / Description',type:'select',options:REPORT_TYPE_OPTIONS},
  {key:'REPORT_DATE',label:'تاريخ التقرير',field:'Start / Observation Date',type:'date',fixedToday:true},
- {key:'REPORT_NO',label:'رقم التقرير',field:'Text Value / Description',type:'select',options:Array.from({length:100},(_,i)=>String(i+1))},
+ {key:'REPORT_NO',label:'رقم التقرير',field:'Text Value / Description',type:'number',auto:true,source:'عدد أيام التقارير منذ بداية العمل باستثناء الجمعة'},
  {key:'PROJECT_TITLE',label:'اسم المشروع',field:'Text Value / Description',type:'text',span:3},
  {key:'WORK_ORDER_LOCATION',label:'الموقع / المنطقة',field:'Location / Neighborhood',type:'text',auto:true,source:'ورقة أوامر العمل — عمود الموقع'},
  {key:'DETAILED_WORK_DESCRIPTION',label:'وصف العمل',field:'Text Value / Description',type:'textarea',wide:true},
@@ -146,6 +146,17 @@ function contractDurationWithWeekends(startValue,durationValue){
  }
  return String(target+fridayDays);
 }
+function calculatedReportNumber(){
+ const liveStart=document.querySelector('[data-general="ACTUAL_START_DATE"]')?.value;
+ const start=valueInputDate(clean(liveStart)||clean(generalDraft.ACTUAL_START_DATE)||currentSuggestion('ACTUAL_START_DATE'));
+ const end=ksaTodayIso();
+ if(!start||start>end)return '';
+ const d=new Date(start+'T12:00:00'),last=new Date(end+'T12:00:00');
+ if(!Number.isFinite(d.getTime())||!Number.isFinite(last.getTime()))return '';
+ let count=0;
+ while(d<=last){if(d.getDay()!==5)count++;d.setDate(d.getDate()+1)}
+ return String(count);
+}
 function calculatedContractDuration(){
  const liveStart=document.querySelector('[data-general="ACTUAL_START_DATE"]')?.value;
  const start=clean(liveStart)||clean(generalDraft.ACTUAL_START_DATE)||currentSuggestion('ACTUAL_START_DATE');
@@ -153,7 +164,7 @@ function calculatedContractDuration(){
  return contractDurationWithWeekends(start,duration);
 }
 function refreshCalculatedGeneral(){
- const update=()=>{const el=document.querySelector('[data-auto-general="CONTRACT_DURATION_WITH_WEEKENDS"]');if(el)el.value=calculatedContractDuration()};
+ const update=()=>{const el=document.querySelector('[data-auto-general="CONTRACT_DURATION_WITH_WEEKENDS"]');if(el)el.value=calculatedContractDuration();const no=document.querySelector('[data-auto-general="REPORT_NO"]');if(no)no.value=calculatedReportNumber()};
  update();setTimeout(update,0);
 }
 function woValue(){return clean(document.getElementById('preInput')?.value).replace(/\D/g,'').slice(0,10)}
@@ -247,7 +258,8 @@ function currentSuggestion(key){
   const fromData=durationFromWorkOrdersData(window.__VDProjectsReportEngineData);
   if(fromData)return fromData;
  }
- if(key==='CONTRACT_DURATION_WITH_WEEKENDS')return calculatedContractDuration();
+ if(key==='REPORT_NO')return calculatedReportNumber();
+  if(key==='CONTRACT_DURATION_WITH_WEEKENDS')return calculatedContractDuration();
  const r=window.__VDProjectsReportEngineReport||null;
  if(!r)return '';
  const map={
