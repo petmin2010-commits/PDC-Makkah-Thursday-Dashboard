@@ -729,6 +729,22 @@ function getBrand(){
  return{city,contract,code:norm(city).includes('مكه')?'MAK':norm(city).includes('جده')?'JED':'PDC'}
 }
 function compactDate(v){const d=dateObj(v);if(!d)return String(v||'').replace(/\D/g,'');return String(d.getFullYear())+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')}
+function methodologyAppendix(){
+ const sections=[
+ ['01','مصادر البيانات','يجمع التقرير بيانات أوامر العمل والسجلات التكميلية في Projects Report Engine Data. LIVE مصدر مباشر، EXTRA بيانات مكملة، CALC حساب آلي، وCALC-BOQ حساب من جدول البنود.'],
+ ['02','إنجاز البند','نسبة إنجاز البند = إجمالي المنفذ ÷ الكمية المخططة × 100، وتُحدّد بحد أقصى 100%. إذا كانت الكمية المخططة صفراً أو فارغة، لا تُحسب النسبة.'],
+ ['03','الإنجاز الكلي','النسبة الكلية = مجموع حاصل ضرب وزن كل بند في نسبة إنجازه، باستخدام أوزان مجموعها 100%. يجب اكتمال كميات البنود والأوزان قبل اعتماد الإجمالي.'],
+ ['04','الإنجاز المخطط','النسبة اليومية المخططة = 100 ÷ المدة النهائية بالأيام. الإنجاز المخطط التراكمي = النسبة اليومية × عدد الأيام المنقضية منذ بداية العمل شاملة يوم البداية، بحد أقصى 100%.'],
+ ['05','الانحراف والحالة','الانحراف بالنقاط المئوية = الإنجاز الفعلي الكلي − الإنجاز المخطط التراكمي. موجب يعني التقدم، وسالب التأخر، وصفر المطابقة؛ بينما الحالة تتبع قواعد التصنيف المبرمجة.'],
+ ['06','إنجاز الفترة منذ آخر تقرير','إنجاز الفترة = إنجاز اليوم الكلي − آخر إنجاز سابق مؤرخ في سجل DAILY_PROGRESS / PLAN_POINT. إن لم يتوفر تقرير سابق لا يُفترض أنه صفر؛ والقيمة السالبة تتطلب مراجعة فعلية.'],
+ ['07','المعدل اليومي المطلوب','المعدل اليومي المطلوب = (100 − الإنجاز الكلي) ÷ المدة النهائية المستخدمة في الحقل. وهو مؤشر تقديري منفصل عن كمية التنفيذ اليومية.'],
+ ['08','رقم التقرير','يُعد تلقائياً من الأيام منذ تاريخ البدء حتى تاريخ التقرير، مع احتساب البداية واستبعاد أيام الجمعة فقط. السبت يوم محسوب.'],
+ ['09','الكميات والمواد','المتبقي = المطلوب − المنفذ/المنصرف. حالة التنفيذ: لم يبدأ عند الصفر، جاري عند التنفيذ الجزئي، ومنجز عند اكتمال المطلوب. وحالة المواد تعكس عدم الصرف أو الصرف الجزئي أو الكامل.'],
+ ['10','التصاريح والوثائق','ملخص التصاريح يحصي الحالات المسجلة. تعرض الخريطة مواقع وطبقات KMZ/KML الظاهرة عند التصدير؛ الصور وتعليقاتها توثيق للأعمال ولا تحل محل قياس الكميات.'],
+ ['11','العوائق والتحقق','تُعرض المخاطر بحسب أثرها وحالتها وتاريخها. راجع أوزان البنود، تواريخ آخر تقرير، الكميات، ومصدر كل مؤشر قبل اعتماد النتائج.']
+ ];
+ return '<section class="pre-guide-appendix"><header class="pre-guide-title"><span>APPENDIX · REPORT METHODOLOGY</span><h2>دليل قراءة التقرير ومنهجية الاحتساب</h2><p>ملحق تفسيري ثابت، يُرفق تلقائياً بتقرير PDF ولا يُغيّر البيانات الأساسية.</p></header><div class="pre-guide-grid">'+sections.map(s=>'<article class="pre-guide-item"><b>'+s[0]+'</b><div><h3>'+s[1]+'</h3><p>'+s[2]+'</p></div></article>').join('')+'</div><div class="pre-guide-foot"><strong>ملاحظة اعتماد:</strong> في حال اختلاف قيمة داخل البطاقة عن الرسم البياني أو السجل التاريخي، يجب مراجعة المصدر وتاريخ التقرير قبل الاعتماد النهائي.</div></section>';
+}
 async function printReport(){
  if(!state.report||!document.querySelector('#preBody.pre-report')){alert('أنشئ التقرير أولاً ثم اضغط تصدير التقرير PDF.');return}
  const brand=getBrand(),r=state.report,title='VD-PDC-'+brand.code+'-WO-'+r.workOrder+'-'+compactDate(r.rdate)+'-R01';
@@ -753,6 +769,7 @@ async function printReport(){
  }
  const photoWrap=document.createElement('div');photoWrap.innerHTML=photosPdfBlock(state.images);
  const photoPanel=photoWrap.firstElementChild;if(photoPanel){if(mapPanel)mapPanel.after(photoPanel);else clone.appendChild(photoPanel)}
+ clone.insertAdjacentHTML('beforeend',methodologyAppendix());
  const css=printCss();
  win.document.open();
  win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>'+css+'</style></head><body>'+
@@ -857,7 +874,17 @@ html,body{color:#1d334a;font-family:Tahoma,Arial,sans-serif;font-size:9pt}
 .pre-history-chart svg{max-width:100%;width:100%;height:77mm;margin:0;overflow:visible}
 .pre-panel-head>div{max-width:100%}
 .pre-chart-card{break-inside:avoid}
-.pre-map-pdf-panel,.pre-photos-pdf-panel{break-before:page;page-break-before:always}`}
+.pre-map-pdf-panel,.pre-photos-pdf-panel{break-before:page;page-break-before:always}.pre-guide-appendix{break-before:page;page-break-before:always;color:#183b57;direction:rtl}
+.pre-guide-title{padding:5mm;background:#16496e;color:#fff;border-radius:3mm;margin-bottom:3mm}
+.pre-guide-title span{display:block;color:#bbe3f4;font:700 8pt Arial;direction:ltr}
+.pre-guide-title h2{font-size:17pt;margin:1.5mm 0}.pre-guide-title p{font-size:8pt;margin:0;color:#fff}
+.pre-guide-grid{display:grid;grid-template-columns:1fr 1fr;gap:2.5mm 3.5mm}
+.pre-guide-item{display:flex;gap:2.5mm;padding:2.4mm;border:1px solid #cce0ea;border-right:3px solid #158995;border-radius:2mm;background:#f2f8fc;break-inside:avoid}
+.pre-guide-item:nth-child(3n+2){border-right-color:#d49c31;background:#fffaef}
+.pre-guide-item:nth-child(3n+3){border-right-color:#159574;background:#f0faf5}
+.pre-guide-item>b{color:#187b94;font-size:10pt}.pre-guide-item h3{font-size:9.5pt;margin:0 0 1mm}
+.pre-guide-item p{font-size:7.2pt;line-height:1.5;margin:0}
+.pre-guide-foot{margin-top:3mm;padding:3mm;background:#fff7e9;border:1px solid #ebd19c;border-radius:2mm;font-size:8pt}`}
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(install,260));else setTimeout(install,260);
 })();
