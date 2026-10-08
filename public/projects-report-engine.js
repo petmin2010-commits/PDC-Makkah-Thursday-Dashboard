@@ -810,7 +810,28 @@ html,body{color:#1d334a;font-family:Tahoma,Arial,sans-serif;font-size:9pt}
 .pre-map-pdf-image{max-height:145mm;border:2px solid #afd0e1}
 .pre-photo-pdf-card{border-color:#bcd5e7}
 .pre-photo-pdf-caption b{font-size:8pt}.pre-photo-pdf-caption span{font-size:8pt;line-height:1.5}
-.pre-quality-alert b{font-size:9pt}.pre-quality-alert span{font-size:8pt}`}
+.pre-quality-alert b{font-size:9pt}.pre-quality-alert span{font-size:8pt}
+/* PDF QA 2026-10-08: keep running headers/footers clear of long tables */
+@page{size:A4 landscape;margin:23mm 11mm 20mm}
+.pdf-header{top:-18mm;height:12mm;z-index:20;background:#fff;padding:0 1mm 1.5mm;border-bottom:2px solid #168f91}
+.pdf-footer{bottom:-15mm;height:9mm;z-index:20;background:#fff;padding:1mm;border-top:2px solid #168f91}
+.pre-panel-head{margin-bottom:2.5mm}
+.pre-panel-head>div{max-width:80%}
+.pre-history-chart svg{height:83mm;width:calc(100% - 14mm);margin-inline:7mm;overflow:visible}
+.pre-history-chart{padding-inline:3mm;overflow:visible}
+.pre-material-panel .pre-table-wrap td,.pre-permits-panel .pre-table-wrap td{font-size:7.25pt;line-height:1.2;padding:1.2mm 1.3mm}
+.pre-material-panel .pre-table-wrap th,.pre-permits-panel .pre-table-wrap th{font-size:7.5pt;padding:1.8mm 1.2mm}
+.pre-material-panel .pre-summary-strip,.pre-permits-panel .pre-summary-strip{margin-bottom:1.8mm}
+.pre-material-panel .pre-summary-strip>div,.pre-permits-panel .pre-summary-strip>div{padding:1.5mm}
+.pre-material-panel .pre-table-wrap td:first-child{width:47%}
+.pre-boq-panel .pre-table-wrap td{font-size:7.3pt;line-height:1.3;padding:1.5mm}
+.pre-table-wrap th,.pre-table-wrap td{vertical-align:middle}
+.pre-table-wrap table{page-break-inside:auto;break-inside:auto}
+.pre-table-wrap thead{display:table-header-group}
+.pre-print-section:not(.pre-map-pdf-panel):not(.pre-photos-pdf-panel){scroll-margin:0}
+.pre-map-pdf-image{max-height:130mm}
+.pre-photo-pdf-card img,.pre-photo-pdf-empty{height:50mm}
+.pre-photos-pdf-grid{gap:2.4mm}`}
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(install,260));else setTimeout(install,260);
 })();
