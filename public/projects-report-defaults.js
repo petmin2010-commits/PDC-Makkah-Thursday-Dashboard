@@ -164,7 +164,7 @@ function calculatedContractDuration(){
  return contractDurationWithWeekends(start,duration);
 }
 function refreshCalculatedGeneral(){
- const update=()=>{const el=document.querySelector('[data-auto-general="CONTRACT_DURATION_WITH_WEEKENDS"]');if(el)el.value=calculatedContractDuration();const no=document.querySelector('[data-auto-general="REPORT_NO"]');if(no)no.value=calculatedReportNumber()};
+ const update=()=>{const el=document.querySelector('[data-auto-general="CONTRACT_DURATION_WITH_WEEKENDS"]');if(el)el.value=calculatedContractDuration();const pi=document.querySelector('[data-indicator="PLANNED_PROGRESS"]');if(pi)pi.value=percentInputValue(calculatedPlannedProgress());refreshIndicatorOutputs();const no=document.querySelector('[data-auto-general="REPORT_NO"]');if(no)no.value=calculatedReportNumber()};
  update();setTimeout(update,0);
 }
 function woValue(){return clean(document.getElementById('preInput')?.value).replace(/\D/g,'').slice(0,10)}
@@ -396,9 +396,17 @@ function weightedActualRatio(){
  const live=window.__VDProjectsReportEngineReport?.actual;
  return live==null?null:ratioValue(live);
 }
+function calculatedPlannedProgress(){
+ const start=valueInputDate(clean(document.querySelector('[data-general="ACTUAL_START_DATE"]')?.value)||clean(generalDraft.ACTUAL_START_DATE)||currentSuggestion('ACTUAL_START_DATE'));
+ const duration=numericDays(calculatedContractDuration());
+ if(!start||!duration||duration<=0)return '';
+ const day=new Date(start+'T12:00:00'),now=new Date(ksaTodayIso()+'T12:00:00');
+ const elapsed=Math.floor((now-day)/86400000)+1;
+ return (Math.min(100,Math.max(0,elapsed*100/duration))).toFixed(2)+'%';
+}
 function indicatorState(){
  const actual=weightedActualRatio();
- const planned=ratioValue(generalDraft.PLANNED_PROGRESS||currentSuggestion('PLANNED_PROGRESS'));
+ const planned=ratioValue(calculatedPlannedProgress());
  const variance=actual!=null&&planned!=null?actual-planned:null;
  const status=actual==null?'—':actual>=.999?'مكتمل':variance==null?'—':variance>=0?'وفق المخطط':variance>=-.1?'تحت المتابعة':'متأخر';
  const period=ratioValue(generalDraft.PERIOD_PROGRESS||currentSuggestion('PERIOD_PROGRESS'));
@@ -408,12 +416,12 @@ function indicatorState(){
 }
 function indicatorPanel(){
  const s=indicatorState();
- const plannedValue=percentInputValue(generalDraft.PLANNED_PROGRESS||currentSuggestion('PLANNED_PROGRESS'));
+ const plannedValue=percentInputValue(calculatedPlannedProgress());
  const periodValue=percentInputValue(generalDraft.PERIOD_PROGRESS||currentSuggestion('PERIOD_PROGRESS'));
  return '<section class="prd-section prd-section-current prd-indicators-section"><div class="prd-section-head"><div><b>أولاً: مؤشرات أداء المشروع</b><span>مطابقة لبنود الورقة الأولى — القيم المحسوبة آلية، والمخطط وإنجاز الفترة قابلان للإدخال</span></div></div>'+
  '<div class="prd-indicator-grid">'+
  '<label class="prd-indicator-card prd-readonly"><span>نسبة الإنجاز الكلية</span><strong data-indicator-output="actual">'+esc(percentDisplay(s.actual))+'</strong><small>محسوبة من الكميات × الأوزان</small></label>'+
- '<label class="prd-indicator-card"><span>نسبة الإنجاز المخططة</span><div class="prd-percent-input"><input data-indicator="PLANNED_PROGRESS" inputmode="decimal" value="'+esc(plannedValue)+'" placeholder="0.00"><b>%</b></div><small>إدخال مطابق للخلية B10</small></label>'+
+ '<label class="prd-indicator-card"><span>نسبة الإنجاز المخططة</span><div class="prd-percent-input"><input data-indicator="PLANNED_PROGRESS" readonly aria-readonly="true" inputmode="decimal" value="'+esc(plannedValue)+'" placeholder="0.00"><b>%</b></div><small>إدخال مطابق للخلية B10</small></label>'+
  '<label class="prd-indicator-card prd-readonly"><span>الانحراف</span><strong data-indicator-output="variance">'+esc(s.variance==null?'—':((s.variance>=0?'+':'')+(s.variance*100).toFixed(2)+'%'))+'</strong><small>الفعلي − المخطط</small></label>'+
  '<label class="prd-indicator-card prd-readonly"><span>حالة المشروع</span><strong data-indicator-output="status">'+esc(s.status)+'</strong><small>مكتمل / وفق المخطط / تحت المتابعة / متأخر</small></label>'+
  '<label class="prd-indicator-card"><span>إنجاز الفترة</span><div class="prd-percent-input"><input data-indicator="PERIOD_PROGRESS" inputmode="decimal" value="'+esc(periodValue)+'" placeholder="0.00"><b>%</b></div><small>إدخال مطابق للخلية F10</small></label>'+
@@ -527,6 +535,7 @@ function closeModal(){const m=document.getElementById('preDefaultsModal');if(m&&
 
 function buildGeneralRows(){
  const out=[];
+ generalDraft.PLANNED_PROGRESS=calculatedPlannedProgress();
  for(const g of INPUT_DEFS){
   if(g.auto||g.fixed||g.fixedToday)continue;
   const v=clean(generalDraft[g.key]);if(!v)continue;
