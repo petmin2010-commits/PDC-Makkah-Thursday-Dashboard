@@ -323,12 +323,14 @@ function render(data){
  const validPlanPoints=historyPoints(planRows,start,rdate,null,false).filter(p=>p.planned!=null);
  const plannedExtra=pct(ex('PLANNED_PROGRESS'));
  const planned=contractDurationCalendar>0&&daysBetween(start,rdate)!=null?Math.min(100,Math.max(0,((daysBetween(start,rdate)+1)/contractDurationCalendar)*100)):null;
- const periodProgress=pct(ex('PERIOD_PROGRESS'));
+ const previousDay=historyPoints(planRows,start,rdate,null,false).filter(p=>p.actual!=null&&dateObj(p.date)<dateObj(rdate)).at(-1);
+
  const elapsed=daysBetween(start,rdate),remaining=expected?daysBetween(rdate,expected):null;
  const boq=rows.filter(r=>r.Section==='BOQ_ITEM').map(r=>({...r,_completion:completion(r)}));
  const boqMetric=weightedBoqMetrics(boq);
  const actual=boqMetric.valid?boqMetric.progress:liveActual;
  const actualSource=boqMetric.valid?'CALC-BOQ':'LIVE';
+ const periodProgress=actual==null||!previousDay?null:actual-previousDay.actual;
  const variance=actual!=null&&planned!=null?actual-planned:null;
  const projectStatus=actual==null?'':actual>=99.9?'مكتمل':variance==null?'':variance>=0?'وفق المخطط':variance>=-10?'تحت المتابعة':'متأخر';
  const dailyRequired=actual!=null&&contractDurationCalendar?Math.max(0,(100-actual)/Math.max(contractDurationCalendar,1)):null;
@@ -352,7 +354,7 @@ function render(data){
   {label:'نسبة الإنجاز المخططة',value:contractDurationCalendar>0?fmtPct(100/contractDurationCalendar):'—',src:'CALC',ltr:true},
   {label:'الانحراف',value:variance==null?'—':((variance>=0?'+':'')+variance.toFixed(2)+'%'),src:'CALC',ltr:true,bad:variance!=null&&variance<0},
   {label:'حالة المشروع',value:projectStatus||'—',src:'CALC',ltr:false,bad:projectStatus==='متأخر'},
-  {label:'إنجاز الفترة',value:periodProgress==null?'—':fmtPct(periodProgress),src:'EXTRA',ltr:true},
+  {label:'إنجاز الفترة منذ آخر تقرير (اليوم السابق)',value:periodProgress==null?'—':fmtPct(periodProgress),src:'EXTRA',ltr:true},
   {label:'المعدل اليومي المطلوب',value:dailyRequired==null?'—':fmtPct(dailyRequired),src:'CALC',ltr:true}
  ];
  $('preBody').className='pre-report';$('preBody').innerHTML=`
