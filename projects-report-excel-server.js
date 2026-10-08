@@ -101,6 +101,37 @@ function statusFromProgress(done,planned){
   if(done>0)return 'جاري';
   return 'لم يبدأ';
 }
+function dailyUnitLabel(unit){
+  const u=clean(unit).toUpperCase();
+  return ({M:'متر',M2:'م²',KM:'كم',EA:'عدد',NO:'عدد',KIT:'طقم',LS:''})[u]||clean(unit);
+}
+function activeDailyBoq(report){
+  return (Array.isArray(report.boq)?report.boq:[]).filter(r=>(num(r?.['Period Qty'])||0)>0);
+}
+function primaryDailyBoq(report){
+  const rows=activeDailyBoq(report);if(!rows.length)return null;
+  return rows.find(r=>clean(r?.['Text Value / Description']).includes('حفر'))||
+         rows.find(r=>['M','M2','KM'].includes(clean(r?.Unit).toUpperCase()))||
+         rows[0];
+}
+function currentDailyHistoryRow(report,history){
+  const primary=primaryDailyBoq(report);
+  const executed=primary?num(primary['Period Qty']):null;
+  const lastTarget=[...(history||[])].reverse().map(x=>num(x?.row?.['Planned / Required Qty'])).find(x=>x!=null&&x>0);
+  const plannedQty=primary?num(primary['Planned / Required Qty']):null;
+  const duration=num(report.contractDuration);
+  const target=lastTarget!=null?lastTarget:(plannedQty!=null&&duration>0?Math.round((plannedQty/duration)*100)/100:null);
+  const summary=activeDailyBoq(report).map(r=>{
+    const q=num(r?.['Period Qty']),unit=dailyUnitLabel(r?.Unit),label=clean(r?.['Text Value / Description']||r?.['Field / Item / Permit No.']);
+    return label+(q!=null?' '+q.toLocaleString('en-US',{maximumFractionDigits:2}):'')+(unit?' '+unit:'');
+  }).filter(Boolean).join(' + ');
+  return {
+    'Period Qty':executed??'',
+    'Planned / Required Qty':target??'',
+    'Text Value / Description':summary,
+    'Responsible / Issuing Authority':clean(report.preparedBy)
+  };
+}
 function filteredHistory(report){
   const start=parseDate(report.start),end=parseDate(report.rdate);
   const map=new Map();
@@ -118,9 +149,10 @@ function filteredHistory(report){
   }
   const out=[...map.values()].sort((a,b)=>parseDate(a.date)-parseDate(b.date));
   if(end&&report.actual!=null){
-    const key=end.toISOString().slice(0,10),a=Number(report.actual)/100;
+    const key=end.toISOString().slice(0,10),a=Number(report.actual)/100,current=currentDailyHistoryRow(report,out);
     const hit=out.find(x=>x.date===key);
-    if(hit)hit.actual=a; else out.push({date:key,actual:a,planned:null,row:{}});
+    if(hit){hit.actual=a;hit.planned=report.planned==null?hit.planned:Number(report.planned)/100;hit.row={...(hit.row||{}),...current};}
+    else out.push({date:key,actual:a,planned:report.planned==null?null:Number(report.planned)/100,row:current});
     out.sort((a,b)=>parseDate(a.date)-parseDate(b.date));
   }
   return out.slice(-35);

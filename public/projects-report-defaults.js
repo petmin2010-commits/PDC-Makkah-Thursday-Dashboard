@@ -41,7 +41,7 @@ const SECTION_LABELS={
  ISSUE_RISK:'خامساً: أبرز التحديات والعوائق وحالة كل تحدي',
  PERIOD_SUMMARY:'سادساً: ملخص المنفذ خلال الفترة',
  MANAGEMENT_NOTE:'سابعاً: ملاحظات وتنبيهات / الإجراءات المطلوبة والدعم المطلوب من الإدارة',
- PLAN_POINT:'بيانات تاريخية للمنحنى',
+ PLAN_POINT:'سجل الإنجاز اليومي / الأسبوعي للمشروع',
  MILESTONE:'بيانات معالم سابقة'
 };
 const TAB_DEFS=[
@@ -53,7 +53,8 @@ const TAB_DEFS=[
  {id:'risks',label:'خامساً: التحديات والعوائق',icon:'!',sections:['ISSUE_RISK']},
  {id:'summary',label:'سادساً: ملخص المنفذ خلال الفترة',icon:'≡',sections:['PERIOD_SUMMARY']},
  {id:'management',label:'سابعاً: الملاحظات والدعم المطلوب',icon:'☷',sections:['MANAGEMENT_NOTE']},
- {id:'charts',label:'ثامناً: الرسوم البيانية',icon:'▥',sections:[]}
+ {id:'charts',label:'ثامناً: الرسوم البيانية',icon:'▥',sections:[]},
+ {id:'dailylog',label:'سجل الإنجاز اليومي',icon:'▦',sections:['PLAN_POINT']}
 ];
 const SECTION_FIELDS={
  BOQ_ITEM:[
@@ -183,6 +184,7 @@ function countForTab(t){
  if(t.id==='general')return GENERAL.filter(g=>clean(generalValue(g))).length;
  if(t.id==='indicators')return 6;
  if(t.id==='charts')return 2;
+ if(t.id==='dailylog')return dailyLogRowsWithCurrent().length;
  return tabEntries(t.id).length;
 }
 
@@ -481,6 +483,82 @@ function chartsPanel(){
  '<div class="prd-chart-preview"><div class="prd-chart-card"><h4>الإنجاز الفعلي مقابل المخطط</h4><div class="prd-progress-preview"><span>الفعلي <b>'+actual.toFixed(2)+'%</b></span><div><i style="width:'+actual+'%"></i></div><span>المخطط <b>'+planned.toFixed(2)+'%</b></span><div class="planned"><i style="width:'+planned+'%"></i></div></div></div>'+
  '<div class="prd-chart-card"><h4>نسب تنفيذ بنود الكميات</h4>'+rows+'</div></div></section>';
 }
+function dailyUnitLabel(unit){
+ const u=clean(unit).toUpperCase();
+ return ({M:'متر',M2:'م²',KM:'كم',EA:'عدد',NO:'عدد',KIT:'طقم',LS:''})[u]||clean(unit);
+}
+function dailyActiveBoqRows(){
+ return details.filter(r=>r.Section==='BOQ_ITEM'&&(tableNumber(r['Period Qty'])||0)>0);
+}
+function primaryDailyBoqRow(){
+ const rows=dailyActiveBoqRows();if(!rows.length)return null;
+ return rows.find(r=>clean(r['Text Value / Description']).includes('حفر'))||
+        rows.find(r=>['M','M2','KM'].includes(clean(r.Unit).toUpperCase()))||
+        rows[0];
+}
+function dailyExecutedQuantity(){
+ const r=primaryDailyBoqRow();return r?tableNumber(r['Period Qty']):null;
+}
+function previousDailyTarget(){
+ const rows=details.filter(r=>r.Section==='PLAN_POINT').slice().sort((a,b)=>valueInputDate(a['Start / Observation Date']).localeCompare(valueInputDate(b['Start / Observation Date'])));
+ for(let i=rows.length-1;i>=0;i--){const v=tableNumber(rows[i]['Planned / Required Qty']);if(v!=null&&v>0)return v}
+ return null;
+}
+function dailyTargetQuantity(){
+ const prev=previousDailyTarget();if(prev!=null)return prev;
+ const r=primaryDailyBoqRow()||details.find(x=>x.Section==='BOQ_ITEM'&&(tableNumber(x['Planned / Required Qty'])||0)>0);
+ const planned=r?tableNumber(r['Planned / Required Qty']):null;
+ const duration=numericDays(clean(liveAuto.CONTRACTUAL_DURATION_DAYS)||currentSuggestion('CONTRACTUAL_DURATION_DAYS'));
+ if(planned==null||!duration||duration<=0)return null;
+ return Math.round((planned/duration)*100)/100;
+}
+function dailyWorkSummary(){
+ const parts=dailyActiveBoqRows().map(r=>{
+  const q=tableNumber(r['Period Qty']),unit=dailyUnitLabel(r.Unit),label=clean(r['Text Value / Description']||r['Field / Item / Permit No.']);
+  return label+(q!=null?' '+q.toLocaleString('en-US',{maximumFractionDigits:2}):'')+(unit?' '+unit:'');
+ }).filter(Boolean);
+ return parts.join(' + ');
+}
+function dailyPreparedBy(){
+ return clean(generalDraft.PREPARED_BY)||currentSuggestion('PREPARED_BY')||clean(window.__VDProjectsReportEngineReport?.preparedBy);
+}
+function currentDailyLogRow(){
+ const s=indicatorState(),actual=s.actual==null?'':((s.actual*100).toFixed(2)+'%');
+ return {
+  Section:'PLAN_POINT',
+  'Start / Observation Date':ksaTodayIso(),
+  'Numeric Value':actual,
+  'Weight / Planned Progress %':calculatedPlannedProgress(),
+  'Period Qty':dailyExecutedQuantity()??'',
+  'Planned / Required Qty':dailyTargetQuantity()??'',
+  'Text Value / Description':dailyWorkSummary(),
+  'Responsible / Issuing Authority':dailyPreparedBy()
+ };
+}
+function dailyLogRowsWithCurrent(){
+ const current=currentDailyLogRow(),today=valueInputDate(current['Start / Observation Date']);
+ const list=details.filter(r=>r.Section==='PLAN_POINT').map(r=>({...r}));
+ const idx=list.findIndex(r=>valueInputDate(r['Start / Observation Date'])===today);
+ if(idx>=0)list[idx]={...list[idx],...current,_row:list[idx]._row,Sequence:list[idx].Sequence};
+ else list.push({...current,Sequence:list.length+1,_virtual:true});
+ return list.sort((a,b)=>valueInputDate(a['Start / Observation Date']).localeCompare(valueInputDate(b['Start / Observation Date'])));
+}
+function upsertDailyLogRow(){
+ const current=currentDailyLogRow(),today=valueInputDate(current['Start / Observation Date']);
+ const idx=details.findIndex(r=>r.Section==='PLAN_POINT'&&valueInputDate(r['Start / Observation Date'])===today);
+ if(idx>=0)details[idx]={...details[idx],...current,_row:details[idx]._row,Sequence:details[idx].Sequence||1};
+ else details.push({...current,Sequence:details.filter(r=>r.Section==='PLAN_POINT').length+1});
+}
+function dailyLogPanel(){
+ const rows=dailyLogRowsWithCurrent();
+ const body=rows.length?rows.map((r,i)=>{
+  const actual=ratioValue(r['Numeric Value']);
+  return '<tr><td class="prd-row-no">'+(i+1)+'</td><td class="prd-date-cell">'+esc(dateDisplayDMY(r['Start / Observation Date']))+'</td><td class="prd-calc">'+esc(percentDisplay(actual))+'</td><td class="prd-num-cell">'+esc(clean(r['Period Qty'])||'—')+'</td><td class="prd-num-cell">'+esc(clean(r['Planned / Required Qty'])||'—')+'</td><td class="prd-log-summary">'+esc(clean(r['Text Value / Description'])||'—')+'</td><td>'+esc(clean(r['Responsible / Issuing Authority'])||'—')+'</td></tr>';
+ }).join(''):'<tr><td colspan="7" class="prd-table-empty">سيتم إنشاء سجل اليوم تلقائيًا عند الحفظ.</td></tr>';
+ return '<section class="prd-section prd-section-current prd-sheet-section prd-daily-log-section"><div class="prd-section-head"><div><b>سجل الإنجاز اليومي / الأسبوعي للمشروع</b><span>تاب رقم 10 — يُملأ بالكامل آليًا من بيانات التقرير ولا يحتاج إدخالًا يدويًا</span></div></div>'+
+ '<div class="prd-sheet-block"><div class="prd-sheet-title"><div><b>السجل التراكمي</b><span>يتم تحديث صف تاريخ اليوم عند كل حفظ، بدون إنشاء تكرار لنفس التاريخ</span></div></div><div class="prd-table-wrap"><table class="prd-entry-table prd-daily-log-table"><thead><tr><th class="prd-row-no">#</th><th>التاريخ</th><th>نسبة الإنجاز الكلية %</th><th>المنفذ خلال اليوم (كمية)</th><th>المستهدف اليومي (كمية)</th><th>ملخص الأعمال المنفذة</th><th>معد التقرير</th></tr></thead><tbody>'+body+'</tbody></table></div></div>'+
+ '<div class="prd-auto-note">يُستخرج «المنفذ خلال اليوم» من بند الحفر عند وجوده، وإلا من البند الخطي النشط. ويُرحّل المستهدف اليومي من آخر سجل، وعند عدم وجود سجل سابق يُحسب من كمية البند ÷ المدة التعاقدية.</div></section>';
+}
 function renderTabs(){
  const nav=document.getElementById('prdTabs');if(!nav)return;
  nav.innerHTML=TAB_DEFS.map(t=>'<button type="button" class="'+(t.id===activeTab?'active':'')+'" data-tab="'+t.id+'"><i>'+t.icon+'</i><span>'+esc(t.label)+'</span><b>'+countForTab(t)+'</b></button>').join('');
@@ -494,6 +572,7 @@ function renderContent(){
  }
  if(def.id==='indicators'){box.innerHTML=indicatorPanel();return}
  if(def.id==='charts'){box.innerHTML=chartsPanel();return}
+ if(def.id==='dailylog'){box.innerHTML=dailyLogPanel();return}
  const total=tabEntries().length;
  box.innerHTML='<section class="prd-section prd-section-current prd-sheet-section"><div class="prd-section-head"><div><b>'+esc(def.label)+'</b><span>'+total+' سجل — أدخل البيانات مباشرة في صفوف وأعمدة مثل ملف Excel</span></div></div>'+def.sections.map(sectionTable).join('')+'</section>';
 }
@@ -620,6 +699,7 @@ async function save(){
  if(busy)return;
  const warning=validateBoqWeights();if(warning){setStatus(warning,'error');alert(warning);activeTab='boq';renderTabs();renderContent();return;}
  details.forEach(updateBoqStatus);details.forEach(updateMaterialStatus);
+ upsertDailyLogRow();
  const payload=[...buildGeneralRows(),...passthrough.map(compactDetail),...details.map(compactDetail).filter(r=>r.Section)];
  setBusy(true,'جاري حفظ البيانات الافتراضية...');
  try{
