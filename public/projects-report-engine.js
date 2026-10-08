@@ -116,7 +116,9 @@ async function search(){
  renderPhotoManager('جاري تحميل صور المشروع...');
  $('preBody').className='pre-state';$('preBody').innerHTML='<span class="pre-loader"></span><b>جاري تكوين التقرير...</b><span>تجميع البيانات الأصلية والإضافية الخاصة بأمر العمل.</span>';
  try{
-  state.data=await rpc('getWorkOrder360',[wo]);render(state.data);
+  state.data=await rpc('getWorkOrder360',[wo]);
+  if(window.__VDReportEnsureInputIndicators)await window.__VDReportEnsureInputIndicators(wo);
+  render(state.data);
   if(state.report){try{await loadProjectImages(wo)}catch(imgErr){console.warn('Project images load failed',imgErr);state.images=[];state.photoPending={};state.photoDraft={};renderPhotoManager('تعذر تحميل الصور المحفوظة')}}
  }catch(e){$('preBody').className='pre-state error';$('preBody').innerHTML='<b>تعذر إنشاء التقرير</b><span>'+esc(e.message||e)+'</span>'}
  finally{state.loading=false;renderPhotoManager()}
@@ -362,14 +364,14 @@ function render(data){
  // Read the identical six KPI results calculated inside the report input tabs.
  // This prevents report summary cards from drifting from the data-entry indicators.
  const inputKpis=window.__VDReportInputIndicators?.(data.workOrder)||null;
- const summaryActual=actual; // source of truth: saved BOQ values loaded for the work order
+ const summaryActual=inputKpis?inputKpis.actual:actual;
  const summaryPlanned=inputKpis?inputKpis.planned:(contractDurationCalendar>0?100/contractDurationCalendar:null);
  const summaryVariance=summaryActual!=null&&summaryPlanned!=null?summaryActual-summaryPlanned:null;
- const summaryStatus=projectStatus;
- const summaryPeriod=periodProgress; // latest dated PLAN_POINT from the report dataset, not stale modal state
- const summaryDaily=dailyRequired;
+ const summaryStatus=inputKpis?inputKpis.status:projectStatus;
+ const summaryPeriod=inputKpis?inputKpis.period:periodProgress;
+ const summaryDaily=inputKpis?inputKpis.daily:dailyRequired;
  const cards=[
-  {label:'نسبة الإنجاز الكلية',value:actual==null?'—':fmtPct(actual),src:actualSource,ltr:true},
+  {label:'نسبة الإنجاز الكلية',value:summaryActual==null?'—':fmtPct(summaryActual),src:actualSource,ltr:true},
   {label:'نسبة الإنجاز المخططة',value:summaryPlanned==null?'—':fmtPct(summaryPlanned),src:'CALC',ltr:true},
   {label:'الانحراف',value:summaryVariance==null?'—':((summaryVariance>=0?'+':'')+summaryVariance.toFixed(2)+'%'),src:'CALC',ltr:true,bad:summaryVariance!=null&&summaryVariance<0},
   {label:'حالة المشروع',value:summaryStatus||'—',src:'CALC',ltr:false,bad:summaryStatus==='متأخر'},

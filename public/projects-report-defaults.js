@@ -486,6 +486,15 @@ window.__VDReportInputIndicators=function(workOrder){
  variance:k.variance==null?null:k.variance*100,status:k.status,
  period:k.period==null?null:k.period*100,daily:k.daily==null?null:k.daily*100};
 };
+window.__VDReportEnsureInputIndicators=async function(workOrder){
+ const wo=String(workOrder||'').trim();
+ if(!wo)return null;
+ if(String(currentWo||'')!==wo||!details.length){
+  currentWo=wo;
+  await loadDefaults(wo);
+ }
+ return window.__VDReportInputIndicators(wo);
+};
 function indicatorPanel(){
  const s=indicatorState();
  const plannedValue=percentInputValue(calculatedPlannedProgress());
