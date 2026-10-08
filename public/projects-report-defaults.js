@@ -59,7 +59,7 @@ const SECTION_FIELDS={
  BOQ_ITEM:[
   ['Text Value / Description','البند','text'],['Unit','الوحدة','select',UNIT_OPTIONS],
   ['Planned / Required Qty','الكمية المخططة','text'],['Executed / Issued Qty','إجمالي المنفذ','text'],
-  ['Period Qty','المنفذ خلال الفترة','text'],['Weight / Planned Progress %','الوزن %','select',WEIGHT_OPTIONS],['Status','الحالة','select',BOQ_STATUS_OPTIONS]
+  ['Period Qty','المنفذ خلال الفترة','text'],['Weight / Planned Progress %','الوزن %','select',WEIGHT_OPTIONS],['Status','الحالة','calc']
  ],
  MATERIAL:[
   ['Text Value / Description','المادة','text'],['Unit','الوحدة','select',UNIT_OPTIONS],
@@ -282,7 +282,7 @@ const TABLE_COLUMNS={
   ['@remaining','المتبقي','calc'],
   ['@progress','نسبة الإنجاز','calc'],
   ['Weight / Planned Progress %','الوزن %','select',WEIGHT_OPTIONS],
-  ['Status','الحالة','select',BOQ_STATUS_OPTIONS]
+  ['Status','الحالة','calc']
  ],
  MATERIAL:[
   ['Text Value / Description','المادة','text'],
@@ -338,8 +338,20 @@ const TABLE_COLUMNS={
  ]
 };
 function tableNumber(v){const s=String(v??'').replace(/,/g,'').replace('%','').trim();if(!s)return null;const n=Number(s);return Number.isFinite(n)?n:null}
+function boqAutomaticStatus(r){
+ const planned=tableNumber(r['Planned / Required Qty']);
+ const done=tableNumber(r['Executed / Issued Qty']);
+ if(planned==null||planned<=0)return 'غير محدد';
+ if(done==null||done<=0)return 'لم يبدأ';
+ if(done>=planned)return 'منجز';
+ return 'جاري';
+}
+function updateBoqStatus(r){
+ if(r&&r.Section==='BOQ_ITEM')r.Status=boqAutomaticStatus(r);
+}
 function tableCalc(sec,r,key){
  const planned=tableNumber(r['Planned / Required Qty']),done=tableNumber(r['Executed / Issued Qty']);
+ if(key==='Status'&&sec==='BOQ_ITEM')return boqAutomaticStatus(r);
  if(key==='@remaining')return planned==null?'—':Math.max(0,planned-(done||0)).toLocaleString('en-US',{maximumFractionDigits:2});
  if(key==='@progress')return planned&&done!=null?((done/planned)*100).toFixed(2)+'%':'—';
  if(key==='@age'){
@@ -351,6 +363,7 @@ function tableCalc(sec,r,key){
  return '—';
 }
 function tableEditor(r,i,col){
+ if(r.Section==='BOQ_ITEM'&&col[0]==='Status')return '<td class="prd-calc" data-calc-ridx="'+i+'" data-calc-key="Status">'+esc(boqAutomaticStatus(r))+'</td>';
  const [key,label,type,options]=col,v=clean(r[key]);
  if(type==='calc')return '<td class="prd-calc" data-calc-ridx="'+i+'" data-calc-key="'+esc(key)+'">'+esc(tableCalc(r.Section,r,key))+'</td>';
  if(type==='select'){
@@ -372,6 +385,7 @@ function sectionTable(sec){
 }
 function refreshCalculatedRow(idx){
  const r=details[idx];if(!r)return;
+ updateBoqStatus(r);
  document.querySelectorAll('[data-calc-ridx="'+idx+'"]').forEach(el=>{el.textContent=tableCalc(r.Section,r,el.dataset.calcKey)});
 }
 function ratioValue(v){
@@ -488,6 +502,7 @@ async function ensureStaffNames(){
  return staffNames;
 }
 function applyDetailDefaults(){
+ details.forEach(updateBoqStatus);
  const loc=clean(liveAuto.WORK_ORDER_LOCATION);
  if(!loc)return;
  details.forEach(r=>{if(r.Section==='PERMIT_DETAIL'&&!clean(r['Location / Neighborhood']))r['Location / Neighborhood']=loc});
@@ -576,6 +591,7 @@ function validateBoqWeights(){
 async function save(){
  if(busy)return;
  const warning=validateBoqWeights();if(warning){setStatus(warning,'error');alert(warning);activeTab='boq';renderTabs();renderContent();return;}
+ details.forEach(updateBoqStatus);
  const payload=[...buildGeneralRows(),...passthrough.map(compactDetail),...details.map(compactDetail).filter(r=>r.Section)];
  setBusy(true,'جاري حفظ البيانات الافتراضية...');
  try{
