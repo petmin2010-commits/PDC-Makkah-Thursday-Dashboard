@@ -322,7 +322,7 @@ function render(data){
  const contractDurationCalendar=contractDurationWithWeekends(start,contractDuration);
  const validPlanPoints=historyPoints(planRows,start,rdate,null,false).filter(p=>p.planned!=null);
  const plannedExtra=pct(ex('PLANNED_PROGRESS'));
- const planned=plannedExtra??validPlanPoints.at(-1)?.planned??null;
+ const planned=contractDurationCalendar>0&&daysBetween(start,rdate)!=null?Math.min(100,Math.max(0,((daysBetween(start,rdate)+1)/contractDurationCalendar)*100)):null;
  const periodProgress=pct(ex('PERIOD_PROGRESS'));
  const elapsed=daysBetween(start,rdate),remaining=expected?daysBetween(rdate,expected):null;
  const boq=rows.filter(r=>r.Section==='BOQ_ITEM').map(r=>({...r,_completion:completion(r)}));
