@@ -323,7 +323,7 @@ function render(data){
  const validPlanPoints=historyPoints(planRows,start,rdate,null,false).filter(p=>p.planned!=null);
  const plannedExtra=pct(ex('PLANNED_PROGRESS'));
  const planned=contractDurationCalendar>0&&daysBetween(start,rdate)!=null?Math.min(100,Math.max(0,((daysBetween(start,rdate)+1)/contractDurationCalendar)*100)):null;
- const previousDay=historyPoints(planRows,start,rdate,null,false).filter(p=>p.actual!=null&&dateObj(p.date)<dateObj(rdate)).at(-1);
+ const previousDay=historyPoints(planRows,start,rdate,null,false).filter(p=>p.actual!=null&&dateObj(p.date)?.getTime()<dateObj(rdate)?.getTime()).at(-1);
 
  const elapsed=daysBetween(start,rdate),remaining=expected?daysBetween(rdate,expected):null;
  const boq=rows.filter(r=>r.Section==='BOQ_ITEM').map(r=>({...r,_completion:completion(r)}));
@@ -352,12 +352,12 @@ function render(data){
  // Read the identical six KPI results calculated inside the report input tabs.
  // This prevents report summary cards from drifting from the data-entry indicators.
  const inputKpis=window.__VDReportInputIndicators?.(data.workOrder)||null;
- const summaryActual=inputKpis?inputKpis.actual:actual;
+ const summaryActual=actual; // source of truth: saved BOQ values loaded for the work order
  const summaryPlanned=inputKpis?inputKpis.planned:(contractDurationCalendar>0?100/contractDurationCalendar:null);
- const summaryVariance=inputKpis?.variance??(summaryActual!=null&&summaryPlanned!=null?summaryActual-summaryPlanned:null);
- const summaryStatus=inputKpis?.status||projectStatus;
- const summaryPeriod=inputKpis?inputKpis.period:periodProgress;
- const summaryDaily=inputKpis?inputKpis.daily:dailyRequired;
+ const summaryVariance=summaryActual!=null&&summaryPlanned!=null?summaryActual-summaryPlanned:null;
+ const summaryStatus=projectStatus;
+ const summaryPeriod=periodProgress; // latest dated PLAN_POINT from the report dataset, not stale modal state
+ const summaryDaily=dailyRequired;
  const cards=[
   {label:'نسبة الإنجاز الكلية',value:actual==null?'—':fmtPct(actual),src:actualSource,ltr:true},
   {label:'نسبة الإنجاز المخططة',value:summaryPlanned==null?'—':fmtPct(summaryPlanned),src:'CALC',ltr:true},
