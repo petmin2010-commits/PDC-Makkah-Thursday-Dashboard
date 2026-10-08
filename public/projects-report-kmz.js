@@ -150,11 +150,42 @@ function layerBounds(layer){
   return b.isValid()?b:null;
  }catch{return null}
 }
+function kmzStore(){
+ return new Promise((resolve,reject)=>{
+  if(!window.indexedDB)return reject(new Error('IndexedDB unavailable'));
+  const req=indexedDB.open('VDProjectsReportKMZ',1);
+  req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains('layers'))req.result.createObjectStore('layers')};
+  req.onsuccess=()=>resolve(req.result);
+  req.onerror=()=>reject(req.error);
+ });
+}
+async function kmzStoreRead(key){
+ const db=await kmzStore();
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction('layers','readonly'),req=tx.objectStore('layers').get(key);
+  req.onsuccess=()=>resolve(Array.isArray(req.result)?req.result:[]);
+  req.onerror=()=>reject(req.error);
+  tx.oncomplete=()=>db.close();
+ });
+}
+async function kmzStoreWrite(key,items){
+ const db=await kmzStore();
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction('layers','readwrite');
+  tx.objectStore('layers').put(items,key);
+  tx.oncomplete=()=>{db.close();resolve()};
+  tx.onerror=()=>{db.close();reject(tx.error)};
+ });
+}
 function init(options={}){
  const map=options.map,input=options.input,button=options.button,host=options.host,stage=options.stage;
  if(!map||!window.L||!input||!button||!host)return null;
  input.multiple=true;
  const layers=new Map();
+ const storageKey='WO:'+String(options.workOrder||'').trim();
+ uploads.length=0;
+ let changedSinceInit=false;
+ const persist=()=>{changedSinceInit=true;if(options.workOrder)kmzStoreWrite(storageKey,uploads.map(u=>({...u}))).catch(e=>say('تعذر حفظ KMZ: '+e.message))};
  active={map,layers};
  const say=msg=>typeof options.toast==='function'?options.toast(msg):void 0;
  const summary=()=>typeof options.onSummary==='function'&&options.onSummary(uploads.filter(x=>x.visible).length,uploads.length);
@@ -184,7 +215,7 @@ function init(options={}){
     uploads.push(u);added++;last=u;
    }catch(e){say(file.name+': '+(e?.message||'تعذر قراءة الملف'))}
   }
-  render();
+  render();persist();
   button.classList.remove('loading');button.disabled=false;input.value='';
   if(added){
    say('تمت إضافة '+added+' طبقة جغرافية'+(added>1?' معًا':''));
@@ -197,11 +228,11 @@ function init(options={}){
   const action=e.target.closest('[data-kmz-action]');if(!action)return;
   const row=action.closest('[data-kmz-row]'),u=uploads.find(x=>x.id===row?.dataset.kmzRow);if(!u)return;
   const kind=action.dataset.kmzAction;
-  if(kind==='toggle'){u.visible=!u.visible;render();return}
-  if(kind==='zoom'){if(!u.visible){u.visible=true;render()}fitUpload(u);return}
+  if(kind==='toggle'){u.visible=!u.visible;render();persist();return}
+  if(kind==='zoom'){if(!u.visible){u.visible=true;render();persist()}fitUpload(u);return}
   if(kind==='remove'){
    const i=uploads.findIndex(x=>x.id===u.id);if(i>=0)uploads.splice(i,1);
-   render();say('تم حذف طبقة '+u.name);
+   render();persist();say('تم حذف طبقة '+u.name);
   }
  });
  if(stage){
@@ -213,6 +244,7 @@ function init(options={}){
   });
  }
  render();
+ if(options.workOrder)kmzStoreRead(storageKey).then(saved=>{if(active?.map!==map||changedSinceInit)return;uploads.length=0;uploads.push(...saved.filter(u=>u&&Array.isArray(u.features)));render();if(saved.length)say('تم استعادة '+uploads.length+' طبقة KMZ محفوظة')}).catch(e=>say('تعذر استعادة ملفات KMZ: '+e.message));
  return {
   extendBounds(target){
    uploads.filter(x=>x.visible).forEach(u=>{const b=layerBounds(layers.get(u.id));if(b)target.extend(b)});

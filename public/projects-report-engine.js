@@ -684,6 +684,7 @@ function initReportMap(data){
   if(b.isValid())map.fitBounds(b,{padding:[42,42],maxZoom:16});else map.setView(center,12);
  };
  state.mapManager=window.VDKMZ?.init({
+  workOrder:data?.workOrder,
   map,input:$('preMapKmzFileInput'),button:$('preMapKmzUploadBtn'),host:$('preMapKmzLayers'),stage:$('preProjectMapStage'),toast:say,
   onSummary:(visible,total)=>{updateSummary(visible,total);setTimeout(fitAll,60)}
  })||null;
