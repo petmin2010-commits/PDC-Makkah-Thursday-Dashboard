@@ -551,8 +551,22 @@ function compactDetail(r){
  }
  return out;
 }
+function validateBoqWeights(){
+ const boq=details.filter(r=>r.Section==='BOQ_ITEM');
+ if(!boq.length)return 'لا يمكن استكمال التقرير دون إدخال بنود وأوزانها بنسبة إجمالية 100%.';
+ let total=0;
+ for(const row of boq){
+  const raw=clean(row['Weight / Planned Progress %']).replace('%','').replace('٪','').trim();
+  const weight=Number(raw);
+  if(!raw||!Number.isFinite(weight)||weight<0||weight>100)return 'تحذير: يجب اختيار وزن صحيح من 0% إلى 100% لكل بند.';
+  total+=weight;
+ }
+ if(Math.abs(total-100)>0.000001)return 'تحذير: إجمالي أوزان البنود '+total.toFixed(2)+'%، ويجب أن يساوي 100% بالضبط قبل الحفظ أو استكمال التقرير.';
+ return '';
+}
 async function save(){
  if(busy)return;
+ const warning=validateBoqWeights();if(warning){setStatus(warning,'error');alert(warning);activeTab='boq';renderTabs();renderContent();return;}
  const payload=[...buildGeneralRows(),...passthrough.map(compactDetail),...details.map(compactDetail).filter(r=>r.Section)];
  setBusy(true,'جاري حفظ البيانات الافتراضية...');
  try{
