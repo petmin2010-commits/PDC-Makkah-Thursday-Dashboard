@@ -133,7 +133,22 @@ function sourceExactValue(data,sheetName,label){
  return '';
 }
 function extraRows(data){const s=source(data,EXTRA_SHEET);state.extraSheetId=s?.sheetId||'';return (s?.records||[]).map(r=>({...toObj(r),_row:r.rowNumber}))}
-function originalFields(data){const out=[];(data.sources||[]).filter(s=>norm(s.sheet)!==norm(EXTRA_SHEET)).forEach(s=>{(s.records||[]).forEach(r=>{(r.fields||[]).forEach(f=>out.push({sheet:s.sheet,label:clean(f.label),value:f.value}))})});return out}
+function originalFields(data){
+ const out=[];
+ const primary='أوامر العمل',fallback='مشاريع داش بورد غير تابعة لل pdc';
+ const ranked=(data.sources||[]).filter(s=>norm(s.sheet)!==norm(EXTRA_SHEET)).sort((a,b)=>{
+  const rank=s=>norm(s.sheet)===norm(primary)?0:norm(s.sheet)===norm(fallback)?1:2;
+  return rank(a)-rank(b);
+ });
+ ranked.forEach(s=>(s.records||[]).forEach(r=>(r.fields||[]).forEach(f=>out.push({sheet:s.sheet,label:clean(f.label),value:f.value}))));
+ return out;
+}
+function workOrderBasic(data,labels){
+ const fields=originalFields(data);
+ const primary=fields.filter(f=>norm(f.sheet)===norm('أوامر العمل'));
+ const fallback=fields.filter(f=>norm(f.sheet)===norm('مشاريع داش بورد غير تابعة لل pdc'));
+ return val(primary,labels)||val(fallback,labels)||val(fields.filter(f=>!primary.includes(f)&&!fallback.includes(f)),labels);
+}
 function pick(fs,labels){
  for(const wanted of labels){const nw=norm(wanted);const hit=fs.find(f=>norm(f.label)===nw&&clean(f.value));if(hit)return hit}
  for(const wanted of labels){const nw=norm(wanted);const hit=fs.find(f=>norm(f.label).includes(nw)&&clean(f.value));if(hit)return hit}
@@ -213,9 +228,23 @@ function miniSummary(items,cls=''){
 function svgText(v){return esc(clean(v)).replace(/&amp;/g,'&amp;')}
 function shortLabel(v,max=24){const s=clean(v);return s.length>max?s.slice(0,max-1)+'…':s}
 function boqSummary(rows){
- let running=0,notStarted=0,completed=0;
- rows.forEach(r=>{const n=norm(r.Status);if(n.includes('مكتمل')||n.includes('تم التنفيذ'))completed++;else if(n.includes('لم يبدأ'))notStarted++;else if(n.includes('جاري')||n.includes('تنفيذ'))running++});
- return{total:rows.length,running,notStarted,completed};
+ let running=0,notStarted=0,completed=0,unverified=0;
+ rows.forEach(r=>{
+  const quantity=Number(r['Planned / Required Qty']),executed=Number(r['Executed / Issued Qty']);
+  const hasQuantity=r['Planned / Required Qty']!==''&&r['Planned / Required Qty']!=null&&Number.isFinite(quantity)&&quantity>0;
+  const hasExecuted=r['Executed / Issued Qty']!==''&&r['Executed / Issued Qty']!=null&&Number.isFinite(executed);
+  const percentage=Number(r._completion);
+  if(hasQuantity&&hasExecuted){
+   if(executed<=0)notStarted++;
+   else if(executed>=quantity)completed++;
+   else running++;
+  }else if(r._completion!=null&&Number.isFinite(percentage)){
+   if(percentage<=0)notStarted++;
+   else if(percentage>=100)completed++;
+   else running++;
+  }else unverified++;
+ });
+ return{total:rows.length,running,notStarted,completed,unverified};
 }
 function riskSummary(rows){
  const out={total:rows.length,open:0,solved:0,high:0,medium:0,low:0};
@@ -305,25 +334,25 @@ function render(data){
  const rows=extraRows(data),fs=originalFields(data),extras=rows.filter(r=>r.Section==='PROJECT_EXTRA');
  if(!data.totalRecords){state.report=null;$('preBody').className='pre-state';$('preBody').innerHTML='<b>لم يتم العثور على أمر العمل '+esc(data.workOrder)+'</b><span>لا توجد سجلات مطابقة في ملف المشروع.</span>';return}
  const ex=k=>extraValue(extraBy(extras,k));
- const projectTitle=ex('PROJECT_TITLE')||val(fs,['وصف امر العمل','وصف امر العمل uds','شرح تفصيل امر العمل'])||'مشروع '+data.workOrder;
- const desc=ex('DETAILED_WORK_DESCRIPTION')||val(fs,['شرح تفصيل امر العمل','وصف امر العمل','وصف امر العمل uds']);
- const contractor=sourceExactValue(data,'اوامر العمل','المقاول')||val(fs,['المقاول','المقاول uds'])||ex('CONTRACTOR_REPORT_NAME');
- const location=val(fs,['الموقع']);
- const engineer=val(fs,['المهندس المسئول','المهندس المسؤول']);
- const stage=val(fs,['مرحلة التنفيذ']);
- const stageStatus=val(fs,['حالة المرحلة','حالة التنفيذ','حالة الامر وفقا لمتابعة المهندس المسئول']);
+ const projectTitle=ex('PROJECT_TITLE')||workOrderBasic(data,['وصف امر العمل','وصف امر العمل uds','شرح تفصيل امر العمل'])||'مشروع '+data.workOrder;
+ const desc=ex('DETAILED_WORK_DESCRIPTION')||workOrderBasic(data,['شرح تفصيل امر العمل','وصف امر العمل','وصف امر العمل uds']);
+ const contractor=workOrderBasic(data,['المقاول','المقاول uds'])||ex('CONTRACTOR_REPORT_NAME');
+ const location=workOrderBasic(data,['الموقع','الموقع / المنطقة','موقع المشروع']);
+ const engineer=workOrderBasic(data,['المهندس المسئول','المهندس المسؤول']);
+ const stage=workOrderBasic(data,['مرحلة التنفيذ']);
+ const stageStatus=workOrderBasic(data,['حالة المرحلة','حالة التنفيذ','حالة الامر وفقا لمتابعة المهندس المسئول']);
  const reportType=ex('REPORT_TYPE')||'يومي';
- const reportNo=String(reportDayNumber(ex('ACTUAL_START_DATE')||val(fs,['تاريخ المباشرة','تاريخ البدء']),reportReferenceDate())??'');
- const contractDuration=sourceExactValue(data,'اوامر العمل','المدة uds')||val(fs,['المدة التعاقدية','مدة امر العمل','مدة أمر العمل','مدة التنفيذ','مدة المشروع'])||ex('CONTRACTUAL_DURATION_DAYS');
+ const reportNo=String(reportDayNumber(ex('ACTUAL_START_DATE')||workOrderBasic(data,['تاريخ المباشرة','تاريخ البدء','تاريخ بدء التنفيذ']),reportReferenceDate())??'');
+ const contractDuration=workOrderBasic(data,['المدة uds','المدة التعاقدية (يوم)','المدة التعاقدية','مدة امر العمل','مدة أمر العمل','مدة التنفيذ','مدة المشروع'])||ex('CONTRACTUAL_DURATION_DAYS');
  const consultant='شركة أبعاد الرؤية للاستشارات الهندسية';
- const secFollowup=ex('SEC_FOLLOWUP_ENGINEER')||val(fs,['مهندس المتابعة','مهندس شركة الكهرباء','المهندس المسئول','المهندس المسؤول']);
+ const secFollowup=ex('SEC_FOLLOWUP_ENGINEER')||workOrderBasic(data,['مهندس المتابعة','مهندس شركة الكهرباء','المهندس المسئول','المهندس المسؤول']);
  const signatureValue=key=>extraValue(rows.find(r=>r.Section==='SIGNATURE'&&norm(r['Field / Item / Permit No.'])===norm(key)));
  const preparedBy=signatureValue('PREPARED_BY')||engineer;
  const reviewedBy=signatureValue('REVIEWED_BY');
  const approvedBy=signatureValue('APPROVED_BY');
  const liveActual=pct(val(fs,['نسبة الانجاز الكلية','نسبة الإنجاز الكلية']));
  const planRows=rows.filter(r=>r.Section==='PLAN_POINT');
- const start=ex('ACTUAL_START_DATE')||val(fs,['تاريخ الاسناد','تاريخ الإسناد']);
+ const start=dateObj(startValue),raw=num(durationValue),target=raw==null?null:Math.floor(raw);
  const expected=ex('EXPECTED_OPERATION_DATE');
  const rdate=reportReferenceDate();
  const contractDurationCalendar=contractDurationWithWeekends(start,contractDuration);
@@ -335,7 +364,7 @@ function render(data){
  const referenceSnapshot=datedProgress.find(p=>p.date===referenceIso)||null;
  const previousDay=datedProgress.filter(p=>p.date<referenceIso).at(-1);
 
- const elapsed=daysBetween(start,rdate),remaining=contractDurationCalendar>0&&elapsed!=null?Math.max(0,contractDurationCalendar-Math.max(0,elapsed)):null;
+ const elapsed=daysBetween(start,rdate),remaining=contractDurationCalendar>0&&elapsed!=null?Math.max(0,contractDurationCalendar-Math.max(0,elapsed+1)):null;
  const boq=rows.filter(r=>r.Section==='BOQ_ITEM').map(r=>({...r,_completion:completion(r)}));
  const boqMetric=weightedBoqMetrics(boq);
  const actual=boqMetric.valid?boqMetric.progress:liveActual;
@@ -345,7 +374,7 @@ function render(data){
  const periodProgress=periodBase==null||!previousDay||previousDay.actual>periodBase+0.000001?null:Math.max(0,periodBase-previousDay.actual);
  const variance=actual!=null&&planned!=null?actual-planned:null;
  const projectStatus=actual==null?'':actual>=99.9?'مكتمل':variance==null?'':variance>=0?'وفق المخطط':variance>=-10?'تحت المتابعة':'متأخر';
- const dailyRequired=actual!=null&&contractDurationCalendar?Math.max(0,(100-actual)/Math.max(contractDurationCalendar,1)):null;
+ const dailyRequired=actual==null||remaining==null?null:actual>=99.999?0:remaining>0?(100-actual)/remaining:null;
  const mats=rows.filter(r=>r.Section==='MATERIAL'),permits=rows.filter(r=>r.Section==='PERMIT_DETAIL');
  const risks=rows.filter(r=>r.Section==='ISSUE_RISK'),periodRows=rows.filter(r=>r.Section==='PERIOD_SUMMARY'),managementRows=rows.filter(r=>r.Section==='MANAGEMENT_NOTE');
  const matSum=materialSummary(mats),permitSum=permitSummary(permits);
@@ -355,6 +384,9 @@ function render(data){
  const historyLast=latestHistoryActual(planRows,start,rdate);
  const historyDiff=historyLast&&actual!=null?historyLast.actual-actual:null;
  const qualityAlerts=[];
+ const unverifiedBoq=boqSummary(boq).unverified;
+ if(unverifiedBoq)qualityAlerts.push(unverifiedBoq+' بند/بنود لم يمكن تصنيفها لغياب كميات صالحة.');
+ if(actual!=null&&actual<99.999&&remaining===0)qualityAlerts.push('انتهت المدة الحسابية دون اكتمال المشروع؛ لا يمكن حساب معدل يومي مطلوب دون إعادة جدولة.');
  if(boqMetric.hasWeights&&!boqMetric.valid)qualityAlerts.push('مجموع أوزان البنود = '+boqMetric.totalWeightPct.toFixed(2)+'%؛ لم يتم اعتماد الإنجاز المرجح وتم الرجوع إلى نسبة الإنجاز الحية.');
  if(historyDiff!=null&&Math.abs(historyDiff)>0.5)qualityAlerts.push('آخر إنجاز تاريخي مسجل '+historyLast.actual.toFixed(2)+'% يختلف عن الإنجاز الحالي '+actual.toFixed(2)+'% بفارق '+Math.abs(historyDiff).toFixed(2)+' نقطة.');
  const report={workOrder:data.workOrder,projectTitle,desc,contractor,location,engineer,stage,stageStatus,reportType,reportNo,contractDuration,contractDurationCalendar,consultant,secFollowup,preparedBy,reviewedBy,approvedBy,actual,actualSource,liveActual,planned,periodProgress,variance,projectStatus,dailyRequired,start,expected,rdate,elapsed,remaining,boq,boqMetric,mats,permits,risks,periodRows,managementRows,matSum,permitSum,issuedLen,doneLen,permitExecution,planRows,qualityAlerts};
@@ -726,7 +758,7 @@ function initReportMap(data){
  setTimeout(()=>{map.invalidateSize();fitAll()},180);
 }
 async function captureReportMap(){
- const stage=$('preProjectMapStage');if(!stage||!state.map||!window.html2canvas)return '';
+ const stage=workOrderBasic(data,['مرحلة التنفيذ']);
  try{
   state.map.invalidateSize();await new Promise(r=>setTimeout(r,300));
   const canvas=await window.html2canvas(stage,{useCORS:true,allowTaint:false,backgroundColor:'#eef5f7',scale:1.6,logging:false,ignoreElements:el=>el.classList?.contains('leaflet-control-container')});
@@ -751,8 +783,8 @@ function methodologyAppendix(){
  ['04','الإنجاز المخطط','المدة النهائية المستخدمة في التخطيط = المدة التعاقدية + أيام الجمعة الواقعة داخل المدة التعاقدية ابتداءً من تاريخ بدء التنفيذ الفعلي، وفق قاعدة المشروع المعتمدة. يُحسب معدل التخطيط اليومي = 100 ÷ المدة النهائية؛ ثم الإنجاز التراكمي المخطط = المعدل × الأيام المنقضية حتى تاريخ التقرير، ويُحصر بين 0 و100%. يجب تدقيق تاريخ البدء ومرجع يوم التقرير عند مراجعة أي اختلاف.'],
  ['05','الانحراف والحالة','الانحراف بالنقاط المئوية = الإنجاز الفعلي الكلي − الإنجاز المخطط التراكمي. موجب يعني التقدم، وسالب التأخر، وصفر المطابقة؛ بينما الحالة تتبع قواعد التصنيف المبرمجة.'],
  ['06','إنجاز الفترة منذ آخر تقرير','إنجاز الفترة هو الفرق بالنقاط المئوية بين الإنجاز التراكمي الحالي المحسوب من البنود الموزونة، وأحدث إنجاز تراكمي سابق مؤرخ في سجل PLAN_POINT. مثال: 10.16% حالياً مقابل 8.20% سابقاً = 1.96 نقطة. إذا غاب السجل السابق تظهر (—) بدلاً من اعتبار البداية صفراً. وإذا كانت القراءة السابقة أكبر من الحالية تُوقف النتيجة السالبة ويُلزم تدقيق التاريخ أو الكميات قبل اعتماد التقرير.'],
- ['07','المعدل اليومي المطلوب','المعدل اليومي المطلوب = (100 − الإنجاز الكلي) ÷ المدة النهائية المستخدمة في الحقل. وهو مؤشر تقديري منفصل عن كمية التنفيذ اليومية.'],
- ['08','رقم التقرير','يُعد تلقائياً من الأيام منذ تاريخ البدء حتى تاريخ التقرير، مع احتساب البداية واستبعاد أيام الجمعة فقط. السبت يوم محسوب.'],
+ ['07','المعدل اليومي المطلوب','المعدل اليومي المطلوب لاستكمال المشروع = (100 − الإنجاز الكلي) ÷ أيام التنفيذ المتبقية من تاريخ التقرير المرجعي وحتى نهاية المدة. إذا انتهت المدة ولم يكتمل المشروع تظهر حالة تستوجب إعادة التخطيط. المؤشر مختلف عن إنجاز الفترة اليومية.'],
+ ['08','أيام التنفيذ المنقضية','تُحسب من تاريخ البدء الفعلي حتى تاريخ التقرير المرجعي شاملًا تاريخ البدء، مع استبعاد الجمعة فقط، والسبت محسوب. تقرير اليوم السابق يظل مرجعه ذلك اليوم حتى لو صُدّر صباح اليوم التالي.'],
  ['09','الكميات والمواد','المتبقي = المطلوب − المنفذ/المنصرف. حالة التنفيذ: لم يبدأ عند الصفر، جاري عند التنفيذ الجزئي، ومنجز عند اكتمال المطلوب. وحالة المواد تعكس عدم الصرف أو الصرف الجزئي أو الكامل.'],
  ['10','التصاريح والوثائق','ملخص التصاريح يحصي الحالات المسجلة. تعرض الخريطة مواقع وطبقات KMZ/KML الظاهرة عند التصدير؛ الصور وتعليقاتها توثيق للأعمال ولا تحل محل قياس الكميات.'],
  ['11','العوائق والتحقق','تُعرض المخاطر بحسب أثرها وحالتها وتاريخها. راجع أوزان البنود، تواريخ آخر تقرير، الكميات، ومصدر كل مؤشر قبل اعتماد النتائج.'],
@@ -960,6 +992,22 @@ html,body{color:#1d334a;font-family:Tahoma,Arial,sans-serif;font-size:9pt}
 .pre-formula-card h3{font-size:9.5pt;color:#133f5a;margin:0 0 1mm}
 .pre-formula-card p{font-size:8.1pt;line-height:1.65;margin:0 0 1mm}
 .pre-formula-card small{font-size:7.5pt;color:#167b70;font-weight:700}
+/* QA: hold cards and section titles away from repeating footer */
+.pre-table-wrap td,.pre-table-wrap th{overflow-wrap:anywhere}
+.pre-permits-panel .pre-table-wrap table{table-layout:fixed}
+.pre-permits-panel .pre-table-wrap td{font-size:6.5pt;line-height:1.45}
+.pre-guide-appendix{break-inside:auto;page-break-inside:auto}
+.pre-guide-grid{display:grid;grid-template-columns:1fr 1fr;gap:2.4mm 3mm}
+.pre-guide-item{padding:2.4mm 3mm}
+.pre-guide-item p{font-size:7.7pt;line-height:1.5}
+.pre-guide-item h3{font-size:9.6pt}
+.pre-guide-foot{break-inside:avoid;page-break-inside:avoid;margin:3mm 0 0;padding:3mm;background:#f6fafc;border:1px solid #d8e5ec}
+.pre-formula-card{padding:2.5mm}
+.pre-formula-card p{font-size:7.5pt;line-height:1.5}
+.pre-formula-card small{font-size:7pt;line-height:1.35}
+.pre-narrative-panel,.pre-photo-pdf-card,.pre-guide-item{break-inside:avoid;page-break-inside:avoid}
+.pdf-footer{z-index:60;background:white}
+
 
 `}
 
