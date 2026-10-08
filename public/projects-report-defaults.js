@@ -6,7 +6,7 @@ const BOQ_STATUS_OPTIONS=['متقدم','وفق المخطط','متأخر','جا�
 const MATERIAL_STATUS_OPTIONS=['لم يتم الصرف','تم الصرف جزئي','تم الصرف بالكامل'];
 const PERMIT_STATUS_OPTIONS=['تم الإصدار','قيد التنسيق','قيد التنسيق والاعتماد','مرفوض','منتهي','ملغي','بانتظار السداد','مسودة','انتهت فترة السداد','لا يتطلب','تصريح مدن فقط'];
 const RISK_IMPACT_OPTIONS=['عالي','متوسط','منخفض'];
-const RISK_STATUS_OPTIONS=['قيد المتابعة','تم الحل','مغلق'];
+const RISK_STATUS_OPTIONS=['قيد التنفيذ','قيد المتابعة','قيد التحديث','قيد الطلب','قيد التحقق','قيد التنسيق','تم الحل'];
 const REPORT_TYPE_OPTIONS=['يومي','أسبوعي','شهري'];
 const WEIGHT_OPTIONS=Array.from({length:100},(_,i)=>(i+1)+'%');
 
