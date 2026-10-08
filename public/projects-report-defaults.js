@@ -464,12 +464,12 @@ function indicatorPanel(){
  '<label class="prd-indicator-card prd-editable-kpi"><span>نسبة الإنجاز المخططة</span><div class="prd-percent-input"><input data-indicator="PLANNED_PROGRESS" readonly aria-readonly="true" inputmode="decimal" value="'+esc(plannedValue)+'" placeholder="0.00"><b>%</b></div><small>إدخال مطابق للخلية B10</small></label>'+
  '<label class="prd-indicator-card prd-readonly"><span>الانحراف</span><strong data-indicator-output="variance">'+esc(s.variance==null?'—':((s.variance>=0?'+':'')+(s.variance*100).toFixed(2)+'%'))+'</strong><small>الفعلي − المخطط</small></label>'+
  '<label class="prd-indicator-card prd-readonly"><span>حالة المشروع</span><strong data-indicator-output="status">'+esc(s.status)+'</strong><small>مكتمل / وفق المخطط / تحت المتابعة / متأخر</small></label>'+
- '<label class="prd-indicator-card"><span>إنجاز الفترة منذ آخر تقرير (اليوم السابق)</span><div class="prd-percent-input"><input data-indicator="PERIOD_PROGRESS" readonly aria-readonly="true" inputmode="decimal" value="'+esc(periodValue)+'" placeholder="0.00"><b>%</b></div><small>إدخال مطابق للخلية F10</small></label>'+
+ '<label class="prd-indicator-card prd-readonly"><span>إنجاز الفترة منذ آخر تقرير (اليوم السابق)</span><strong data-indicator-output="period">'+esc(s.period==null?'—':(s.period*100).toFixed(2)+'%')+'</strong><small>الفرق بين إنجاز اليوم وإنجاز التقرير السابق</small></label>'+
  '<label class="prd-indicator-card prd-readonly"><span>المعدل اليومي المطلوب</span><strong data-indicator-output="daily">'+esc(percentDisplay(s.daily))+'</strong><small>(100% − الإنجاز) ÷ المتبقي على التشغيل</small></label>'+
  '</div></section>';
 }
 function refreshIndicatorOutputs(){
- const s=indicatorState(),map={actual:percentDisplay(s.actual),variance:s.variance==null?'—':((s.variance>=0?'+':'')+(s.variance*100).toFixed(2)+'%'),status:s.status,daily:percentDisplay(s.daily)};
+ const s=indicatorState(),map={actual:percentDisplay(s.actual),variance:s.variance==null?'—':((s.variance>=0?'+':'')+(s.variance*100).toFixed(2)+'%'),status:s.status,daily:percentDisplay(s.daily),period:s.period==null?'—':(s.period*100).toFixed(2)+'%'};
  const periodEl=document.querySelector('[data-indicator="PERIOD_PROGRESS"]');if(periodEl)periodEl.value=s.period==null?'':(s.period*100).toFixed(2);
  Object.entries(map).forEach(([k,v])=>{const el=document.querySelector('[data-indicator-output="'+k+'"]');if(el)el.textContent=v});
 }
