@@ -446,6 +446,16 @@ function calculatedPlannedProgress(){
  const elapsed=Math.floor((now-day)/86400000)+1;
  return (Math.min(100,Math.max(0,elapsed*100/duration))).toFixed(2)+'%';
 }
+function snapshotAtReportDate(){
+ const date=reportReferenceIso();
+ const points=details.filter(r=>r.Section==='PLAN_POINT').map(r=>({
+  date:valueInputDate(r['Start / Observation Date']||r['End / Expected Date']),
+  actual:ratioValue(r['Numeric Value'])
+ })).filter(p=>p.date&&p.actual!=null).sort((a,b)=>a.date.localeCompare(b.date));
+ const current=points.filter(p=>p.date===date).at(-1);
+ const previous=points.filter(p=>p.date<date).at(-1);
+ return {current:current?.actual??null,previous:previous?.actual??null};
+}
 function previousReportActual(){
  const today=reportReferenceIso();
  const previous=details.filter(r=>r.Section==='PLAN_POINT').map(r=>({
@@ -455,8 +465,9 @@ function previousReportActual(){
  return previous.length?previous[0].actual:null;
 }
 function calculatedPeriodProgress(){
- const actual=weightedActualRatio(),previous=previousReportActual();
- return actual==null||previous==null?null:actual-previous;
+ const snapshot=snapshotAtReportDate();
+ const actual=snapshot.current??weightedActualRatio();
+ return actual==null||snapshot.previous==null?null:actual-snapshot.previous;
 }
 function indicatorState(){
  const actual=weightedActualRatio();

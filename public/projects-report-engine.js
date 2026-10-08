@@ -328,14 +328,18 @@ function render(data){
  const validPlanPoints=historyPoints(planRows,start,rdate,null,false).filter(p=>p.planned!=null);
  const plannedExtra=pct(ex('PLANNED_PROGRESS'));
  const planned=contractDurationCalendar>0&&daysBetween(start,rdate)!=null?Math.min(100,Math.max(0,((daysBetween(start,rdate)+1)/contractDurationCalendar)*100)):null;
- const previousDay=historyPoints(planRows.filter(r=>String(r['Field / Item / Permit No.']||'').trim()==='DAILY_PROGRESS'),start,rdate,null,false).filter(p=>p.actual!=null&&dateObj(p.date)?.getTime()<dateObj(rdate)?.getTime()).at(-1);
+ const datedProgress=historyPoints(planRows,start,rdate,null,false).filter(p=>p.actual!=null);
+ const referenceIso=reportReferenceDate().split('/').reverse().join('-');
+ const referenceSnapshot=datedProgress.find(p=>p.date===referenceIso)||null;
+ const previousDay=datedProgress.filter(p=>p.date<referenceIso).at(-1);
 
  const elapsed=daysBetween(start,rdate),remaining=expected?daysBetween(rdate,expected):null;
  const boq=rows.filter(r=>r.Section==='BOQ_ITEM').map(r=>({...r,_completion:completion(r)}));
  const boqMetric=weightedBoqMetrics(boq);
  const actual=boqMetric.valid?boqMetric.progress:liveActual;
  const actualSource=boqMetric.valid?'CALC-BOQ':'LIVE';
- const periodProgress=actual==null||!previousDay?null:actual-previousDay.actual;
+ const periodBase=referenceSnapshot?.actual??actual;
+ const periodProgress=periodBase==null||!previousDay?null:periodBase-previousDay.actual;
  const variance=actual!=null&&planned!=null?actual-planned:null;
  const projectStatus=actual==null?'':actual>=99.9?'مكتمل':variance==null?'':variance>=0?'وفق المخطط':variance>=-10?'تحت المتابعة':'متأخر';
  const dailyRequired=actual!=null&&contractDurationCalendar?Math.max(0,(100-actual)/Math.max(contractDurationCalendar,1)):null;
