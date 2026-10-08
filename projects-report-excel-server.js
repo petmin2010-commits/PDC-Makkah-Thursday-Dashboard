@@ -239,7 +239,7 @@ function buildProjectWorkbook(report){
     ['B4',report.projectTitle,'string'],['G4',report.location,'string'],['B5',report.desc,'string'],
     ['B6',report.contractor,'string'],['E6',consultant,'string'],['H6',secFollowup,'string'],
     ['B7',sd,'number'],['D7',ed,'number'],['F7',contractDuration,'number'],
-    ['H7','IF($D$7="","",$D$7-$G$3)','formula'],
+    ['H7',report.contractDurationCalendar==null?null:Number(report.contractDurationCalendar),'number'],
     ['A10','IF(ABS(SUM($H$13:$H$17)-1)<=0.0001,SUM($K$13:$K$17),'+actualFallback+')','formula'],
     ['B10',report.planned==null?null:Number(report.planned)/100,'number'],
     ['D10','$A$10-$B$10','formula'],
