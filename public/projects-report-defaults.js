@@ -347,10 +347,18 @@ function tableNumber(v){const s=String(v??'').replace(/,/g,'').replace('%','').t
 function boqAutomaticStatus(r){
  const planned=tableNumber(r['Planned / Required Qty']);
  const done=tableNumber(r['Executed / Issued Qty']);
- if(planned==null||planned<=0)return 'غير محدد';
- if(done==null||done<=0)return 'لم يبدأ';
- if(done>=planned)return 'منجز';
- return 'جاري';
+ const weight=ratioValue(r['Weight / Planned Progress %']);
+ if(planned==null||planned<=0||weight==null||weight<=0)return 'غير محدد';
+ if(done==null||done<=0)return 'لم يتم البدء';
+ if(done>=planned)return 'مكتمل';
+ const projectPlanned=ratioValue(calculatedPlannedProgress());
+ if(projectPlanned==null)return 'غير محدد';
+ const actualContribution=Math.min(1,done/planned)*weight;
+ const expectedContribution=projectPlanned*weight;
+ const tolerance=0.000001;
+ if(actualContribution>expectedContribution+tolerance)return 'متقدم';
+ if(actualContribution<expectedContribution-tolerance)return 'متأخر';
+ return 'حسب المخطط';
 }
 function updateBoqStatus(r){
  if(r&&r.Section==='BOQ_ITEM')r.Status=boqAutomaticStatus(r);
@@ -371,7 +379,7 @@ function tableCalc(sec,r,key){
  if(key==='Status'&&sec==='BOQ_ITEM')return boqAutomaticStatus(r);
  if(key==='Status'&&sec==='MATERIAL')return materialAutomaticStatus(r);
  if(key==='@remaining')return planned==null?'—':Math.max(0,planned-(done||0)).toLocaleString('en-US',{maximumFractionDigits:2});
- if(key==='@progress')return planned&&done!=null?((done/planned)*100).toFixed(2)+'%':'—';
+ if(key==='@progress')return planned&&done!=null?((done/planned)*100).toFixed(2)+'%':planned?'0.00%':'—';
  if(key==='@age'){
   const status=clean(r.Status);if(status.includes('تم الحل')||status.includes('مغلق'))return 'مغلق';
   const iso=valueInputDate(r['Start / Observation Date']);if(!iso)return '—';
@@ -748,7 +756,7 @@ function addRow(forcedSection=''){
 }
 function handleInput(e){
  const indicator=e.target.dataset.indicator;if(indicator){generalDraft[indicator]=e.target.value;refreshIndicatorOutputs();return}
- const g=e.target.dataset.general;if(g){generalDraft[g]=e.target.value;if(g==='ACTUAL_START_DATE')refreshCalculatedGeneral();return}
+ const g=e.target.dataset.general;if(g){generalDraft[g]=e.target.value;if(g==='ACTUAL_START_DATE'){refreshCalculatedGeneral();details.forEach((r,i)=>{if(r.Section==='BOQ_ITEM')refreshCalculatedRow(i)})}return}
  const idx=Number(e.target.dataset.ridx),field=e.target.dataset.rfield;
  if(Number.isInteger(idx)&&details[idx]&&field){details[idx][field]=e.target.value;refreshCalculatedRow(idx)}
 }
@@ -760,7 +768,7 @@ function handleChange(e){
  const g=e.target.dataset.general;if(g){
   const value=e.target.dataset.dateDmy==='1'?normalizeDateDisplay(e.target.value):e.target.value;
   if(e.target.dataset.dateDmy==='1')e.target.value=value;
-  generalDraft[g]=value;if(g==='ACTUAL_START_DATE')refreshCalculatedGeneral();return
+  generalDraft[g]=value;if(g==='ACTUAL_START_DATE'){refreshCalculatedGeneral();details.forEach((r,i)=>{if(r.Section==='BOQ_ITEM')refreshCalculatedRow(i)})}return
  }
  const ridx=Number(e.target.dataset.ridx),rfield=e.target.dataset.rfield;
  if(Number.isInteger(ridx)&&details[ridx]&&rfield){
