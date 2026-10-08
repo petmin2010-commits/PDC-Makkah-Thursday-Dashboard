@@ -338,8 +338,9 @@ function render(data){
  const boqMetric=weightedBoqMetrics(boq);
  const actual=boqMetric.valid?boqMetric.progress:liveActual;
  const actualSource=boqMetric.valid?'CALC-BOQ':'LIVE';
- const periodBase=referenceSnapshot?.actual??actual;
- const periodProgress=periodBase==null||!previousDay?null:periodBase-previousDay.actual;
+ // Current weighted BOQ is authoritative; a historical snapshot for today may be stale.
+ const periodBase=actual;
+ const periodProgress=periodBase==null||!previousDay||previousDay.actual>periodBase+0.000001?null:Math.max(0,periodBase-previousDay.actual);
  const variance=actual!=null&&planned!=null?actual-planned:null;
  const projectStatus=actual==null?'':actual>=99.9?'مكتمل':variance==null?'':variance>=0?'وفق المخطط':variance>=-10?'تحت المتابعة':'متأخر';
  const dailyRequired=actual!=null&&contractDurationCalendar?Math.max(0,(100-actual)/Math.max(contractDurationCalendar,1)):null;

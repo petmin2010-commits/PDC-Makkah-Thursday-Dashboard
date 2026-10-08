@@ -466,8 +466,8 @@ function previousReportActual(){
 }
 function calculatedPeriodProgress(){
  const snapshot=snapshotAtReportDate();
- const actual=snapshot.current??weightedActualRatio();
- return actual==null||snapshot.previous==null?null:actual-snapshot.previous;
+ const actual=weightedActualRatio();
+ return actual==null||snapshot.previous==null||snapshot.previous>actual+0.00000001?null:Math.max(0,actual-snapshot.previous);
 }
 function indicatorState(){
  const actual=weightedActualRatio();
