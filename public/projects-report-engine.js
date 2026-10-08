@@ -339,7 +339,7 @@ function render(data){
  window.__VDProjectsReportEngineData=data;
  const cards=[
   {label:'نسبة الإنجاز الكلية',value:actual==null?'—':fmtPct(actual),src:actualSource,ltr:true},
-  {label:'نسبة الإنجاز المخططة',value:planned==null?'—':fmtPct(planned),src:plannedExtra!=null?'EXTRA':'HISTORY',ltr:true},
+  {label:'نسبة الإنجاز المخططة',value:contractDurationCalendar>0?fmtPct(100/contractDurationCalendar):'—',src:'CALC',ltr:true},
   {label:'الانحراف',value:variance==null?'—':((variance>=0?'+':'')+variance.toFixed(2)+'%'),src:'CALC',ltr:true,bad:variance!=null&&variance<0},
   {label:'حالة المشروع',value:projectStatus||'—',src:'CALC',ltr:false,bad:projectStatus==='متأخر'},
   {label:'إنجاز الفترة',value:periodProgress==null?'—':fmtPct(periodProgress),src:'EXTRA',ltr:true},
