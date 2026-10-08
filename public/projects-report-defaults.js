@@ -129,6 +129,11 @@ function ksaTodayIso(){
  const p={};parts.forEach(x=>{if(x.type!=='literal')p[x.type]=x.value});
  return (p.year||'')+'-'+(p.month||'')+'-'+(p.day||'');
 }
+function reportReferenceIso(){
+ const d=new Date(ksaTodayIso()+'T12:00:00');
+ d.setDate(d.getDate()-1);
+ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
 function numericDays(v){
  const m=String(v??'').replace(/,/g,'').match(/-?\d+(?:\.\d+)?/);
  const n=m?Number(m[0]):NaN;
@@ -149,7 +154,7 @@ function contractDurationWithWeekends(startValue,durationValue){
 function calculatedReportNumber(){
  const liveStart=document.querySelector('[data-general="ACTUAL_START_DATE"]')?.value;
  const start=valueInputDate(clean(liveStart)||clean(generalDraft.ACTUAL_START_DATE)||currentSuggestion('ACTUAL_START_DATE'));
- const end=ksaTodayIso();
+ const end=reportReferenceIso();
  if(!start||start>end)return '';
  const d=new Date(start+'T12:00:00'),last=new Date(end+'T12:00:00');
  if(!Number.isFinite(d.getTime())||!Number.isFinite(last.getTime()))return '';
@@ -208,7 +213,7 @@ function contractorFromWorkOrdersData(data){return workOrdersValue(data,'الم�
 function durationFromWorkOrdersData(data){return workOrdersValue(data,'المدة uds')}
 function locationFromWorkOrdersData(data){return workOrdersValue(data,'الموقع')}
 function generalValue(g){
- if(g.fixedToday)return ksaTodayIso();
+ if(g.fixedToday)return reportReferenceIso();
  if(g.fixed)return clean(g.value);
  if(g.auto)return clean(liveAuto[g.key]||currentSuggestion(g.key));
  if(Object.prototype.hasOwnProperty.call(generalDraft,g.key))return generalDraft[g.key];
@@ -246,7 +251,7 @@ function generalField(g){
  return '<label class="'+baseClass+'"><span>'+esc(g.label)+'</span><input data-general="'+g.key+'" type="'+g.type+'" value="'+esc(val)+'" placeholder="'+esc(placeholder)+'"></label>';
 }
 function currentSuggestion(key){
- if(key==='REPORT_DATE')return ksaTodayIso();
+ if(key==='REPORT_DATE')return reportReferenceIso();
  if(key==='CONTRACTOR_REPORT_NAME'){
   const fromData=contractorFromWorkOrdersData(window.__VDProjectsReportEngineData);
   if(fromData)return fromData;
@@ -370,7 +375,7 @@ function tableCalc(sec,r,key){
  if(key==='@age'){
   const status=clean(r.Status);if(status.includes('تم الحل')||status.includes('مغلق'))return 'مغلق';
   const iso=valueInputDate(r['Start / Observation Date']);if(!iso)return '—';
-  const a=new Date(iso+'T12:00:00'),b=new Date(ksaTodayIso()+'T12:00:00');
+  const a=new Date(iso+'T12:00:00'),b=new Date(reportReferenceIso()+'T12:00:00');
   return Number.isNaN(a.getTime())?'—':Math.max(0,Math.floor((b-a)/86400000))+'';
  }
  return '—';
@@ -429,12 +434,12 @@ function calculatedPlannedProgress(){
  const start=valueInputDate(clean(document.querySelector('[data-general="ACTUAL_START_DATE"]')?.value)||clean(generalDraft.ACTUAL_START_DATE)||currentSuggestion('ACTUAL_START_DATE'));
  const duration=numericDays(calculatedContractDuration());
  if(!start||!duration||duration<=0)return '';
- const day=new Date(start+'T12:00:00'),now=new Date(ksaTodayIso()+'T12:00:00');
+ const day=new Date(start+'T12:00:00'),now=new Date(reportReferenceIso()+'T12:00:00');
  const elapsed=Math.floor((now-day)/86400000)+1;
  return (Math.min(100,Math.max(0,elapsed*100/duration))).toFixed(2)+'%';
 }
 function previousReportActual(){
- const today=ksaTodayIso();
+ const today=reportReferenceIso();
  const previous=details.filter(r=>r.Section==='PLAN_POINT').map(r=>({
   date:valueInputDate(r['Start / Observation Date']||r['End / Expected Date']),
   actual:ratioValue(r['Numeric Value'])
@@ -532,7 +537,7 @@ function currentDailyLogRow(){
  const s=indicatorState(),actual=s.actual==null?'':((s.actual*100).toFixed(2)+'%');
  return {
   Section:'PLAN_POINT',
-  'Start / Observation Date':ksaTodayIso(),
+  'Start / Observation Date':reportReferenceIso(),
   'Numeric Value':actual,
   'Weight / Planned Progress %':calculatedPlannedProgress(),
   'Period Qty':dailyExecutedQuantity()??'',

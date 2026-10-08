@@ -17,6 +17,11 @@ function ksaTodayIso(){
  return (p.year||'')+'-'+(p.month||'')+'-'+(p.day||'');
 }
 function ksaTodayDmy(){const s=ksaTodayIso().split('-');return s.length===3?s[2]+'/'+s[1]+'/'+s[0]:new Date().toLocaleDateString('en-GB')}
+function reportReferenceDate(){
+ const d=new Date(ksaTodayIso()+'T12:00:00');
+ d.setDate(d.getDate()-1);
+ return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+}
 function rpc(method,args=[]){return fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({method,args})}).then(async r=>{const x=await r.json().catch(()=>({}));if(!r.ok||x.ok===false)throw new Error(x.error||('HTTP '+r.status));return x.result})}
 function install(){
  const nav=$(NAV_ID);if(!nav||$(PAGE_ID))return;
@@ -306,7 +311,7 @@ function render(data){
  const stage=val(fs,['مرحلة التنفيذ']);
  const stageStatus=val(fs,['حالة المرحلة','حالة التنفيذ','حالة الامر وفقا لمتابعة المهندس المسئول']);
  const reportType=ex('REPORT_TYPE')||'يومي';
- const reportNo=String(reportDayNumber(ex('ACTUAL_START_DATE')||val(fs,['تاريخ المباشرة','تاريخ البدء']),ksaTodayDmy())??'');
+ const reportNo=String(reportDayNumber(ex('ACTUAL_START_DATE')||val(fs,['تاريخ المباشرة','تاريخ البدء']),reportReferenceDate())??'');
  const contractDuration=sourceExactValue(data,'اوامر العمل','المدة uds')||val(fs,['المدة التعاقدية','مدة امر العمل','مدة أمر العمل','مدة التنفيذ','مدة المشروع'])||ex('CONTRACTUAL_DURATION_DAYS');
  const consultant='شركة أبعاد الرؤية للاستشارات الهندسية';
  const secFollowup=ex('SEC_FOLLOWUP_ENGINEER')||val(fs,['مهندس المتابعة','مهندس شركة الكهرباء','المهندس المسئول','المهندس المسؤول']);
@@ -318,7 +323,7 @@ function render(data){
  const planRows=rows.filter(r=>r.Section==='PLAN_POINT');
  const start=ex('ACTUAL_START_DATE')||val(fs,['تاريخ الاسناد','تاريخ الإسناد']);
  const expected=ex('EXPECTED_OPERATION_DATE');
- const rdate=ksaTodayDmy();
+ const rdate=reportReferenceDate();
  const contractDurationCalendar=contractDurationWithWeekends(start,contractDuration);
  const validPlanPoints=historyPoints(planRows,start,rdate,null,false).filter(p=>p.planned!=null);
  const plannedExtra=pct(ex('PLANNED_PROGRESS'));
