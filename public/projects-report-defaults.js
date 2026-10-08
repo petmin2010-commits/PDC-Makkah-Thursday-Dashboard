@@ -23,7 +23,8 @@ const GENERAL=[
  {key:'ACTUAL_START_DATE',label:'تاريخ بدء التنفيذ',field:'Start / Observation Date',type:'date'},
  {key:'EXPECTED_OPERATION_DATE',label:'تاريخ التشغيل المتوقع',field:'End / Expected Date',type:'date'},
  {key:'CONTRACTUAL_DURATION_DAYS',label:'المدة التعاقدية (يوم)',field:'Numeric Value',type:'number',auto:true,source:'ورقة أوامر العمل — عمود المدة uds'},
- {key:'CONTRACT_DURATION_WITH_WEEKENDS',label:'المتبقي على التشغيل (يوم)',field:'Numeric Value',type:'number',auto:true,source:'المدة التعاقدية + أيام الجمعة الواقعة داخلها بداية من تاريخ بدء التنفيذ'},
+ {key:'CONTRACT_DURATION_WITH_WEEKENDS',label:'المدة النهائية (يوم)',field:'Numeric Value',type:'number',auto:true,source:'المدة التعاقدية + أيام الجمعة'},
+ {key:'REMAINING_OPERATION_DAYS',label:'المتبقي على التشغيل (يوم)',field:'Numeric Value',type:'number',auto:true,source:'المدة النهائية ناقص الأيام المنقضية حتى تاريخ التقرير'},
  {key:'PREPARED_BY',label:'معد التقرير (الاستشاري / مهندس المتابعة)',field:'Responsible / Issuing Authority',type:'staff-select',signature:true},
  {key:'REVIEWED_BY',label:'مراجعة: رئيس القسم',field:'Responsible / Issuing Authority',type:'staff-select',signature:true},
  {key:'APPROVED_BY',label:'اعتماد: مدير الدائرة / الإدارة',field:'Responsible / Issuing Authority',type:'staff-select',signature:true}
@@ -168,8 +169,17 @@ function calculatedContractDuration(){
  const duration=clean(liveAuto.CONTRACTUAL_DURATION_DAYS)||currentSuggestion('CONTRACTUAL_DURATION_DAYS');
  return contractDurationWithWeekends(start,duration);
 }
+function calculatedRemainingOperationDays(){
+ const finalDays=numericDays(calculatedContractDuration());
+ const liveStart=document.querySelector('[data-general="ACTUAL_START_DATE"]')?.value;
+ const start=valueInputDate(clean(liveStart)||clean(generalDraft.ACTUAL_START_DATE)||currentSuggestion('ACTUAL_START_DATE'));
+ if(!start||finalDays==null)return '';
+ const first=new Date(start+'T12:00:00'),last=new Date(reportReferenceIso()+'T12:00:00');
+ if(!Number.isFinite(first.getTime())||!Number.isFinite(last.getTime()))return '';
+ return String(Math.max(0,finalDays-Math.max(0,Math.round((last-first)/86400000))));
+}
 function refreshCalculatedGeneral(){
- const update=()=>{const el=document.querySelector('[data-auto-general="CONTRACT_DURATION_WITH_WEEKENDS"]');if(el)el.value=calculatedContractDuration();const pi=document.querySelector('[data-indicator="PLANNED_PROGRESS"]');if(pi)pi.value=percentInputValue(calculatedPlannedProgress());refreshIndicatorOutputs();const no=document.querySelector('[data-auto-general="REPORT_NO"]');if(no)no.value=calculatedReportNumber()};
+ const update=()=>{const el=document.querySelector('[data-auto-general="CONTRACT_DURATION_WITH_WEEKENDS"]');if(el)el.value=calculatedContractDuration();const rem=document.querySelector('[data-auto-general="REMAINING_OPERATION_DAYS"]');if(rem)rem.value=calculatedRemainingOperationDays();const pi=document.querySelector('[data-indicator="PLANNED_PROGRESS"]');if(pi)pi.value=percentInputValue(calculatedPlannedProgress());refreshIndicatorOutputs();const no=document.querySelector('[data-auto-general="REPORT_NO"]');if(no)no.value=calculatedReportNumber()};
  update();setTimeout(update,0);
 }
 function woValue(){return clean(document.getElementById('preInput')?.value).replace(/\D/g,'').slice(0,10)}
@@ -266,6 +276,7 @@ function currentSuggestion(key){
  }
  if(key==='REPORT_NO')return calculatedReportNumber();
   if(key==='CONTRACT_DURATION_WITH_WEEKENDS')return calculatedContractDuration();
+ if(key==='REMAINING_OPERATION_DAYS')return calculatedRemainingOperationDays();
  const r=window.__VDProjectsReportEngineReport||null;
  if(!r)return '';
  const map={

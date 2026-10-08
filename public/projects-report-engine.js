@@ -335,7 +335,7 @@ function render(data){
  const referenceSnapshot=datedProgress.find(p=>p.date===referenceIso)||null;
  const previousDay=datedProgress.filter(p=>p.date<referenceIso).at(-1);
 
- const elapsed=daysBetween(start,rdate),remaining=expected?daysBetween(rdate,expected):null;
+ const elapsed=daysBetween(start,rdate),remaining=contractDurationCalendar>0&&elapsed!=null?Math.max(0,contractDurationCalendar-Math.max(0,elapsed)):null;
  const boq=rows.filter(r=>r.Section==='BOQ_ITEM').map(r=>({...r,_completion:completion(r)}));
  const boqMetric=weightedBoqMetrics(boq);
  const actual=boqMetric.valid?boqMetric.progress:liveActual;
