@@ -385,6 +385,15 @@ function buildProjectWorkbook(report){
     ]));
   }
   patchCalc(parts);
+  // Template cleanup: neutralize hard-coded red text in ordinary fonts only.
+  // Differential/conditional formatting (dxfs) remains intact for actual warnings.
+  const stylePart='xl/styles.xml';
+  if(parts[stylePart]){
+    const styleXml=strFromU8(parts[stylePart]);
+    const cleanXml=styleXml.replace(/(<fonts\b[^>]*>)([\s\S]*?)(<\/fonts>)/,(all,open,fonts,close)=>
+      open+fonts.replace(/<color\s+rgb="FFFF0000"\s*\/>/gi,'<color rgb="FF000000"/>')+close);
+    if(cleanXml!==styleXml)parts[stylePart]=strToU8(cleanXml);
+  }
   return Buffer.from(zipSync(parts,{level:6}));
 }
 
