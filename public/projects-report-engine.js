@@ -443,9 +443,13 @@ function render(data){
 function fact(k,v,src,isLtr=false){if(v instanceof Date&&!Number.isNaN(v.getTime()))v=String(v.getDate()).padStart(2,'0')+'/'+String(v.getMonth()+1).padStart(2,'0')+'/'+v.getFullYear();return '<div class="pre-fact"><small>'+esc(k)+' • '+src+'</small><b'+(isLtr?' class="pre-ltr"':'')+'>'+esc(v||'—')+'</b></div>'}
 function progressBlock(actual,planned){
  const a=Math.max(0,Math.min(100,actual||0)),p=Math.max(0,Math.min(100,planned||0));
+ const variance=actual!=null&&planned!=null?actual-planned:null;
+ const vWidth=variance==null?0:Math.max(0,Math.min(100,Math.abs(variance)));
+ const vState=variance==null?'neutral':variance>0?'positive':variance<0?'negative':'neutral';
+ const varianceText=variance==null?'—':(variance>0?'+':'')+variance.toFixed(2)+'%';
  return `<section class="pre-panel pre-progress-panel pre-print-section"><div class="pre-panel-head"><div><span>PROGRESS CONTROL</span><h3>التقدم الفعلي مقابل المخطط</h3></div></div>
  <div class="pre-progress-row"><b>الفعلي</b><div class="pre-track"><i style="width:${a}%"></i></div><strong class="pre-ltr">${actual==null?'—':actual.toFixed(2)+'%'}</strong></div>
- <div class="pre-progress-row planned"><b>المخطط</b><div class="pre-track"><i style="width:${p}%"></i></div><strong class="pre-ltr">${planned==null?'—':planned.toFixed(2)+'%'}</strong></div></section>`
+ <div class="pre-progress-row planned"><b>المخطط</b><div class="pre-track"><i style="width:${p}%"></i></div><strong class="pre-ltr">${planned==null?'—':planned.toFixed(2)+'%'}</strong></div><div class="pre-progress-row variance ${vState}"><b>الانحراف</b><div class="pre-track"><i style="width:${vWidth}%"></i></div><strong class="pre-ltr">${varianceText}</strong></div></section>`
 }
 function cell(v,cls=''){return '<td'+(cls?' class="'+cls+'"':'')+'>'+esc(v==null||v===''?'—':v)+'</td>'}
 function boqBlock(rows,actual,planned,variance){
@@ -815,6 +819,8 @@ async function printReport(){
  const mapImage=await captureReportMap();
  if(win.closed)return;
  const clone=document.querySelector('#preBody.pre-report').cloneNode(true);
+ const firstSummary=clone.querySelector('.pre-summary');
+ if(firstSummary){const logos=document.createElement('div');logos.className='pre-first-page-logos';logos.innerHTML='<img src="'+location.origin+'/company-logo.png" alt="Vision Dimensions"><img src="'+location.origin+'/pdc-logo.jpg" alt="PDC">';firstSummary.prepend(logos)}
  clone.querySelectorAll('.pre-system-col,.pre-source-note,.vd-universal-info,.calc-help-btn,.vd-info-host > .vd-universal-info').forEach(x=>x.remove());
  clone.querySelectorAll('.pre-table-wrap').forEach(x=>{x.style.overflow='visible'});
  let mapPanel=clone.querySelector('#preMapPanel');
@@ -1057,7 +1063,7 @@ html,body{color:#1d334a;font-family:Tahoma,Arial,sans-serif;font-size:9pt}
 .pre-map-pdf-image{max-height:133mm!important}
 .pre-guide-page-break{break-before:page;page-break-before:always;height:0}
 .pre-formula-card small{direction:ltr;unicode-bidi:isolate;text-align:right}
-.pdf-footer{z-index:60;background:white}
+.pre-first-page-logos{display:flex;align-items:center;justify-content:space-between;direction:ltr;gap:8mm;margin:0 0 3mm;padding-bottom:2mm;border-bottom:1px solid #d4e2ec;break-inside:avoid}.pre-first-page-logos img{display:block;width:auto;max-width:30mm;max-height:12mm;object-fit:contain}.pre-summary .pre-fact small{font-size:6.3pt!important;line-height:1.2}.pre-summary .pre-fact b{font-size:8pt!important}.pre-kpi small{font-size:6pt!important;line-height:1.25!important}.pre-kpi strong{font-size:14pt!important;line-height:1.16}.pre-kpi em{font-size:5.7pt!important}.pre-progress-row.variance.positive .pre-track i{background:#198754}.pre-progress-row.variance.negative .pre-track i{background:#cf3b45}.pre-progress-row.variance.neutral .pre-track i{background:#8797a8}.pre-progress-row.variance.positive>strong{color:#168251}.pre-progress-row.variance.negative>strong{color:#c83241}.pre-progress-row.variance.neutral>strong{color:#60758a}.pre-progress-row.variance>strong{font-weight:900}.pdf-footer{z-index:60;background:white}
 
 
 `}
