@@ -400,8 +400,8 @@ function render(data){
  const summaryPlanned=inputKpis?inputKpis.planned:(contractDurationCalendar>0?100/contractDurationCalendar:null);
  const summaryVariance=summaryActual!=null&&summaryPlanned!=null?summaryActual-summaryPlanned:null;
  const summaryStatus=inputKpis?inputKpis.status:projectStatus;
- const summaryPeriod=inputKpis?inputKpis.period:periodProgress;
- const summaryDaily=inputKpis?inputKpis.daily:dailyRequired;
+ const summaryPeriod=periodProgress;
+ const summaryDaily=dailyRequired;
  const cards=[
   {label:'نسبة الإنجاز الكلية',value:summaryActual==null?'—':fmtPct(summaryActual),src:actualSource,ltr:true},
   {label:'نسبة الإنجاز المخططة',value:summaryPlanned==null?'—':fmtPct(summaryPlanned),src:'CALC',ltr:true},
@@ -432,7 +432,7 @@ function render(data){
  <div class="pre-source-note">تم العثور على أمر العمل في <b>${data.matchedSheets}</b> ورقة / مصدر و <b>${data.totalRecords}</b> سجل. البيانات الموسومة LIVE تأتي من أوراق المشروع الحالية، وEXTRA من صفحة الإدخال الإضافية.</div>`;
  setTimeout(()=>initReportMap(data),80);
 }
-function fact(k,v,src,isLtr=false){return '<div class="pre-fact"><small>'+esc(k)+' • '+src+'</small><b'+(isLtr?' class="pre-ltr"':'')+'>'+esc(v||'—')+'</b></div>'}
+function fact(k,v,src,isLtr=false){if(v instanceof Date&&!Number.isNaN(v.getTime()))v=String(v.getDate()).padStart(2,'0')+'/'+String(v.getMonth()+1).padStart(2,'0')+'/'+v.getFullYear();return '<div class="pre-fact"><small>'+esc(k)+' • '+src+'</small><b'+(isLtr?' class="pre-ltr"':'')+'>'+esc(v||'—')+'</b></div>'}
 function progressBlock(actual,planned){
  const a=Math.max(0,Math.min(100,actual||0)),p=Math.max(0,Math.min(100,planned||0));
  return `<section class="pre-panel pre-progress-panel pre-print-section"><div class="pre-panel-head"><div><span>PROGRESS CONTROL</span><h3>التقدم الفعلي مقابل المخطط</h3></div></div>
@@ -1007,6 +1007,7 @@ html,body{color:#1d334a;font-family:Tahoma,Arial,sans-serif;font-size:9pt}
 .pre-formula-card p{font-size:7.5pt;line-height:1.5}
 .pre-formula-card small{font-size:7pt;line-height:1.35}
 .pre-narrative-panel,.pre-photo-pdf-card,.pre-guide-item{break-inside:avoid;page-break-inside:avoid}
+.pre-guide-foot{margin-top:2mm;padding:2mm;font-size:7.5pt;line-height:1.4}.pre-formula-grid{gap:2mm 3mm}.pre-formula-card{padding:1.7mm 2mm;break-inside:avoid}.pre-formula-card p{font-size:7pt;line-height:1.3}.pre-formula-card small{font-size:6.6pt;line-height:1.25}.pre-formula-appendix{margin-bottom:0;padding-bottom:0}.pre-photos-pdf-panel{break-inside:auto;page-break-inside:auto}.pre-photo-pdf-card{break-inside:avoid;page-break-inside:avoid}
 .pdf-footer{z-index:60;background:white}
 
 
