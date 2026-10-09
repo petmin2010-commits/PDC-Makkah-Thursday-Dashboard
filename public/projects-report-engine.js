@@ -354,7 +354,7 @@ function render(data){
  const planRows=rows.filter(r=>r.Section==='PLAN_POINT');
   const start=dateObj(ex('ACTUAL_START_DATE')||workOrderBasic(data,['تاريخ المباشرة','تاريخ البدء','تاريخ بدء التنفيذ']));
  const expected=ex('EXPECTED_OPERATION_DATE');
- const workingDaysToOperation=reportDayNumber(start,expected);
+ const workingDaysToOperation=contractDurationWithWeekends(start,contractDuration);
  const operationDate=dateObj(expected);
  const today=new Date();
  const dayToday=Date.UTC(today.getFullYear(),today.getMonth(),today.getDate());
