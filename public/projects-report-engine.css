@@ -248,3 +248,13 @@ body.vd-projects-report-engine-active #filterBar{
     letter-spacing:1.2px;
   }
 }
+
+/* Variance segment: screen and PDF share sign-aware styling. */
+.pre-progress-row.variance .variance-track{position:relative}
+.pre-progress-row.variance .variance-track>i{position:absolute;top:0;height:100%;border-radius:99mm}
+.pre-progress-row.variance.positive .variance-track>i{background:#198754!important}
+.pre-progress-row.variance.negative .variance-track>i{background:#cf3b45!important}
+.pre-progress-row.variance.neutral .variance-track>i{background:#8797a8!important}
+.pre-progress-row.variance.positive>strong{color:#198754!important}
+.pre-progress-row.variance.negative>strong{color:#cf3b45!important}
+
