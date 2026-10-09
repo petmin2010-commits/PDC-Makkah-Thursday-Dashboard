@@ -758,10 +758,11 @@ function initReportMap(data){
  setTimeout(()=>{map.invalidateSize();fitAll()},180);
 }
 async function captureReportMap(){
- const stage=workOrderBasic(data,['مرحلة التنفيذ']);
+ const stage=document.getElementById('preProjectMapStage')||document.getElementById('preProjectMap');
+ if(!stage||!state.map||typeof window.html2canvas!=='function')return '';
  try{
   state.map.invalidateSize();await new Promise(r=>setTimeout(r,300));
-  const canvas=await window.html2canvas(stage,{useCORS:true,allowTaint:false,backgroundColor:'#eef5f7',scale:1.6,logging:false,ignoreElements:el=>el.classList?.contains('leaflet-control-container')});
+  const canvas=await Promise.race([window.html2canvas(stage,{useCORS:true,allowTaint:false,backgroundColor:'#eef5f7',scale:1.6,logging:false,ignoreElements:el=>el.classList?.contains('leaflet-control-container')}),new Promise((_,reject)=>setTimeout(()=>reject(new Error('Map capture timeout')),12000))]);
   state.mapSnapshot=canvas.toDataURL('image/png',.94);return state.mapSnapshot;
  }catch(e){console.warn('Projects Report map capture failed',e);return ''}
 }
@@ -831,7 +832,7 @@ async function printReport(){
  win.document.close();
  const go=async()=>{
   const imgs=[...win.document.images];
-  await Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(resolve=>{img.addEventListener('load',resolve,{once:true});img.addEventListener('error',resolve,{once:true})})));
+  await Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(resolve=>{const timer=setTimeout(resolve,8000);const done=()=>{clearTimeout(timer);resolve()};img.addEventListener('load',done,{once:true});img.addEventListener('error',done,{once:true})})));
   setTimeout(()=>{win.focus();win.print()},350);
  };
  if(win.document.readyState==='complete')go();else win.addEventListener('load',go,{once:true});
