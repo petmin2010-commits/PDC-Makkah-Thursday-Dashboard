@@ -402,7 +402,10 @@ function render(data){
  const summaryStatus=inputKpis?inputKpis.status:projectStatus;
  const inputPeriodText=document.querySelector('.prd-indicators-section [data-indicator-output="period"]')?.textContent?.trim();
  const inputPeriodNumber=inputPeriodText&&/^[-+]?\d+(?:\.\d+)?\s*%$/.test(inputPeriodText)?Number.parseFloat(inputPeriodText):null;
- const summaryPeriod=inputPeriodNumber!=null?inputPeriodNumber:(inputKpis?inputKpis.period:periodProgress);
+ const storedPeriodRaw=String(ex('PERIOD_PROGRESS')||'').trim();
+ const storedPeriodNumber=/^[-+]?\d+(?:\.\d+)?\s*%?$/.test(storedPeriodRaw)?Number.parseFloat(storedPeriodRaw):null;
+ const calculatedPeriodCandidate=inputPeriodNumber!=null?inputPeriodNumber:(inputKpis?inputKpis.period:periodProgress);
+ const summaryPeriod=storedPeriodNumber!=null&&storedPeriodNumber>=0&&storedPeriodNumber<=summaryActual+0.0001?storedPeriodNumber:(calculatedPeriodCandidate!=null&&calculatedPeriodCandidate>=0&&calculatedPeriodCandidate<=summaryActual+0.0001?calculatedPeriodCandidate:null);
  const summaryDaily=inputKpis?inputKpis.daily:dailyRequired;
  // Keep downstream Excel/PDF report data aligned with the displayed input indicators.
  report.periodProgress=summaryPeriod;
