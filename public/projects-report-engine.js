@@ -354,6 +354,12 @@ function render(data){
  const planRows=rows.filter(r=>r.Section==='PLAN_POINT');
   const start=dateObj(ex('ACTUAL_START_DATE')||workOrderBasic(data,['تاريخ المباشرة','تاريخ البدء','تاريخ بدء التنفيذ']));
  const expected=ex('EXPECTED_OPERATION_DATE');
+ const workingDaysToOperation=reportDayNumber(start,expected);
+ const operationDate=dateObj(expected);
+ const today=new Date();
+ const dayToday=Date.UTC(today.getFullYear(),today.getMonth(),today.getDate());
+ const dayOperation=operationDate?Date.UTC(operationDate.getFullYear(),operationDate.getMonth(),operationDate.getDate()):null;
+ const daysUntilOperation=dayOperation==null?null:Math.round((dayOperation-dayToday)/86400000);
  const rdate=reportReferenceDate();
  const contractDurationCalendar=contractDurationWithWeekends(start,contractDuration);
  const validPlanPoints=historyPoints(planRows,start,rdate,null,false).filter(p=>p.planned!=null);
@@ -424,7 +430,7 @@ function render(data){
   <div class="pre-facts">
    ${fact('المقاول',contractor,'LIVE')}${fact('الموقع',location,'LIVE')}${fact('المهندس المسؤول',engineer,'LIVE')}${fact('مهندس متابعة الكهرباء',secFollowup,ex('SEC_FOLLOWUP_ENGINEER')?'EXTRA':'LIVE')}
    ${fact('تاريخ بدء التنفيذ',start,ex('ACTUAL_START_DATE')?'EXTRA':'LIVE',true)}${fact('تاريخ التشغيل المتوقع',expected,'EXTRA',true)}
-   ${fact('المدة التعاقدية (يوم)',contractDuration,'LIVE',true)}${fact('المتبقي على التشغيل (يوم)',contractDurationCalendar==null?'—':contractDurationCalendar,'CALC',true)}
+   ${fact('المدة التعاقدية (يوم)',contractDuration,'LIVE',true)}${fact('عدد الأيام الفعلية (الجمعة إجازة)',workingDaysToOperation==null?'—':workingDaysToOperation,'CALC',true)}${fact('عدد الأيام حتى التشغيل',daysUntilOperation==null?'—':daysUntilOperation>=0?daysUntilOperation:'متأخر '+Math.abs(daysUntilOperation),'CALC · TODAY',true)}
   </div>
  </section>
  <div class="pre-kpis pre-print-section">${cards.map(c=>'<article class="pre-kpi '+(c.bad?'bad':'')+'"><small>'+esc(c.label)+' • '+c.src+'</small><strong'+(c.ltr?' class="pre-ltr"':'')+'>'+esc(c.value)+'</strong>'+(c.sub?'<em>'+esc(c.sub)+'</em>':'')+'</article>').join('')}</div>
