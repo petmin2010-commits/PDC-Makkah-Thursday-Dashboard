@@ -400,8 +400,11 @@ function render(data){
  const summaryPlanned=inputKpis?inputKpis.planned:(contractDurationCalendar>0?100/contractDurationCalendar:null);
  const summaryVariance=summaryActual!=null&&summaryPlanned!=null?summaryActual-summaryPlanned:null;
  const summaryStatus=inputKpis?inputKpis.status:projectStatus;
- const summaryPeriod=periodProgress;
- const summaryDaily=dailyRequired;
+ const summaryPeriod=inputKpis?inputKpis.period:periodProgress;
+ const summaryDaily=inputKpis?inputKpis.daily:dailyRequired;
+ // Keep downstream Excel/PDF report data aligned with the displayed input indicators.
+ report.periodProgress=summaryPeriod;
+ report.dailyRequired=summaryDaily;
  const cards=[
   {label:'نسبة الإنجاز الكلية',value:summaryActual==null?'—':fmtPct(summaryActual),src:actualSource,ltr:true},
   {label:'نسبة الإنجاز المخططة',value:summaryPlanned==null?'—':fmtPct(summaryPlanned),src:'CALC',ltr:true},
