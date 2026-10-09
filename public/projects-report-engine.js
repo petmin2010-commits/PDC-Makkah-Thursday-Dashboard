@@ -802,7 +802,7 @@ function methodologyAppendix(){
  ['14','التوثيق والاعتماد','صور التنفيذ توثيق بصري للموقع وتشمل أوصاف الأعمال وتواريخها وفق المتاح. الخريطة وسيلة لتحديد مواقع الأعمال وليست اعتماداً مساحياً للكميات. يتحقق معد التقرير من المرفقات والأوصاف والمواقع، ويعتمد المسؤول النتائج بعد مطابقتها مع سجلات المشروع.'],
  ['15','قراءة الإشارات اللونية','الأخضر يبرز الحالات المكتملة أو السليمة، والأزرق يعرض المعلومات ومؤشرات المتابعة، والبرتقالي ينبه إلى حالات تتطلب متابعة، والأحمر يشير إلى تعثر أو ملاحظة تستوجب التحقق. لا تُعتمد الألوان وحدها؛ اقرأ النص والقيمة وتاريخها والمصدر المصاحب.']
  ];
- return '<section class="pre-guide-appendix"><header class="pre-guide-title"><span>APPENDIX · REPORT METHODOLOGY</span><h2>دليل قراءة التقرير ومنهجية الاحتساب</h2><p>ملحق تفسيري ثابت، يُرفق تلقائياً بتقرير PDF ولا يُغيّر البيانات الأساسية.</p></header><div class="pre-guide-grid">'+sections.map(s=>'<article class="pre-guide-item"><b>'+s[0]+'</b><div><h3>'+s[1]+'</h3><p>'+s[2]+'</p></div></article>').join('')+'</div><section class="pre-formula-appendix"><h2>معادلات الاحتساب وأمثلة تطبيقية</h2><p>توضيحات حسابية مرجعية للبطاقات والمؤشرات.</p><div class="pre-formula-grid">'+calculationExamples.map((f,i)=>'<article class="pre-formula-card"><b>'+String(i+1).padStart(2,'0')+'</b><div><h3>'+f[0]+'</h3><p>'+f[1]+'</p><small>'+f[2]+'</small></div></article>').join('')+'</div></section><div class="pre-guide-foot"><strong>ملاحظة اعتماد:</strong> في حال اختلاف قيمة داخل البطاقة عن الرسم البياني أو السجل التاريخي، يجب مراجعة المصدر وتاريخ التقرير قبل الاعتماد النهائي.</div></section>';
+ return '<section class="pre-guide-appendix"><header class="pre-guide-title"><span>APPENDIX · REPORT METHODOLOGY</span><h2>دليل قراءة التقرير ومنهجية الاحتساب</h2><p>ملحق تفسيري ثابت، يُرفق تلقائياً بتقرير PDF ولا يُغيّر البيانات الأساسية.</p></header><div class="pre-guide-grid">'+sections.slice(0,8).map(s=>'<article class="pre-guide-item"><b>'+s[0]+'</b><div><h3>'+s[1]+'</h3><p>'+s[2]+'</p></div></article>').join('')+'</div><div class="pre-guide-page-break"></div><div class="pre-guide-grid">'+sections.slice(8).map(s=>'<article class="pre-guide-item"><b>'+s[0]+'</b><div><h3>'+s[1]+'</h3><p>'+s[2]+'</p></div></article>').join('')+'</div><section class="pre-formula-appendix"><h2>معادلات الاحتساب وأمثلة تطبيقية</h2><p>توضيحات حسابية مرجعية للبطاقات والمؤشرات.</p><div class="pre-formula-grid">'+calculationExamples.map((f,i)=>'<article class="pre-formula-card"><b>'+String(i+1).padStart(2,'0')+'</b><div><h3>'+f[0]+'</h3><p>'+f[1]+'</p><small>'+f[2]+'</small></div></article>').join('')+'</div></section><div class="pre-guide-foot"><strong>ملاحظة اعتماد:</strong> في حال اختلاف قيمة داخل البطاقة عن الرسم البياني أو السجل التاريخي، يجب مراجعة المصدر وتاريخ التقرير قبل الاعتماد النهائي.</div></section>';
 }
 async function printReport(){
  if(!state.report||!document.querySelector('#preBody.pre-report')){alert('أنشئ التقرير أولاً ثم اضغط تصدير التقرير PDF.');return}
@@ -1045,7 +1045,7 @@ html,body{color:#1d334a;font-family:Tahoma,Arial,sans-serif;font-size:9pt}
 .pre-formula-card p,.pre-formula-card small{unicode-bidi:plaintext}
 .pre-history-chart svg{height:66mm;max-height:66mm}
 /* Archive print safety: disable Chromium fixed masthead repetition that overlays page content. */
-@page{size:A4 landscape;margin:17mm 11mm 17mm;@top-left{content:url("${location.origin}/company-logo.png");}@top-center{content:"VISION DIMENSIONS | PROJECT CONTROL | PDC";font:700 8pt Arial;color:#284e69}@top-right{content:url("${location.origin}/pdc-logo.jpg");}@bottom-left{content:"Vision Dimensions Engineering Consultancy";font:700 7pt Arial;color:#526b82}@bottom-right{content:"Page " counter(page) " / " counter(pages);font:700 7pt Arial;color:#526b82}}
+@page{size:A4 landscape;margin:17mm 11mm 17mm;@top-left{content:"VISION DIMENSIONS";font:700 8pt Arial;color:#284e69}@top-center{content:"VISION DIMENSIONS | PROJECT CONTROL | PDC";font:700 8pt Arial;color:#284e69}@top-right{content:"PDC | ENGINEERING REPORT";font:700 8pt Arial;color:#284e69}@bottom-left{content:"Vision Dimensions Engineering Consultancy";font:700 7pt Arial;color:#526b82}@bottom-right{content:"Page " counter(page) " / " counter(pages);font:700 7pt Arial;color:#526b82}}
 .pdf-header,.pdf-footer{display:none!important;position:static!important}
 .pre-table-wrap tr{break-inside:avoid!important;page-break-inside:avoid!important}
 .pre-permits-panel .pre-table-wrap th,.pre-permits-panel .pre-table-wrap td{font-size:6.35pt!important;padding:.85mm 1.1mm!important;line-height:1.16!important}
@@ -1055,6 +1055,8 @@ html,body{color:#1d334a;font-family:Tahoma,Arial,sans-serif;font-size:9pt}
 .pre-guide-item{margin:0!important;min-width:0}
 .pre-guide-item p{overflow-wrap:anywhere}
 .pre-map-pdf-image{max-height:133mm!important}
+.pre-guide-page-break{break-before:page;page-break-before:always;height:0}
+.pre-formula-card small{direction:ltr;unicode-bidi:isolate;text-align:right}
 .pdf-footer{z-index:60;background:white}
 
 
