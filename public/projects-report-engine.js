@@ -1044,6 +1044,17 @@ html,body{color:#1d334a;font-family:Tahoma,Arial,sans-serif;font-size:9pt}
 .pre-formula-card{break-inside:avoid!important;page-break-inside:avoid!important}
 .pre-formula-card p,.pre-formula-card small{unicode-bidi:plaintext}
 .pre-history-chart svg{height:66mm;max-height:66mm}
+/* Archive print safety: disable Chromium fixed masthead repetition that overlays page content. */
+@page{size:A4 landscape;margin:17mm 11mm 17mm;@top-left{content:url("${location.origin}/company-logo.png");}@top-center{content:"VISION DIMENSIONS | PROJECT CONTROL | PDC";font:700 8pt Arial;color:#284e69}@top-right{content:url("${location.origin}/pdc-logo.jpg");}@bottom-left{content:"Vision Dimensions Engineering Consultancy";font:700 7pt Arial;color:#526b82}@bottom-right{content:"Page " counter(page) " / " counter(pages);font:700 7pt Arial;color:#526b82}}
+.pdf-header,.pdf-footer{display:none!important;position:static!important}
+.pre-table-wrap tr{break-inside:avoid!important;page-break-inside:avoid!important}
+.pre-permits-panel .pre-table-wrap th,.pre-permits-panel .pre-table-wrap td{font-size:6.35pt!important;padding:.85mm 1.1mm!important;line-height:1.16!important}
+.pre-boq-panel .pre-table-wrap th,.pre-boq-panel .pre-table-wrap td{font-size:7pt!important;padding:1.1mm 1.1mm!important;line-height:1.26!important}
+.pre-extra-panel,.pre-narrative-panel{break-inside:auto!important;page-break-inside:auto!important}
+.pre-guide-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;column-count:auto!important;gap:2.5mm 3mm!important}
+.pre-guide-item{margin:0!important;min-width:0}
+.pre-guide-item p{overflow-wrap:anywhere}
+.pre-map-pdf-image{max-height:133mm!important}
 .pdf-footer{z-index:60;background:white}
 
 
