@@ -430,7 +430,7 @@ function render(data){
   <div class="pre-facts">
    ${fact('المقاول',contractor,'LIVE')}${fact('الموقع',location,'LIVE')}${fact('المهندس المسؤول',engineer,'LIVE')}${fact('مهندس متابعة الكهرباء',secFollowup,ex('SEC_FOLLOWUP_ENGINEER')?'EXTRA':'LIVE')}
    ${fact('تاريخ بدء التنفيذ',start,ex('ACTUAL_START_DATE')?'EXTRA':'LIVE',true)}${fact('تاريخ التشغيل المتوقع',expected,'EXTRA',true)}
-   ${fact('المدة التعاقدية (يوم)',contractDuration,'LIVE',true)}${fact('عدد الأيام الفعلية (الجمعة إجازة)',workingDaysToOperation==null?'—':workingDaysToOperation,'CALC',true)}${fact('عدد الأيام حتى التشغيل',daysUntilOperation==null?'—':daysUntilOperation>=0?daysUntilOperation:'متأخر '+Math.abs(daysUntilOperation),'CALC · TODAY',true)}
+   ${fact('المدة التعاقدية (يوم)',contractDuration,'LIVE',true)}${fact('عدد الأيام الفعلية (الجمعة إجازة)',workingDaysToOperation==null?'—':workingDaysToOperation,'CALC',true)}${fact('عدد الأيام حتى التشغيل',daysUntilOperation==null?'—':daysUntilOperation>=0?daysUntilOperation:'متأخر '+Math.abs(daysUntilOperation),'CALC · TODAY',true).replace('</div>','<em class="pre-countdown-note">محسوب بتاريخ يوم التصدير</em></div>')}
   </div>
  </section>
  <div class="pre-kpis pre-print-section">${cards.map(c=>'<article class="pre-kpi '+(c.bad?'bad':'')+'"><small>'+esc(c.label)+' • '+c.src+'</small><strong'+(c.ltr?' class="pre-ltr"':'')+'>'+esc(c.value)+'</strong>'+(c.sub?'<em>'+esc(c.sub)+'</em>':'')+'</article>').join('')}</div>
@@ -1071,6 +1071,7 @@ html,body{color:#1d334a;font-family:Tahoma,Arial,sans-serif;font-size:9pt}
 .pre-guide-page-break{break-before:page;page-break-before:always;height:0}
 .pre-formula-card small{direction:ltr;unicode-bidi:isolate;text-align:right;font-variant-numeric:tabular-nums}
 .pre-first-page-logos{display:flex;align-items:center;justify-content:space-between;direction:ltr;gap:8mm;margin:0 0 3mm;padding-bottom:2mm;border-bottom:1px solid #d4e2ec;break-inside:avoid}.pre-first-page-logos img{display:block;width:auto;max-width:39mm;max-height:16mm;object-fit:contain}.pre-summary .pre-fact small{font-size:6.3pt!important;line-height:1.2}.pre-summary .pre-fact b{font-size:8pt!important}.pre-kpi small{font-size:6pt!important;line-height:1.25!important}.pre-kpi strong{font-size:14pt!important;line-height:1.16}.pre-kpi em{font-size:5.7pt!important}.pre-progress-row.variance .variance-track{position:relative}.pre-progress-row.variance .variance-track i{position:absolute;top:0;height:100%;border-radius:99mm}.pre-progress-row.variance.positive .pre-track i{background:#198754}.pre-progress-row.variance.negative .pre-track i{background:#cf3b45}.pre-progress-row.variance.neutral .pre-track i{background:#8797a8}.pre-progress-row.variance.positive>strong{color:#168251}.pre-progress-row.variance.negative>strong{color:#c83241}.pre-progress-row.variance.neutral>strong{color:#60758a}.pre-progress-row.variance>strong{font-weight:900}.pre-material-panel .pre-table-wrap td:first-child{direction:ltr;text-align:right;overflow-wrap:anywhere;word-break:normal;hyphens:none;font-size:7.2pt!important;line-height:1.34!important}.pre-formula-card p{unicode-bidi:plaintext;line-height:1.4}
+.pre-countdown-note{display:block;font-style:normal;font-size:6.3pt;color:#687f92;margin-top:1mm;line-height:1.3}
 .pdf-footer{z-index:60;background:white}
 
 
