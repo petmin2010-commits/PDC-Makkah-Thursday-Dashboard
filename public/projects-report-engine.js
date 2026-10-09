@@ -1016,6 +1016,34 @@ html,body{color:#1d334a;font-family:Tahoma,Arial,sans-serif;font-size:9pt}
 .pre-formula-card small{font-size:7pt;line-height:1.35}
 .pre-narrative-panel,.pre-photo-pdf-card,.pre-guide-item{break-inside:avoid;page-break-inside:avoid}
 .pre-guide-foot{margin-top:2mm;padding:2mm;font-size:7.5pt;line-height:1.4}.pre-formula-grid{gap:2mm 3mm}.pre-formula-card{padding:1.7mm 2mm;break-inside:avoid}.pre-formula-card p{font-size:7pt;line-height:1.3}.pre-formula-card small{font-size:6.6pt;line-height:1.25}.pre-formula-appendix{margin-bottom:0;padding-bottom:0}.pre-photos-pdf-panel{break-inside:auto;page-break-inside:auto}.pre-photo-pdf-card{break-inside:avoid;page-break-inside:avoid}
+/* Print pagination correction 2026-10-09: keep content clear of running brand strips */
+@page{size:A4 landscape;margin:24mm 12mm 23mm;@bottom-left{content:"Vision Dimensions Engineering Consultancy";font:700 7.5pt Arial;color:#526b82}@bottom-right{content:"Page " counter(page) " / " counter(pages);font:700 7.5pt Arial;color:#526b82}}
+.pdf-header{position:fixed;top:-21mm;height:16mm;max-height:16mm;padding:1mm 1mm 1.5mm;z-index:20}
+.pdf-footer{display:none!important}
+.pdf-main{padding:0 0 1mm!important;overflow:visible}
+.pre-panel,.pre-summary{max-width:100%;overflow:visible}
+.pre-table-wrap{overflow:visible!important}
+.pre-table-wrap table{break-inside:auto!important;page-break-inside:auto!important}
+.pre-table-wrap thead{display:table-header-group}
+.pre-table-wrap tr{break-inside:avoid;page-break-inside:avoid}
+.pre-table-wrap th,.pre-table-wrap td{vertical-align:top;overflow-wrap:anywhere}
+.pre-material-panel,.pre-permits-panel,.pre-boq-panel,.pre-risk-panel{break-inside:auto!important;page-break-inside:auto!important}
+.pre-material-panel .pre-panel-head,.pre-permits-panel .pre-panel-head,.pre-boq-panel .pre-panel-head,.pre-risk-panel .pre-panel-head{break-after:avoid;page-break-after:avoid}
+.pre-photos-pdf-panel{break-inside:auto!important;page-break-inside:auto!important}
+.pre-photos-pdf-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2mm}
+.pre-photo-pdf-card{break-inside:avoid!important;page-break-inside:avoid!important;min-width:0}
+.pre-photo-pdf-card img,.pre-photo-pdf-empty{height:43mm!important;max-height:43mm}
+.pre-photo-pdf-caption{min-height:14mm;padding:1.5mm 2mm;overflow-wrap:anywhere}
+.pre-photo-pdf-caption span{font-size:7pt;line-height:1.32}
+.pre-guide-grid{display:block;column-count:2;column-gap:3mm}
+.pre-guide-item{display:flex;break-inside:avoid!important;page-break-inside:avoid!important;margin:0 0 2mm;padding:2mm 2.5mm}
+.pre-guide-item p{font-size:7.5pt;line-height:1.4}
+.pre-guide-title{break-after:avoid;page-break-after:avoid}
+.pre-formula-appendix{break-before:page;page-break-before:always}
+.pre-formula-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2mm 3mm}
+.pre-formula-card{break-inside:avoid!important;page-break-inside:avoid!important}
+.pre-formula-card p,.pre-formula-card small{unicode-bidi:plaintext}
+.pre-history-chart svg{height:66mm;max-height:66mm}
 .pdf-footer{z-index:60;background:white}
 
 
