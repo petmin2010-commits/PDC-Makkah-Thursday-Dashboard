@@ -415,7 +415,7 @@ function render(data){
   {label:'نسبة الإنجاز المخططة',value:summaryPlanned==null?'—':fmtPct(summaryPlanned),src:'CALC',ltr:true},
   {label:'الانحراف',value:summaryVariance==null?'—':((summaryVariance>=0?'+':'')+summaryVariance.toFixed(2)+'%'),src:'CALC',ltr:true,bad:summaryVariance!=null&&summaryVariance<0},
   {label:'حالة المشروع',value:summaryStatus||'—',src:'CALC',ltr:false,bad:summaryStatus==='متأخر'},
-  {label:'إنجاز الفترة منذ آخر تقرير (اليوم السابق)',value:summaryPeriod==null?'—':fmtPct(summaryPeriod),src:'EXTRA',ltr:true},
+  {label:'إنجاز الفترة منذ آخر تقرير (اليوم السابق)',value:summaryPeriod==null?'—':summaryPeriod.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+'%',src:'EXTRA',ltr:true},
   {label:'المعدل اليومي المطلوب',value:summaryDaily==null?'—':fmtPct(summaryDaily),src:'CALC',ltr:true}
  ];
  $('preBody').className='pre-report';$('preBody').innerHTML=`
