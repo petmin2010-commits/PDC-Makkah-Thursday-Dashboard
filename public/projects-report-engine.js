@@ -395,7 +395,7 @@ function render(data){
  if(actual!=null&&actual<99.999&&remaining===0)qualityAlerts.push('انتهت المدة الحسابية دون اكتمال المشروع؛ لا يمكن حساب معدل يومي مطلوب دون إعادة جدولة.');
  if(boqMetric.hasWeights&&!boqMetric.valid)qualityAlerts.push('مجموع أوزان البنود = '+boqMetric.totalWeightPct.toFixed(2)+'%؛ لم يتم اعتماد الإنجاز المرجح وتم الرجوع إلى نسبة الإنجاز الحية.');
  if(historyDiff!=null&&Math.abs(historyDiff)>0.5)qualityAlerts.push('آخر إنجاز تاريخي مسجل '+historyLast.actual.toFixed(2)+'% يختلف عن الإنجاز الحالي '+actual.toFixed(2)+'% بفارق '+Math.abs(historyDiff).toFixed(2)+' نقطة.');
- const report={workOrder:data.workOrder,projectTitle,desc,contractor,location,engineer,stage,stageStatus,reportType,reportNo,contractDuration,contractDurationCalendar,consultant,secFollowup,preparedBy,reviewedBy,approvedBy,actual,actualSource,liveActual,planned,periodProgress,variance,projectStatus,dailyRequired,start,expected,rdate,elapsed,remaining,boq,boqMetric,mats,permits,risks,periodRows,managementRows,matSum,permitSum,issuedLen,doneLen,permitExecution,planRows,qualityAlerts};
+ const report={workOrder:data.workOrder,projectTitle,desc,contractor,location,engineer,stage,stageStatus,reportType,reportNo,contractDuration,contractDurationCalendar,consultant,secFollowup,preparedBy,reviewedBy,approvedBy,actual,actualSource,liveActual,planned,periodProgress,variance,projectStatus,dailyRequired,start,expected,daysUntilOperation,rdate,elapsed,remaining,boq,boqMetric,mats,permits,risks,periodRows,managementRows,matSum,permitSum,issuedLen,doneLen,permitExecution,planRows,qualityAlerts};
  state.report=report;
  window.__VDProjectsReportEngineReport=report;
  window.__VDProjectsReportEngineData=data;

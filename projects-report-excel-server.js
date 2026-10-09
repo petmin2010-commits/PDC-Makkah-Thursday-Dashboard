@@ -239,13 +239,13 @@ function buildProjectWorkbook(report){
     ['B4',report.projectTitle,'string'],['G4',report.location,'string'],['B5',report.desc,'string'],
     ['B6',report.contractor,'string'],['E6',consultant,'string'],['H6',secFollowup,'string'],
     ['B7',sd,'number'],['D7',ed,'number'],['F7',contractDuration,'number'],
-    ['H7',report.contractDurationCalendar==null?null:Number(report.contractDurationCalendar),'number'],
+    ['H7',report.daysUntilOperation==null?null:Number(report.daysUntilOperation),'number'],
     ['A10','IF(ABS(SUM($H$13:$H$17)-1)<=0.0001,SUM($K$13:$K$17),'+actualFallback+')','formula'],
     ['B10',report.planned==null?null:Number(report.planned)/100,'number'],
     ['D10','$A$10-$B$10','formula'],
     ['E10','IF($A$10>=0.999,"مكتمل",IF($D$10>=0,"وفق المخطط",IF($D$10>=-0.1,"تحت المتابعة","متأخر")))','formula'],
     ['F10',report.periodProgress==null?periodProgress(report):Number(report.periodProgress)/100,'number'],
-    ['H10','IFERROR(MAX(0,(1-$A$10)/MAX($H$7,1)),0)','formula']
+    ['H10',report.dailyRequired==null?null:Number(report.dailyRequired)/100,'number']
   ];
   for(const [ref,v,k] of header)s1=setCell(s1,ref,v,k);
 
