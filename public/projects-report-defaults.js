@@ -170,13 +170,24 @@ function calculatedContractDuration(){
  return contractDurationWithWeekends(start,duration);
 }
 function calculatedRemainingOperationDays(){
- const finalDays=numericDays(calculatedContractDuration());
- const liveStart=document.querySelector('[data-general="ACTUAL_START_DATE"]')?.value;
- const start=valueInputDate(clean(liveStart)||clean(generalDraft.ACTUAL_START_DATE)||currentSuggestion('ACTUAL_START_DATE'));
- if(!start||finalDays==null)return '';
- const first=new Date(start+'T12:00:00'),last=new Date(reportReferenceIso()+'T12:00:00');
- if(!Number.isFinite(first.getTime())||!Number.isFinite(last.getTime()))return '';
- return String(Math.max(0,finalDays-Math.max(0,Math.round((last-first)/86400000))));
+ const fieldValue=key=>{
+  const el=document.querySelector('[data-general="'+key+'"]');
+  if(el)return clean(el.value);
+  if(Object.prototype.hasOwnProperty.call(generalDraft,key))return clean(generalDraft[key]);
+  return clean(currentSuggestion(key));
+ };
+ const utcDay=v=>{
+  const iso=valueInputDate(v);if(!iso)return null;
+  const [y,m,d]=iso.split('-').map(Number);
+  const ms=Date.UTC(y,m-1,d),dt=new Date(ms);
+  return dt.getUTCFullYear()===y&&dt.getUTCMonth()===m-1&&dt.getUTCDate()===d?ms/86400000:null;
+ };
+ const expectedDay=utcDay(fieldValue('EXPECTED_OPERATION_DATE'));
+ const startDay=utcDay(fieldValue('ACTUAL_START_DATE'));
+ const duration=numericDays(calculatedContractDuration());
+ const targetDay=expectedDay!=null?expectedDay:(startDay!=null&&duration>0?startDay+duration:null);
+ const todayDay=utcDay(ksaTodayIso());
+ return targetDay==null||todayDay==null?'':String(Math.max(0,Math.round(targetDay-todayDay)));
 }
 function refreshCalculatedGeneral(){
  const update=()=>{const el=document.querySelector('[data-auto-general="CONTRACT_DURATION_WITH_WEEKENDS"]');if(el)el.value=calculatedContractDuration();const rem=document.querySelector('[data-auto-general="REMAINING_OPERATION_DAYS"]');if(rem)rem.value=calculatedRemainingOperationDays();const pi=document.querySelector('[data-indicator="PLANNED_PROGRESS"]');if(pi)pi.value=percentInputValue(calculatedPlannedProgress());refreshIndicatorOutputs();const no=document.querySelector('[data-auto-general="REPORT_NO"]');if(no)no.value=calculatedReportNumber()};
@@ -486,8 +497,8 @@ function indicatorState(){
  const variance=actual!=null&&planned!=null?actual-planned:null;
  const status=actual==null?'—':actual>=.999?'مكتمل':variance==null?'—':variance>=0?'وفق المخطط':variance>=-.1?'تحت المتابعة':'متأخر';
  const period=calculatedPeriodProgress();
- const days=numericDays(calculatedContractDuration());
- const daily=actual!=null&&days?Math.max(0,(1-actual)/Math.max(days,1)):null;
+ const days=numericDays(calculatedRemainingOperationDays());
+ const daily=actual==null||days==null?null:actual>=1?0:days>0?Math.max(0,(1-actual)/days):null;
  return {actual,planned,variance,status,period,daily};
 }
 window.__VDReportInputIndicators=function(workOrder){
@@ -793,7 +804,7 @@ function handleInput(e){
   return;
  }
  const indicator=e.target.dataset.indicator;if(indicator){generalDraft[indicator]=e.target.value;refreshIndicatorOutputs();return}
- const g=e.target.dataset.general;if(g){generalDraft[g]=e.target.value;if(g==='ACTUAL_START_DATE'){refreshCalculatedGeneral();details.forEach((r,i)=>{if(r.Section==='BOQ_ITEM')refreshCalculatedRow(i)})}return}
+ const g=e.target.dataset.general;if(g){generalDraft[g]=e.target.value;if(g==='ACTUAL_START_DATE'||g==='EXPECTED_OPERATION_DATE'){refreshCalculatedGeneral();details.forEach((r,i)=>{if(r.Section==='BOQ_ITEM')refreshCalculatedRow(i)})}return}
  const idx=Number(e.target.dataset.ridx),field=e.target.dataset.rfield;
  if(Number.isInteger(idx)&&details[idx]&&field){details[idx][field]=e.target.value;refreshCalculatedRow(idx)}
 }
@@ -805,7 +816,7 @@ function handleChange(e){
  const g=e.target.dataset.general;if(g){
   const value=e.target.dataset.dateDmy==='1'?normalizeDateDisplay(e.target.value):e.target.value;
   if(e.target.dataset.dateDmy==='1')e.target.value=value;
-  generalDraft[g]=value;if(g==='ACTUAL_START_DATE'){refreshCalculatedGeneral();details.forEach((r,i)=>{if(r.Section==='BOQ_ITEM')refreshCalculatedRow(i)})}return
+  generalDraft[g]=value;if(g==='ACTUAL_START_DATE'||g==='EXPECTED_OPERATION_DATE'){refreshCalculatedGeneral();details.forEach((r,i)=>{if(r.Section==='BOQ_ITEM')refreshCalculatedRow(i)})}return
  }
  const ridx=Number(e.target.dataset.ridx),rfield=e.target.dataset.rfield;
  if(Number.isInteger(ridx)&&details[ridx]&&rfield){

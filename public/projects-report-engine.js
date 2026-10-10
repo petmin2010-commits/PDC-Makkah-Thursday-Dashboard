@@ -355,8 +355,8 @@ function render(data){
   const start=dateObj(ex('ACTUAL_START_DATE')||workOrderBasic(data,['تاريخ المباشرة','تاريخ البدء','تاريخ بدء التنفيذ']));
  const expected=ex('EXPECTED_OPERATION_DATE');
  const workingDaysToOperation=contractDurationWithWeekends(start,contractDuration);
- const operationDate=dateObj(expected);
- const today=new Date();
+ const operationDate=dateObj(expected)||(start&&workingDaysToOperation>0?new Date(start.getFullYear(),start.getMonth(),start.getDate()+workingDaysToOperation,12):null);
+ const today=dateObj(ksaTodayIso());
  const dayToday=Date.UTC(today.getFullYear(),today.getMonth(),today.getDate());
  const dayOperation=operationDate?Date.UTC(operationDate.getFullYear(),operationDate.getMonth(),operationDate.getDate()):null;
  const daysUntilOperation=dayOperation==null?null:Math.round((dayOperation-dayToday)/86400000);
@@ -380,7 +380,7 @@ function render(data){
  const periodProgress=periodBase==null||!previousDay||previousDay.actual>periodBase+0.000001?null:Math.max(0,periodBase-previousDay.actual);
  const variance=actual!=null&&planned!=null?actual-planned:null;
  const projectStatus=actual==null?'':actual>=99.9?'مكتمل':variance==null?'':variance>=0?'وفق المخطط':variance>=-10?'تحت المتابعة':'متأخر';
- const dailyRequired=actual==null||remaining==null?null:actual>=99.999?0:remaining>0?(100-actual)/remaining:null;
+ const dailyRequired=actual==null||daysUntilOperation==null?null:actual>=99.999?0:daysUntilOperation>0?(100-actual)/daysUntilOperation:null;
  const mats=rows.filter(r=>r.Section==='MATERIAL'),permits=rows.filter(r=>r.Section==='PERMIT_DETAIL');
  const risks=rows.filter(r=>r.Section==='ISSUE_RISK'),periodRows=rows.filter(r=>r.Section==='PERIOD_SUMMARY'),managementRows=rows.filter(r=>r.Section==='MANAGEMENT_NOTE');
  const matSum=materialSummary(mats),permitSum=permitSummary(permits);
@@ -429,7 +429,7 @@ function render(data){
   <div class="pre-title"><div><span>WORK ORDER ${esc(data.workOrder)}</span><h2>${esc(projectTitle)}</h2><p>${esc(desc||'')}</p></div><div class="pre-report-meta"><b>تاريخ التقرير</b><span class="pre-ltr">${esc(rdate)}</span><small>${esc(stage)} ${stageStatus?'• '+esc(stageStatus):''}</small></div></div>
   <div class="pre-facts">
    ${fact('المقاول',contractor,'LIVE')}${fact('الموقع',location,'LIVE')}${fact('المهندس المسؤول',engineer,'LIVE')}${fact('مهندس متابعة الكهرباء',secFollowup,ex('SEC_FOLLOWUP_ENGINEER')?'EXTRA':'LIVE')}
-   ${fact('تاريخ بدء التنفيذ',start,ex('ACTUAL_START_DATE')?'EXTRA':'LIVE',true)}${fact('تاريخ التشغيل المتوقع',expected,'EXTRA',true)}
+   ${fact('تاريخ بدء التنفيذ',start,ex('ACTUAL_START_DATE')?'EXTRA':'LIVE',true)}${fact('تاريخ التشغيل المتوقع',expected||operationDate,expected?'EXTRA':'CALC',true)}
    ${fact('المدة التعاقدية (يوم)',contractDuration,'LIVE',true)}${fact('عدد الأيام الفعلية (الجمعة إجازة)',workingDaysToOperation==null?'—':workingDaysToOperation,'CALC',true)}${fact('عدد الأيام حتى التشغيل',daysUntilOperation==null?'—':daysUntilOperation>=0?daysUntilOperation:'متأخر '+Math.abs(daysUntilOperation),'CALC · TODAY',true).replace('</div>','<em class="pre-countdown-note">محسوب بتاريخ يوم التصدير</em></div>')}
   </div>
  </section>
