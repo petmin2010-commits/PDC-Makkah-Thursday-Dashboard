@@ -2427,6 +2427,9 @@
     const sectionGrid = document.createElement('div');
     sectionGrid.className = 'vd-sec-engineer-section-grid';
     [...root.querySelectorAll('.eee-section-card')].filter(isVisible).forEach(card => {
+      // The empty assets placeholder must not take a full PDF card.
+      const rawScore = card.querySelector(':scope > div strong')?.textContent?.trim() || '';
+      if (!/\d/.test(rawScore)) return;
       const clone = card.cloneNode(true);
       [...clone.querySelectorAll('dl > div')].slice(4).forEach(node => node.remove());
       cleanupClone(clone);
@@ -2441,29 +2444,58 @@
     report.appendChild(overview);
     const analysisPage = createPage('تحليل مكونات تقييم المهندس','EVALUATION COMPONENT ANALYSIS','vd-report-sec-engineer-analysis');
     const analysisBody = analysisPage.querySelector('.vd-report-section-body');
+    /*
+      Report-only native bars avoid Chart.js canvas labels disappearing in PDF.
+      Scores and issue counts are read from the live, filtered dashboard.
+      No evaluator, score weight or source data is changed here.
+    */
+    const parseScore = value => {
+      const match = String(value || '').replace(',', '.').match(/-?\d+(?:\.\d+)?/);
+      return match ? Number(match[0]) : null;
+    };
+    const makeBars = (title, subtitle, entries, settings = {}) => {
+      const panel = document.createElement('article');
+      panel.className = 'vd-sec-engineer-print-panel' + (settings.wide ? ' vd-sec-engineer-print-panel-wide' : '');
+      const valid = entries.filter(item => Number.isFinite(item.value) && item.value >= 0);
+      const scale = settings.max || Math.max(1, ...valid.map(item => item.value));
+      const fmt = number => Number.isInteger(number) ? String(number) : number.toFixed(1);
+      panel.innerHTML =
+        '<div class="vd-sec-engineer-print-heading"><h3>' + escapeHtml(title) + '</h3><small>' + escapeHtml(subtitle) + '</small></div>' +
+        (valid.length ? '<div class="vd-sec-engineer-print-bars">' +
+          valid.map(item => {
+            const pct = Math.max(0, Math.min(100, item.value / scale * 100));
+            return '<div class="vd-sec-engineer-print-row">' +
+              '<span title="' + escapeHtml(item.label) + '">' + escapeHtml(item.label) + '</span>' +
+              '<div class="vd-sec-engineer-print-track"><i style="width:' + pct.toFixed(2) + '%"></i></div>' +
+              '<b dir="ltr">' + fmt(item.value) + (settings.percent ? '%' : '') + '</b>' +
+            '</div>';
+          }).join('') +
+        '</div>' : '<p class="vd-sec-engineer-no-data">لا توجد بيانات متاحة لهذا المؤشر ضمن الفلاتر الحالية.</p>');
+      return panel;
+    };
     const chartGrid = document.createElement('div');
-    chartGrid.className = 'vd-sec-engineer-chart-grid';
-    ['eeeComponentChart','eeeSectionQuality','eeeIssuesChart'].forEach(id => {
-      const panel = root.querySelector('#' + id)?.closest('.panel');
-      if (!panel || !isVisible(panel)) return;
-      const clone = cloneWithCanvases(panel);
-      clone.classList.add('vd-report-chart-card');
-      chartGrid.appendChild(clone);
-    });
-    analysisBody.appendChild(chartGrid);
-
+    chartGrid.className = 'vd-sec-engineer-chart-grid vd-sec-engineer-print-grid';
+    const components = componentLabels.map(label => ({
+      label,
+      value: parseScore(findKpi(label)?.querySelector('strong')?.textContent)
+    }));
+    chartGrid.appendChild(makeBars('مكونات التقييم', 'نسبة كل عامل من 100', components, { percent: true, max: 100 }));
+    const sectionScores = [...root.querySelectorAll('.eee-section-card')].filter(isVisible).map(card => ({
+      label: card.querySelector(':scope > div span')?.textContent?.trim() || 'القسم',
+      value: parseScore(card.querySelector(':scope > div strong')?.textContent)
+    }));
+    chartGrid.appendChild(makeBars('التقييم المركب حسب القسم', 'الأقسام التي لديها بيانات فقط', sectionScores, { percent: true, max: 100 }));
     const diagnostics = root.querySelector('.eee-issue-list');
-    if (diagnostics) {
-      const wrap = document.createElement('div');
-      wrap.className = 'vd-sec-engineer-diagnostics';
-      const title = document.createElement('h3');
-      title.textContent = 'أبرز الملاحظات المؤثرة على التقييم';
-      wrap.appendChild(title);
-      const clone = diagnostics.cloneNode(true);
-      cleanupClone(clone);
-      wrap.appendChild(clone);
-      analysisBody.appendChild(wrap);
-    }
+    const issueEntries = [...(diagnostics?.querySelectorAll(':scope > div') || [])].slice(0, 6).map(item => ({
+      label: item.querySelector('span')?.textContent?.trim() || 'ملاحظة',
+      value: parseScore(item.querySelector('b')?.textContent)
+    }));
+    chartGrid.appendChild(makeBars('أكثر أنواع الملاحظات تكرارًا', 'عدد الملاحظات المسجلة (وليس مقدار الخصم)', issueEntries, { wide: true }));
+    analysisBody.appendChild(chartGrid);
+    const note = document.createElement('div');
+    note.className = 'vd-sec-engineer-print-note';
+    note.textContent = 'إيضاح: اكتمال البيانات يختلف عن سلامة منطقها؛ التقييم النهائي يحسب من متوسط المكونات المتاحة، ولا يلزم أن يساوي متوسط تقييم الأقسام. راجع تفاصيل أوامر العمل في لوحة المهندس للتحقق من الملاحظات قبل الاعتماد.';
+    analysisBody.appendChild(note);
     report.appendChild(analysisPage);
     return true;
   }
