@@ -2436,11 +2436,47 @@
       sectionGrid.appendChild(clone);
     });
     body.appendChild(sectionGrid);
+    const readNumber = label => {
+      const value = findKpi(label)?.querySelector('strong')?.textContent || '';
+      const match = String(value).replace(',', '.').match(/-?\d+(?:\.\d+)?/);
+      return match ? Number(match[0]) : null;
+    };
+    const fmt = value => Number.isFinite(value) ? value.toFixed(1) + '%' : '—';
+    const ranked = componentLabels.map(label => ({label, score:readNumber(label)}))
+      .filter(item => Number.isFinite(item.score)).sort((a,b) => b.score - a.score);
+    const scope = document.createElement('div');
+    scope.className = 'vd-sec-engineer-scope';
+    const scopeData = [
+      ['أوامر العمل الفريدة', findKpi('أوامر العمل')?.querySelector('strong')?.textContent?.trim() || '—'],
+      ['السجلات المطابقة', root.querySelector('.eee-filter-title > b')?.textContent?.trim() || '—'],
+      ['التدقيق الذكي', findKpi('التدقيق الذكي')?.querySelector('small')?.textContent?.trim() || '—']
+    ];
+    scope.innerHTML = scopeData.map((item,index) =>
+      '<div class="vd-sec-engineer-scope-item vd-sec-engineer-scope-item-' + index +
+      '"><span>' + escapeHtml(item[0]) + '</span><b>' + escapeHtml(item[1]) + '</b></div>'
+    ).join('');
+    body.appendChild(scope);
+    const interpretation = document.createElement('div');
+    interpretation.className = 'vd-sec-engineer-interpretation';
+    interpretation.innerHTML = '<h3>قراءة سريعة لمؤشرات التقييم</h3><div class="vd-sec-engineer-insight-row">' +
+      (ranked.length
+        ? '<p><b>أعلى مكوّن:</b> ' + escapeHtml(ranked[0].label) + ' <strong>' + escapeHtml(fmt(ranked[0].score)) + '</strong></p>' +
+          '<p><b>أقل مكوّن:</b> ' + escapeHtml(ranked[ranked.length - 1].label) + ' <strong>' + escapeHtml(fmt(ranked[ranked.length - 1].score)) + '</strong></p>'
+        : '<p>لا توجد درجات متاحة للتحليل.</p>') +
+      '</div><small>' +
+      (readNumber('متوسط الإنجاز') === 0
+        ? 'تنبيه مراجعة: متوسط الإنجاز المعروض 0%؛ يرجى التحقق من بيانات الإنجاز قبل اعتماد التقييم.'
+        : 'يرجى مراجعة تفاصيل أوامر العمل وملاحظات التدقيق الذكي قبل اعتماد التقييم.') +
+      '</small>';
 
     const sign = document.createElement('div');
     sign.className = 'vd-employee-signature';
     sign.innerHTML = '<div><b>مدير العقد</b><span></span><small>التوقيع</small></div>';
-    body.appendChild(sign);
+    const bottomRow = document.createElement('div');
+    bottomRow.className = 'vd-sec-engineer-bottom-row';
+    bottomRow.appendChild(interpretation);
+    bottomRow.appendChild(sign);
+    body.appendChild(bottomRow);
     report.appendChild(overview);
     const analysisPage = createPage('تحليل مكونات تقييم المهندس','EVALUATION COMPONENT ANALYSIS','vd-report-sec-engineer-analysis');
     const analysisBody = analysisPage.querySelector('.vd-report-section-body');
@@ -3676,6 +3712,10 @@
       cityText.replace(/^ب?إدارة كهرباء\s*/,'').trim();
     const displayTitle = [baseArabic, cityName].filter(Boolean).join(' – ');
 
+    const engineerReport = pageKey === 'electricityEngineerEvaluation';
+    const printedRef = engineerReport
+      ? 'VD • SEC ENGINEER • ' + (cityName || 'PROJECT') + ' • ' + new Date().toLocaleDateString('en-GB')
+      : fileTitle;
     const pages = [...report.querySelectorAll('.vd-report-v2-page')];
     const total = pages.length || 1;
 
@@ -3684,7 +3724,7 @@
       identity.className = 'vd-report-page-identity';
       identity.innerHTML =
         '<b>' + escapeHtml(displayTitle) + '</b>' +
-        '<span dir="ltr">' + escapeHtml(fileTitle) + '</span>';
+        '<span dir="ltr">' + escapeHtml(printedRef) + '</span>';
 
       const sectionHeader = page.querySelector('.vd-report-section-header');
       const coverTitle = page.querySelector('.vd-report-cover-title');
@@ -3696,7 +3736,7 @@
       const stamp = document.createElement('div');
       stamp.className = 'vd-report-page-stamp';
       stamp.setAttribute('dir', 'ltr');
-      stamp.textContent = fileTitle + '  |  Page ' + (index + 1) + ' / ' + total;
+      stamp.textContent = printedRef + '  |  Page ' + (index + 1) + ' / ' + total;
       page.appendChild(stamp);
     });
   }

@@ -2603,3 +2603,201 @@ body.vd-report-v2-mode #vdReportV2 .vd-report-closures-control .vd-report-pagina
   .vd-report-v2-page.vd-report-sec-engineer-overview{break-after:page!important;page-break-after:always!important}
   .vd-report-v2-page.vd-report-sec-engineer-analysis{break-after:auto!important;page-break-after:auto!important}
 }
+
+/* SEC engineer PDF R2 — vibrant, print-safe design; affects SEC reports only. */
+.vd-report-sec-engineer-overview,
+.vd-report-sec-engineer-analysis{
+  -webkit-print-color-adjust:exact!important;
+  print-color-adjust:exact!important;
+  background:#fff!important;
+}
+.vd-report-sec-engineer-overview .vd-report-section-header,
+.vd-report-sec-engineer-analysis .vd-report-section-header{
+  background:linear-gradient(90deg,#ffffff,#ecf4ff,#ffffff)!important;
+  border-bottom:1.5px solid #bad1ef!important;
+}
+.vd-report-sec-engineer-overview .vd-report-section-header h2,
+.vd-report-sec-engineer-analysis .vd-report-section-header h2{
+  font-size:18px!important;
+  color:#193b7c!important;
+}
+.vd-report-sec-engineer-overview .vd-report-page-identity b,
+.vd-report-sec-engineer-analysis .vd-report-page-identity b{font-size:9px!important;color:#214e98!important}
+.vd-report-sec-engineer-overview .vd-report-page-identity span,
+.vd-report-sec-engineer-analysis .vd-report-page-identity span{font-size:7px!important;color:#60748e!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-meta{
+  background:#f0f6ff!important;
+  border:1px solid #b4c9e8!important;
+  border-radius:6px!important;
+}
+.vd-report-sec-engineer-overview .vd-sec-engineer-meta>div{
+  background:#f4f8ff!important;
+  border-color:#cfdef1!important;
+  padding:2.6mm 2mm!important;
+}
+.vd-report-sec-engineer-overview .vd-sec-engineer-meta>div:nth-child(even){background:#eaf3ff!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-meta span{font-size:7.6px!important;color:#60738e!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-meta b{font-size:9.8px!important;color:#1b4383!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-score-hero{
+  background:linear-gradient(90deg,#e8f2ff,#f5f1ff)!important;
+  border:1px solid #b7c9ec!important;
+  border-right:1.8mm solid #2d68c2!important;
+  border-radius:7px!important;
+  padding:2.8mm 4mm!important;
+}
+.vd-report-sec-engineer-overview .vd-sec-engineer-score-hero span{font-size:8.5px!important;color:#284c83!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-score-hero strong{font-size:27px!important;color:#124f9e!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-score-hero p{font-size:8.7px!important;color:#3c4e6e!important;line-height:1.6!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-component-grid .vd-report-kpi-clone{
+  min-height:19mm!important;
+  padding:2.3mm 1.5mm!important;
+  border-radius:6px!important;
+  border:1px solid #c0d6f5!important;
+  border-top:1.2mm solid #2382dc!important;
+  background:#eff6ff!important;
+}
+.vd-report-sec-engineer-overview .vd-sec-engineer-component-grid .vd-report-kpi-clone:nth-child(1){
+  background:#e8f8ef!important;border-color:#afe2c2!important;border-top-color:#0c9c6d!important;
+}
+.vd-report-sec-engineer-overview .vd-sec-engineer-component-grid .vd-report-kpi-clone:nth-child(2){
+  background:#fff0f3!important;border-color:#f2bbcb!important;border-top-color:#dc516d!important;
+}
+.vd-report-sec-engineer-overview .vd-sec-engineer-component-grid .vd-report-kpi-clone:nth-child(3){
+  background:#f2efff!important;border-color:#d3c7f7!important;border-top-color:#815cce!important;
+}
+.vd-report-sec-engineer-overview .vd-sec-engineer-component-grid .vd-report-kpi-clone:nth-child(4){
+  background:#fff5e8!important;border-color:#f2d9ae!important;border-top-color:#e89d32!important;
+}
+.vd-report-sec-engineer-overview .vd-sec-engineer-component-grid .vd-report-kpi-clone span{font-size:8.8px!important;color:#344b6f!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-component-grid .vd-report-kpi-clone strong{font-size:19px!important;color:#1e5aa7!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-component-grid .vd-report-kpi-clone:nth-child(1) strong{color:#07845d!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-component-grid .vd-report-kpi-clone:nth-child(2) strong{color:#bb3853!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-component-grid .vd-report-kpi-clone:nth-child(3) strong{color:#6948ad!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-component-grid .vd-report-kpi-clone:nth-child(4) strong{color:#b87019!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-component-grid .vd-report-kpi-clone small{font-size:7px!important;color:#465776!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-section-grid .eee-section-card{
+  min-height:33mm!important;
+  border:1px solid #bcd3ed!important;
+  border-right:1.3mm solid #3484cd!important;
+  border-radius:6px!important;
+  background:#f4f8ff!important;
+  padding:2.6mm!important;
+}
+.vd-report-sec-engineer-overview .vd-sec-engineer-section-grid .eee-section-card:nth-child(2){border-right-color:#0c9d79!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-section-grid .eee-section-card>div span{font-size:9.5px!important;color:#244f93!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-section-grid .eee-section-card>div strong{font-size:14px!important;color:#184e97!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-section-grid dl div{background:#e8f1ff!important;padding:1.5mm!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-section-grid dt{font-size:7px!important;color:#59708a!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-section-grid dd{font-size:8.8px!important;color:#1d488b!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-scope{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:2.4mm!important;
+}
+.vd-report-sec-engineer-overview .vd-sec-engineer-scope-item{
+  border:1px solid #c0d5ed!important;
+  border-radius:6px!important;
+  background:#edf5ff!important;
+  text-align:center!important;
+  padding:2.2mm 2.7mm!important;
+}
+.vd-report-sec-engineer-overview .vd-sec-engineer-scope-item:nth-child(2){background:#eaf9f3!important;border-color:#b3e1cd!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-scope-item:nth-child(3){background:#fff1e9!important;border-color:#f0c8af!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-scope-item span{display:block!important;font-size:7.4px!important;color:#57708d!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-scope-item b{display:block!important;margin-top:1mm!important;font-size:11px!important;color:#174d99!important;line-height:1.3!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-interpretation{
+  margin-top:.5mm!important;
+  border:1px solid #d5c9ef!important;
+  border-right:1mm solid #7a58bd!important;
+  border-radius:6px!important;
+  background:#f7f4fe!important;
+  padding:2mm 3mm!important;
+}
+.vd-report-sec-engineer-overview .vd-sec-engineer-interpretation h3{margin:0 0 1mm!important;font-size:9.1px!important;color:#6848aa!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-insight-row{display:grid!important;grid-template-columns:1fr 1fr!important;gap:2mm!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-interpretation p{margin:0!important;font-size:8.4px!important;color:#484067!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-interpretation p strong{font-size:9px!important;color:#7248b8!important}
+.vd-report-sec-engineer-overview .vd-sec-engineer-interpretation small{display:block!important;margin-top:1mm!important;font-size:7.5px!important;line-height:1.4!important;color:#76592b!important}
+.vd-report-sec-engineer-overview .vd-employee-signature{margin-top:1mm!important;padding:1mm 4mm!important}
+.vd-report-sec-engineer-overview .vd-employee-signature b{font-size:8.5px!important;color:#2f4c80!important}
+.vd-report-sec-engineer-analysis .vd-sec-engineer-print-grid{gap:4mm!important}
+.vd-report-sec-engineer-analysis .vd-sec-engineer-print-panel{
+  min-height:66mm!important;
+  border:1px solid #bfd2e8!important;
+  border-top:1.4mm solid #267bc8!important;
+  border-radius:7px!important;
+  background:#f5faff!important;
+  padding:3mm 4mm!important;
+}
+.vd-report-sec-engineer-analysis .vd-sec-engineer-print-panel:nth-child(2){background:#f0faf6!important;border-top-color:#0d9c7c!important}
+.vd-report-sec-engineer-analysis .vd-sec-engineer-print-panel-wide{min-height:47mm!important;background:#faf6ff!important;border-top-color:#925fc9!important}
+.vd-report-sec-engineer-analysis .vd-sec-engineer-print-heading{padding-bottom:2mm!important;margin-bottom:2.5mm!important;border-bottom:1px solid #d3dff0!important}
+.vd-report-sec-engineer-analysis .vd-sec-engineer-print-heading h3{font-size:12px!important;color:#184b8e!important}
+.vd-report-sec-engineer-analysis .vd-sec-engineer-print-panel:nth-child(2) .vd-sec-engineer-print-heading h3{color:#0b8064!important}
+.vd-report-sec-engineer-analysis .vd-sec-engineer-print-panel-wide .vd-sec-engineer-print-heading h3{color:#8150aa!important}
+.vd-report-sec-engineer-analysis .vd-sec-engineer-print-heading small{font-size:8.2px!important;color:#63728a!important}
+.vd-report-sec-engineer-analysis .vd-sec-engineer-print-bars{gap:2.7mm!important}
+.vd-report-sec-engineer-analysis .vd-sec-engineer-print-row{min-height:8mm!important;grid-template-columns:minmax(34mm,1fr) minmax(28mm,1.2fr) 14mm!important}
+.vd-report-sec-engineer-analysis .vd-sec-engineer-print-row span{font-size:9px!important;color:#304763!important}
+.vd-report-sec-engineer-analysis .vd-sec-engineer-print-row b{font-size:10px!important;color:#214c92!important}
+.vd-report-sec-engineer-analysis .vd-sec-engineer-print-track{height:6mm!important;background:repeating-linear-gradient(to left,#e5eefb,#e5eefb 24.6%,#bfcfe7 25%,#e5eefb 25.4%)!important}
+.vd-report-sec-engineer-analysis .vd-sec-engineer-print-track i{background:linear-gradient(90deg,#1e60b4,#429dec)!important}
+.vd-report-sec-engineer-analysis .vd-sec-engineer-print-panel:nth-child(2) .vd-sec-engineer-print-track i{background:linear-gradient(90deg,#06836e,#36baa1)!important}
+.vd-report-sec-engineer-analysis .vd-sec-engineer-print-panel-wide .vd-sec-engineer-print-track i{background:linear-gradient(90deg,#7346ae,#b482dc)!important}
+.vd-report-sec-engineer-analysis .vd-sec-engineer-print-panel-wide .vd-sec-engineer-print-row{grid-template-columns:minmax(70mm,.85fr) minmax(65mm,1.3fr) 15mm!important}
+.vd-report-sec-engineer-analysis .vd-sec-engineer-print-panel-wide .vd-sec-engineer-print-row b{color:#7646aa!important}
+.vd-report-sec-engineer-analysis .vd-sec-engineer-print-note{
+  margin-top:3mm!important;
+  padding:3mm 4mm!important;
+  border:1px solid #c7d7ed!important;
+  border-right:1.3mm solid #e9a133!important;
+  border-radius:7px!important;
+  background:#edf5ff!important;
+  color:#29486e!important;
+  font-size:9.3px!important;
+  line-height:1.65!important;
+}
+@media print{
+ .vd-report-sec-engineer-overview .vd-sec-engineer-scope-item,
+ .vd-report-sec-engineer-overview .vd-sec-engineer-interpretation,
+ .vd-report-sec-engineer-analysis .vd-sec-engineer-print-panel{
+  break-inside:avoid!important;page-break-inside:avoid!important;
+ }
+}
+
+/* Compact one-line metadata and integrated approval: preserves A4 pagination. */
+.vd-report-sec-engineer-overview .vd-sec-engineer-meta{
+  grid-template-columns:1.05fr 1.8fr .86fr .88fr .74fr!important;
+}
+.vd-report-sec-engineer-overview .vd-sec-engineer-meta .vd-safety-meta-wide{
+  grid-column:auto!important;
+  border-top:0!important;
+  border-left:1px solid #cbdaf0!important;
+  text-align:center!important;
+}
+.vd-report-sec-engineer-overview .vd-sec-engineer-meta>div{
+  display:flex!important;flex-direction:column!important;
+  justify-content:center!important;padding:2mm 1.5mm!important;
+}
+.vd-report-sec-engineer-overview .vd-sec-engineer-bottom-row{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 47mm!important;
+  gap:3mm!important;
+  align-items:stretch!important;
+}
+.vd-report-sec-engineer-overview .vd-sec-engineer-bottom-row .vd-sec-engineer-interpretation{
+  margin:0!important;
+}
+.vd-report-sec-engineer-overview .vd-sec-engineer-bottom-row .vd-employee-signature{
+  display:flex!important;
+  justify-content:center!important;
+  align-items:center!important;
+  padding:2mm!important;
+  margin:0!important;
+  border:1px solid #b7cbea!important;
+  border-radius:6px!important;
+  background:#eef5ff!important;
+}
+.vd-report-sec-engineer-overview .vd-sec-engineer-bottom-row .vd-employee-signature>div{
+  width:100%!important;
+}
