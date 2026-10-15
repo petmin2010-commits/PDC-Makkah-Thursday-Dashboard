@@ -2801,3 +2801,9 @@ body.vd-report-v2-mode #vdReportV2 .vd-report-closures-control .vd-report-pagina
 .vd-report-sec-engineer-overview .vd-sec-engineer-bottom-row .vd-employee-signature>div{
   width:100%!important;
 }
+
+/* html2canvas injects a hidden iframe as a body child. Keep its layout measurable
+   while print-only mode hides all other dashboard children. */
+body.vd-report-v2-mode > iframe.html2canvas-container:not(#vdReportV2){
+  display:block!important;
+}

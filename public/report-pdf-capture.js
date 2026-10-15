@@ -2,6 +2,30 @@
 'use strict';
 // Export the same assembled report pages as a browser-generated PDF Blob.
 // Keep the existing print preview available; upload only after an actual PDF is produced.
+async function captureCompatible(Canvas,page,options){
+ if(!window.VDReportColorCompatibility?.sanitize)throw Error('PDF_COLOR_COMPAT_UNAVAILABLE');
+ page.setAttribute('data-vd-pdf-capture-target','1');
+ try{
+   return await Canvas(page,{...options,onclone:cloned=>{
+     const target=cloned.querySelector('[data-vd-pdf-capture-target="1"]');
+     if(!target)throw Error('PDF_CLONED_PAGE_MISSING');
+     // The print-only body rule hides the html2canvas iframe's layout.
+     // Adjust the isolated clone only; keep the user's print preview unchanged.
+     const copy=cloned.getElementById('vdReportV2');
+     if(copy&&cloned.body.classList.contains('vd-report-v2-mode')){
+       cloned.body.classList.remove('vd-report-v2-mode');
+       for(const sibling of cloned.body.children){
+         if(sibling!==copy)sibling.style.setProperty('display','none','important');
+       }
+       copy.style.setProperty('display','block','important');
+     }
+     window.VDReportColorCompatibility.sanitize(cloned,target);
+
+   }});
+ }finally{
+   page.removeAttribute('data-vd-pdf-capture-target');
+ }
+}
 async function createPdf(report){
  const Canvas=window.html2canvas, Pdf=window.jspdf?.jsPDF;
  if(typeof Canvas!=='function'||typeof Pdf!=='function')throw Error('PDF_LIBRARY_UNAVAILABLE');
@@ -16,7 +40,7 @@ async function createPdf(report){
  try{
    for(let i=0;i<pages.length;i++){
      const page=pages[i];
-     const canvas=await Canvas(page,{backgroundColor:'#fff',scale:1.25,useCORS:true,allowTaint:false,logging:false,removeContainer:true,scrollX:0,scrollY:0,windowWidth:1160});
+     const canvas=await captureCompatible(Canvas,page,{backgroundColor:'#fff',scale:1.25,useCORS:true,allowTaint:false,logging:false,removeContainer:true,scrollX:0,scrollY:0,windowWidth:1160});
      if(canvas.width<10||canvas.height<10)throw Error('EMPTY_REPORT_PAGE_'+(i+1));
      if(i)pdf.addPage('a4','landscape');
      const image=canvas.toDataURL('image/jpeg',0.76);
@@ -45,7 +69,7 @@ async function createWindowPdf(win,selector='.page'){
  const pdf=new Pdf({orientation:'landscape',unit:'mm',format:'a4',compress:true});
  for(let i=0;i<pages.length;i++){
    if(win.closed)throw Error('REPORT_NOT_READY');
-   const canvas=await Canvas(pages[i],{backgroundColor:'#fff',scale:1.35,useCORS:true,allowTaint:false,logging:false,removeContainer:true,scrollX:0,scrollY:0});
+   const canvas=await captureCompatible(Canvas,pages[i],{backgroundColor:'#fff',scale:1.35,useCORS:true,allowTaint:false,logging:false,removeContainer:true,scrollX:0,scrollY:0});
    if(canvas.width<10||canvas.height<10)throw Error('REPORT_NOT_READY');
    if(i)pdf.addPage('a4','landscape');
    const image=canvas.toDataURL('image/jpeg',0.82);
