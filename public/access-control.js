@@ -32,6 +32,8 @@ const aliases=new Map([
   [norm('تقارير Excel'),EXCEL_CANON],
   [norm('تصدير تقرير اكسيل'),EXCEL_CANON],
   [norm('تصدير تقرير Excel'),EXCEL_CANON],
+  [norm('تقييم المقاولين بالسلامة'),norm('تقييم السلامة للمقاولين')],
+  [norm('تقيم السلامة للمقاولين'),norm('تقييم السلامة للمقاولين')],
   [norm('Projects Report Engine'),norm('المشاريع')]
 ]);
 function canon(value){
@@ -145,7 +147,7 @@ function wrapOpenPage(){
   const pageLabels={
     master:'الرئيسية',projects:'المشاريع',connections:'التوصيلات',permits:'التصاريح',
     assets:'الأصول',closures:'الإغلاقات',tasks:'متابعة أعمال المواقع',emergency:'الطوارئ',
-    safety:'مخالفات السلامة',executionViolations:'مخالفات التنفيذ',
+    safety:'مخالفات السلامة',contractorSafety:'تقييم السلامة للمقاولين',executionViolations:'مخالفات التنفيذ',
     minutes:'محاضر مخالفة إثبات الحالة',dataQuality:'جودة البيانات',hrStaff:'الموارد البشرية للكادر',
     employeeEvaluation:'تقييم مهندسي المواقع',electricityEngineerEvaluation:'تقييم مهندسي شركة الكهرباء',
     wednesdayMeeting:'اجتماع الـ PDC',smartThursday:'تقرير الخميس الذكي',

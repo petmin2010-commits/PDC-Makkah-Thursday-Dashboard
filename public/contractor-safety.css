@@ -79,3 +79,23 @@
  body.cs-print .cs-kpi strong{font-size:22px}
  body.cs-print .cs-report .cs-bar-row{break-inside:avoid}
 }
+
+/* Safety-evaluation tab: same report-period flow as the Safety Violations page. */
+#contractorSafetyPage .cs-filters{margin-bottom:0;border-radius:12px 12px 0 0;background:#f7fafc}
+#contractorSafetyPage .cs-filters>label{flex:1 1 170px}
+#contractorSafetyPage .cs-multiple{flex:1 1 195px}
+.cs-period{border:1px solid #dbe6ee;border-top:0;border-radius:0 0 12px 12px;background:#f7fafc;padding:13px 15px 12px;margin-bottom:14px}
+.cs-period-heading{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:9px}
+.cs-period-heading>b{font-size:14px;color:#194d78}
+.cs-period-heading>small{font-size:11px;color:#58768b}
+.cs-period-fields{display:flex;align-items:end;gap:8px;flex-wrap:wrap}
+.cs-period-fields>label{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:700;min-width:145px}
+.cs-period-fields input{min-height:38px;border:1px solid #ccdbe8;border-radius:8px;padding:7px;background:white;color:#152c43;font:inherit}
+.cs-period-presets{display:flex;align-items:center;gap:5px;flex-wrap:wrap;flex:1}
+.cs-period-presets button{font-family:inherit;border:1px solid #c6d7e5;background:white;padding:7px 11px;min-height:38px;border-radius:8px;color:#254965;font-size:11px;font-weight:700;cursor:pointer}
+.cs-period-presets button:hover{border-color:#146c91;background:#eff9ff}
+.cs-period-presets button.active{background:#176f82;color:white;border-color:#176f82}
+.cs-period-summary{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:12px;padding:8px 12px;border:1px solid #dce8ef;border-radius:9px;background:#fff;color:#36566d;font-size:12px}
+.cs-period-summary b{color:#12666b}
+.cs-report .cs-head-actions .cs-primary{background:#116d58;color:white}
+@media(max-width:740px){.cs-period-fields>label{flex:1}.cs-period-presets{flex-basis:100%}.cs-period-presets button{flex:1 0 30%}.cs-period-summary{flex-direction:column}}

@@ -6,13 +6,15 @@ const clean=v=>String(v??'').replace(/\s+/g,' ').trim();
 const fmt=n=>Number(n||0).toLocaleString('en-US');
 const avg=x=>x.length?Math.round(x.reduce((s,v)=>s+v,0)/x.length*10)/10:null;
 const state={rows:[],loaded:false,error:'',loading:false,updatedAt:'',city:'',
- selected:{contractor:null,engineer:null},dateFrom:'',dateTo:'',query:'',severity:'all',limit:150,searches:{},month:''};
+ selected:{contractor:null,engineer:null,workOrder:null,violation:null},dateFrom:'',dateTo:'',period:'all',query:'',severity:'all',limit:150,searches:{},month:''};
 const uniq=a=>[...new Set(a.map(clean).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar'));
 const fmtPct=n=>n===null?'—':Number(n).toFixed(1)+'%';
-function filterRows(all=state.rows){
+function filterRows(all=state.rows,skip=''){
  return all.filter(r=>{
-  if(state.selected.contractor&&!state.selected.contractor.has(r.contractor))return false;
-  if(state.selected.engineer&&!state.selected.engineer.has(r.engineer))return false;
+  if(skip!=='contractor'&&state.selected.contractor&&!state.selected.contractor.has(r.contractor))return false;
+  if(skip!=='engineer'&&state.selected.engineer&&!state.selected.engineer.has(r.engineer))return false;
+  if(skip!=='workOrder'&&state.selected.workOrder&&!state.selected.workOrder.has(r.workOrder))return false;
+  if(skip!=='violation'&&state.selected.violation&&!(r.violations||[]).some(v=>state.selected.violation.has(String(v.number))))return false;
   if(state.dateFrom&&(!r.date||r.date<state.dateFrom))return false;
   if(state.dateTo&&(!r.date||r.date>state.dateTo))return false;
   if(state.month&&(!r.date||!r.date.startsWith(state.month)))return false;
@@ -32,9 +34,10 @@ function stats(rows){
  .sort((a,b)=>(b.score??-1)-(a.score??-1)||b.inspections-a.inspections);
 }
 function multiple(key,label,values){
- const s=state.selected[key],chosen=s?s.size:values.length;
- const header=s?(chosen+' من '+values.length):'الكل';
- const options=values.map(v=>'<label class="cs-choice"><input type="checkbox" data-cs-select="'+key+'" value="'+esc(v)+'"'+(!s||s.has(v)?' checked':'')+'><span>'+esc(v)+'</span></label>').join('');
+ const choices=values.map(v=>typeof v==='string'?{value:v,label:v}:v);
+ const s=state.selected[key],chosen=s?s.size:choices.length;
+ const header=s?(chosen+' من '+choices.length):'الكل';
+ const options=choices.map(v=>'<label class="cs-choice"><input type="checkbox" data-cs-select="'+key+'" value="'+esc(v.value)+'"'+(!s||s.has(v.value)?' checked':'')+'><span>'+esc(v.label)+'</span></label>').join('');
  return '<details class="cs-multiple" id="cs-menu-'+key+'"><summary>'+esc(label)+' <b>'+esc(header)+'</b></summary>'+
  '<div class="cs-multiple-body"><input type="search" data-cs-choice-search placeholder="بحث داخل القائمة..."><div class="cs-choice-list">'+options+'</div></div></details>';
 }
@@ -94,38 +97,57 @@ function content(rows,printing=false){
  const scoreBars='<section class="cs-panel"><h3>تقييم تطبيق لائحة السلامة في الموقع — جميع المقاولين</h3><p>متوسط درجات الفحص لكل مقاول من 100%، مع إظهار عدد الفحوص ذات التقييم الصالح. اضغط اسم المقاول لتصفية التقرير.</p>'+
  ranking.map(x=>chartBar(x.name,x.score??0,scoreMax,fmtPct(x.score)+' • '+fmt(x.valid)+' فحص',x.name)).join('')+'</section>';
  const graphs='<div class="cs-grid">'+scoreBars+monthly+top+severity+'</div>';
- const limit=printing?300:state.limit;
+ const limit=printing?Math.min(300,rows.length):state.limit;
  const sorted=[...rows].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
  const detailRows=sorted.slice(0,limit).map((r,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(r.date)+'</td><td>'+esc(r.workOrder)+'</td>'+
  '<td>'+esc(r.contractor)+'</td><td>'+esc(r.engineer)+'</td><td>'+fmtPct(r.score)+'</td><td>'+fmt(r.a)+'</td><td>'+fmt(r.b)+'</td><td>'+fmt(r.c)+'</td>'+
  '<td class="cs-describe">'+esc((r.violations||[]).map(x=>x.label).join('؛ ')||'لا توجد مخالفة')+'</td></tr>').join('');
  const details='<section class="cs-panel"><h3>سجل عمليات الفحص التفصيلي</h3>'+
- '<p>معروض '+fmt(Math.min(sorted.length,limit))+' فحص من أصل '+fmt(sorted.length)+'. كل زيارة فحص مستقلة حتى عند تكرار رقم أمر العمل.</p>'+
+ '<p>معروض '+fmt(Math.min(sorted.length,limit))+' فحص من أصل '+fmt(sorted.length)+'. '+(printing&&sorted.length>limit?'الملحق التفصيلي يوضح آخر '+fmt(limit)+' فحص؛ جميع الشارتات والمؤشرات والتقييمات محسوبة من كامل '+fmt(sorted.length)+' فحص. ':'')+'كل زيارة فحص مستقلة حتى عند تكرار رقم أمر العمل.</p>'+
  '<div class="cs-table-wrap"><table class="cs-table cs-detail"><thead><tr><th>م</th><th>التاريخ</th><th>أمر العمل</th><th>المقاول</th><th>المهندس</th><th>الدرجة</th><th>A</th><th>B</th><th>C</th><th>بنود المخالفات</th></tr></thead><tbody>'+detailRows+'</tbody></table></div>'+
  (!printing&&limit<rows.length?'<button type="button" id="csMore" class="cs-more">عرض فحوص إضافية</button>':'')+'</section>';
  const note='<section class="cs-method"><b>منهجية احتساب التقييم</b><p>درجة كل فحص من العمود F (نسبة النموذج G × 100) كما هي في Intellect. تقييم المقاول = متوسط درجات فحوصه التي تحتوي على تقييم صالح. الفحوص بلا درجة تُحتسب ضمن عدد الفحوص ولا تدخل في المتوسط. بند «لا ينطبق» مستبعد من مقام معادلة النموذج الأصلي. الأوزان: A = 7 وB = 2 وC = 0.5. لا يعتبر هذا التقرير ترتيبًا تعاقديًا أو اعتماد جزاءات رسمية.</p></section>';
  const weeklyInsights=window.VDSafetyWeeklyInsights?.render(rows)||'';
  return kpis+note+graphs+weeklyInsights+rankingTable+details;
 }
+function isoDate(d){return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}
+function periodLabel(){const a=state.dateFrom,b=state.dateTo;return !a&&!b?'كامل المدة':a&&b?'من '+a+' إلى '+b:a?'من '+a:'حتى '+b}
+function setPeriod(preset){
+ const today=new Date();today.setHours(0,0,0,0);
+ let from='',to='';
+ if(preset==='week'){const start=new Date(today);start.setDate(start.getDate()-((start.getDay()-5+7)%7));const end=new Date(start);end.setDate(end.getDate()+6);from=isoDate(start);to=isoDate(end)}
+ else if(preset==='month'){from=isoDate(new Date(today.getFullYear(),today.getMonth(),1));to=isoDate(today)}
+ else if(preset==='30'||preset==='90'){const start=new Date(today);start.setDate(start.getDate()-(Number(preset)-1));from=isoDate(start);to=isoDate(today)}
+ else if(preset==='year'){from=isoDate(new Date(today.getFullYear(),0,1));to=isoDate(today)}
+ state.dateFrom=from;state.dateTo=to;state.period=preset;state.month='';state.limit=150;render();
+}
 function controls(){
- const contractors=uniq(state.rows.map(x=>x.contractor)),engineers=uniq(state.rows.map(x=>x.engineer));
- return '<div class="cs-filters">'+
- multiple('contractor','المقاول',contractors)+multiple('engineer','مهندس الفحص',engineers)+
- '<label>من تاريخ<input type="date" id="csFrom" value="'+esc(state.dateFrom)+'"></label>'+
+ const contractors=uniq(filterRows(state.rows,'contractor').map(x=>x.contractor));
+ const engineers=uniq(filterRows(state.rows,'engineer').map(x=>x.engineer));
+ const workOrders=uniq(filterRows(state.rows,'workOrder').map(x=>x.workOrder));
+ const issueMap=new Map();
+ filterRows(state.rows,'violation').forEach(r=>(r.violations||[]).forEach(v=>issueMap.set(String(v.number),{value:String(v.number),label:v.number+' — '+v.label})));
+ const issueOptions=[...issueMap.values()].sort((a,b)=>Number(a.value)-Number(b.value));
+ const filterBar='<div class="cs-filters">'+multiple('contractor','المقاول',contractors)+multiple('engineer','مهندس الفحص',engineers)+
+  multiple('workOrder','رقم أمر العمل',workOrders)+multiple('violation','نوع مخالفة السلامة',issueOptions)+
+  '<label>تصنيف المخالفة<select id="csSeverity"><option value="all">جميع البنود</option><option value="a"'+(state.severity==='a'?' selected':'')+'>A · وزن 7</option><option value="b"'+(state.severity==='b'?' selected':'')+'>B · وزن 2</option><option value="c"'+(state.severity==='c'?' selected':'')+'>C · وزن 0.5</option></select></label>'+
+  '<label>بحث شامل<input type="search" id="csQuery" value="'+esc(state.query)+'" placeholder="أمر العمل أو المقاول أو البند..."></label></div>';
+ const choices=[['all','كامل المدة'],['week','آخر أسبوع (الجمعة–الخميس)'],['month','هذا الشهر'],['30','آخر 30 يوم'],['90','آخر 90 يوم'],['year','هذا العام']];
+ const period='<section class="cs-period"><div class="cs-period-heading"><b>الفترة الزمنية للتقرير</b><small>الأساس: تاريخ فحص السلامة من ورقة Intellect</small></div>'+
+ '<div class="cs-period-fields"><label>من تاريخ<input type="date" id="csFrom" value="'+esc(state.dateFrom)+'"></label>'+
  '<label>إلى تاريخ<input type="date" id="csTo" value="'+esc(state.dateTo)+'"></label>'+
- '<label>تصنيف المخالفة<select id="csSeverity"><option value="all">جميع البنود</option><option value="a"'+(state.severity==='a'?' selected':'')+'>A · وزن 7</option><option value="b"'+(state.severity==='b'?' selected':'')+'>B · وزن 2</option><option value="c"'+(state.severity==='c'?' selected':'')+'>C · وزن 0.5</option></select></label>'+
- '<label>بحث أمر عمل أو بند<input type="search" id="csQuery" value="'+esc(state.query)+'" placeholder="رقم الأمر، المقاول، المخالفة..."></label>'+
- '<button type="button" id="csReset" class="cs-secondary">مسح الفلاتر</button>'+
- (state.month?'<button type="button" id="csClearMonth" class="cs-secondary">إلغاء شهر '+esc(state.month)+'</button>':'')+
- '</div>';
+ '<div class="cs-period-presets">'+choices.map(([key,label])=>'<button type="button" data-cs-period="'+key+'" class="'+(state.period===key?'active':'')+'">'+label+'</button>').join('')+'</div>'+
+ '<button type="button" id="csReset" class="cs-secondary">↻ إعادة ضبط الكل</button>'+
+ '</div><div class="cs-period-summary"><span>الفترة المختارة: <b>'+esc(periodLabel())+'</b></span><span>عدد الفحوص المطابقة: <b>'+fmt(filterRows().length)+'</b> من '+fmt(state.rows.length)+'</span></div></section>';
+ return filterBar+period;
 }
 function render(){
  const host=root();if(!host)return;
  const city=document.title.includes('جدة')?'جدة':'مكة',data=state.loaded?filterRows():[];
  const status=state.loading?'جاري تحديث بيانات Intellect...':state.error?'<span class="cs-error">'+esc(state.error)+'</span>':state.loaded?'آخر قراءة: '+esc(new Date(state.updatedAt).toLocaleString('ar-SA')):'لم تُحمّل البيانات';
  host.innerHTML='<div class="cs-report">'+
- '<header class="cs-head"><div><span>VISION DIMENSIONS • SAFETY ASSESSMENT</span><h2>تقييم المقاولين بالسلامة — '+city+'</h2><p>نتائج فحوص السلامة والجودة من ورقة Intellect المستقلة لكل مدينة.</p></div>'+
- '<div class="cs-head-actions"><button type="button" id="csRefresh" class="cs-secondary">↻ تحديث</button><button type="button" id="csExport" class="cs-primary"'+(!state.loaded?' disabled':'')+'>↓ تصدير التقرير PDF</button></div></header>'+
+ '<header class="cs-head"><div><span>VISION DIMENSIONS • SAFETY ASSESSMENT</span><h2>تقييم السلامة للمقاولين — '+city+'</h2><p>نتائج فحوص السلامة والجودة من ورقة Intellect المستقلة لكل مدينة.</p></div>'+
+ '<div class="cs-head-actions"><button type="button" id="csRefresh" class="cs-secondary">↻ تحديث</button><button type="button" id="csExport" class="cs-primary"'+(!state.loaded?' disabled':'')+'>↓ تصدير PDF حسب الفلاتر والفترة</button></div></header>'+
  '<p class="cs-source">المصدر: السلامة والجودة '+city+' / Intellect · '+status+'</p>'+
  (state.loaded?controls()+'<div class="cs-results">عدد الفحوص المطابقة: <b>'+fmt(data.length)+'</b></div>'+content(data):'')+'</div>';
  bindUi(host);
@@ -150,12 +172,20 @@ function bindUi(host){
  }));
  host.querySelector('#csMore')?.addEventListener('click',()=>{state.limit+=150;render()});
  host.querySelector('#csReset')?.addEventListener('click',()=>{
-  state.selected={contractor:null,engineer:null};state.dateFrom='';state.dateTo='';state.query='';state.severity='all';state.month='';state.limit=150;render();
+  state.selected={contractor:null,engineer:null,workOrder:null,violation:null};state.dateFrom='';state.dateTo='';state.period='all';state.query='';state.severity='all';state.month='';state.limit=150;render();
  });
  host.querySelector('#csClearMonth')?.addEventListener('click',()=>{state.month='';render()});
- [['csFrom','dateFrom'],['csTo','dateTo'],['csSeverity','severity']].forEach(([id,key])=>{
-  host.querySelector('#'+id)?.addEventListener('change',e=>{state[key]=e.target.value;state.limit=150;render()});
+ host.querySelectorAll('[data-cs-period]').forEach(el=>el.addEventListener('click',()=>setPeriod(el.dataset.csPeriod)));
+ [['csFrom','dateFrom'],['csTo','dateTo']].forEach(([id,key])=>{
+  host.querySelector('#'+id)?.addEventListener('change',e=>{
+   state[key]=e.target.value;
+   if(state.dateFrom&&state.dateTo&&state.dateFrom>state.dateTo){
+    const tmp=state.dateFrom;state.dateFrom=state.dateTo;state.dateTo=tmp;
+   }
+   state.period='custom';state.month='';state.limit=150;render();
+  });
  });
+ host.querySelector('#csSeverity')?.addEventListener('change',e=>{state.severity=e.target.value;state.limit=150;render()});
  let searchTimer;
  host.querySelector('#csQuery')?.addEventListener('input',e=>{
   const value=e.target.value;clearTimeout(searchTimer);
@@ -182,13 +212,17 @@ async function load(refresh=false){
 function exportPdf(general=false){
  const popup=window.open('','_blank');
  if(!popup){alert('يرجى السماح بفتح نافذة تصدير PDF');return}
- popup.document.write('<html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>تقييم المقاولين بالسلامة</title></head><body>جاري إعداد تقرير السلامة...</body></html>');
+ popup.document.write('<html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>تقييم السلامة للمقاولين</title></head><body>جاري إعداد تقرير السلامة...</body></html>');
  (async()=>{
   if(!state.loaded)await load();
   if(!state.loaded){popup.document.body.textContent=state.error||'لم تتوفر بيانات التقرير';return}
   const city=document.title.includes('جدة')?'جدة':'مكة',rows=general?state.rows:filterRows();
-  const title='تقييم المقاولين بالسلامة - '+city;
-  const filterText=general?'تقرير عام — كل المقاولين وجميع الفترات':'تقرير حسب الفلاتر المختارة';
+  const title='تقييم السلامة للمقاولين - '+city;
+  const filtersApplied=Object.entries(state.selected).filter(([,v])=>v).map(([k,v])=>({contractor:'المقاول',engineer:'المهندس',workOrder:'أمر العمل',violation:'نوع المخالفة'}[k]+': '+[...v].slice(0,8).join('، ')+(v.size>8?' وغيرها':'')));
+  if(state.severity!=='all')filtersApplied.push('الوزن: '+state.severity.toUpperCase());
+  if(state.query)filtersApplied.push('بحث: '+state.query);
+  const filterText=general?'التقرير العام — جميع المقاولين · كامل الفترة · دون فلاتر':
+   'تقرير حسب الفلاتر — '+periodLabel()+(filtersApplied.length?' · '+filtersApplied.join(' | '):' · جميع المقاولين');
   const markup='<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8">'+
    '<title>'+esc(title)+'</title><link rel="stylesheet" href="/contractor-safety.css?v=20261015-1">'+
    '<link rel="stylesheet" href="/contractor-safety-weekly.css?v=20261015-2"></head>'+
@@ -212,7 +246,7 @@ function activate(){
  document.getElementById('contractorSafetyPage')?.classList.add('active');
  const filter=document.getElementById('filterBar');if(filter)filter.style.display='none';
  const topSearch=document.querySelector('.top-actions .search');if(topSearch)topSearch.style.display='none';
- const title=document.getElementById('pageTitle');if(title)title.textContent='تقييم المقاولين بالسلامة';
+ const title=document.getElementById('pageTitle');if(title)title.textContent='تقييم السلامة للمقاولين';
  load();
 }
 if(typeof openPage==='function'){

@@ -22,7 +22,7 @@
       subtitle: 'تقارير الرقابة والتدقيق',
       items: [
         ['safety','تقرير مخالفات السلامة العام','⚠'],
-        ['contractorSafety','تقرير تقييم المقاولين بالسلامة','✓'],
+        ['contractorSafety','تقرير تقييم السلامة للمقاولين العام','✓'],
         ['executionViolations','تقرير مخالفات التنفيذ العام','🚫'],
         ['minutes','تقرير محاضر إثبات الحالة العام','▣'],
         ['dataQuality','تقرير جودة البيانات العام','◆']
@@ -60,7 +60,9 @@
   }
 
   function reportAvailable(key) {
-    return key === 'projectCompletionAnalysis' || !!navFor(key);
+    const nav = navFor(key);
+    if (key === 'contractorSafety') return !!nav && !nav.hidden && getComputedStyle(nav).display !== 'none';
+    return key === 'projectCompletionAnalysis' || !!nav;
   }
 
   async function exportProjectCompletionAnalysis(button) {
@@ -278,7 +280,7 @@
         }
         if (btn.dataset.reportPage === 'contractorSafety') {
           if (typeof window.VDContractorSafety?.exportGeneral === 'function') window.VDContractorSafety.exportGeneral();
-          else alert('تعذر تشغيل تقرير تقييم المقاولين بالسلامة.');
+          else alert('تعذر تشغيل تقرير تقييم السلامة للمقاولين.');
           return;
         }
         exportGeneral(btn.dataset.reportPage, btn);
