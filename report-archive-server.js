@@ -68,8 +68,40 @@ module.exports=function installArchive({app,requireAuth_,getSheets,spreadsheetId
    }
    throw Error('PCLOUD_AUTH_REJECTED');
  }
+ const davHost=cloudHost==='eapi.pcloud.com'?'ewebdav.pcloud.com':'webdav.pcloud.com';
+ const davReady=passwordReady&&cloudEnabled;
+ const safeDavPath=p=>p.split('/').map((part,i)=>i===0?'':encodeURIComponent(part)).join('/');
+ async function dav(method,p,options={}){
+   if(!davReady)throw Error('PCLOUD_WEBDAV_NOT_CONFIGURED');
+   const address='https://'+davHost+safeDavPath(p);
+   const header={Authorization:'Basic '+Buffer.from(cloudUser+':'+cloudPass).toString('base64'),...options.headers};
+   let response;
+   try{
+     response=await fetch(address,{method,headers:header,body:options.body,redirect:'error',signal:AbortSignal.timeout(45000)});
+   }catch(e){throw Error('WEBDAV_NETWORK_ERROR')}
+   if(options.expected?.includes(response.status))return response;
+   if(response.status===401||response.status===403)throw Error('WEBDAV_LOGIN_CONFIRMATION_REQUIRED_'+response.status);
+   throw Error('WEBDAV_HTTP_'+response.status);
+ }
+ async function checkDav(){await dav('PROPFIND','/',{headers:{Depth:'0'},expected:[200,207]});return true}
+ async function mkcol(p){await dav('MKCOL',p,{expected:[201,405]})}
+ async function uploadDav(buffer,name,id){
+   const root='/VisionDimensionsReports';
+   const cityPath=root+'/'+(city==='Makkah'?'Makkah':'Jeddah');
+   const monthPath=cityPath+'/'+DateTime.now().setZone('Asia/Riyadh').toFormat('yyyy-MM');
+   await mkcol(root);await mkcol(cityPath);await mkcol(monthPath);
+   const filepath=monthPath+'/'+id.slice(0,8)+'_'+filename(name);
+   await dav('PUT',filepath,{body:buffer,headers:{'Content-Type':'application/octet-stream'},expected:[200,201,204]});
+   return {fileId:'webdav',folder:filepath};
+ }
+ async function getDavFile(p){
+   if(!p.startsWith('/VisionDimensionsReports/')||p.includes('..')||p.includes('\\'))throw Error('WEBDAV_INVALID_FILEPATH');
+   const res=await dav('GET',p,{expected:[200]});
+   return Buffer.from(await res.arrayBuffer());
+ }
  async function folder(parent,name){const x=await cloud('createfolderifnotexists',{folderid:parent,name});if(!x.metadata?.folderid)throw Error('PCLOUD_FOLDER_NOT_FOUND');return String(x.metadata.folderid)}
  async function upload(buffer,name,id){
+   if(davReady)return uploadDav(buffer,name,id);
    let parent=String(process.env.PCLOUD_REPORTS_FOLDER_ID||'0');if(!/^[0-9]+$/.test(parent))throw Error('INVALID_PCLOUD_FOLDER');
    parent=await folder(parent,'VisionDimensionsReports');
    parent=await folder(parent,city==='Makkah'?'Makkah':'Jeddah');
@@ -85,16 +117,19 @@ module.exports=function installArchive({app,requireAuth_,getSheets,spreadsheetId
    if(!permitted(req))return res.status(403).json({ok:false,error:'ACCESS_DENIED'});
    res.set('Cache-Control','no-store');
    if(!cloudEnabled)return res.json({ok:true,configured:false,connected:false,mode:'not-configured'});
+   const mode=davReady?'webdav':(preferPassword?'username-password':'access-token');
    try{
-     await cloud('userinfo',{});
-     res.json({ok:true,configured:true,connected:true,mode:preferPassword?'username-password':'access-token'});
+     if(davReady)await checkDav();
+     else await cloud('userinfo',{});
+     res.json({ok:true,configured:true,connected:true,mode});
    }catch(e){
-     res.json({ok:true,configured:true,connected:false,mode:preferPassword?'username-password':'access-token',error:String(e.message||'PCLOUD_FAILED').slice(0,80)});
+     res.json({ok:true,configured:true,connected:false,mode,error:String(e.message||'PCLOUD_FAILED').slice(0,80)});
    }
  });
  const probe=setTimeout(()=>{
    if(!cloudEnabled){console.log('Report archive pCloud: not configured');return}
-   cloud('userinfo',{}).then(()=>console.log('Report archive pCloud: connected via '+(preferPassword?'username-password':'access-token')))
+   (davReady?checkDav():cloud('userinfo',{}))
+     .then(()=>console.log('Report archive pCloud: connected via '+(davReady?'WebDAV':(preferPassword?'username-password':'access-token'))))
      .catch(e=>console.warn('Report archive pCloud: connection unavailable ('+String(e.message||'unknown').slice(0,55)+')'));
  },5000);
  if(typeof probe.unref==='function')probe.unref();
@@ -150,6 +185,15 @@ module.exports=function installArchive({app,requireAuth_,getSheets,spreadsheetId
      if(!found?.item.fileId)return res.status(404).send('No saved report');
      if(!permitted(req)&&found.item.email!==req.session.user?.email)return res.status(403).send('Forbidden');
      if(!cloudEnabled)return res.status(503).send('pCloud not configured');
+     if(found.item.fileId==='webdav'){
+       const bytes=await getDavFile(found.item.folder);
+       const ext=found.item.filename.split('.').pop().toLowerCase();
+       const fallback=['pdf','xlsx','pptx','html','csv'].includes(ext)?'Report.'+ext:'Report';
+       res.set('Cache-Control','private, no-store');
+       res.set('Content-Type','application/octet-stream');
+       res.set('Content-Disposition','attachment; filename="'+fallback+'"; filename*=UTF-8\'\''+encodeURIComponent(found.item.filename));
+       return res.status(200).send(bytes);
+     }
      const result=await cloud('getfilelink',{fileid:found.item.fileId,forcedownload:1});
      const url=new URL('https://'+String(result.hosts?.[0]||'')+String(result.path||''));
      if(!url.hostname.endsWith('.pcloud.com'))throw Error('UNTRUSTED_HOST');

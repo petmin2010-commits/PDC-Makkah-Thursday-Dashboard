@@ -40,8 +40,9 @@
     testButton.disabled=true;testButton.textContent='جاري اختبار الاتصال...';
     try{
       const status=await call('/api/report-archive/pcloud-status');
-      if(status.connected)alert('تم الاتصال بـ pCloud بنجاح ('+(status.mode==='username-password'?'حساب وكلمة مرور':'رمز اتصال')+').');
+      if(status.connected)alert('تم الاتصال بـ pCloud بنجاح ('+(status.mode==='webdav'?'WebDAV ببريد الحساب وكلمة المرور':status.mode==='username-password'?'حساب وكلمة مرور':'رمز اتصال')+').');
       else if(!status.configured)alert('إعدادات pCloud غير مكتملة في Render. أضف PCLOUD_USERNAME و PCLOUD_PASSWORD أو PCLOUD_ACCESS_TOKEN.');
+      else if(String(status.error||'').includes('WEBDAV_LOGIN_CONFIRMATION_REQUIRED'))alert('يطلب pCloud تأكيد تسجيل دخول WebDAV من البريد الإلكتروني. افتح رسالة New login attempt واضغط Yes, it’s me ثم جرّب مرة أخرى.');
       else if(String(status.error||'').includes('1022'))alert('pCloud يطلب رمز تحقق إضافيًا (1022)، وربما تكون المصادقة الثنائية مفعّلة. لا تضع رمز التحقق أو كلمة المرور في المحادثة؛ أكمل التفويض من حساب pCloud.');
       else alert('تعذر اتصال pCloud: '+(status.error||'تحقق من البريد وكلمة المرور وموقع الخادم.'));
     }catch(error){alert('فشل اختبار الاتصال: '+error.message)}
