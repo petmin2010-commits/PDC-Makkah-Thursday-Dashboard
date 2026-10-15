@@ -116,12 +116,14 @@ function installUi(){
  const decisionBtn=document.createElement('button');decisionBtn.type='button';decisionBtn.id='explainableDecisionNav';decisionBtn.className='nav-item';decisionBtn.innerHTML='⚖ <span>محرك القرار المفسر</span>';
  const thursdayBtn=nav.querySelector('[data-page="smartThursday"]');
  const reportsCenterBtn=nav.querySelector('[data-page="reportsCenter"]');
+ const reportArchiveBtn=nav.querySelector('[data-page="reportArchive"]');
  const excelExportBtn=nav.querySelector('[data-page="excelExport"]');
  const projectsReportEngineBtn=nav.querySelector('[data-page="projectsReportEngine"]');
  const anchor=adminLabel||reportsLabel||null;
  nav.insertBefore(label,anchor);nav.insertBefore(btn,anchor);nav.insertBefore(memoryBtn,anchor);nav.insertBefore(investigationBtn,anchor);nav.insertBefore(decisionBtn,anchor);
  if(thursdayBtn)nav.insertBefore(thursdayBtn,anchor);
  if(reportsCenterBtn)nav.insertBefore(reportsCenterBtn,anchor);
+ if(reportArchiveBtn)nav.insertBefore(reportArchiveBtn,anchor);
  if(excelExportBtn)nav.insertBefore(excelExportBtn,anchor);
  if(projectsReportEngineBtn)nav.insertBefore(projectsReportEngineBtn,anchor);
  if(reportsLabel)reportsLabel.remove();
