@@ -124,3 +124,11 @@
 #contractorSafetyPage .cs-weekly-heading{background:linear-gradient(100deg,#e8f5fe,#fff4e7);border-right-color:#f28b32}
 #contractorSafetyPage .cs-weekly-heading h2{color:#0e4778}
 #contractorSafetyPage .cs-name{font-weight:800;color:#17699a}
+/* Contractor safety only: remove duplicated global heading and shared filter/control strip.
+   Contractor-safety report retains its own title, filters, period controls and export tools. */
+body.contractor-safety-active #globalPageHeading,
+body.contractor-safety-active #vdUnifiedControls,
+body.contractor-safety-active #filterBar,
+body.contractor-safety-active #violationPeriodSlicer {
+  display: none !important;
+}
