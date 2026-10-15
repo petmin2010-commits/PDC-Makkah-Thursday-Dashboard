@@ -214,7 +214,7 @@ module.exports=({app,requireAuth_,getSheets,spreadsheetId,city})=>{
    const filtered=all?data.rows:filter(data.rows,request.filters);
    if(!Array.isArray(filtered))throw Error('Invalid safety filter');
    const period=all?'كامل الفترة':String(request.period||'كامل المدة').slice(0,140);
-   const buffer=await create(filtered,{city:city==='Jeddah'?'جدة':'مكة',period,general:all,detailed:details});
+   const buffer=await require('./safety-reference-presentation').create(filtered,{city:city==='Jeddah'?'جدة':'مكة',period,general:all,detailed:details});
    const name='VD_Contractor_Safety_'+city+'_'+(all?'General':'Filtered')+'_'+new Date().toISOString().slice(0,10)+'.pptx';
    res.set('Cache-Control','no-store');
    res.set('Content-Type','application/vnd.openxmlformats-officedocument.presentationml.presentation');
