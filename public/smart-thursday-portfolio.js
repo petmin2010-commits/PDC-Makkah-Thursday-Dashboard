@@ -535,12 +535,20 @@ function exportThursdayReport(){
   page(page2,2,totalPages,city+' — مرحلة الإنجاز')+
   page(page3,3,totalPages,city+' — حالة المرحلة')+
   page(page4,4,totalPages,city+' — التفاصيل واللقطات')+
-  '<script>window.addEventListener("load",function(){setTimeout(function(){window.print()},950)});<\/script>'+
   '</body></html>';
 
  win.document.open();
  win.document.write(html);
- win.document.close();window.VDReportArchive?.record({reportName:'تقرير الخميس الفني',format:'PDF',filename:'VD_Thursday_Technical.pdf'});
+ win.document.close();
+ const archiveAndPrint=async()=>{
+   try{
+     const outcome=await window.VDReportArchive?.archiveGeneratedPdf({win,selector:'.page',reportName:'تقرير الخميس الفني',filename:'VD_Thursday_Technical.pdf'});
+     if(outcome?.ok===false)console.warn('Technical Thursday PDF archive unavailable',outcome.error);
+   }catch(error){console.warn('Technical Thursday PDF archive failed',error?.message)}
+   finally{if(!win.closed){win.focus();win.print()}}
+ };
+ if(win.document.readyState==='complete')setTimeout(archiveAndPrint,300);
+ else win.addEventListener('load',()=>setTimeout(archiveAndPrint,300),{once:true});
  if(window.VDI18n?.getLanguage?.()==='en')window.VDI18n.translateRoot(win.document,'en');
 }
 function render(root,legacy){

@@ -33,5 +33,30 @@ async function createPdf(report){
    report.style.maxWidth=originals.maxWidth;
  }
 }
-window.VDReportPdfCapture={createPdf};
+async function createWindowPdf(win,selector='.page'){
+ const Canvas=window.html2canvas,Pdf=window.jspdf?.jsPDF;
+ if(typeof Canvas!=='function'||typeof Pdf!=='function')throw Error('PDF_LIBRARY_UNAVAILABLE');
+ if(!win||win.closed||!win.document?.body)throw Error('REPORT_NOT_READY');
+ const doc=win.document;
+ const pages=[...doc.querySelectorAll(selector||'.page')];
+ if(!pages.length)throw Error('REPORT_NOT_READY');
+ await doc.fonts?.ready;
+ await Promise.all([...doc.images].map(img=>img.complete?Promise.resolve():new Promise(done=>{const timer=setTimeout(done,8000);const complete=()=>{clearTimeout(timer);done()};img.addEventListener('load',complete,{once:true});img.addEventListener('error',complete,{once:true})})));
+ const pdf=new Pdf({orientation:'landscape',unit:'mm',format:'a4',compress:true});
+ for(let i=0;i<pages.length;i++){
+   if(win.closed)throw Error('REPORT_NOT_READY');
+   const canvas=await Canvas(pages[i],{backgroundColor:'#fff',scale:1.35,useCORS:true,allowTaint:false,logging:false,removeContainer:true,scrollX:0,scrollY:0});
+   if(canvas.width<10||canvas.height<10)throw Error('REPORT_NOT_READY');
+   if(i)pdf.addPage('a4','landscape');
+   const image=canvas.toDataURL('image/jpeg',0.82);
+   const ratio=Math.min(283/canvas.width,196/canvas.height);
+   const width=canvas.width*ratio,height=canvas.height*ratio;
+   pdf.addImage(image,'JPEG',7+(283-width)/2,7+(196-height)/2,width,height,undefined,'FAST');
+   canvas.width=0;canvas.height=0;
+ }
+ const blob=pdf.output('blob');
+ if(blob.size<800||blob.size>23*1024*1024)throw Error('PDF_FILE_SIZE_'+Math.ceil(blob.size/1024/1024)+'MB');
+ return blob;
+}
+window.VDReportPdfCapture={createPdf,createWindowPdf};
 })();

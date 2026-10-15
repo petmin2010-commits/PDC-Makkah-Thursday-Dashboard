@@ -49,7 +49,16 @@ async function choose(format){
    if(!content)throw Error('تعذر تحميل قالب التقرير.');
    popup.document.open();popup.document.write(content);popup.document.close();
    let triggered=false;
-   const print=()=>{if(triggered||popup.closed)return;triggered=true;try{popup.focus();window.VDReportArchive?.record({reportName:'تقييم السلامة للمقاولين',format:'PDF',filename:'VD_Contractor_Safety.pdf'});popup.print()}catch(_){}};
+   const print=async()=>{
+     if(triggered||popup.closed)return;
+     triggered=true;
+     try{
+       popup.focus();
+       const outcome=await window.VDReportArchive?.archiveGeneratedPdf({win:popup,selector:'.csd-slide',reportName:'تقييم السلامة للمقاولين',filename:'VD_Contractor_Safety.pdf'});
+       if(outcome?.ok===false)console.warn('Safety PDF pCloud archive unavailable',outcome.error);
+     }catch(error){console.warn('Safety PDF pCloud archive failed',error?.message)}
+     finally{if(!popup.closed)popup.print()}
+   };
    popup.addEventListener('load',()=>setTimeout(print,600),{once:true});
    setTimeout(()=>{if(!triggered&&popup.document.readyState==='complete')print()},1600);
   }else{

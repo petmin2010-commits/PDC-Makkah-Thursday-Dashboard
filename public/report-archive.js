@@ -42,7 +42,7 @@
    })();
    recent={key,at:Date.now(),job};return job;
  }
- async function archiveGeneratedPdf({report,reportName,filename}={}){
+ async function archiveGeneratedPdf({report,win,selector,reportName,filename}={}){
    const name=String(filename||('VD_'+(reportName||activeName())+'.pdf'));
    const created=await record({reportName:reportName||activeName(),format:'PDF',filename:name});
    if(!created)return {ok:false,error:'REGISTRATION_FAILED'};
@@ -52,7 +52,7 @@
      return {ok:false,id:created.id,error:'PCLOUD_NOT_CONFIGURED'};
    }
    try{
-     const blob=await window.VDReportPdfCapture?.createPdf(report);
+     const blob=win?await window.VDReportPdfCapture?.createWindowPdf(win,selector):await window.VDReportPdfCapture?.createPdf(report);
      if(!(blob instanceof Blob))throw Error('PDF_LIBRARY_UNAVAILABLE');
      const saved=await sendFile(created.id,blob,name);
      if(document.querySelector('.nav-item.active')?.dataset?.page==='reportArchive')refresh();
