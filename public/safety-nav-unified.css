@@ -1,0 +1,17 @@
+/* Identical blue safety-helmet icons for all three safety-related sidebar tabs. */
+#nav .nav-item[data-page="safety"],
+#nav .nav-item[data-page="safetyCorrective"],
+#nav .nav-item[data-page="contractorSafety"]{
+  --nav-ic1:#5cb6ff;
+  --nav-ic2:#176ff3;
+  --nav-accent:#3ca2ff;
+}
+#nav .nav-item[data-page="safety"]::before,
+#nav .nav-item[data-page="safetyCorrective"]::before,
+#nav .nav-item[data-page="contractorSafety"]::before{
+  content:"" !important;
+  color:transparent !important;
+  background: url("/safety-helmet-nav.svg?v=20261015-1") center / 18px 18px no-repeat, linear-gradient(145deg,#5cb6ff,#176ff3) !important;
+  border-color:rgba(255,255,255,.34);
+  box-shadow:0 4px 10px rgba(2,12,27,.23), inset 0 1px 0 rgba(255,255,255,.30);
+}
