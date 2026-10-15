@@ -6,7 +6,13 @@ module.exports=function installArchive({app,requireAuth_,getSheets,spreadsheetId
  const columns=['id','date','time','issuer','email','reportName','format','filename','status','url','fileId','folder'];
  const cloudHost=String(process.env.PCLOUD_API_HOST||'api.pcloud.com').trim();
  const cloudToken=process.env.PCLOUD_ACCESS_TOKEN||'';
- const cloudEnabled=!!cloudToken&&['api.pcloud.com','eapi.pcloud.com'].includes(cloudHost);
+ const cloudUser=String(process.env.PCLOUD_USERNAME||'').trim();
+ const cloudPass=String(process.env.PCLOUD_PASSWORD||'');
+ const passwordReady=Boolean(cloudUser&&cloudPass);
+ const cloudEnabled=(Boolean(cloudToken)||passwordReady)&&['api.pcloud.com','eapi.pcloud.com'].includes(cloudHost);
+ let sessionAuth='';
+ let loginPromise=null;
+ let preferPassword=!cloudToken&&passwordReady;
  const clean=(v,n=180)=>String(v==null?'':v).split('').filter(c=>c.charCodeAt(0)>31).join('').trim().slice(0,n);
  const filename=v=>clean(v).replace(/[\\/:*?"<>|]/g,'_');
  const obj=r=>Object.fromEntries(columns.map((k,i)=>[k,String(r[i]??'')]));
@@ -28,13 +34,39 @@ module.exports=function installArchive({app,requireAuth_,getSheets,spreadsheetId
  const authOrigin=(req,res,next)=>{const origin=req.get('origin');if(origin){try{if(new URL(origin).host!==req.get('host'))return res.status(403).json({ok:false,error:'INVALID_ORIGIN'})}catch{return res.status(403).json({ok:false,error:'INVALID_ORIGIN'})}}next()};
  const permitted=req=>{const user=req.session?.user||{};const perms=Array.isArray(user.permissions)?user.permissions:[];const norm=x=>String(x||'').normalize('NFKC').replace(/[ً-ْٰ]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').trim().toLowerCase();return ['admin','administrator','مدير النظام'].includes(norm(user.role))||perms.some(p=>['*','all','الكل','جميع الصفحات','كامل الصلاحيات','مركز التقارير','سجل التقارير الصادرة'].includes(norm(p)))};
  const archiveUrl=(req,id)=>(process.env.REPORT_ARCHIVE_BASE_URL||baseUrl||req.protocol+'://'+req.get('host')).replace(/[/]+$/,'')+'/api/report-archive/file/'+id;
+ async function passwordLogin(){
+   if(!passwordReady)throw Error('PCLOUD_PASSWORD_NOT_CONFIGURED');
+   if(sessionAuth)return sessionAuth;
+   if(!loginPromise)loginPromise=(async()=>{
+     const body=new URLSearchParams({username:cloudUser,password:cloudPass,getauth:'1',logout:'1',device:'Vision Dimensions Report Archive'});
+     const response=await fetch('https://'+cloudHost+'/userinfo',{method:'POST',body,signal:AbortSignal.timeout(20000)});
+     const result=await response.json();
+     if(!response.ok||result.result!==0||!result.auth)throw Error('PCLOUD_LOGIN_'+(result.result||response.status));
+     sessionAuth=String(result.auth);
+     return sessionAuth;
+   })().finally(()=>{loginPromise=null});
+   return loginPromise;
+ }
  async function cloud(method,params,form){
    if(!cloudEnabled)throw Error('PCLOUD_NOT_CONFIGURED');
-   const body=form||new URLSearchParams();
-   for(const [k,v] of Object.entries(params||{}))body.set(k,String(v));
-   const response=await fetch('https://'+cloudHost+'/'+method,{method:'POST',headers:{Authorization:'Bearer '+cloudToken},body,signal:AbortSignal.timeout(60000)});
-   const result=await response.json();if(!response.ok||result.result!==0)throw Error('PCLOUD_'+(result.result||response.status));
-   return result;
+   for(let attempt=0;attempt<2;attempt++){
+     const usePassword=preferPassword||!cloudToken;
+     const headers={};
+     const body=form||new URLSearchParams();
+     for(const [k,v] of Object.entries(params||{}))body.set(k,String(v));
+     if(usePassword)body.set('auth',await passwordLogin());
+     else headers.Authorization='Bearer '+cloudToken;
+     const response=await fetch('https://'+cloudHost+'/'+method,{method:'POST',headers,body,signal:AbortSignal.timeout(60000)});
+     const result=await response.json();
+     if(response.ok&&result.result===0)return result;
+     if(passwordReady&&[1000,2000].includes(Number(result.result))&&attempt===0){
+       sessionAuth='';
+       preferPassword=true;
+       continue;
+     }
+     throw Error('PCLOUD_'+(result.result||response.status));
+   }
+   throw Error('PCLOUD_AUTH_REJECTED');
  }
  async function folder(parent,name){const x=await cloud('createfolderifnotexists',{folderid:parent,name});if(!x.metadata?.folderid)throw Error('PCLOUD_FOLDER_NOT_FOUND');return String(x.metadata.folderid)}
  async function upload(buffer,name,id){
@@ -49,6 +81,23 @@ module.exports=function installArchive({app,requireAuth_,getSheets,spreadsheetId
    if(!fileId)throw Error('PCLOUD_FILE_NOT_SAVED');
    return {fileId:String(fileId),folder:parent};
  }
+ app.get('/api/report-archive/pcloud-status',requireAuth_,async(req,res)=>{
+   if(!permitted(req))return res.status(403).json({ok:false,error:'ACCESS_DENIED'});
+   res.set('Cache-Control','no-store');
+   if(!cloudEnabled)return res.json({ok:true,configured:false,connected:false,mode:'not-configured'});
+   try{
+     await cloud('userinfo',{});
+     res.json({ok:true,configured:true,connected:true,mode:preferPassword?'username-password':'access-token'});
+   }catch(e){
+     res.json({ok:true,configured:true,connected:false,mode:preferPassword?'username-password':'access-token',error:String(e.message||'PCLOUD_FAILED').slice(0,80)});
+   }
+ });
+ const probe=setTimeout(()=>{
+   if(!cloudEnabled){console.log('Report archive pCloud: not configured');return}
+   cloud('userinfo',{}).then(()=>console.log('Report archive pCloud: connected via '+(preferPassword?'username-password':'access-token')))
+     .catch(e=>console.warn('Report archive pCloud: connection unavailable ('+String(e.message||'unknown').slice(0,55)+')'));
+ },5000);
+ if(typeof probe.unref==='function')probe.unref();
  app.get('/api/report-archive',requireAuth_,async(req,res)=>{
    if(!permitted(req))return res.status(403).json({ok:false,error:'ACCESS_DENIED'});
    try{const {rows}=await load();res.set('Cache-Control','no-store');res.json({ok:true,city,pcloudEnabled:cloudEnabled,items:rows.slice(-1000).reverse().map(obj)})}

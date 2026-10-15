@@ -34,7 +34,19 @@
  function render(){
   const page=byId(PAGE);if(!page)return;page.replaceChildren();
   const head=el('div');head.className='ra-head';const name=el('div');name.append(el('small','REPORT ARCHIVE'),el('h2','سجل التقارير الصادرة'),el('p','التاريخ والوقت بتوقيت السعودية | المُصدِر | اسم التقرير | رابط التقرير'));head.append(name);
-  const refreshButton=el('button','تحديث ↻');refreshButton.addEventListener('click',refresh);head.append(refreshButton);page.append(head);
+  const refreshButton=el('button','تحديث ↻');refreshButton.addEventListener('click',refresh);head.append(refreshButton);
+  const testButton=el('button','اختبار اتصال pCloud');
+  testButton.addEventListener('click',async()=>{
+    testButton.disabled=true;testButton.textContent='جاري اختبار الاتصال...';
+    try{
+      const status=await call('/api/report-archive/pcloud-status');
+      if(status.connected)alert('تم الاتصال بـ pCloud بنجاح ('+(status.mode==='username-password'?'حساب وكلمة مرور':'رمز اتصال')+').');
+      else if(!status.configured)alert('إعدادات pCloud غير مكتملة في Render. أضف PCLOUD_USERNAME و PCLOUD_PASSWORD أو PCLOUD_ACCESS_TOKEN.');
+      else alert('تعذر اتصال pCloud: '+(status.error||'تحقق من البريد وكلمة المرور وموقع الخادم.'));
+    }catch(error){alert('فشل اختبار الاتصال: '+error.message)}
+    finally{testButton.disabled=false;testButton.textContent='اختبار اتصال pCloud'}
+  });
+  head.append(testButton);page.append(head);
   const tools=el('div');tools.className='ra-controls';const search=el('input');search.type='search';search.placeholder='ابحث عن تقرير أو مُصدِر أو تاريخ';search.value=state.term;
   search.addEventListener('input',e=>{const start=e.target.selectionStart;state.term=e.target.value;render();const next=page.querySelector('input[type=search]');next.focus();next.setSelectionRange(start,start)});tools.append(search);
   const items=state.items.filter(i=>[i.date,i.time,i.issuer,i.reportName,i.format,i.filename].join(' ').toLowerCase().includes(state.term.toLowerCase()));
