@@ -4,7 +4,7 @@ const state={term:'',from:'',to:'',selected:{},open:'',queries:{}};
 const FIELD={issuer:'issuer',report:'reportName',type:'format',status:'status'};
 const LABELS={issuer:'مُصدِر التقرير',report:'اسم التقرير',type:'صيغة التقرير',status:'حالة حفظ التقرير'};
 const clean=v=>String(v==null?'':v).trim();
-const archiveStatus=r=>r.fileId?'محفوظ في pCloud':r.url?'رابط محفوظ':/فشل|تعذر/i.test(r.status||'')?'فشل الحفظ':'بانتظار الحفظ';
+const archiveStatus=r=>r.fileId?'محفوظ في pCloud':r.url?'رابط محفوظ':/فشل|تعذر|لم يكتمل/i.test(r.status||'')?'فشل الحفظ':'بانتظار الحفظ';
 const value=(r,key)=>key==='status'?archiveStatus(r):clean(r[FIELD[key]])||'غير محدد';
 function apply(items){
  return (items||[]).filter(r=>{

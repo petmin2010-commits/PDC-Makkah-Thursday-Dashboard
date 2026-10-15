@@ -16,6 +16,17 @@ module.exports=function installArchive({app,requireAuth_,getSheets,spreadsheetId
  const clean=(v,n=180)=>String(v==null?'':v).split('').filter(c=>c.charCodeAt(0)>31).join('').trim().slice(0,n);
  const filename=v=>clean(v).replace(/[\\/:*?"<>|]/g,'_');
  const obj=r=>Object.fromEntries(columns.map((k,i)=>[k,String(r[i]??'')]));
+ // Old print-only registrations must not remain indefinitely marked as in progress.
+ const visibleArchiveRow=r=>{
+   const item=obj(r);
+   if(item.status==='تم بدء التصدير'&&!item.fileId&&!item.url){
+     const start=DateTime.fromFormat(item.date+' '+item.time,'yyyy-MM-dd HH:mm:ss',{zone:'Asia/Riyadh'});
+     if(start.isValid&&DateTime.now().diff(start,'minutes').minutes>5){
+       item.status='لم يكتمل حفظ التقرير — أعد التصدير أو ارفع الملف';
+     }
+   }
+   return item;
+ };
  let initialized=null;
  async function ensure(sheets){
    if(!initialized)initialized=(async()=>{
@@ -170,7 +181,7 @@ module.exports=function installArchive({app,requireAuth_,getSheets,spreadsheetId
  if(typeof probe.unref==='function')probe.unref();
  app.get('/api/report-archive',requireAuth_,async(req,res)=>{
    if(!permitted(req))return res.status(403).json({ok:false,error:'ACCESS_DENIED'});
-   try{const {rows}=await load();res.set('Cache-Control','no-store');res.json({ok:true,city,pcloudEnabled:cloudEnabled,items:rows.slice(-1000).reverse().map(obj)})}
+   try{const {rows}=await load();res.set('Cache-Control','no-store');res.json({ok:true,city,pcloudEnabled:cloudEnabled,items:rows.slice(-1000).reverse().map(visibleArchiveRow)})}
    catch(e){console.error('Archive list',e.message);res.status(500).json({ok:false,error:'ARCHIVE_READ_FAILED'})}
  });
  app.post('/api/report-archive',requireAuth_,authOrigin,async(req,res)=>{

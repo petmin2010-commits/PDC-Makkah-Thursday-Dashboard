@@ -3773,46 +3773,39 @@
     );
 
     let cleaned = false;
-
     const cleanup = () => {
       if (cleaned) return;
-
       cleaned = true;
-
       document.title = oldTitle;
-
       cleanupReport();
     };
-
-    let archiveTask=null;
-    window.addEventListener(
-      'afterprint',
-      () => {
-        if(archiveTask?.finally)archiveTask.finally(cleanup);
-        else cleanup();
-      },
-      { once: true }
-    );
-
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        archiveTask=window.VDReportArchive?.archiveGeneratedPdf({report,reportName:getActivePageName(),filename:fileTitle+'.pdf'})||null;
-        window.print();
-      }, 350);
-    });
-
-    /*
-      احتياط في حالة متصفح لا يرسل afterprint.
-    */
-    setTimeout(() => {
-      if (
-        !document.body.classList.contains(
-          'vd-report-v2-mode'
-        )
-      ) return;
-
-      cleanup();
-    }, 120000);
+    const info = document.createElement('div');
+    info.textContent = 'جار إنشاء PDF وحفظ نسخة التقرير على pCloud قبل الطباعة…';
+    info.setAttribute('role','status');
+    Object.assign(info.style,{position:'fixed',inset:'auto 14px 14px auto',padding:'12px 18px',background:'#103d50',color:'#fff',borderRadius:'10px',boxShadow:'0 4px 18px #0004',zIndex:'2147483000',fontFamily:'Tahoma,Arial,sans-serif',fontSize:'14px'});
+    document.body.appendChild(info);
+    const printAfterArchive = async () => {
+      try {
+        if (typeof window.VDReportArchive?.archiveGeneratedPdf !== 'function') {
+          throw Error('ARCHIVE_MODULE_UNAVAILABLE');
+        }
+        const result = await window.VDReportArchive.archiveGeneratedPdf({report,reportName:getActivePageName(),filename:fileTitle+'.pdf'});
+        if (!result?.ok) {
+          console.warn('Report PDF not archived:',result?.error);
+          alert('لم تُحفظ نسخة التقرير على pCloud. تحقق من حالة التقرير في سجل التقارير الصادرة. يمكنك حفظ PDF من الطباعة ثم رفعه يدويًا.');
+        }
+      } catch (error) {
+        console.error('Automatic report archive failed:',error);
+        alert('حدث خلل أثناء أرشفة PDF. سيتم فتح الطباعة، ويمكنك رفع الملف من سجل التقارير الصادرة.');
+      } finally {
+        info.remove();
+        if (cleaned || !report.isConnected) return;
+        window.addEventListener('afterprint', cleanup, {once:true});
+        try { window.print(); } catch(error) { console.error('PDF print failed:',error);cleanup();return; }
+        setTimeout(cleanup,180000);
+      }
+    };
+    requestAnimationFrame(() => setTimeout(printAfterArchive,350));
   }
 
   function closeModal() {

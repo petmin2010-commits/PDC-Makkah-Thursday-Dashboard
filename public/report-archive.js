@@ -99,7 +99,7 @@
     if(item.url){const a=el('a','فتح التقرير ↗');a.href=item.url;a.target='_blank';a.rel='noopener noreferrer';td.append(a)}else td.append(el('span','لم تُحفظ نسخة'));
     const actions=el('td');row.append(actions);
     const link=el('button','إضافة رابط');link.addEventListener('click',()=>linkRecord(item));actions.append(link);
-    if(state.cloud&&!item.fileId){const upload=el('button',/فشل|تعذر/i.test(item.status||'')?'إعادة رفع':'رفع ملف');upload.addEventListener('click',()=>pickFile(item));actions.append(upload)}
+    if(state.cloud&&!item.fileId){const upload=el('button',/فشل|تعذر|لم يكتمل/i.test(item.status||'')?'إعادة رفع':'رفع ملف');upload.addEventListener('click',()=>pickFile(item));actions.append(upload)}
   }
   if(!items.length){const row=el('tr'),cell=el('td','لا توجد تقارير مطابقة');cell.colSpan=8;row.append(cell);tbody.append(row)}
   const note=el('p',state.cloud?'إعدادات pCloud موجودة. اضغط «اختبار اتصال pCloud» للتحقق من إمكانية رفع وتنزيل الملفات. لا يُعتبر أي تقرير محفوظًا حتى تتغير حالة السجل إلى «محفوظ في pCloud».':'pCloud غير مهيأ حاليًا؛ يمكنك إضافة رابط تقرير محفوظ يدويًا.');note.className='ra-note';page.append(note);
