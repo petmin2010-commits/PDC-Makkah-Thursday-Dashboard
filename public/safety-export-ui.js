@@ -49,7 +49,7 @@ async function choose(format){
    if(!content)throw Error('تعذر تحميل قالب التقرير.');
    popup.document.open();popup.document.write(content);popup.document.close();
    let triggered=false;
-   const print=()=>{if(triggered||popup.closed)return;triggered=true;try{popup.focus();popup.print()}catch(_){}};
+   const print=()=>{if(triggered||popup.closed)return;triggered=true;try{popup.focus();window.VDReportArchive?.record({reportName:'تقييم السلامة للمقاولين',format:'PDF',filename:'VD_Contractor_Safety.pdf'});popup.print()}catch(_){}};
    popup.addEventListener('load',()=>setTimeout(print,600),{once:true});
    setTimeout(()=>{if(!triggered&&popup.document.readyState==='complete')print()},1600);
   }else{
@@ -62,7 +62,7 @@ async function choose(format){
    if(blob.size<1000)throw Error('ملف PowerPoint فارغ');
    const url=URL.createObjectURL(blob),a=document.createElement('a');
    a.href=url;a.download='VD_Contractor_Safety_'+(meta.city==='جدة'?'Jeddah':'Makkah')+'_'+(meta.general?'General':'Filtered')+'_'+new Date().toISOString().slice(0,10)+'.pptx';
-   document.body.appendChild(a);a.click();a.remove();
+   document.body.appendChild(a);a.click();a.remove();window.VDReportArchive?.record({reportName:'تقييم السلامة للمقاولين',format:'PPTX',filename:a.download,blob});
    setTimeout(()=>URL.revokeObjectURL(url),60000);
   }
   busy=false;close();

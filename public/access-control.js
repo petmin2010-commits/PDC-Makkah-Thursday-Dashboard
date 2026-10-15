@@ -26,6 +26,7 @@ function norm(value){
 const ROOM_CANON=norm('غرفة التدقيق الذكية');
 const EXCEL_CANON=norm('تقارير الاكسيل');
 const aliases=new Map([
+  [norm('سجل التقارير الصادرة'),norm('مركز التقارير')],
   [norm('غرفة التحقيق الذكية'),ROOM_CANON],
   [norm('غرفة التدقيق الذكية'),ROOM_CANON],
   [norm('تقارير الاكسيل'),EXCEL_CANON],

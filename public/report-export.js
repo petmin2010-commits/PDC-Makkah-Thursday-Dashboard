@@ -3792,6 +3792,7 @@
 
     requestAnimationFrame(() => {
       setTimeout(() => {
+        window.VDReportArchive?.record({reportName:getActivePageName(),format:'PDF',filename:fileTitle+'.pdf'});
         window.print();
       }, 350);
     });
@@ -3927,7 +3928,7 @@
       document.getElementById('vdUnifiedControls');
     const bar = ensureUnifiedReportButton();
     const show =
-      !['smartThursday','reportsCenter'].includes(key)
+      !['smartThursday','reportsCenter','reportArchive'].includes(key)
       && !!dock
       && !!bar;
 

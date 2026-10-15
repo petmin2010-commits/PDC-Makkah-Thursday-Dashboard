@@ -1,0 +1,14 @@
+#reportArchivePage{padding:24px 18px;direction:rtl}
+#reportArchivePage .ra-head{display:flex;align-items:center;justify-content:space-between;gap:16px}
+#reportArchivePage .ra-head h2{margin:5px 0;font-size:23px;color:#163f47}
+#reportArchivePage .ra-head p,#reportArchivePage .ra-note{color:#495d66;font-size:13px}
+#reportArchivePage .ra-head small{color:#177665;font-weight:800;letter-spacing:1px}
+#reportArchivePage button{background:#11695d;color:#fff;border:0;padding:9px 11px;border-radius:8px;cursor:pointer;font-family:inherit;margin:2px}
+#reportArchivePage .ra-controls{display:flex;gap:12px;align-items:center;margin:12px 0}
+#reportArchivePage .ra-controls input{min-width:200px;flex:1;border:1px solid #ccd7dc;border-radius:8px;padding:10px;background:#fff;color:#111}
+#reportArchivePage .ra-grid{overflow:auto;border:1px solid #d8e2e4;border-radius:10px;background:#fff}
+#reportArchivePage table{border-collapse:collapse;width:100%;min-width:930px;font-size:12px;color:#111}
+#reportArchivePage th,#reportArchivePage td{padding:10px;border-bottom:1px solid #e4ecee;text-align:right}
+#reportArchivePage th{font-weight:800;background:#eaf2f0;color:#173d40;white-space:nowrap}
+#reportArchivePage a{color:#006c96;font-weight:800}
+@media print{#reportArchivePage{display:none!important}}

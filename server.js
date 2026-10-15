@@ -2640,6 +2640,8 @@ app.get('/api/monitor',requireAuth_,async(req,res)=>{
   }
 });
 
+require('./report-archive-server')({app,requireAuth_,getSheets,spreadsheetId:SPREADSHEET_ID,city:'Makkah',baseUrl:'https://pdc-makkah-thursday-dashboard.onrender.com'});
+
 app.post('/api/rpc',requireAuth_,async(req,res)=>{
   try{
     const {method,args=[]}=req.body||{};

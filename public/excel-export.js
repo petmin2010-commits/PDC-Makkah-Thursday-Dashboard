@@ -396,6 +396,7 @@ async function exportWorkbook(){
     a.download=filenameFromDisposition(r.headers.get('content-disposition'));
     document.body.appendChild(a);
     a.click();
+    window.VDReportArchive?.record({reportName:'Excel - '+state.sheet,format:'XLSX',filename:a.download,blob});
     a.remove();
     setTimeout(()=>URL.revokeObjectURL(a.href),1200);
 

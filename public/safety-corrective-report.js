@@ -183,7 +183,7 @@ async function printReport(){
  }
  pages+='<section class="sheet end">'+brand('أبعاد الرؤية للاستشارات الهندسية')+'<h1>شكرًا لتعاونكم</h1><h2>معًا لرفع جودة التنفيذ والسلامة</h2><p>دائرة مشاريع التوزيع – '+esc(city)+'</p></section>';
  if(win.closed)throw Error('أُغلقت نافذة التقرير أثناء التجهيز.');
- win.document.open();win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+esc('VD-Safety-'+city+'-'+r.startDate)+'</title><style>'+printCss()+'</style></head><body><div class="print-actions"><button onclick="window.print()">طباعة أو حفظ التقرير PDF</button> – تأكد من تحميل الصور قبل الطباعة</div>'+pages+'</body></html>');win.document.close();notice('تقرير PDF جاهز في نافذة جديدة. استخدم زر الطباعة للحفظ.');
+ win.document.open();win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+esc('VD-Safety-'+city+'-'+r.startDate)+'</title><style>'+printCss()+'</style></head><body><div class="print-actions"><button onclick="window.print()">طباعة أو حفظ التقرير PDF</button> – تأكد من تحميل الصور قبل الطباعة</div>'+pages+'</body></html>');win.document.close();window.VDReportArchive?.record({reportName:'تقرير السلامة والإجراءات التصحيحية',format:'PDF',filename:'VD_Safety_Corrective.pdf'});notice('تقرير PDF جاهز في نافذة جديدة. استخدم زر الطباعة للحفظ.');
  }catch(e){if(!win.closed)win.close();notice('تعذر تجهيز التقرير: '+e.message,true)}finally{buttonBusy('scrExport',false)}
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();

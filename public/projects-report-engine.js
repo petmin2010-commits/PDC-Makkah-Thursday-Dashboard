@@ -104,7 +104,7 @@ async function exportProjectExcel(){
   const fallback='VD-Project-Report-WO-'+clean(state.report.workOrder)+'.xlsx';
   const filename=exportFilename(response.headers.get('Content-Disposition'),fallback);
   const url=URL.createObjectURL(blob),a=document.createElement('a');
-  a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+  a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();window.VDReportArchive?.record({reportName:'Projects Report Engine - '+clean(state.report.workOrder),format:'XLSX',filename,blob});
   setTimeout(()=>URL.revokeObjectURL(url),1500);
   closeExportChooser();
  }catch(e){alert(e.message||String(e))}
@@ -854,7 +854,7 @@ async function printReport(){
  const go=async()=>{
   const imgs=[...win.document.images];
   await Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(resolve=>{const timer=setTimeout(resolve,8000);const done=()=>{clearTimeout(timer);resolve()};img.addEventListener('load',done,{once:true});img.addEventListener('error',done,{once:true})})));
-  setTimeout(()=>{win.focus();win.print()},350);
+  setTimeout(()=>{win.focus();window.VDReportArchive?.record({reportName:'Projects Report Engine - '+clean(state.report.workOrder),format:'PDF',filename:title+'.pdf'});win.print()},350);
  };
  if(win.document.readyState==='complete')go();else win.addEventListener('load',go,{once:true});
 }

@@ -214,7 +214,7 @@ async function exportThursdayHtml(){
  const blob=new Blob(['\ufeff'+html],{type:'text/html;charset=utf-8'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');
  const date=new Date().toISOString().slice(0,10);
- a.href=url;a.download='Thursday-Technical-Report-'+date+'.html';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+ a.href=url;a.download='Thursday-Technical-Report-'+date+'.html';document.body.appendChild(a);a.click();a.remove();window.VDReportArchive?.record({reportName:'تقرير الخميس الفني',format:'HTML',filename:a.download,blob});setTimeout(()=>URL.revokeObjectURL(url),1500);
 }
 
 function reportChartSrc(id){
@@ -540,7 +540,7 @@ function exportThursdayReport(){
 
  win.document.open();
  win.document.write(html);
- win.document.close();
+ win.document.close();window.VDReportArchive?.record({reportName:'تقرير الخميس الفني',format:'PDF',filename:'VD_Thursday_Technical.pdf'});
  if(window.VDI18n?.getLanguage?.()==='en')window.VDI18n.translateRoot(win.document,'en');
 }
 function render(root,legacy){
