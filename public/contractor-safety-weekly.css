@@ -1,0 +1,66 @@
+.cs-weekly-report{margin:22px 0;color:#19354d;direction:rtl}
+.cs-weekly-heading{border-right:5px solid #f48b2c;padding:12px 18px;margin:16px 0;background:#f3f8fd;border-radius:9px}
+.cs-weekly-heading>span,.cs-weekly-section-title>span{font-size:10px;font-weight:800;letter-spacing:1px;color:#a65d1d}
+.cs-weekly-heading h2{font-size:21px;color:#164e81;margin:3px 0}
+.cs-weekly-heading p,.cs-weekly-section-title p{font-size:11px;line-height:1.8;margin:3px 0 12px;color:#607385}
+.cs-weekly-section-title h3{font-size:17px;color:#134b7c;margin:3px 0}
+.cs-weekly-insights{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.cs-weekly-insight{border:1px solid #dce7f1;background:#fff;border-radius:11px;padding:12px;min-width:0}
+.cs-weekly-insight-head{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px}
+.cs-weekly-insight-number{background:#ef8826;color:white;font-weight:800;font-size:15px;padding:3px 7px;border-radius:7px;flex-shrink:0}
+.cs-weekly-insight-head strong{font-size:12px;color:#134c79;line-height:1.8}
+.cs-weekly-insight p{color:#53687b;line-height:1.75;font-size:11px;margin:7px 0}
+.cs-weekly-insight .cs-weekly-observed{border-top:1px solid #e5edf4;border-bottom:1px solid #e5edf4;padding:5px 0;color:#314a60}
+.cs-weekly-insight .cs-weekly-observed b{color:#bb6518}
+.cs-weekly-pie-layout{display:flex;align-items:center;gap:22px}
+.cs-weekly-pie{width:235px;height:235px;flex-shrink:0}
+.cs-weekly-legend{list-style:none;display:grid;gap:10px;margin:0;padding:0;flex:1}
+.cs-weekly-pie-item{display:flex;align-items:center;gap:9px}
+.cs-weekly-swatch{width:12px;height:12px;flex-shrink:0;border-radius:3px}
+.cs-weekly-pie-item div{display:flex;flex-direction:column;gap:2px}
+.cs-weekly-pie-item b{font-size:12px;line-height:1.55;color:#253f5b}
+.cs-weekly-pie-item small{font-size:10px;color:#657483}
+.cs-weekly-types{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 25px}
+.cs-weekly-type,.cs-contractor-issue{min-width:0}
+.cs-weekly-type-head,.cs-contractor-issue>div:first-child{display:flex;align-items:flex-start;justify-content:space-between;gap:7px}
+.cs-weekly-type-head span,.cs-contractor-issue span{font-size:11px;line-height:1.55;max-width:78%;color:#1a3a54}
+.cs-weekly-type-head strong,.cs-contractor-issue strong{font-size:11px;white-space:nowrap;color:#8a4f18}
+.cs-weekly-type-head small{font-weight:400;font-size:9px;color:#69798a}
+.cs-issue-number,.cs-contractor-issue span>b{color:#d57829}
+.cs-weekly-track{background:#eef3f7;width:100%;height:9px;border-radius:20px;overflow:hidden;margin-top:5px}
+.cs-weekly-track>i{display:block;background:#f29a3a;border-radius:20px;height:100%}
+.cs-weekly-contractor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.cs-weekly-contractor{padding:14px;border:1px solid #dce6ef;border-radius:10px;background:#fbfdff}
+.cs-weekly-contractor h4{font-size:14px;color:#164b75;margin:0 0 3px}
+.cs-weekly-contractor>p{font-size:10px;margin:0 0 11px;color:#697c8d}
+.cs-contractor-issue{margin:9px 0}
+.cs-contractor-issue span{max-width:74%}
+.cs-weekly-empty{font-size:12px;color:#657589;padding:10px 0}
+@media(max-width:1050px){.cs-weekly-insights{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:750px){.cs-weekly-types,.cs-weekly-contractor-grid{grid-template-columns:1fr}.cs-weekly-insights{grid-template-columns:1fr}.cs-weekly-pie-layout{flex-direction:column}.cs-weekly-pie{width:210px}}
+@media print{
+ .cs-weekly-report{color:#1f3449}
+ .cs-weekly-heading{break-after:avoid}
+ body.cs-print .cs-weekly-report .cs-panel{break-inside:auto;page-break-inside:auto}
+ .cs-weekly-insights{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}
+ .cs-weekly-insight{break-inside:avoid;page-break-inside:avoid;padding:9px}
+ .cs-weekly-insight-head strong{font-size:9px}
+ .cs-weekly-insight p{font-size:9px}
+ .cs-weekly-insight-number{font-size:11px}
+ .cs-weekly-pie-layout{break-inside:avoid}
+ .cs-weekly-pie{width:190px;height:190px}
+ .cs-weekly-types{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 15px}
+ .cs-weekly-type,.cs-contractor-issue{break-inside:avoid}
+ .cs-weekly-type-head span,.cs-contractor-issue span{font-size:10px}
+ .cs-weekly-contractor-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .cs-weekly-contractor{break-inside:avoid;page-break-inside:avoid;padding:9px}
+ .cs-weekly-contractor h4{font-size:11px}
+ .cs-weekly-contractor>p{font-size:9px}
+ .cs-weekly-track,.cs-weekly-insight-number,.cs-weekly-swatch{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+ .cs-weekly-track>i{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+}
+.cs-weekly-objectives{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:10px 0}
+.cs-weekly-objectives p{background:#fff9f2;border:1px solid #f2e0c8;border-radius:9px;padding:10px 12px;color:#38516a;font-size:11px;line-height:1.8;margin:0}
+.cs-weekly-objectives b{color:#c26a20}
+@media(max-width:750px){.cs-weekly-objectives{grid-template-columns:1fr}}
+@media print{.cs-weekly-objectives{grid-template-columns:repeat(3,minmax(0,1fr))}.cs-weekly-objectives p{break-inside:avoid;font-size:9px}}

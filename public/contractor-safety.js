@@ -91,8 +91,8 @@ function content(rows,printing=false){
  '<div><b>C · 0.5</b><strong>'+fmt(c)+'</strong><span>'+cShare+'%</span></div></div>'+
  '<p>الأوزان مستخرجة من نفس معادلات ورقة Intellect، وهي أوزان بنود الفحص وليست مخالفات مالية.</p></section>';
  const scoreMax=100;
- const scoreBars='<section class="cs-panel"><h3>المقارنة البصرية بين المقاولين</h3><p>اضغط اسم أي مقاول لتصفية كافة المؤشرات.</p>'+
- ranking.slice(0,20).map(x=>chartBar(x.name,x.score??0,scoreMax,fmtPct(x.score)+' • '+fmt(x.valid)+' فحص',x.name)).join('')+'</section>';
+ const scoreBars='<section class="cs-panel"><h3>تقييم تطبيق لائحة السلامة في الموقع — جميع المقاولين</h3><p>متوسط درجات الفحص لكل مقاول من 100%، مع إظهار عدد الفحوص ذات التقييم الصالح. اضغط اسم المقاول لتصفية التقرير.</p>'+
+ ranking.map(x=>chartBar(x.name,x.score??0,scoreMax,fmtPct(x.score)+' • '+fmt(x.valid)+' فحص',x.name)).join('')+'</section>';
  const graphs='<div class="cs-grid">'+scoreBars+monthly+top+severity+'</div>';
  const limit=printing?300:state.limit;
  const sorted=[...rows].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
@@ -104,7 +104,8 @@ function content(rows,printing=false){
  '<div class="cs-table-wrap"><table class="cs-table cs-detail"><thead><tr><th>م</th><th>التاريخ</th><th>أمر العمل</th><th>المقاول</th><th>المهندس</th><th>الدرجة</th><th>A</th><th>B</th><th>C</th><th>بنود المخالفات</th></tr></thead><tbody>'+detailRows+'</tbody></table></div>'+
  (!printing&&limit<rows.length?'<button type="button" id="csMore" class="cs-more">عرض فحوص إضافية</button>':'')+'</section>';
  const note='<section class="cs-method"><b>منهجية احتساب التقييم</b><p>درجة كل فحص من العمود F (نسبة النموذج G × 100) كما هي في Intellect. تقييم المقاول = متوسط درجات فحوصه التي تحتوي على تقييم صالح. الفحوص بلا درجة تُحتسب ضمن عدد الفحوص ولا تدخل في المتوسط. بند «لا ينطبق» مستبعد من مقام معادلة النموذج الأصلي. الأوزان: A = 7 وB = 2 وC = 0.5. لا يعتبر هذا التقرير ترتيبًا تعاقديًا أو اعتماد جزاءات رسمية.</p></section>';
- return kpis+note+graphs+rankingTable+details;
+ const weeklyInsights=window.VDSafetyWeeklyInsights?.render(rows)||'';
+ return kpis+note+graphs+weeklyInsights+rankingTable+details;
 }
 function controls(){
  const contractors=uniq(state.rows.map(x=>x.contractor)),engineers=uniq(state.rows.map(x=>x.engineer));
@@ -189,15 +190,18 @@ function exportPdf(general=false){
   const title='تقييم المقاولين بالسلامة - '+city;
   const filterText=general?'تقرير عام — كل المقاولين وجميع الفترات':'تقرير حسب الفلاتر المختارة';
   const markup='<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8">'+
-   '<title>'+esc(title)+'</title><link rel="stylesheet" href="/contractor-safety.css?v=20261015-1"></head>'+
+   '<title>'+esc(title)+'</title><link rel="stylesheet" href="/contractor-safety.css?v=20261015-1">'+
+   '<link rel="stylesheet" href="/contractor-safety-weekly.css?v=20261015-2"></head>'+
    '<body class="cs-print"><main class="cs-report"><header class="cs-head">'+
    '<img class="cs-print-logo" src="/company-logo.png" alt="أبعاد الرؤية"><div><span>VISION DIMENSIONS • PDC</span>'+
    '<h1>'+esc(title)+'</h1><p>'+esc(filterText)+' · المصدر Intellect · '+new Date().toLocaleString('ar-SA')+'</p></div></header>'+
    '<p class="cs-source">درجة النموذج F؛ الأوزان 7 / 2 / 0.5 — عدد الفحوص '+fmt(rows.length)+'</p>'+
    content(rows,true)+'</main></body></html>';
   popup.document.open();popup.document.write(markup);popup.document.close();
-  popup.onload=()=>setTimeout(()=>popup.print(),350);
-  setTimeout(()=>{try{if(popup.document.readyState==='complete')popup.print()}catch(_){}},1000);
+  let printed=false;
+  const printOnce=()=>{if(printed||popup.closed)return;printed=true;try{popup.print()}catch(_){}};
+  popup.onload=()=>setTimeout(printOnce,350);
+  setTimeout(()=>{if(popup.document.readyState==='complete')printOnce()},1200);
  })();
 }
 function activate(){

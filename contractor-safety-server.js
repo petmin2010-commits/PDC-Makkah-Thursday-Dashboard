@@ -29,7 +29,7 @@ async function getData({getSheets,spreadsheetId,city,refresh=false}){
   if(clean(rows[0]?.[0]).toLowerCase()!=='timestamp'||!clean(rows[0]?.[4]).includes('المقاول'))
    throw new Error('بنية أعمدة Intellect غير متوافقة مع التقرير');
   const parsed=[];
-  for(let i=2;i<rows.length;i++){const x=normalize(rows[i]||[],rows[0],i);if(x)parsed.push(x)}
+  for(let i=1;i<rows.length;i++){const x=normalize(rows[i]||[],rows[0],i);if(x)parsed.push(x)}
   const data={ok:true,city,source:'Intellect',updatedAt:new Date().toISOString(),rows:parsed};
   cache.set(key,{data,time:Date.now()});
   return data;
