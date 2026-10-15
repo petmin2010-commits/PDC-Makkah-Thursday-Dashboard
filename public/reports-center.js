@@ -261,7 +261,7 @@
         return '<article class="rc-card">' +
           '<div class="rc-card-icon">' + icon + '</div>' +
           '<div class="rc-card-copy"><strong>' + label + '</strong><small>المصدر: تاب ' + tabName + '</small></div>' +
-          '<button type="button" class="rc-export-btn" data-report-page="' + key + '">تصدير التقرير PDF</button>' +
+          '<button type="button" class="rc-export-btn" data-report-page="' + key + '">' + (key === 'contractorSafety' ? 'تنزيل PDF / PowerPoint' : 'تصدير التقرير PDF') + '</button>' +
         '</article>';
       }).join('');
       return '<section class="rc-group"><div class="rc-group-head"><div><h3>' + group.title + '</h3><p>' + group.subtitle + '</p></div><span>' + items.length + ' تقارير</span></div><div class="rc-grid">' + cards + '</div></section>';

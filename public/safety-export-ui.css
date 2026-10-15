@@ -1,0 +1,26 @@
+.cs-download-overlay{position:fixed;z-index:100000;inset:0;background:rgba(2,19,35,.75);display:flex;align-items:center;justify-content:center;padding:18px;direction:rtl;backdrop-filter:blur(6px)}
+.cs-download-dialog{width:min(680px,96vw);border-radius:21px;overflow:hidden;background:#fff;box-shadow:0 35px 85px #0007;font-family:Cairo,Tahoma,Arial,sans-serif;color:#18344b}
+.cs-download-head{background:linear-gradient(115deg,#042c50,#146fa0);padding:24px 28px;color:white;display:flex;justify-content:space-between;gap:14px;align-items:flex-start;border-bottom:5px solid #f09030}
+.cs-download-head small{font-size:10px;color:#ffc18a;letter-spacing:1px;font-weight:800}
+.cs-download-head h2{font-size:23px;margin:6px 0;color:white}
+.cs-download-head p{font-size:12px;color:#daecf9;margin:0}
+.cs-download-close{font-size:29px;line-height:1;color:white;background:#ffffff24;border:1px solid #ffffff55;width:37px;height:37px;border-radius:50%;cursor:pointer}
+.cs-download-body{padding:24px 26px 14px}
+.cs-download-intro{font-size:13px;line-height:1.9;color:#577187;margin:0 0 18px}
+.cs-download-types{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.cs-download-types button{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:#f2f7fb;border:2px solid #d8e7f1;padding:20px 14px;border-radius:14px;gap:9px;cursor:pointer;color:#123e65;min-height:182px;transition:background .15s,border-color .15s,transform .15s}
+.cs-download-types button:hover{border-color:#ee8b38;background:#fff5ec;transform:translateY(-2px)}
+.cs-download-types button:disabled{opacity:.5;cursor:wait}
+.cs-download-types b{font-size:17px}.cs-download-types small{font-size:11px;color:#597184;line-height:1.7}
+.cs-download-icon{display:grid;place-items:center;width:76px;height:53px;border-radius:12px;color:white;font-size:18px;font-weight:900;letter-spacing:1px}
+.cs-icon-pdf{background:linear-gradient(130deg,#a8283b,#f15d64)}
+.cs-icon-ppt{background:linear-gradient(130deg,#bc5d18,#f59a3d)}
+.cs-download-option{display:flex;align-items:center;gap:10px;background:#f3faf6;border-radius:9px;padding:12px 14px;margin:17px 0 7px;cursor:pointer}
+.cs-download-option input{width:17px;height:17px;accent-color:#067969}
+.cs-download-option span{display:flex;flex-direction:column;gap:3px}
+.cs-download-option b{font-size:13px}.cs-download-option small{font-size:11px;color:#658077}
+.cs-download-status{font-size:12px;color:#1b7a68;min-height:20px;padding:0 5px}
+.cs-download-status.error{color:#aa293b;font-weight:700}
+.cs-download-dialog>footer{padding:10px 25px;background:#eaf2f8;display:flex;justify-content:space-between;align-items:center;gap:20px;color:#59758d;font-size:11px}
+.cs-download-dialog>footer button{border-radius:8px;background:white;border:1px solid #bfd1de;padding:8px 17px;color:#34556e;cursor:pointer}
+@media(max-width:560px){.cs-download-types{grid-template-columns:1fr}.cs-download-types button{min-height:115px}.cs-download-head h2{font-size:19px}}

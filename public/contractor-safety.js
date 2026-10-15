@@ -147,7 +147,7 @@ function render(){
  const status=state.loading?'جاري تحديث بيانات Intellect...':state.error?'<span class="cs-error">'+esc(state.error)+'</span>':state.loaded?'آخر قراءة: '+esc(new Date(state.updatedAt).toLocaleString('ar-SA')):'لم تُحمّل البيانات';
  host.innerHTML='<div class="cs-report">'+
  '<header class="cs-head"><div><span>VISION DIMENSIONS • SAFETY ASSESSMENT</span><h2>تقييم السلامة للمقاولين — '+city+'</h2><p>نتائج فحوص السلامة والجودة من ورقة Intellect المستقلة لكل مدينة.</p></div>'+
- '<div class="cs-head-actions"><button type="button" id="csRefresh" class="cs-secondary">↻ تحديث</button><button type="button" id="csExport" class="cs-primary"'+(!state.loaded?' disabled':'')+'>↓ تصدير PDF حسب الفلاتر والفترة</button></div></header>'+
+ '<div class="cs-head-actions"><button type="button" id="csRefresh" class="cs-secondary">↻ تحديث</button><button type="button" id="csExport" class="cs-primary"'+(!state.loaded?' disabled':'')+'>↓ تنزيل التقرير · PDF / PowerPoint</button></div></header>'+
  '<p class="cs-source">المصدر: السلامة والجودة '+city+' / Intellect · '+status+'</p>'+
  (state.loaded?controls()+'<div class="cs-results">عدد الفحوص المطابقة: <b>'+fmt(data.length)+'</b></div>'+content(data):'')+'</div>';
  bindUi(host);
@@ -210,33 +210,16 @@ async function load(refresh=false){
  return pending;
 }
 function exportPdf(general=false){
- const popup=window.open('','_blank');
- if(!popup){alert('يرجى السماح بفتح نافذة تصدير PDF');return}
- popup.document.write('<html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>تقييم السلامة للمقاولين</title></head><body>جاري إعداد تقرير السلامة...</body></html>');
- (async()=>{
-  if(!state.loaded)await load();
-  if(!state.loaded){popup.document.body.textContent=state.error||'لم تتوفر بيانات التقرير';return}
-  const city=document.title.includes('جدة')?'جدة':'مكة',rows=general?state.rows:filterRows();
-  const title='تقييم السلامة للمقاولين - '+city;
-  const filtersApplied=Object.entries(state.selected).filter(([,v])=>v).map(([k,v])=>({contractor:'المقاول',engineer:'المهندس',workOrder:'أمر العمل',violation:'نوع المخالفة'}[k]+': '+[...v].slice(0,8).join('، ')+(v.size>8?' وغيرها':'')));
-  if(state.severity!=='all')filtersApplied.push('الوزن: '+state.severity.toUpperCase());
-  if(state.query)filtersApplied.push('بحث: '+state.query);
-  const filterText=general?'التقرير العام — جميع المقاولين · كامل الفترة · دون فلاتر':
-   'تقرير حسب الفلاتر — '+periodLabel()+(filtersApplied.length?' · '+filtersApplied.join(' | '):' · جميع المقاولين');
-  const markup='<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8">'+
-   '<title>'+esc(title)+'</title><link rel="stylesheet" href="/contractor-safety.css?v=20261015-1">'+
-   '<link rel="stylesheet" href="/contractor-safety-weekly.css?v=20261015-2"></head>'+
-   '<body class="cs-print"><main class="cs-report"><header class="cs-head">'+
-   '<img class="cs-print-logo" src="/company-logo.png" alt="أبعاد الرؤية"><div><span>VISION DIMENSIONS • PDC</span>'+
-   '<h1>'+esc(title)+'</h1><p>'+esc(filterText)+' · المصدر Intellect · '+new Date().toLocaleString('ar-SA')+'</p></div></header>'+
-   '<p class="cs-source">درجة النموذج F؛ الأوزان 7 / 2 / 0.5 — عدد الفحوص '+fmt(rows.length)+'</p>'+
-   content(rows,true)+'</main></body></html>';
-  popup.document.open();popup.document.write(markup);popup.document.close();
-  let printed=false;
-  const printOnce=()=>{if(printed||popup.closed)return;printed=true;try{popup.print()}catch(_){}};
-  popup.onload=()=>setTimeout(printOnce,350);
-  setTimeout(()=>{if(popup.document.readyState==='complete')printOnce()},1200);
- })();
+ const selected=key=>state.selected[key]?[...state.selected[key]]:[];
+ const ctx={
+  general,city:()=>state.city==='Jeddah'?'جدة':state.city==='Makkah'?'مكة':(document.title.includes('جدة')?'جدة':'مكة'),
+  period:()=>periodLabel(),rows:()=>general?state.rows:filterRows(),
+  filters:()=>({from:state.dateFrom,to:state.dateTo,contractors:selected('contractor'),engineers:selected('engineer'),
+    workOrders:selected('workOrder'),violations:selected('violation'),severity:state.severity,query:state.query}),
+  loaded:()=>state.loaded,load:()=>load(),error:()=>state.error
+ };
+ if(window.VDSafetyExporter?.open)window.VDSafetyExporter.open(ctx);
+ else alert('تعذر تحميل قائمة تصدير التقرير. يرجى تحديث الصفحة.');
 }
 function activate(){
  document.body.classList.add('contractor-safety-active');

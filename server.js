@@ -2550,6 +2550,8 @@ require('./projects-report-excel-server')({
   loadProjectImages:projectsReportImages.loadImages
 });
 
+require('./safety-presentation-server')({app,requireAuth_,getSheets,city:'Makkah',spreadsheetId:process.env.CONTRACTOR_SAFETY_SHEET_ID||'1bu5hfCL9kLtVpYdV50tlZCHyhWnSyeHvIEqU0ItM8u0'});
+
 app.get('/api/safety/contractor-evaluation',requireAuth_,async(req,res)=>{
   try {
     const reader=require('./contractor-safety-server');
