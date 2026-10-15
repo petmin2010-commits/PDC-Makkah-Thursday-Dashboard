@@ -21,7 +21,21 @@
    const job=(async()=>{
      try{
        const result=await call('/api/report-archive',{reportName,format,filename});
-       if(input.blob&&result.pcloudEnabled){try{const saved=await sendFile(result.id,input.blob,filename);result.url=saved.url}catch(e){result.archiveError=e.message;console.warn('Archive upload',e.message)}}
+       if(input.blob){
+         if(!result.pcloudEnabled){
+           result.archiveError='PCLOUD_NOT_CONFIGURED';
+           await call('/api/report-archive/'+encodeURIComponent(result.id)+'/failure',{reason:'PCLOUD_NOT_CONFIGURED'}).catch(e=>console.warn('Archive status update failed',e.message));
+         }else{
+           try{
+             const saved=await sendFile(result.id,input.blob,filename);
+             result.url=saved.url;
+           }catch(e){
+             result.archiveError=e.message;
+             console.warn('Archive upload',e.message);
+             await call('/api/report-archive/'+encodeURIComponent(result.id)+'/failure',{reason:'UPLOAD_FAILED'}).catch(err=>console.warn('Archive status update failed',err.message));
+           }
+         }
+       }
        if(document.querySelector('.nav-item.active')?.dataset?.page==='reportArchive')refresh();
        return result;
      }catch(e){console.error('Report archive:',e.message);return null}
@@ -32,7 +46,11 @@
    const name=String(filename||('VD_'+(reportName||activeName())+'.pdf'));
    const created=await record({reportName:reportName||activeName(),format:'PDF',filename:name});
    if(!created)return {ok:false,error:'REGISTRATION_FAILED'};
-   if(!created.pcloudEnabled)return {ok:false,id:created.id,error:'PCLOUD_NOT_CONFIGURED'};
+   if(!created.pcloudEnabled){
+     await call('/api/report-archive/'+encodeURIComponent(created.id)+'/failure',{reason:'PCLOUD_NOT_CONFIGURED'}).catch(e=>console.warn('Archive status update failed',e.message));
+     if(document.querySelector('.nav-item.active')?.dataset?.page==='reportArchive')refresh();
+     return {ok:false,id:created.id,error:'PCLOUD_NOT_CONFIGURED'};
+   }
    try{
      const blob=await window.VDReportPdfCapture?.createPdf(report);
      if(!(blob instanceof Blob))throw Error('PDF_LIBRARY_UNAVAILABLE');
@@ -42,7 +60,7 @@
      return {ok:true,id:created.id,url:saved.url};
    }catch(error){
      const code=String(error?.message||'PDF_RENDER_FAILED');
-     const reason=code.startsWith('PDF_FILE_SIZE')?'PDF_FILE_TOO_LARGE':code.startsWith('UPLOAD_')?'UPLOAD_FAILED':code==='PDF_LIBRARY_UNAVAILABLE'?'PDF_LIBRARY_UNAVAILABLE':'PDF_RENDER_FAILED';
+     const reason=code.startsWith('PDF_FILE_SIZE')?'PDF_FILE_TOO_LARGE':code==='REPORT_NOT_READY'?'REPORT_NOT_READY':code==='PDF_LIBRARY_UNAVAILABLE'?'PDF_LIBRARY_UNAVAILABLE':/^(UPLOAD_|WEBDAV_|PCLOUD_)/.test(code)?'UPLOAD_FAILED':'PDF_RENDER_FAILED';
      try{await call('/api/report-archive/'+encodeURIComponent(created.id)+'/failure',{reason})}catch(e){console.warn('Report archive status update failed',e.message)}
      console.error('Automatic PDF archive failed',reason);
      return {ok:false,id:created.id,error:reason};
@@ -81,10 +99,10 @@
     if(item.url){const a=el('a','فتح التقرير ↗');a.href=item.url;a.target='_blank';a.rel='noopener noreferrer';td.append(a)}else td.append(el('span','لم تُحفظ نسخة'));
     const actions=el('td');row.append(actions);
     const link=el('button','إضافة رابط');link.addEventListener('click',()=>linkRecord(item));actions.append(link);
-    if(state.cloud){const upload=el('button','رفع ملف');upload.addEventListener('click',()=>pickFile(item));actions.append(upload)}
+    if(state.cloud&&!item.fileId){const upload=el('button',/فشل|تعذر/i.test(item.status||'')?'إعادة رفع':'رفع ملف');upload.addEventListener('click',()=>pickFile(item));actions.append(upload)}
   }
   if(!items.length){const row=el('tr'),cell=el('td','لا توجد تقارير مطابقة');cell.colSpan=8;row.append(cell);tbody.append(row)}
-  const note=el('p',state.cloud?'يتم إنشاء وحفظ تقارير PDF القياسية تلقائيًا على pCloud عند التصدير، بالإضافة إلى ملفات Excel/PowerPoint/HTML المدعومة. يمكن رفع أي تقرير قديم أو صادر من نافذة خاصة يدويًا.':'pCloud غير متصل بعد؛ يمكنك إضافة رابط مشاركة تقرير محفوظ يدويًا.');note.className='ra-note';page.append(note);
+  const note=el('p',state.cloud?'إعدادات pCloud موجودة. اضغط «اختبار اتصال pCloud» للتحقق من إمكانية رفع وتنزيل الملفات. لا يُعتبر أي تقرير محفوظًا حتى تتغير حالة السجل إلى «محفوظ في pCloud».':'pCloud غير مهيأ حاليًا؛ يمكنك إضافة رابط تقرير محفوظ يدويًا.');note.className='ra-note';page.append(note);
  }
  async function refresh(){
   if(state.pending)return;state.pending=true;
