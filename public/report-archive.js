@@ -68,10 +68,8 @@
     finally{testButton.disabled=false;testButton.textContent='اختبار اتصال pCloud'}
   });
   head.append(testButton);page.append(head);
-  const tools=el('div');tools.className='ra-controls';const search=el('input');search.type='search';search.placeholder='ابحث عن تقرير أو مُصدِر أو تاريخ';search.value=state.term;
-  search.addEventListener('input',e=>{const start=e.target.selectionStart;state.term=e.target.value;render();const next=page.querySelector('input[type=search]');next.focus();next.setSelectionRange(start,start)});tools.append(search);
-  const items=state.items.filter(i=>[i.date,i.time,i.issuer,i.reportName,i.format,i.filename].join(' ').toLowerCase().includes(state.term.toLowerCase()));
-  tools.append(el('span',items.length+' تقرير'));page.append(tools);
+  const items=window.VDReportArchiveFilters?.mount(page,state.items,render)
+    ||state.items.filter(i=>[i.date,i.time,i.issuer,i.reportName,i.format,i.filename].join(' ').toLowerCase().includes(state.term.toLowerCase()));
   const wrap=el('div');wrap.className='ra-grid';const table=el('table');wrap.append(table);page.append(wrap);
   const thead=el('thead');table.append(thead);const titles=el('tr');
   ['التاريخ','الوقت','المُصدِر','اسم التقرير','الصيغة','حالة الحفظ','رابط التقرير','pCloud'].forEach(x=>titles.append(el('th',x)));thead.append(titles);
@@ -104,6 +102,7 @@
   });input.click();
  }
  function show(){
+  document.body.classList.add('vd-report-archive-active');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   byId(PAGE)?.classList.add('active');
   document.querySelectorAll('#nav .nav-item').forEach(p=>p.classList.toggle('active',p.dataset.page==='reportArchive'));
@@ -114,6 +113,6 @@
  document.addEventListener('click',e=>{
   const b=e.target.closest?.('#nav .nav-item');if(!b)return;
   if(b.dataset.page==='reportArchive'){e.preventDefault();e.stopImmediatePropagation();show()}
-  else byId(PAGE)?.classList.remove('active');
+  else {document.body.classList.remove('vd-report-archive-active');byId(PAGE)?.classList.remove('active');}
  },true);
 })();

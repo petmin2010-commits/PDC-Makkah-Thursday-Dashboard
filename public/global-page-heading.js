@@ -121,6 +121,13 @@ const PAGE_META={
     icon:'▣',
     from:'#57400f',to:'#d79a22',accent:'#ffe08a'
   },
+  reportArchive:{
+    eyebrow:'REPORT ISSUE LOG • PCLOUD ARCHIVE',
+    title:'سجل التقارير الصادرة',
+    subtitle:'مراجعة تواريخ الإصدار والمُصدِرين وأسماء التقارير وحالة الحفظ وروابط pCloud.',
+    icon:'▣',
+    from:'#134c53',to:'#14918b',accent:'#77e0cf'
+  },
   importantLinks:{
     eyebrow:'PROJECT RESOURCES • QUICK ACCESS',
     title:'الروابط المهمة',
