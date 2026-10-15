@@ -72,7 +72,7 @@ function buildXlsx(rows,sheetName){
 }
 function installExcelExportRoutes(ctx){
   const {app,requireAuth_,getSheets,valuesGet,SPREADSHEET_ID,USERS_SHEET,qSheet,clean_,APP,DateTime}=ctx;
-  const blocked=new Set([String(USERS_SHEET||'').toLowerCase(),'dashboard history','vd thursday progress']);
+  const blocked=new Set([String(USERS_SHEET||'').toLowerCase(),'dashboard history','vd thursday progress','vd report archive']);
   const normPerm=value=>String(value??'').normalize('NFKC').replace(/[\u064B-\u065F\u0670]/g,'').replace(/ـ/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/[^\p{L}\p{N}]+/gu,' ').replace(/\s+/g,' ').trim().toLowerCase();
   function requireExcelAccess(req,res,next){
     const permissions=Array.isArray(req.session?.user?.permissions)?req.session.user.permissions:[];
