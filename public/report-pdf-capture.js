@@ -1,0 +1,37 @@
+(()=>{
+'use strict';
+// Export the same assembled report pages as a browser-generated PDF Blob.
+// Keep the existing print preview available; upload only after an actual PDF is produced.
+async function createPdf(report){
+ const Canvas=window.html2canvas, Pdf=window.jspdf?.jsPDF;
+ if(typeof Canvas!=='function'||typeof Pdf!=='function')throw Error('PDF_LIBRARY_UNAVAILABLE');
+ if(!report?.isConnected)throw Error('REPORT_NOT_READY');
+ const pages=[...report.querySelectorAll('.vd-report-v2-page')];
+ if(!pages.length)throw Error('REPORT_HAS_NO_PAGES');
+ await document.fonts?.ready;
+ const originals={width:report.style.width,maxWidth:report.style.maxWidth};
+ report.style.width='283mm';
+ report.style.maxWidth='283mm';
+ const pdf=new Pdf({orientation:'landscape',unit:'mm',format:'a4',compress:true});
+ try{
+   for(let i=0;i<pages.length;i++){
+     const page=pages[i];
+     const canvas=await Canvas(page,{backgroundColor:'#fff',scale:1.25,useCORS:true,allowTaint:false,logging:false,removeContainer:true,scrollX:0,scrollY:0,windowWidth:1160});
+     if(canvas.width<10||canvas.height<10)throw Error('EMPTY_REPORT_PAGE_'+(i+1));
+     if(i)pdf.addPage('a4','landscape');
+     const image=canvas.toDataURL('image/jpeg',0.76);
+     const ratio=Math.min(283/canvas.width,196/canvas.height);
+     const width=canvas.width*ratio,height=canvas.height*ratio;
+     pdf.addImage(image,'JPEG',7+(283-width)/2,7+(196-height)/2,width,height,undefined,'FAST');
+     canvas.width=0;canvas.height=0;
+   }
+   const blob=pdf.output('blob');
+   if(blob.size<800||blob.size>23*1024*1024)throw Error('PDF_FILE_SIZE_'+Math.ceil(blob.size/1024/1024)+'MB');
+   return blob;
+ }finally{
+   report.style.width=originals.width;
+   report.style.maxWidth=originals.maxWidth;
+ }
+}
+window.VDReportPdfCapture={createPdf};
+})();

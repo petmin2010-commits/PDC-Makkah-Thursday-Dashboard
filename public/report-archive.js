@@ -28,8 +28,27 @@
    })();
    recent={key,at:Date.now(),job};return job;
  }
- window.VDReportArchive={record,sendFile,refresh:()=>refresh()};
- window.addEventListener('beforeprint',()=>record({reportName:activeName(),format:'PDF',filename:(/^VD[_-]/i.test(document.title)?document.title:'VD_'+activeName())+'.pdf'}));
+ async function archiveGeneratedPdf({report,reportName,filename}={}){
+   const name=String(filename||('VD_'+(reportName||activeName())+'.pdf'));
+   const created=await record({reportName:reportName||activeName(),format:'PDF',filename:name});
+   if(!created)return {ok:false,error:'REGISTRATION_FAILED'};
+   if(!created.pcloudEnabled)return {ok:false,id:created.id,error:'PCLOUD_NOT_CONFIGURED'};
+   try{
+     const blob=await window.VDReportPdfCapture?.createPdf(report);
+     if(!(blob instanceof Blob))throw Error('PDF_LIBRARY_UNAVAILABLE');
+     const saved=await sendFile(created.id,blob,name);
+     if(document.querySelector('.nav-item.active')?.dataset?.page==='reportArchive')refresh();
+     console.info('PDF archived to pCloud',created.id);
+     return {ok:true,id:created.id,url:saved.url};
+   }catch(error){
+     const code=String(error?.message||'PDF_RENDER_FAILED');
+     const reason=code.startsWith('PDF_FILE_SIZE')?'PDF_FILE_TOO_LARGE':code.startsWith('UPLOAD_')?'UPLOAD_FAILED':code==='PDF_LIBRARY_UNAVAILABLE'?'PDF_LIBRARY_UNAVAILABLE':'PDF_RENDER_FAILED';
+     try{await call('/api/report-archive/'+encodeURIComponent(created.id)+'/failure',{reason})}catch(e){console.warn('Report archive status update failed',e.message)}
+     console.error('Automatic PDF archive failed',reason);
+     return {ok:false,id:created.id,error:reason};
+   }
+ }
+ window.VDReportArchive={record,sendFile,archiveGeneratedPdf,refresh:()=>refresh()};
  const el=(tag,txt)=>{const x=document.createElement(tag);if(txt!==undefined)x.textContent=txt;return x};
  function render(){
   const page=byId(PAGE);if(!page)return;page.replaceChildren();
@@ -67,7 +86,7 @@
     if(state.cloud){const upload=el('button','رفع ملف');upload.addEventListener('click',()=>pickFile(item));actions.append(upload)}
   }
   if(!items.length){const row=el('tr'),cell=el('td','لا توجد تقارير مطابقة');cell.colSpan=8;row.append(cell);tbody.append(row)}
-  const note=el('p',state.cloud?'الحفظ التلقائي يعمل على ملفات Excel/PowerPoint/HTML. ملف PDF الصادر من نافذة الطباعة يحتاج إلى رفع نسخته بعد حفظها.':'pCloud غير متصل بعد؛ يمكنك إضافة رابط مشاركة تقرير محفوظ يدويًا.');note.className='ra-note';page.append(note);
+  const note=el('p',state.cloud?'يتم إنشاء وحفظ تقارير PDF القياسية تلقائيًا على pCloud عند التصدير، بالإضافة إلى ملفات Excel/PowerPoint/HTML المدعومة. يمكن رفع أي تقرير قديم أو صادر من نافذة خاصة يدويًا.':'pCloud غير متصل بعد؛ يمكنك إضافة رابط مشاركة تقرير محفوظ يدويًا.');note.className='ra-note';page.append(note);
  }
  async function refresh(){
   if(state.pending)return;state.pending=true;

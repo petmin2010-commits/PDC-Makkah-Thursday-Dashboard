@@ -3784,15 +3784,19 @@
       cleanupReport();
     };
 
+    let archiveTask=null;
     window.addEventListener(
       'afterprint',
-      cleanup,
+      () => {
+        if(archiveTask?.finally)archiveTask.finally(cleanup);
+        else cleanup();
+      },
       { once: true }
     );
 
     requestAnimationFrame(() => {
       setTimeout(() => {
-        window.VDReportArchive?.record({reportName:getActivePageName(),format:'PDF',filename:fileTitle+'.pdf'});
+        archiveTask=window.VDReportArchive?.archiveGeneratedPdf({report,reportName:getActivePageName(),filename:fileTitle+'.pdf'})||null;
         window.print();
       }, 350);
     });

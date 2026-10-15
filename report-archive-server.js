@@ -162,6 +162,26 @@ module.exports=function installArchive({app,requireAuth_,getSheets,spreadsheetId
      res.status(201).json({ok:true,id,pcloudEnabled:cloudEnabled});
    }catch(e){console.error('Archive register',e.message);res.status(500).json({ok:false,error:'ARCHIVE_WRITE_FAILED'})}
  });
+ app.post('/api/report-archive/:id/failure',requireAuth_,authOrigin,async(req,res)=>{
+   try{
+     const id=String(req.params.id||'');
+     if(!/^[0-9a-f-]{36}$/i.test(id))return res.status(400).json({ok:false,error:'INVALID_ID'});
+     const messages={
+       PDF_LIBRARY_UNAVAILABLE:'تعذر إنشاء PDF تلقائيًا (مكتبة PDF غير متاحة)',
+       PDF_RENDER_FAILED:'تعذر إنشاء ملف PDF تلقائيًا',
+       PDF_FILE_TOO_LARGE:'تعذر رفع PDF لأن حجمه يتجاوز الحد المسموح',
+       UPLOAD_FAILED:'فشل رفع ملف PDF إلى pCloud'
+     };
+     const reason=String(req.body?.reason||'');
+     if(!Object.hasOwn(messages,reason))return res.status(400).json({ok:false,error:'INVALID_REASON'});
+     const {sheets,rows}=await load(),found=find(rows,id);
+     if(!found)return res.status(404).json({ok:false,error:'NOT_FOUND'});
+     if(found.item.email!==req.session.user?.email)return res.status(403).json({ok:false,error:'NOT_OWNER'});
+     if(found.item.fileId)return res.status(409).json({ok:false,error:'ALREADY_ARCHIVED'});
+     await sheets.spreadsheets.values.update({spreadsheetId,range:range('I'+(found.index+2)),valueInputOption:'RAW',requestBody:{values:[[messages[reason]]]}});
+     res.json({ok:true,id});
+   }catch(e){console.error('Archive failure status',e.message);res.status(500).json({ok:false,error:'ARCHIVE_STATUS_FAILED'})}
+ });
  app.post('/api/report-archive/:id/link',requireAuth_,authOrigin,async(req,res)=>{
   try{
     const id=String(req.params.id||''),link=String(req.body?.url||'').trim();
