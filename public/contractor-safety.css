@@ -1,0 +1,81 @@
+#contractorSafetyPage{padding:10px 0 30px}
+.cs-report{font-family:Cairo,Tahoma,Arial,sans-serif;direction:rtl;color:#142638;line-height:1.65}
+.cs-report *{box-sizing:border-box}
+.cs-report button,.cs-report input,.cs-report select{font:inherit}
+.cs-head{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:21px 25px;border-radius:15px;background:linear-gradient(110deg,#eef5ff,#f9fcff);border:1px solid #d2e4f5;margin-bottom:10px}
+.cs-head>div>span{color:#205c8b;letter-spacing:.08em;font-size:12px;font-weight:800}
+.cs-head h2,.cs-head h1{color:#123d68;margin:5px 0 6px;font-size:24px}
+.cs-head p{margin:0;color:#405669;font-size:13px}
+.cs-head-actions{display:flex;gap:8px;flex-wrap:wrap}
+.cs-primary,.cs-secondary,.cs-more{border:1px solid #a7c2da;border-radius:9px;padding:10px 15px;cursor:pointer;font-weight:800;background:#fff;color:#17496f}
+.cs-primary{background:#0e6a56;color:white;border-color:#0e6a56}
+.cs-primary:disabled{opacity:.5;cursor:not-allowed}
+.cs-source{font-size:12px;color:#50647c;margin:6px 5px 15px}
+.cs-error{color:#a32020;font-weight:700}
+.cs-filters{display:flex;align-items:end;gap:8px;flex-wrap:wrap;padding:14px;background:#f4f8fc;border:1px solid #dbe6ee;border-radius:12px;margin-bottom:12px}
+.cs-filters>label{min-width:135px;flex:1;display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:800}
+.cs-filters input,.cs-filters select{width:100%;background:#fff;color:#152c43;border:1px solid #cad9e7;border-radius:8px;padding:8px;min-height:38px}
+.cs-multiple{flex:1 1 210px;min-width:180px;position:relative;z-index:1}
+.cs-multiple[open]{z-index:40}
+.cs-multiple summary{list-style:none;padding:8px 12px;background:white;border:1px solid #cad9e7;border-radius:8px;cursor:pointer;min-height:38px;font-size:12px;font-weight:800}
+.cs-multiple summary::-webkit-details-marker{display:none}
+.cs-multiple summary b{float:left;color:#006f80;font-size:11px}
+.cs-multiple-body{position:absolute;right:0;top:100%;width:min(340px,85vw);z-index:60;background:white;box-shadow:0 12px 30px #102d4833;border:1px solid #d1dfeb;border-radius:10px;padding:10px}
+.cs-multiple-body input[type=search]{width:100%;padding:8px;border:1px solid #c6d5e4;border-radius:7px}
+.cs-choice-list{max-height:245px;overflow:auto;margin-top:8px}
+.cs-choice{display:flex;gap:8px;align-items:center;padding:5px 3px;font-size:12px;cursor:pointer}
+.cs-choice[hidden]{display:none!important}
+.cs-choice input{width:15px;height:15px;accent-color:#08796c}
+.cs-results{margin:10px 4px;font-size:13px;font-weight:600;color:#4c5e73}
+.cs-kpis{display:grid;grid-template-columns:repeat(5,minmax(135px,1fr));gap:10px;margin:12px 0}
+.cs-kpi{background:#fff;border:1px solid #dce5eb;border-radius:12px;padding:16px 14px;display:flex;flex-direction:column;box-shadow:0 3px 12px #123b5910}
+.cs-kpi small{color:#48627a;font-size:12px;font-weight:700}.cs-kpi strong{font-size:28px;color:#0b5f90;line-height:1.4}.cs-kpi em{font-size:10px;font-style:normal;color:#5b6c7e}
+.cs-method{border-right:4px solid #13785e;background:#f1faf5;border-radius:8px;padding:12px 16px;font-size:12px;margin:15px 0;color:#253f34}
+.cs-method b{font-size:13px}.cs-method p{margin:3px 0}
+.cs-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0}
+.cs-panel{background:#fff;border:1px solid #dbe5ec;border-radius:12px;padding:18px;margin:12px 0}
+.cs-panel h3{margin:0 0 6px;color:#153f65;font-size:16px}
+.cs-panel p{font-size:11px;color:#607080;margin:0 0 12px}
+.cs-bar-row{margin:9px 0;cursor:default}
+.cs-bar-row[data-cs-pick]{cursor:pointer}
+.cs-bar-row>div:first-child{display:flex;justify-content:space-between;gap:9px;font-size:11px}
+.cs-bar-row>div:first-child>span{max-width:77%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cs-bar-row>div:first-child b{flex:0 0 auto;font-size:10px}
+.cs-track{height:9px;border-radius:5px;background:#eaf0f5;overflow:hidden}
+.cs-track i{display:block;height:100%;border-radius:5px;background:#178c83}
+.cs-weight-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center}
+.cs-weight-grid>div{display:flex;flex-direction:column;border:1px solid #e3e9ed;border-radius:10px;padding:12px;background:#f5f9fd}
+.cs-weight-grid b{color:#305470}.cs-weight-grid strong{font-size:28px;color:#075d73}.cs-weight-grid span{font-size:12px}
+.cs-table-wrap{overflow:auto;max-width:100%}
+.cs-table{width:100%;border-collapse:collapse;text-align:right;font-size:11px}
+.cs-table th,.cs-table td{padding:9px 10px;border-bottom:1px solid #e4eaf0;vertical-align:top}
+.cs-table th{background:#e9f1f7;color:#123a5a;white-space:nowrap;position:sticky;top:0}
+.cs-detail th,.cs-detail td{font-size:10px}
+.cs-describe{max-width:330px;min-width:190px;overflow-wrap:break-word}
+.cs-name{cursor:pointer;border:0;background:none;color:#09567c;text-decoration:underline}
+.cs-grade{color:#0b6b59}
+.cs-more{margin:15px auto;display:block}
+.contractor-safety-active #vdUnifiedReportAction{display:none!important}
+.cs-print-logo{width:72px;height:auto}
+@media(max-width:900px){.cs-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.cs-grid{grid-template-columns:1fr}.cs-head{flex-wrap:wrap}.cs-head h2{font-size:19px}}
+@page{size:A4 landscape;margin:12mm}
+@media print{
+ body.cs-print{background:#fff!important;margin:0;padding:0;color:#000}
+ body.cs-print .cs-report{color:#000}
+ body.cs-print .cs-head{background:#f3f6fa;break-inside:avoid}
+ body.cs-print .cs-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ body.cs-print .cs-kpi,body.cs-print .cs-method,body.cs-print .cs-panel{box-shadow:none;break-inside:avoid}
+ body.cs-print .cs-table-wrap{overflow:visible}
+ body.cs-print .cs-table{width:100%;font-size:9px;table-layout:auto}
+ body.cs-print .cs-table tr{break-inside:avoid}
+ body.cs-print .cs-table thead{display:table-header-group}
+ body.cs-print .cs-table th{position:static}
+ body.cs-print .cs-table th,body.cs-print .cs-table td{padding:5px 6px;font-size:9px;overflow-wrap:anywhere}
+ body.cs-print .cs-panel:has(.cs-detail){break-inside:auto}
+ body.cs-print .cs-detail{table-layout:fixed}
+ body.cs-print .cs-detail .cs-describe{min-width:0;max-width:none}
+ body.cs-print .cs-name{color:#164f74;text-decoration:none}
+ body.cs-print .cs-panel h3{font-size:14px}
+ body.cs-print .cs-kpi strong{font-size:22px}
+ body.cs-print .cs-report .cs-bar-row{break-inside:avoid}
+}

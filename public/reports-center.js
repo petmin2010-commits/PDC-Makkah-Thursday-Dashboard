@@ -22,6 +22,7 @@
       subtitle: 'تقارير الرقابة والتدقيق',
       items: [
         ['safety','تقرير مخالفات السلامة العام','⚠'],
+        ['contractorSafety','تقرير تقييم المقاولين بالسلامة','✓'],
         ['executionViolations','تقرير مخالفات التنفيذ العام','🚫'],
         ['minutes','تقرير محاضر إثبات الحالة العام','▣'],
         ['dataQuality','تقرير جودة البيانات العام','◆']
@@ -273,6 +274,11 @@
       btn.addEventListener('click', () => {
         if (btn.dataset.reportPage === 'projectCompletionAnalysis') {
           exportProjectCompletionAnalysis(btn);
+          return;
+        }
+        if (btn.dataset.reportPage === 'contractorSafety') {
+          if (typeof window.VDContractorSafety?.exportGeneral === 'function') window.VDContractorSafety.exportGeneral();
+          else alert('تعذر تشغيل تقرير تقييم المقاولين بالسلامة.');
           return;
         }
         exportGeneral(btn.dataset.reportPage, btn);
