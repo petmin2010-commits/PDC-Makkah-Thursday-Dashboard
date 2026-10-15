@@ -99,6 +99,19 @@ module.exports=function installArchive({app,requireAuth_,getSheets,spreadsheetId
    const res=await dav('GET',p,{expected:[200]});
    return Buffer.from(await res.arrayBuffer());
  }
+ async function probeDavWritable(){
+   await checkDav();
+   const id=crypto.randomUUID();
+   const sample=Buffer.from('Vision Dimensions WebDAV connectivity '+id,'utf8');
+   const target=await uploadDav(sample,'connection-test.txt',id);
+   try{
+     const actual=await getDavFile(target.folder);
+     if(!actual.equals(sample))throw Error('WEBDAV_VERIFY_FAILED');
+   }finally{
+     await dav('DELETE',target.folder,{expected:[200,204,207]});
+   }
+   return true;
+ }
  async function folder(parent,name){const x=await cloud('createfolderifnotexists',{folderid:parent,name});if(!x.metadata?.folderid)throw Error('PCLOUD_FOLDER_NOT_FOUND');return String(x.metadata.folderid)}
  async function upload(buffer,name,id){
    if(davReady)return uploadDav(buffer,name,id);
@@ -128,9 +141,9 @@ module.exports=function installArchive({app,requireAuth_,getSheets,spreadsheetId
  });
  const probe=setTimeout(()=>{
    if(!cloudEnabled){console.log('Report archive pCloud: not configured');return}
-   (davReady?checkDav():cloud('userinfo',{}))
-     .then(()=>console.log('Report archive pCloud: connected via '+(davReady?'WebDAV':(preferPassword?'username-password':'access-token'))))
-     .catch(e=>console.warn('Report archive pCloud: connection unavailable ('+String(e.message||'unknown').slice(0,55)+')'));
+   (davReady?probeDavWritable():cloud('userinfo',{}))
+     .then(()=>console.log('Report archive pCloud: connected via '+(davReady?'WebDAV; upload-download verified':(preferPassword?'username-password':'access-token'))))
+     .catch(e=>console.warn('Report archive pCloud: connection or file-transfer test unavailable ('+String(e.message||'unknown').slice(0,55)+')'));
  },5000);
  if(typeof probe.unref==='function')probe.unref();
  app.get('/api/report-archive',requireAuth_,async(req,res)=>{
