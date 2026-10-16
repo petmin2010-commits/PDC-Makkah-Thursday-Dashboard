@@ -11,13 +11,22 @@ const pct=n=>n==null?'—':Number(n).toFixed(1)+'%';
 const num=n=>Number(n||0).toLocaleString('en-US');
 const chunk=(xs,count)=>Array.from({length:Math.ceil(xs.length/count)},(_,i)=>xs.slice(i*count,(i+1)*count));
 const imgNum=n=>String(n).padStart(2,'0');
+
 function scoreData(rows){
- const map=new Map(),issues=new Map(),points=[];
+ const map=new Map(),issues=new Map(),points=[],monthly=new Map();
+ let visitsWithViolation=0;
  for(const r of rows){
   const name=clean(r.contractor)||'مقاول غير محدد';
-  if(!map.has(name))map.set(name,{name,count:0,scores:[],issues:new Map()});
+  if(!map.has(name))map.set(name,{name,count:0,scores:[],issues:new Map(),visitsWithViolation:0});
   const c=map.get(name);c.count++;
+  const month=String(r.date||'').slice(0,7);
+  if(/^\d{4}-\d{2}$/.test(month)){
+   if(!monthly.has(month))monthly.set(month,{month,count:0,scores:[]});
+   const m=monthly.get(month);m.count++;
+   if(Number.isFinite(r.score))m.scores.push(r.score);
+  }
   if(Number.isFinite(r.score)){c.scores.push(r.score);points.push(r.score)}
+  if((r.violations||[]).length){visitsWithViolation++;c.visitsWithViolation++}
   for(const v of r.violations||[]){
    const label=clean(v.label)||'مخالفة '+v.number,key=String(v.number);
    if(!issues.has(key))issues.set(key,{number:v.number,label,count:0});
@@ -29,7 +38,11 @@ function scoreData(rows){
  const contractors=[...map.values()].map(x=>({...x,score:avg(x.scores),
    issues:[...x.issues.values()].sort((a,b)=>b.count-a.count||a.number-b.number)}))
    .sort((a,b)=>(b.score??-1)-(a.score??-1)||b.count-a.count);
- return {contractors,issues:[...issues.values()].sort((a,b)=>b.count-a.count||a.number-b.number),avg:avg(points)};
+ const outIssues=[...issues.values()].sort((a,b)=>b.count-a.count||a.number-b.number);
+ return {contractors,issues:outIssues,avg:avg(points),valid:points.length,
+  unscored:rows.length-points.length,visitsWithViolation,
+  totalViolations:outIssues.reduce((s,x)=>s+x.count,0),
+  monthly:[...monthly.values()].sort((a,b)=>a.month.localeCompare(b.month))};
 }
 function slideFrom(pptx,index,cleanVersion=false){
  const slide=pptx.addSlide();slide.background={color:WHITE};
@@ -80,27 +93,56 @@ function noteSlide(pptx,s,details){
       x+.17,5.88,w-.34,.63,{fontSize:8.7,color:'333333',valign:'top'});
  }
 }
-function rankSlide(pptx,s,data){
- const xs=data.contractors;
- // Same plot framing, orange pseudo-3D columns and vertical labels.
- shape(pptx,s,1.21,1.91,9.12,4.87,WHITE,'CFCFCF');
- const left=1.78,right=9.71,top=2.13,bottom=5.37;
- for(let j=0;j<=4;j++){
-  const y=bottom-j*(bottom-top)/4;
-  line(pptx,s,left,y,right-left,0,'D4D4D4',.5);
-  txt(s,String(j*25)+'.00',1.22,y-.11,.40,.18,{fontSize:7.1,color:RED,align:'right',rtlMode:false});
+
+function summarySlide(pptx,rows,meta,data){
+ const s=pptx.addSlide();s.background={color:'F4F8FC'};
+ shape(pptx,s,0,0,W,1.26,BLUE);
+ shape(pptx,s,0,1.23,W,.07,ORANGE);
+ txt(s,'الملخص التنفيذي لتقييم السلامة',2.1,.30,7.6,.45,{fontSize:23,color:WHITE,bold:true});
+ txt(s,'المشروع: '+clean(meta.city||'مكة')+'    |    '+(meta.general?'جميع البيانات':'حسب الفلاتر المختارة'),.9,.86,9.95,.23,{fontSize:12,color:'DFECFC'});
+ const cards=[
+  ['عمليات الفحص',num(rows.length),BLUE],
+  ['المقاولون',num(data.contractors.length),ORANGE],
+  ['متوسط الدرجات',pct(data.avg),'148B81'],
+  ['مخالفات البنود',num(data.totalViolations),'BD4E4E'],
+  ['درجات صالحة',num(data.valid),'416C9B'],
+  ['بلا درجات صالحة',num(data.unscored),'99555A']
+ ];
+ for(let i=0;i<cards.length;i++){
+  const [label,value,accent]=cards[i],col=i%3,row=Math.floor(i/3);
+  const x=.75+col*3.69,y=1.64+row*1.35;
+  shape(pptx,s,x,y,3.43,1.10,WHITE,'D6E4F0',true);
+  shape(pptx,s,x,y,.085,1.10,accent);
+  txt(s,label,x+.24,y+.14,2.93,.28,{fontSize:13,color:BLUE,bold:true});
+  txt(s,value,x+.24,y+.48,2.91,.39,{fontSize:27,color:accent,bold:true,rtlMode:false});
  }
- const first=xs.slice(0,12),n=first.length;
- if(!n){txt(s,'لا توجد درجات فحوص متاحة للفترة المحددة',2.1,3.4,7.5,.6,{fontSize:16});return}
- const usable=right-left-.5,step=usable/n,barW=Math.min(.44,step*.69);
- first.forEach((c,i)=>{
-  const x=left+.16+i*step,score=Math.max(0,Math.min(100,c.score??0)),height=(bottom-top)*score/100;
-  const y=bottom-height,depth=Math.min(.1,barW*.26);
-  shape(pptx,s,x+depth,y-.10,barW,height,'9D5F27');
-  shape(pptx,s,x,y,barW,height,'E79235');
-  shape(pptx,s,x,y-.105,barW,.10,'F4AF63');
-  txt(s,score.toFixed(2),x-.2,3.72,barW+.4,.19,{fontSize:8.2,color:RED,bold:true,rtlMode:false});
-  txt(s,c.name,x-.30,bottom+.49,barW+.62,.31,{fontSize:8,color:RED,vert:'vert270',fit:'shrink'});
+ const top=data.contractors.slice().sort((a,b)=>b.issues.reduce((z,x)=>z+x.count,0)-a.issues.reduce((z,x)=>z+x.count,0)).slice(0,3);
+ txt(s,'المقاولون الأعلى في مخالفات البنود',1.06,4.54,9.67,.32,{fontSize:16,color:BLUE,bold:true});
+ top.forEach((c,i)=>{
+  const violations=c.issues.reduce((sum,v)=>sum+v.count,0);
+  shape(pptx,s,1.04,4.95+i*.56,9.69,.45,i%2===0?'EAF3FA':'F7FAFD');
+  txt(s,c.name,6.4,5.03+i*.56,4.13,.22,{fontSize:12,color:BLUE,bold:true,align:'right'});
+  txt(s,num(violations)+' مخالفة',3.82,5.03+i*.56,2.18,.20,{fontSize:11,color:'C86424'});
+  txt(s,pct(data.totalViolations?violations/data.totalViolations*100:0)+' من الإجمالي',1.12,5.03+i*.56,2.2,.20,{fontSize:11,color:'3D647E'});
+ });
+ txt(s,'المصدر: ورقة Intellect الخاصة بالمشروع. المؤشرات من البيانات المفلترة فقط؛ الشرائح التعريفية الثابتة من القالب المرجعي.',.68,7.49,10.30,.33,{fontSize:9,color:'59758C'});
+ txt(s,'الفترة: '+clean(meta.period||'كامل المدة'),.70,7.05,10.28,.26,{fontSize:11,color:BLUE});
+ return s;
+}
+function rankSlide(pptx,s,data,period,index,total){
+ const xs=data.contractors;
+ shape(pptx,s,1.08,1.36,9.48,5.64,WHITE,'DAE5EE');
+ titleMonth(pptx,s,'تقييم المقاولين – '+index+' / '+total,period);
+ txt(s,'متوسط الدرجات (%)  ·  حجم عينة الفحوص ذات درجات صالحة',2.16,1.75,7.20,.22,{fontSize:10.5,color:'506E86'});
+ if(!xs.length){txt(s,'لا توجد درجات صالحة للفترة المحددة',2.1,3.3,7.5,.6,{fontSize:16});return}
+ const maxWidth=4.25;
+ xs.forEach((c,i)=>{
+  const y=2.12+i*.63,score=Math.max(0,Math.min(100,c.score??0));
+  shape(pptx,s,1.44,y+.34,maxWidth,.12,'E3EEF6');
+  if(score>0)shape(pptx,s,1.44,y+.34,maxWidth*score/100,.12,score<90?'C8604E':score<95?'E5943B':'248E83');
+  txt(s,pct(c.score),1.37,y+.04,1.08,.27,{fontSize:13.1,bold:true,color:score<90?'B84435':'174B78',rtlMode:false});
+  txt(s,c.name,5.92,y+.02,4.2,.28,{fontSize:13,color:BLUE,bold:true,align:'right',fit:'shrink'});
+  txt(s,num(c.scores.length)+' فحص بدرجة',5.92,y+.30,4.0,.19,{fontSize:10,color:'64798C',align:'right'});
  });
 }
 function svgEscape(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
@@ -129,74 +171,107 @@ function pieImage(items){
  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="660" height="425" viewBox="0 0 660 425">'+bottom+top+'</svg>';
  return 'data:image/svg+xml;base64,'+Buffer.from(svg,'utf8').toString('base64');
 }
-function pieSlide(pptx,s,issues,mode,period){
- const all=issues.filter(v=>v.count>0),max=mode==='top'?5:20,selected=all.slice(0,max);
- if(mode==='top')titleMonth(pptx,s,'نسب تكرار أكبر خمس مخالفات لجميع المقاولين مع جميع الاستشاريين',period);
- else titleMonth(pptx,s,'نسب تكرار جميع أنواع المخالفات لجميع المقاولين مع جميع الاستشاريين',period);
- shape(pptx,s,1.20,1.56,9.31,5.04,WHITE,'D0D0D0');
- if(!selected.length){txt(s,'لا توجد مخالفات مسجلة في الفترة المحددة',2.8,3.3,6.0,.4,{fontSize:19});return;}
- const chart=selected.length>12?{x:3.53,y:2.21,w:4.28,h:3.61}:{x:3.13,y:2.07,w:4.92,h:3.96};
- s.addImage({data:pieImage(selected),...chart});
- const count=selected.reduce((a,b)=>a+b.count,0),spots=Math.ceil(selected.length/2),rowHeight=Math.min(.53,4.03/Math.max(1,spots));
+
+function pieSlide(pptx,s,selected,mode,period,serial,totalPages,grandTotal){
+ const isTop=mode==='top',title=isTop?'أكبر خمس مخالفات':'توزيع أنواع المخالفات';
+ titleMonth(pptx,s,title+(totalPages>1?' ('+serial+' / '+totalPages+')':''),period);
+ shape(pptx,s,1.05,1.68,9.57,5.33,WHITE,'DAE5EE');
+ txt(s,'النسبة من إجمالي جميع المخالفات المسجلة ('+num(grandTotal)+')، لا من مجموع البنود المعروضة',1.33,1.79,8.91,.27,{fontSize:10.3,color:'446B86',bold:true});
+ const peak=Math.max(1,...selected.map(x=>x.count));
  selected.forEach((v,i)=>{
-  const side=i%2,idx=Math.floor(i/2),x=side===0?7.85:.84,
-   y=2.14+idx*rowHeight,w=side===0?2.60:2.44;
-  const text=(v.number?String(v.number)+' - ':'')+v.label;
-  txt(s,text,x,y,w,rowHeight*.57,{fontSize:mode==='top'?9.4:7.5,color:RED,align:side===0?'right':'left',bold:true});
-  txt(s,(v.count/count*100).toFixed(1)+'%',x,y+rowHeight*.60,w,.16,
-     {fontSize:7.9,color:'888888',rtlMode:false,align:side===0?'right':'left'});
-  line(pptx,s,side===0?7.96:3.49,y+rowHeight*.49,side===0?2.05:-2.15,0,'979797',.44);
+  const y=2.13+i*.90;
+  if(i%2===0)shape(pptx,s,1.30,y,9.07,.80,'F0F6FB');
+  const label=String(v.number)+' – '+clean(v.label).replace(/^\d{1,2}\s*[-–:.)]\s*/,'');
+  txt(s,label,4.35,y+.06,5.80,.55,{fontSize:11.3,color:BLUE,bold:true,align:'right',fit:'shrink',valign:'mid'});
+  txt(s,num(v.count)+' مرة',2.75,y+.16,1.42,.24,{fontSize:11,color:'B76D24',rtlMode:false});
+  txt(s,pct(grandTotal?v.count/grandTotal*100:0),1.36,y+.16,1.32,.24,{fontSize:11,color:'446B86',bold:true,rtlMode:false});
+  const w=6.2,fromX=3.95;
+  shape(pptx,s,fromX,y+.70,w,.08,'D8E8F2');
+  if(v.count)shape(pptx,s,fromX,y+.70,w*v.count/peak,.08,PIE[i%PIE.length]);
  });
+ if(!selected.length)txt(s,'لا توجد مخالفات في الفترة المحددة',2.2,3.5,7.2,.6,{fontSize:16});
 }
+function monthlySlide(pptx,s,items,period,serial,totalPages){
+ titleMonth(pptx,s,'اتجاه الفحص الشهري ('+serial+' / '+totalPages+')',period);
+ shape(pptx,s,1.07,1.68,9.56,5.34,WHITE,'DBE5F0');
+ txt(s,'عدد الفحوص، ومتوسط الدرجات الصالحة بكل شهر',2.5,1.80,7.28,.25,{fontSize:11,color:'466D85'});
+ const max=Math.max(1,...items.map(x=>x.count));
+ items.forEach((m,i)=>{
+  const y=2.15+i*.74;
+  txt(s,m.month,8.5,y+.04,1.43,.26,{fontSize:12.2,color:BLUE,rtlMode:false,bold:true});
+  txt(s,num(m.count)+' فحص',6.65,y+.04,1.66,.26,{fontSize:11.2,color:'B66F24'});
+  txt(s,'متوسط '+pct(avg(m.scores)),1.32,y+.04,2.25,.26,{fontSize:11,color:'3A6A82'});
+  shape(pptx,s,3.76,y+.14,2.68,.13,'E0EBF4');
+  if(m.count)shape(pptx,s,3.76,y+.14,2.68*m.count/max,.13,'4F96CF');
+  txt(s,num(m.scores.length)+' بدرجة صالحة',6.65,y+.34,3.18,.18,{fontSize:9.6,color:'758B9A'});
+ });
+ if(!items.length)txt(s,'لا توجد بيانات شهرية',3,3.4,5,.5,{fontSize:16});
+}
+
 function contractorSlide(pptx,s,groups,serial,total){
- // Quad pie layout precisely matched to source page 11.
- shape(pptx,s,.70,1.82,10.29,5.47,WHITE,'111111');
- line(pptx,s,5.89,1.83,0,5.44,'111111',1.5);
- line(pptx,s,.70,4.35,10.29,0,'111111',1.5);
- const positions=[
-  {x:6.12,y:1.83,w:4.78,h:2.42},
-  {x:.93,y:1.83,w:4.78,h:2.42},
-  {x:6.12,y:4.38,w:4.78,h:2.60},
-  {x:.93,y:4.38,w:4.78,h:2.60}
- ];
- for(let i=0;i<4;i++){
-  const part=positions[i],c=groups[i];
-  if(!c)continue;
-  txt(s,c.name,part.x+.08,part.y+.03,part.w-.16,.25,{fontSize:13.5,bold:true,color:BLUE});
-  shape(pptx,s,part.x+.16,part.y+.36,part.w-.32,part.h-.42,WHITE,'D8D8D8');
-  if(c.issues.length){
-   const list=c.issues.slice(0,5);
-   s.addImage({data:pieImage(list),x:part.x+1.02,y:part.y+.56,w:part.w-1.90,h:part.h-1.01});
-   txt(s,num(c.issues.reduce((t,v)=>t+v.count,0))+' مخالفة',part.x+.42,part.y+part.h-.43,part.w-.8,.19,{fontSize:8.2,color:RED});
-  }else{
-   txt(s,'لا توجد مخالفات مسجلة',part.x+.35,part.y+1.08,part.w-.7,.38,{fontSize:14,color:'536A75'});
-  }
- }
+ shape(pptx,s,.70,1.81,10.28,5.47,WHITE,'CEDDE8');
+ const three=groups.length===3;
+ const cols=three?3:2,rowsCount=three?1:(groups.length<=2?1:2);
+ const cw=10.12/cols,ch=5.20/rowsCount;
+ groups.forEach((c,i)=>{
+  const col=i%cols,row=Math.floor(i/cols);
+  const x=.79+col*cw,y=1.89+row*ch;
+  shape(pptx,s,x,y,cw-.10,ch-.12,i%2===0?'F4F8FC':'EDF5FB','DCE8F2');
+  txt(s,c.name,x+.16,y+.12,cw-.42,.32,{fontSize:three?12.8:12.0,bold:true,color:BLUE,align:'right',fit:'shrink'});
+  const totalViol=c.issues.reduce((total,v)=>total+v.count,0);
+  txt(s,num(c.count)+' فحص | '+num(totalViol)+' مخالفة',x+.16,y+.49,cw-.42,.20,{fontSize:9.6,color:'A55A29',align:'right'});
+  const selected=c.issues.slice(0,5),peak=Math.max(1,...selected.map(v=>v.count));
+  if(!selected.length){txt(s,'لا توجد مخالفات مسجلة',x+.38,y+1.02,cw-.75,.38,{fontSize:12.5,color:'4B7D8A'});return}
+  const gap=three?.67:groups.length<=2?.79:.36;
+  selected.forEach((issue,k)=>{
+   const iy=y+(three?.98:groups.length<=2?1.01:.83)+k*gap;
+   const label=String(issue.number)+' – '+clean(issue.label).replace(/^\d{1,2}\s*[-–:.)]\s*/,'');
+   txt(s,label,x+.14,iy,cw-.78,three?.46:groups.length<=2?.55:.22,{fontSize:three?9.6:groups.length<=2?11.3:7.5,color:BLUE,align:'right',fit:'shrink',valign:'mid'});
+   txt(s,num(issue.count),x+cw-.61,iy+(three?.10:groups.length<=2?.20:.02),.40,.20,{fontSize:three?10.2:groups.length<=2?11.1:8.3,color:'AB6528',bold:true,rtlMode:false});
+   const trackW=cw-.40;
+   shape(pptx,s,x+.14,iy+(three?.51:groups.length<=2?.64:.25),trackW,.065,'DDE9F1');
+   shape(pptx,s,x+.14,iy+(three?.51:groups.length<=2?.64:.25),trackW*issue.count/peak,.065,PIE[k%PIE.length]);
+  });
+ });
  const footer=path.join(ASSETS,'footer-logo.png');
- if(fs.existsSync(footer))s.addImage({path:footer,x:.81,y:6.96,w:3.25,h:.43});
- if(total>1)txt(s,'صفحة المقاولين '+serial+' / '+total,4.0,7.37,3.7,.24,{fontSize:10.4,color:BLUE,bold:true});
+ if(fs.existsSync(footer))s.addImage({path:footer,x:.81,y:7.02,w:3.00,h:.39});
+ txt(s,'أكثر 5 بنود لكل مقاول – صفحة '+serial+' / '+total,4.25,7.39,5.80,.22,{fontSize:10.2,color:BLUE,bold:true});
 }
+
 async function create(rows,meta={}){
  const pptx=new pptxgen();
  pptx.defineLayout({name:'SAFETY_A4_LANDSCAPE',width:W,height:H});
  pptx.layout='SAFETY_A4_LANDSCAPE';pptx.author='Vision Dimensions Engineering Consultancy';
- pptx.subject='Contractor Safety: source-template visual fidelity';
- pptx.title='تقرير السلامة والصحة المهنية لمقاولي العقد الموحد';
- pptx.lang='ar-SA';pptx.company='Vision Dimensions';
+ pptx.subject='Contractor Safety evaluation from isolated Intellect source';
+ pptx.title='تقييم السلامة للمقاولين';pptx.lang='ar-SA';pptx.company='Vision Dimensions';
  const data=scoreData(rows),period=meta.general?'كامل الفترة':clean(meta.period)||'كامل المدة';
  for(let page=1;page<=6;page++)slideFrom(pptx,page);
+ summarySlide(pptx,rows,{...meta,period},data);
  let s=slideFrom(pptx,7,true);noteSlide(pptx,s,data);
- const parts=chunk(data.contractors,12);
- for(const subset of (parts.length?parts:[[]])){
+ const ranks=chunk(data.contractors,7);
+ for(let i=0;i<(ranks.length||1);i++){
   s=slideFrom(pptx,8,true);
-  rankSlide(pptx,s,{contractors:subset});
+  rankSlide(pptx,s,{contractors:ranks[i]||[]},period,i+1,Math.max(1,ranks.length));
  }
- s=slideFrom(pptx,9,true);pieSlide(pptx,s,data.issues,'all',period);
- s=slideFrom(pptx,10,true);pieSlide(pptx,s,data.issues,'top',period);
- const contractorParts=chunk([...data.contractors].sort((a,b)=>b.issues.reduce((x,v)=>x+v.count,0)-a.issues.reduce((x,v)=>x+v.count,0)),4);
- for(let i=0;i<(contractorParts.length||1);i++){
+ const months=chunk(data.monthly,6);
+ for(let i=0;i<(months.length||1);i++){
+  s=slideFrom(pptx,8,true);
+  monthlySlide(pptx,s,months[i]||[],period,i+1,Math.max(1,months.length));
+ }
+ const allViol=data.issues.filter(v=>v.count>0);
+ const grouped=chunk(allViol,5);
+ for(let i=0;i<(grouped.length||1);i++){
+  s=slideFrom(pptx,9,true);
+  pieSlide(pptx,s,grouped[i]||[],'all',period,i+1,Math.max(1,grouped.length),data.totalViolations);
+ }
+ s=slideFrom(pptx,10,true);
+ pieSlide(pptx,s,allViol.slice(0,5),'top',period,1,1,data.totalViolations);
+ const orderedContractors=data.contractors.slice().sort((a,b)=>b.issues.reduce((x,v)=>x+v.count,0)-a.issues.reduce((x,v)=>x+v.count,0));
+ const contractorGroups=[];
+ for(let i=0;i<orderedContractors.length;){const left=orderedContractors.length-i,count=left===3?3:Math.min(2,left);contractorGroups.push(orderedContractors.slice(i,i+count));i+=count;}
+ for(let i=0;i<(contractorGroups.length||1);i++){
   s=slideFrom(pptx,11,true);
-  contractorSlide(pptx,s,contractorParts[i]||[],i+1,Math.max(1,contractorParts.length));
+  contractorSlide(pptx,s,contractorGroups[i]||[],i+1,Math.max(1,contractorGroups.length));
  }
  slideFrom(pptx,12);slideFrom(pptx,13);
  return pptx.write({outputType:'nodebuffer'});
