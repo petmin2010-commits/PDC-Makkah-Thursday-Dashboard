@@ -42,8 +42,16 @@
    })();
    recent={key,at:Date.now(),job};return job;
  }
- async function archiveGeneratedPdf({report,win,selector,reportName,filename,onPdfReady,onProgress}={}){
+ async function archiveGeneratedPdf({report,win,selector,reportName,filename,onPdfReady,onProgress,onRegistered}={}){
    const name=String(filename||('VD_'+(reportName||activeName())+'.pdf'));
+   // Register before any heavy PDF rendering. Avoid blocking rendering on Sheets.
+   const registration=record({reportName:reportName||activeName(),format:'PDF',filename:name})
+     .then(created=>{
+       if(created?.id&&typeof onRegistered==='function'){
+         try{onRegistered(created.id)}catch(e){console.warn('Archive progress callback failed',e)}
+       }
+       return created;
+     });
    let created=null,blob;
    try{
      // Generate a usable PDF even if the archive service is unavailable.
@@ -53,8 +61,8 @@
      if(typeof onPdfReady==='function'){
        try{onPdfReady(blob)}catch(viewError){console.error('PDF viewer failed',viewError)}
      }
-     // Only create a register entry once a real PDF exists; failed renders leave no orphan rows.
-     created=await record({reportName:reportName||activeName(),format:'PDF',filename:name});
+     // Complete the already-started registration and update its pCloud link.
+     created=await registration;
      if(!created)return {ok:false,error:'REGISTRATION_FAILED',blob};
      if(!created.pcloudEnabled){
        await call('/api/report-archive/'+encodeURIComponent(created.id)+'/failure',{reason:'PCLOUD_NOT_CONFIGURED'}).catch(e=>console.warn('Archive status update failed',e.message));
@@ -66,6 +74,8 @@
      console.info('PDF archived to pCloud',created.id);
      return {ok:true,id:created.id,url:saved.url,blob};
    }catch(error){
+     // Even failed PDF rendering must leave a traceable archive record.
+     if(!created)created=await registration;
      const code=String(error?.message||'PDF_RENDER_FAILED');
      const reason=code.startsWith('PDF_FILE_SIZE')?'PDF_FILE_TOO_LARGE':code==='REPORT_NOT_READY'?'REPORT_NOT_READY':code==='PDF_LIBRARY_UNAVAILABLE'?'PDF_LIBRARY_UNAVAILABLE':/^(UPLOAD_|WEBDAV_|PCLOUD_)/.test(code)?'UPLOAD_FAILED':'PDF_RENDER_FAILED';
      if(created){

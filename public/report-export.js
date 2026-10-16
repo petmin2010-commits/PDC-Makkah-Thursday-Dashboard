@@ -3862,13 +3862,14 @@
       let ready=false;
       const result=await window.VDReportArchive.archiveGeneratedPdf({
         win:tab,selector:'.vd-report-v2-page',reportName:getActivePageName(),filename:fileTitle+'.pdf',
+        onRegistered(id){preview?.setStatus('تم تسجيل طلب التصدير في السجل — جار تجهيز PDF (رقم '+String(id).slice(0,8)+')');},
         onProgress(current,total){preview?.setStatus('جار إنشاء PDF: صفحة '+current+' من '+total+' — التقرير متاح للعرض والطباعة الآن');},
         onPdfReady(blob){preview?.ready(blob);ready=true;}
       });
       if(!ready&&result?.blob){preview?.ready(result.blob);ready=true;}
       if(!result?.ok){
         console.warn('Automatic report archive not completed:',result?.error);
-        preview?.setStatus(ready?'PDF جاهز للتنزيل، لكن رفع pCloud لم يكتمل. راجع سجل التقارير.':'تعذر إنشاء PDF آليًا. يمكنك طباعة التقرير أو حفظه من الزر.');
+        preview?.setStatus(result?.error==='REGISTRATION_FAILED'?'تعذر تسجيل التقرير في السجل، تحقق من الاتصال والصلاحيات. يمكنك حفظ التقرير يدويًا.':ready?'PDF جاهز للتنزيل، لكن رفع pCloud لم يكتمل. راجع سجل التقارير.':'تعذر إنشاء PDF آليًا. تم تسجيل محاولة التصدير وحالتها في السجل. يمكنك طباعة التقرير أو حفظه من الزر.');
         return {ok:false,viewed:true,archived:false,error:result?.error};
       }
       preview?.setStatus('تم تجهيز التقرير وحفظ نسخة PDF في pCloud بنجاح.');
