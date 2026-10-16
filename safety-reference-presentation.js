@@ -56,6 +56,7 @@ function scoreData(rows){
 }
 function slideFrom(pptx,index,cleanVersion=false){
  const slide=pptx.addSlide();slide.background={color:WHITE};
+ slide._safetyTemplate={index,cleanVersion};
  const name=(cleanVersion?'clean-':'slide-')+imgNum(index)+'.jpg';
  const file=path.join(ASSETS,name);
  if(!fs.existsSync(file))throw new Error('قالب السلامة الأصلي مفقود: '+name);
@@ -527,6 +528,41 @@ function appendGuidance(pptx,data,rows,meta){
  guideMeasurement(pptx,data,rows,meta);
 }
 
+// Add PDC beside SEC and Vision Dimensions on every PowerPoint page.
+function applySafetyPageLogos(pptx){
+ const pair=path.join(ASSETS,'footer-logo.png');
+ const pdc=path.join(ASSETS,'pdc-logo.png');
+ if(!fs.existsSync(pair)||!fs.existsSync(pdc))throw Error('SAFETY_BRANDING_ASSET_MISSING');
+ const referencePositions={
+  1:{x:3.86,y:1.46,w:1.27,h:.47},
+  3:{x:3.83,y:6.78,w:1.18,h:.43},
+  5:{x:3.80,y:6.29,w:1.18,h:.43},
+  6:{x:6.30,y:5.69,w:1.20,h:.43},
+  7:{x:3.78,y:6.79,w:1.20,h:.43},
+  8:{x:3.78,y:6.79,w:1.20,h:.43},
+  9:{x:3.78,y:6.79,w:1.20,h:.43},
+  10:{x:3.78,y:6.79,w:1.20,h:.43},
+  11:{x:3.78,y:6.79,w:1.20,h:.43},
+  12:{x:6.30,y:5.69,w:1.20,h:.43},
+  13:{x:9.30,y:3.43,w:1.28,h:.47}
+ };
+ for(const slide of pptx._slides){
+  const index=slide._safetyTemplate?.index;
+  if(index===2){
+   slide.addImage({path:pair,x:.77,y:7.10,w:2.70,h:.55});
+   slide.addImage({path:pdc,x:3.62,y:7.15,w:1.36,h:.49});
+  }else if(index){
+   const position=referencePositions[index];
+   if(!position)throw Error('UNKNOWN_SAFETY_TEMPLATE_'+index);
+   slide.addImage({path:pdc,...position});
+  }else{
+   slide.addShape(pptx.ShapeType.roundRect,{x:.51,y:.26,w:3.81,h:.65,
+    rectRadius:.12,fill:{color:'FFFFFF'},line:{color:'D9E4ED',transparency:18,width:.4}});
+   slide.addImage({path:pair,x:.69,y:.34,w:2.46,h:.50});
+   slide.addImage({path:pdc,x:3.18,y:.37,w:1.02,h:.41});
+  }
+ }
+}
 async function create(rows,meta={}){
  const pptx=new pptxgen();
  pptx.defineLayout({name:'SAFETY_A4_LANDSCAPE',width:W,height:H});
@@ -570,6 +606,7 @@ async function create(rows,meta={}){
  }
  appendGuidance(pptx,data,rows,{...meta,period});
  slideFrom(pptx,12);slideFrom(pptx,13);
+ applySafetyPageLogos(pptx);
  return pptx.write({outputType:'nodebuffer'});
 }
 module.exports={create,scoreData};
