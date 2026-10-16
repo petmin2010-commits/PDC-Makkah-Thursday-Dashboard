@@ -550,8 +550,8 @@ function exportThursdayReport(){
    let shown=false;
    const display=blob=>{
      if(shown||win.closed)return;
-     const url=URL.createObjectURL(blob);
-     win.location.replace(url);
+     if(window.VDReportExport?.showPdfInTab)window.VDReportExport.showPdfInTab(win,blob,'VD_Thursday_Technical');
+     else{const url=URL.createObjectURL(blob);win.location.replace(url)}
      shown=true;
    };
    try{

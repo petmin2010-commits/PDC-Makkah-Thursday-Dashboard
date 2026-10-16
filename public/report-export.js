@@ -3771,11 +3771,22 @@
     return tab;
   }
 
-  function showPdfInTab(tab, blob) {
+  function showPdfInTab(tab, blob, reportTitle='VD_Report') {
     if (!tab || tab.closed) throw Error('REPORT_TAB_CLOSED');
     const url=URL.createObjectURL(blob);
     activePdfUrls.add(url);
-    tab.location.replace(url);
+    const filename=String(reportTitle||'VD_Report').replace(/\.pdf$/i,'')+'.pdf';
+    // Keep the report's official filename available when the user saves the PDF.
+    const doc=tab.document;
+    doc.open();
+    doc.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تقرير PDF جاهز</title><style>*{box-sizing:border-box}body{margin:0;background:#eef3fa;font:14px Tahoma,Arial,sans-serif;color:#19345b}header{height:58px;padding:9px 17px;background:#112d55;color:white;display:flex;align-items:center;justify-content:space-between;gap:14px}header strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:ltr;text-align:left}a{border-radius:7px;background:#fff;color:#122c57;padding:10px 17px;font-weight:700;text-decoration:none;white-space:nowrap}embed{display:block;width:100vw;height:calc(100vh - 58px);border:0}</style></head><body><header><strong id="vdPdfTitle"></strong><a id="vdPdfSave">حفظ التقرير PDF</a></header><embed id="vdPdfEmbed" type="application/pdf"></body></html>');
+    doc.close();
+    doc.getElementById('vdPdfTitle').textContent=filename;
+    const save=doc.getElementById('vdPdfSave');
+    save.href=url;
+    save.download=filename;
+    doc.getElementById('vdPdfEmbed').src=url;
+    try{tab.focus()}catch(_){}
     return url;
   }
 
@@ -3817,12 +3828,12 @@
       const result=await window.VDReportArchive.archiveGeneratedPdf({
         report,reportName:getActivePageName(),filename:fileTitle+'.pdf',
         onPdfReady(blob){
-          showPdfInTab(tab,blob);
+          showPdfInTab(tab,blob,fileTitle);
           viewed=true;
           info.textContent='تم تجهيز PDF. جار حفظ النسخة في pCloud…';
         }
       });
-      if(!viewed&&result?.blob){showPdfInTab(tab,result.blob);viewed=true;}
+      if(!viewed&&result?.blob){showPdfInTab(tab,result.blob,fileTitle);viewed=true;}
       if(!viewed)throw Error(result?.error||'PDF_RENDER_FAILED');
       if(!result?.ok) {
         console.warn('PDF was generated but pCloud archive failed:',result?.error);
@@ -4014,6 +4025,7 @@
     showModal,
     printReport,
     createExportTab,
+    showPdfInTab,
     getActivePageKey
   };
 
