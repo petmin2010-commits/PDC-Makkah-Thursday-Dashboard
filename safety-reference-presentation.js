@@ -529,37 +529,44 @@ function appendGuidance(pptx,data,rows,meta){
 }
 
 // Add PDC beside SEC and Vision Dimensions on every PowerPoint page.
+// Consistent triple-brand treatment. Template photos already embed SEC and Vision;
+// add only the transparent PDC mark beside them. Dynamic pages get a compact,
+// transparent white-on-navy group in the free left header area (not over titles).
 function applySafetyPageLogos(pptx){
  const pair=path.join(ASSETS,'footer-logo.png');
- const pdc=path.join(ASSETS,'pdc-logo.png');
- if(!fs.existsSync(pair)||!fs.existsSync(pdc))throw Error('SAFETY_BRANDING_ASSET_MISSING');
- const referencePositions={
-  1:{x:3.86,y:1.46,w:1.27,h:.47},
-  3:{x:3.83,y:6.78,w:1.18,h:.43},
-  5:{x:3.80,y:6.29,w:1.18,h:.43},
-  6:{x:6.30,y:5.69,w:1.20,h:.43},
-  7:{x:3.78,y:6.79,w:1.20,h:.43},
-  8:{x:3.78,y:6.79,w:1.20,h:.43},
-  9:{x:3.78,y:6.79,w:1.20,h:.43},
-  10:{x:3.78,y:6.79,w:1.20,h:.43},
-  11:{x:3.78,y:6.79,w:1.20,h:.43},
-  12:{x:6.30,y:5.69,w:1.20,h:.43},
-  13:{x:9.30,y:3.43,w:1.28,h:.47}
+ const pairWhite=path.join(ASSETS,'brand-pair-white.png');
+ const pdcClear=path.join(ASSETS,'pdc-logo-clear.png');
+ const pdcWhite=path.join(ASSETS,'pdc-logo-white.png');
+ for(const asset of [pair,pairWhite,pdcClear,pdcWhite]){
+  if(!fs.existsSync(asset))throw Error('SAFETY_BRANDING_ASSET_MISSING_'+path.basename(asset));
+ }
+ const photoPositions={
+  1:{x:3.85,y:1.48,w:1.13,h:.43},
+  3:{x:3.83,y:6.78,w:1.14,h:.43},
+  5:{x:3.82,y:6.28,w:1.16,h:.43},
+  6:{x:10.55,y:5.70,w:1.06,h:.43},
+  7:{x:4.51,y:6.78,w:1.13,h:.43},
+  8:{x:4.51,y:6.78,w:1.13,h:.43},
+  9:{x:4.51,y:6.78,w:1.13,h:.43},
+  10:{x:4.51,y:6.78,w:1.13,h:.43},
+  11:{x:4.51,y:6.78,w:1.13,h:.43},
+  12:{x:10.55,y:6.34,w:1.06,h:.43},
+  13:{x:9.44,y:3.44,w:1.11,h:.43}
  };
  for(const slide of pptx._slides){
   const index=slide._safetyTemplate?.index;
   if(index===2){
-   slide.addImage({path:pair,x:.77,y:7.10,w:2.70,h:.55});
-   slide.addImage({path:pdc,x:3.62,y:7.15,w:1.36,h:.49});
+   // Original invocation page has no brand marks; group all three on its footer.
+   slide.addImage({path:pair,x:.76,y:7.12,w:2.67,h:.48});
+   slide.addImage({path:pdcClear,x:3.56,y:7.12,w:1.05,h:.48});
   }else if(index){
-   const position=referencePositions[index];
-   if(!position)throw Error('UNKNOWN_SAFETY_TEMPLATE_'+index);
-   slide.addImage({path:pdc,...position});
+   const at=photoPositions[index];
+   if(!at)throw Error('UNKNOWN_SAFETY_TEMPLATE_'+index);
+   slide.addImage({path:index===13?pdcWhite:pdcClear,...at});
   }else{
-   slide.addShape(pptx.ShapeType.roundRect,{x:.51,y:.26,w:3.81,h:.65,
-    rectRadius:.12,fill:{color:'FFFFFF'},line:{color:'D9E4ED',transparency:18,width:.4}});
-   slide.addImage({path:pair,x:.69,y:.34,w:2.46,h:.50});
-   slide.addImage({path:pdc,x:3.18,y:.37,w:1.02,h:.41});
+   // Avoid the original large opaque block that obscured headings.
+   slide.addImage({path:pairWhite,x:.40,y:.44,w:2.19,h:.30});
+   slide.addImage({path:pdcWhite,x:2.72,y:.39,w:.88,h:.40});
   }
  }
 }
