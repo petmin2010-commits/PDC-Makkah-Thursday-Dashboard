@@ -14,16 +14,18 @@ const imgNum=n=>String(n).padStart(2,'0');
 
 function scoreData(rows){
  const map=new Map(),issues=new Map(),points=[],monthly=new Map();
- let visitsWithViolation=0;
+ let visitsWithViolation=0,totalWeighted=0;
  for(const r of rows){
   const name=clean(r.contractor)||'مقاول غير محدد';
-  if(!map.has(name))map.set(name,{name,count:0,scores:[],issues:new Map(),visitsWithViolation:0});
+  if(!map.has(name))map.set(name,{name,count:0,scores:[],issues:new Map(),visitsWithViolation:0,weighted:0,highWeight:0});
   const c=map.get(name);c.count++;
   const month=String(r.date||'').slice(0,7);
   if(/^\d{4}-\d{2}$/.test(month)){
-   if(!monthly.has(month))monthly.set(month,{month,count:0,scores:[]});
+   if(!monthly.has(month))monthly.set(month,{month,count:0,scores:[],issueCount:0,visitsWithViolation:0});
    const m=monthly.get(month);m.count++;
    if(Number.isFinite(r.score))m.scores.push(r.score);
+   m.issueCount+=(r.violations||[]).length;
+   if((r.violations||[]).length)m.visitsWithViolation++;
   }
   if(Number.isFinite(r.score)){c.scores.push(r.score);points.push(r.score)}
   if((r.violations||[]).length){visitsWithViolation++;c.visitsWithViolation++}
@@ -33,14 +35,22 @@ function scoreData(rows){
    issues.get(key).count++;
    if(!c.issues.has(key))c.issues.set(key,{number:v.number,label,count:0});
    c.issues.get(key).count++;
+   // Weights are the numeric item weights provided by Intellect, not a legal severity category.
+   const w=[7,2,.5].includes(Number(v.weight))?Number(v.weight):0;
+   c.weighted+=w;totalWeighted+=w;
+   if(w===7)c.highWeight++;
   }
  }
  const contractors=[...map.values()].map(x=>({...x,score:avg(x.scores),
+   violationCount:[...x.issues.values()].reduce((s,v)=>s+v.count,0),
+   rate:x.count?100*[...x.issues.values()].reduce((s,v)=>s+v.count,0)/x.count:0,
+   weightedRate:x.count?100*x.weighted/x.count:0,
    issues:[...x.issues.values()].sort((a,b)=>b.count-a.count||a.number-b.number)}))
    .sort((a,b)=>(b.score??-1)-(a.score??-1)||b.count-a.count);
  const outIssues=[...issues.values()].sort((a,b)=>b.count-a.count||a.number-b.number);
  return {contractors,issues:outIssues,avg:avg(points),valid:points.length,
-  unscored:rows.length-points.length,visitsWithViolation,
+  unscored:rows.length-points.length,visitsWithViolation,totalWeighted,
+  weightedRate:rows.length?100*totalWeighted/rows.length:0,
   totalViolations:outIssues.reduce((s,x)=>s+x.count,0),
   monthly:[...monthly.values()].sort((a,b)=>a.month.localeCompare(b.month))};
 }
@@ -105,6 +115,58 @@ function noteSlide(pptx,s,details){
  }
 }
 
+function reportPeriod(rows,meta){
+ const months=[...new Set(rows.map(r=>String(r.date||'').slice(0,7)).filter(s=>/^\d{4}-\d{2}$/.test(s)))].sort();
+ const span=months.length?(months[0]===months[months.length-1]?months[0]:months[0]+' إلى '+months[months.length-1]):'لا توجد تواريخ في النطاق';
+ return {span,months};
+}
+function reportCover(pptx,rows,meta,data){
+ const slide=pptx.addSlide();slide.background={color:WHITE};
+ shape(pptx,slide,0,0,W,1.28,BLUE);shape(pptx,slide,0,1.26,W,.09,ORANGE);
+ txt(slide,'شركة أبعاد الرؤية للاستشارات الهندسية',.82,.31,9.97,.37,
+  {color:WHITE,fontSize:21,bold:true,align:'right'});
+ const logo=path.join(ASSETS,'footer-logo.png');
+ if(fs.existsSync(logo))slide.addImage({path:logo,x:.88,y:1.73,w:3.1,h:.49});
+ txt(slide,'تقرير تقييم السلامة والصحة المهنية للمقاولين',
+  .86,2.75,9.97,.78,{fontSize:29,color:BLUE,bold:true,align:'right'});
+ txt(slide,'العقد الموحد للإشراف على خدمات شبكات الطاقة',
+  1.02,3.72,9.78,.40,{fontSize:18,color:ORANGE,bold:true,align:'right'});
+ shape(pptx,slide,.85,4.43,9.98,1.31,'F0F6FA','D9E5EF',true);
+ const period=reportPeriod(rows,meta);
+ txt(slide,'المشروع: '+clean(meta.city||'مكة')+'      |      نطاق البيانات: '+period.span,
+  1.07,4.68,9.55,.33,{fontSize:15,color:BLUE,bold:true,align:'right'});
+ txt(slide,(meta.general?'جميع بيانات المشروع':'البيانات حسب الفلاتر المختارة')+
+  '      |      الفحوص: '+num(rows.length)+'      |      المقاولون: '+num(data.contractors.length),
+  1.07,5.17,9.52,.30,{fontSize:13,color:'385973',align:'right'});
+ txt(slide,'المصدر: ورقة Intellect الخاصة بالمشروع، تاريخ إصدار التقرير: '+new Date().toISOString().slice(0,10),
+  1.0,6.86,9.75,.35,{fontSize:11,color:'4F738C',align:'right'});
+ txt(slide,'تقرير تحليلي للفترة المحددة – وفق نطاق التصدير',
+  1.0,7.38,9.74,.26,{fontSize:10.5,color:'67839A',align:'right'});
+}
+function reportAgenda(pptx,rows,meta){
+ const s=pptx.addSlide();s.background={color:'F4F8FC'};
+ shape(pptx,s,0,0,W,1.28,BLUE);shape(pptx,s,0,1.25,W,.07,ORANGE);
+ txt(s,'محاور التقرير',.88,.35,9.97,.47,{fontSize:25,color:WHITE,bold:true,align:'right'});
+ txt(s,'فهرس مطابق لأقسام التقرير الحالي',.92,.96,9.9,.24,{fontSize:11,color:'D6E8F5',align:'right'});
+ const sections=[
+  ['1','التعريف والسلامة','الغلاف، الفيديو التمهيدي، الشهادات ونطاق البيانات'],
+  ['2','ملخص الأداء','الفحوص والدرجات الصالحة والمخالفات المسجلة'],
+  ['3','تحليل المقاولين','الدرجات وعينات الفحص ومؤشرات المتابعة المرجحة'],
+  ['4','المخالفات والاتجاهات','التوزيع الشهري وكافة البنود وأبرز المخالفات'],
+  ['5','التوعية والإجراءات','أولويات التصحيح وإحاطة السلامة ومسؤوليات المتابعة'],
+  ['6','التحقق والتحسين','دورة إغلاق الملاحظات ومؤشرات قياس التغير']
+ ];
+ sections.forEach((a,i)=>{
+  const col=i%2,row=Math.floor(i/2),x=.78+col*5.21,y=1.75+row*1.62;
+  shape(pptx,s,x,y,5.02,1.44,WHITE,'D7E3EF',true);
+  shape(pptx,s,x+4.39,y+.16,.46,.46,i%2?ORANGE:BLUE,null,true);
+  txt(s,a[0],x+4.42,y+.27,.40,.23,{fontSize:14,color:WHITE,bold:true,rtlMode:false});
+  txt(s,a[1],x+.2,y+.18,4.05,.36,{fontSize:16,color:BLUE,bold:true,align:'right'});
+  txt(s,a[2],x+.24,y+.74,4.5,.42,{fontSize:11.5,color:'4F6981',align:'right'});
+ });
+ txt(s,'تُحدّث مؤشرات التقرير تلقائيًا وفق بيانات Intellect وفلاتر التصدير.',
+  .92,7.10,9.95,.31,{fontSize:11,color:BLUE,align:'right'});
+}
 function summarySlide(pptx,rows,meta,data){
  const s=pptx.addSlide();s.background={color:'F4F8FC'};
  shape(pptx,s,0,0,W,1.26,BLUE);
@@ -237,7 +299,7 @@ function contractorSlide(pptx,s,groups,serial,total){
   selected.forEach((issue,k)=>{
    const iy=y+(three?.98:groups.length<=2?1.01:.83)+k*gap;
    const label=String(issue.number)+' – '+clean(issue.label).replace(/^\d{1,2}\s*[-–:.)]\s*/,'');
-   txt(s,label,x+.14,iy,cw-.78,three?.46:groups.length<=2?.55:.22,{fontSize:three?9.6:groups.length<=2?11.3:7.5,color:BLUE,align:'right',fit:'shrink',valign:'mid'});
+   txt(s,label,x+.14,iy,cw-.78,three?.46:groups.length<=2?.55:.22,{fontSize:three?9.6:groups.length<=2?12.2:7.5,color:BLUE,align:'right',fit:'shrink',valign:'mid'});
    txt(s,num(issue.count),x+cw-.61,iy+(three?.10:groups.length<=2?.20:.02),.40,.20,{fontSize:three?10.2:groups.length<=2?11.1:8.3,color:'AB6528',bold:true,rtlMode:false});
    const trackW=cw-.40;
    shape(pptx,s,x+.14,iy+(three?.51:groups.length<=2?.64:.25),trackW,.065,'DDE9F1');
@@ -276,14 +338,26 @@ function guidePanel(pptx,s,x,y,w,h,title,value,secondary,accent=GUIDANCE_TEAL){
 }
 function issueRecommendation(label){
  const t=clean(label);
- if(/حفر|حفريات|خندق|كابل|مرافق|ردم|تربة/.test(t))return 'مراجعة تصريح الحفر وتحديد الخدمات المدفونة وتدعيم الحفر قبل استئناف الأعمال.';
- if(/كهرب|عزل|تأريض|جهد|توصيل|مغذي/.test(t))return 'التحقق من العزل والتصريح ومن تنفيذ العمل بأفراد مخولين ووسائل حماية مناسبة.';
- if(/معدات|رافعة|آلي|سائق|قيادة|تشغيل/.test(t))return 'فحص المعدة وصلاحية المشغل ومسار الحركة ومنطقة العزل المحيطة.';
- if(/خوذة|سترة|حذاء|نظارة|قفاز|وقاية|حزام/.test(t))return 'فحص معدات الوقاية وتوفير المقاسات المناسبة والتأكد من استخدامها في الموقع.';
- if(/حرار|شرب|مياه|شمس|إجهاد/.test(t))return 'توفير مياه الشرب والظل وتنظيم الراحة ومراجعة ظروف الإجهاد الحراري.';
- if(/حريق|طفاي|إطفاء|مسعف|إسعاف/.test(t))return 'فحص التجهيزات والطوارئ وتوافر معدات الإسعاف والإطفاء وأفراد الاستجابة.';
- if(/تدريب|تأهيل|اجتماع|مخاطر|إحاطة|تعليمات/.test(t))return 'تنفيذ إحاطة سلامة موجهة للبند والتحقق من فهم العاملين وتوثيق الحضور.';
- if(/لوح|حاجز|تحذير|مرور|عزل موقع/.test(t))return 'تحديد حدود العمل وتأمين الحواجز والإشارات ومسارات المشاة والمركبات.';
+ if(/تدريب|اجتماع ما قبل البدء|العمل الآمن|تقييم المخاطر|إحاطة/.test(t))
+  return 'إحاطة سلامة قبل العمل بلغة يفهمها العاملون، وتوثيق الحضور ثم التحقق من الاستيعاب ميدانيًا.';
+ if(/مظلة|الظل|حرارة|الحار|الإجهاد الحراري|شمس/.test(t))
+  return 'توفير مظلات أو مناطق ظل ومياه شرب وفترات راحة مناسبة، والتحقق ميدانيًا من ضوابط الإجهاد الحراري.';
+ if(/مياه الشرب|كمية كافية|مياه/.test(t))
+  return 'توفير كميات كافية من مياه الشرب الآمنة لجميع العمال والتأكد من سهولة الوصول إليها طوال فترة العمل.';
+ if(/حفر|حفريات|خندق|كابل|مرافق|ردم|تربة/.test(t))
+  return 'مراجعة تصريح الحفر وتحديد الخدمات المدفونة وتدعيم الحفر قبل استئناف الأعمال.';
+ if(/كهرب|عزل|تأريض|جهد|توصيل|مغذي/.test(t))
+  return 'التحقق من العزل والتصريح ومن تنفيذ العمل بأفراد مخولين ووسائل حماية مناسبة.';
+ if(/معدات|رافعة|آلي|سائق|قيادة|تشغيل/.test(t))
+  return 'فحص المعدة وصلاحية المشغل ومسار الحركة ومنطقة العزل المحيطة.';
+ if(/خوذة|سترة|حذاء|نظارة|قفاز|وقاية|حزام/.test(t))
+  return 'فحص معدات الوقاية وتوفير المقاسات المناسبة والتأكد من استخدامها في الموقع.';
+ if(/حريق|طفاي|إطفاء|مسعف|إسعاف/.test(t))
+  return 'فحص التجهيزات والطوارئ وتوافر معدات الإسعاف والإطفاء وأفراد الاستجابة.';
+ if(/تأهيل|تعليمات/.test(t))
+  return 'التحقق من التأهيل المناسب وشرح التعليمات وتوثيق حضور التدريب وفهم متطلبات المهمة.';
+ if(/لوح|حاجز|تحذير|مرور|عزل موقع/.test(t))
+  return 'تحديد حدود العمل وتأمين الحواجز والإشارات ومسارات المشاة والمركبات.';
  return 'معاينة البند ميدانيًا، تحديد السبب الجذري، وتنفيذ الإجراء مع إثباتات قابلة للتحقق.';
 }
 function guideReading(pptx,data,rows,meta){
@@ -334,37 +408,35 @@ function guidePriorityActions(pptx,data,meta){
 }
 function guideContractorFollowup(pptx,data,meta){
  const s=guideFrame(pptx,meta,'أين نركز المتابعة الميدانية؟',
-  'تركيز رصد المخالفات لدى المقاولين؛ المعدلات وصفية ولا تُعد تصنيفًا تعاقديًا.','تحليل مستخرج من Intellect');
- const ordered=data.contractors.slice().map(c=>{
-  const violations=c.issues.reduce((sum,v)=>sum+v.count,0);
-  return {...c,violationCount:violations,rate:c.count?100*violations/c.count:0};
- }).sort((a,b)=>b.violationCount-a.violationCount).slice(0,5);
- shape(pptx,s,.75,1.75,10.13,.74,GUIDANCE_BLUE);
- const headers=[
-  ['المقاول',7.68,3.02],
-  ['عدد الفحوص',6.09,1.30],
-  ['مخالفات البنود',4.59,1.26],
-  ['لكل 100 فحص',2.77,1.60],
-  ['ملاحظة المتابعة',.96,1.63]
- ];
- headers.forEach(([name,x,width])=>
-  txt(s,name,x,1.97,width,.32,{fontSize:10.7,bold:true,color:WHITE,align:'center'}));
+  'فرز استرشادي وفق التكرار ووزن بند Intellect وحجم عينة الفحص، وليس تصنيفًا تعاقديًا.',
+  'تحليل مستخرج من Intellect');
+ const projectRate=data.weightedRate||0;
+ const ordered=data.contractors.map(c=>{
+  const tier=c.count<20?'عينة محدودة':c.highWeight>0&&c.weightedRate>projectRate?'أولوية أعلى':
+   c.weightedRate>projectRate?'مراجعة مركزة':'متابعة دورية';
+  return {...c,tier};
+ }).sort((a,b)=>(b.count>=20?1:0)-(a.count>=20?1:0)||b.weightedRate-a.weightedRate||b.violationCount-a.violationCount).slice(0,5);
+ shape(pptx,s,.75,1.74,10.13,.76,GUIDANCE_BLUE);
+ const cols=[['المقاول',7.65,3.03],['فحوص',6.52,.99],['بنود / وزن 7',4.75,1.58],['نقاط مرجحة / 100',2.60,1.96],['المتابعة',.94,1.52]];
+ cols.forEach(([name,x,w])=>txt(s,name,x,1.93,w,.40,{fontSize:10.1,bold:true,color:WHITE,align:'center'}));
  ordered.forEach((c,i)=>{
-  const y=2.69+i*.76;
-  shape(pptx,s,.75,y,10.13,.67,i%2===0?'E8F2F8':WHITE,'DDE8F1');
-  txt(s,shortLabel(c.name,48),7.68,y+.11,3.02,.37,{fontSize:11.8,color:GUIDANCE_BLUE,bold:true,align:'right'});
-  txt(s,num(c.count),6.09,y+.17,1.30,.26,{fontSize:12.9,color:'315974',align:'center'});
-  txt(s,num(c.violationCount),4.59,y+.17,1.26,.26,{fontSize:13.1,color:GUIDANCE_WARN,align:'center',bold:true});
-  txt(s,c.rate.toFixed(1),2.77,y+.17,1.60,.26,{fontSize:13,color:GUIDANCE_BLUE,align:'center',rtlMode:false});
-  txt(s,c.count<20?'عينة محدودة':'مراجعة مركزة',.96,y+.17,1.63,.26,
-   {fontSize:11.1,color:c.count<20?'995C31':GUIDANCE_TEAL,align:'center',bold:true});
+  const y=2.70+i*.76;
+  shape(pptx,s,.75,y,10.13,.69,i%2===0?'E8F2F8':WHITE,'DDE8F1');
+  txt(s,shortLabel(c.name,52),7.65,y+.10,3.03,.40,{fontSize:11.3,color:GUIDANCE_BLUE,bold:true,align:'right'});
+  txt(s,num(c.count),6.52,y+.19,.99,.27,{fontSize:12,color:'315974',align:'center'});
+  txt(s,num(c.violationCount)+' / '+num(c.highWeight),4.75,y+.18,1.58,.28,{fontSize:11.2,color:GUIDANCE_WARN,bold:true,align:'center'});
+  txt(s,c.weightedRate.toFixed(1),2.60,y+.17,1.96,.29,{fontSize:12.5,color:GUIDANCE_BLUE,align:'center',rtlMode:false});
+  txt(s,c.tier,.94,y+.16,1.52,.34,
+    {fontSize:10.6,color:c.tier==='عينة محدودة'?'995C31':GUIDANCE_TEAL,align:'center',bold:true});
  });
- txt(s,'آلية التركيز المقترحة: مراجعة البنود المتكررة لكل مقاول والتحقق من الإجراءات والإثباتات في زيارات لاحقة.',
- .89,6.83,9.95,.48,{fontSize:12.3,color:GUIDANCE_BLUE,align:'right',fit:'shrink'});
+ txt(s,'المعادلة: نقاط مرجحة لكل 100 فحص = مجموع أوزان البنود المخالفة (7 / 2 / 0.5) ÷ عدد الفحوص × 100.',
+  .87,6.60,9.98,.39,{fontSize:10.6,color:GUIDANCE_BLUE,align:'right',fit:'shrink'});
+ txt(s,'الأولوية مؤشّر فرز فقط؛ تُراجع الخطورة الميدانية والتكرار ونوع الأعمال. المقاول ذو العينة الصغيرة يحتاج تحققًا إضافيًا.',
+  .87,7.11,9.98,.34,{fontSize:10.3,color:'8A5A2F',align:'right',fit:'shrink'});
 }
-function guideToolbox(pptx,meta){
+function guideToolbox(pptx,meta,data){
  const s=guideFrame(pptx,meta,'إحاطة السلامة قبل بدء العمل',
-  'قائمة تحقق تعليمية عامة لأعمال شبكات الكهرباء؛ تُكيّف مع تصريح العمل والمخاطر الفعلية.','توعية وإرشاد – ليست مستخرجة من البيانات');
+  'قائمة تحقق عامة مع إبراز أكثر المخالفات الفعلية تكرارًا في الفترة المختارة.','توعية مهنية + أعداد من Intellect');
  const items=[
   ['01','تقييم مخاطر المهمة','مراجعة موقع العمل وتحديد الخدمات والمخاطر وتوزيع الأدوار قبل التنفيذ.'],
   ['02','التصاريح والعزل','التحقق من التصاريح والعزل الكهربائي بواسطة أشخاص مخولين حسب الإجراءات المعتمدة.'],
@@ -381,18 +453,21 @@ function guideToolbox(pptx,meta){
   txt(s,a[1],x+.18,y+.17,3.95,.33,{fontSize:14.2,bold:true,color:GUIDANCE_BLUE,align:'right'});
   txt(s,a[2],x+.24,y+.66,4.45,.60,{fontSize:11.75,color:GUIDANCE_GRAY,align:'right',fit:'shrink'});
  });
+ const priority=(data.issues||[]).slice(0,2).map(v=>shortLabel(v.label,36)+' ('+num(v.count)+')').join(' | ');
+ txt(s,priority?'محور إحاطة موجّه بحسب الرصد: '+priority:'لا توجد مخالفات حالية لتخصيص الإحاطة.',
+  .93,6.92,9.90,.30,{fontSize:10.6,color:GUIDANCE_BLUE,align:'right',fit:'shrink'});
  txt(s,'تنبيه: لا تحل هذه الشريحة محل تقييم المخاطر الخاص بالمهمة أو تعليمات المالك والمقاول المعتمدة.',
-  .93,7.16,9.90,.30,{fontSize:10.7,color:'995C31',align:'right'});
+  .93,7.29,9.90,.30,{fontSize:10.3,color:'995C31',align:'right'});
 }
 function guideClosure(pptx,meta){
  const s=guideFrame(pptx,meta,'دورة معالجة الملاحظة وإغلاقها',
   'سير عمل مقترح لربط كل مخالفة بمسؤول وإجراء ودليل إغلاق.','إجراء متابعة مقترح – غير تعاقدي');
  const steps=[
-  ['1','رصد وتوثيق','الموقع / البند / الصورة / التاريخ','مهندس السلامة'],
-  ['2','تقييم الخطورة','تمييز الخطر الفوري واتخاذ حماية مناسبة','مسؤول الموقع'],
-  ['3','إجراء تصحيحي','سبب جذري + مالك الإجراء + موعد مستهدف','المقاول'],
-  ['4','تحقق ميداني','تدقيق فعالية الإجراء والأدلة','الاستشاري / السلامة'],
-  ['5','اعتماد الإغلاق','تحديث السجل أو إعادة المعالجة','المخول بالاعتماد']
+  ['1','رصد وتوثيق','معرّف الملاحظة / أمر العمل / التاريخ / الموقع','مهندس السلامة'],
+  ['2','تقييم الخطورة','درجة الأولوية / الضبط الفوري / دليل الحالة','مسؤول الموقع'],
+  ['3','خطة تصحيح','المقاول / مسؤول الإجراء / الموعد المستهدف','المقاول'],
+  ['4','تحقق بالإثبات','صور قبل وبعد / تاريخ إعادة الفحص / النتيجة','الاستشاري / السلامة'],
+  ['5','اعتماد الإغلاق','حالة الإغلاق / تاريخ الاعتماد / إعادة المعالجة','المخول بالاعتماد']
  ];
  steps.forEach((step,i)=>{
   const y=1.71+i*1.05;
@@ -408,33 +483,46 @@ function guideClosure(pptx,meta){
 }
 function guideMeasurement(pptx,data,rows,meta){
  const s=guideFrame(pptx,meta,'مؤشرات قياس التحسن في المتابعة القادمة',
-  'خط أساس لحظة إصدار التقرير؛ تُقارن النتائج لاحقًا بعد توحيد الفترة والفلاتر.','مقاييس من البيانات + متابعة مقترحة');
- const count=rows.length,viols=data.totalViolations,withV=data.visitsWithViolation||0;
+  'مقارنة وصفية بين أحدث شهرين ظاهرين ضمن الفلاتر، دون افتراض تساوي حجم العمل أو نوعه.',
+  'مقاييس من البيانات + هدف مقترح');
+ const n=rows.length,visits=data.visitsWithViolation||0,issueRate=n?visits/n*100:0,per100=n?data.totalViolations/n*100:0;
+ const latest=data.monthly.filter(x=>x.count>0).slice(-2);
+ const hasComparison=latest.length===2;
  const entries=[
-  ['نسبة الفحوص بمخالفة',pct(count?withV/count*100:0),'يُفضّل انخفاضها مع ثبات معايير الفحص.'],
-  ['مخالفات لكل 100 فحص',count?(viols/count*100).toFixed(1):'0.0','يراعي عدد البنود لكل زيارة، لا عدد الحوادث.'],
-  ['متوسط الدرجة الصالحة',pct(data.avg),'لا يشمل الفحوص التي لم تُسجل درجة صالحة.'],
-  ['نسبة اكتمال الدرجات',pct(count?data.valid/count*100:0),'المستهدف المقترح: تقليل الفحوص بلا درجة.']
+  ['الفحوص بمخالفة',pct(issueRate),'نسبة الفحوص التي تضمنت بندًا واحدًا على الأقل'],
+  ['بنود مخالفة / 100 فحص',per100.toFixed(1),'عدد البنود المخالفة، وليس عدد الحوادث'],
+  ['متوسط الدرجة الصالحة',pct(data.avg),'متوسط '+num(data.valid)+' فحص بدرجة صالحة'],
+  ['اكتمال التقييم',pct(n?100*data.valid/n:0),'هدف مقترح: تسجيل درجة لكل فحص']
  ];
  entries.forEach((e,i)=>{
-  const x=.85+(i%2)*5.10,y=1.78+Math.floor(i/2)*1.64;
-  shape(pptx,s,x,y,4.90,1.45,WHITE,'D8E5F0',true);
-  txt(s,e[0],x+.22,y+.14,4.47,.32,{fontSize:13.3,color:GUIDANCE_BLUE,bold:true,align:'right'});
-  txt(s,e[1],x+.20,y+.52,2.05,.44,{fontSize:23.5,color:i===1?GUIDANCE_WARN:GUIDANCE_TEAL,bold:true,rtlMode:false});
-  txt(s,e[2],x+.20,y+1.05,4.50,.26,{fontSize:9.9,color:GUIDANCE_GRAY,align:'right',fit:'shrink'});
+  const x=.85+(i%2)*5.10,y=1.73+Math.floor(i/2)*1.51;
+  shape(pptx,s,x,y,4.90,1.38,WHITE,'D8E5F0',true);
+  txt(s,e[0],x+.20,y+.13,4.43,.28,{fontSize:12.5,color:GUIDANCE_BLUE,bold:true,align:'right'});
+  txt(s,e[1],x+.20,y+.49,2.12,.39,{fontSize:22.0,color:i===1?GUIDANCE_WARN:GUIDANCE_TEAL,bold:true,rtlMode:false});
+  txt(s,e[2],x+.20,y+1.05,4.44,.22,{fontSize:9.9,color:GUIDANCE_GRAY,align:'right',fit:'shrink'});
  });
- shape(pptx,s,.84,5.47,9.98,1.36,'E3EFF6','D6E5F0',true);
- txt(s,'اجتماع متابعة مقترح',6.28,5.68,4.25,.30,{fontSize:15.4,color:GUIDANCE_BLUE,bold:true,align:'right'});
- txt(s,'أسبوعيًا: مراجعة البند المتكرر والمقاول والأدلة والإغلاق، ثم مقارنة الفترات المتكافئة فقط.',
-  1.18,6.10,9.24,.37,{fontSize:12.5,color:GUIDANCE_GRAY,align:'right'});
- txt(s,'تنبيه: ارتفاع أو انخفاض المؤشرات لا يثبت وحده تغير مستوى الخطر، ويحتاج مراجعة نوع الأعمال وكثافة الفحوص.',
-  .91,7.18,9.93,.30,{fontSize:10.6,color:'995C31',align:'right'});
+ shape(pptx,s,.86,5.00,9.96,1.62,'E2EFF7','D3E4EF',true);
+ if(hasComparison){
+  const [prev,curr]=latest,pr=100*prev.visitsWithViolation/prev.count,cr=100*curr.visitsWithViolation/curr.count,
+        diff=cr-pr;
+  txt(s,'الفحوص بمخالفة: '+prev.month+' ('+pct(pr)+') ← '+curr.month+' ('+pct(cr)+')',
+   1.02,5.22,9.43,.41,{fontSize:15.3,color:GUIDANCE_BLUE,bold:true,align:'right'});
+  txt(s,'التغير: '+(diff>0?'+':'')+diff.toFixed(1)+' نقطة مئوية | عينتا الفحص: '+num(prev.count)+' ثم '+num(curr.count),
+   1.05,5.85,9.32,.29,{fontSize:11.6,color:GUIDANCE_GRAY,align:'right'});
+ }else{
+  txt(s,'المقارنة الشهرية غير متاحة: يلزم شهران على الأقل ضمن البيانات المحددة.',
+   1.02,5.39,9.48,.54,{fontSize:13.0,color:GUIDANCE_BLUE,bold:true,align:'right'});
+ }
+ txt(s,'هدف مقترح لا يمثل اعتمادًا تعاقديًا: استكمال درجات الفحوص وتحسين مؤشرات المخالفات عبر فترات متماثلة.',
+  .92,6.88,9.85,.32,{fontSize:10.7,color:GUIDANCE_BLUE,align:'right'});
+ txt(s,'لا يمكن احتساب المتأخر والمغلق من Intellect وحدها؛ تتطلب المتابعة سجل إجراءات بإثباتات وتواريخ.',
+  .92,7.30,9.85,.32,{fontSize:10.4,color:'995C31',align:'right'});
 }
 function appendGuidance(pptx,data,rows,meta){
  guideReading(pptx,data,rows,meta);
  guidePriorityActions(pptx,data,meta);
  guideContractorFollowup(pptx,data,meta);
- guideToolbox(pptx,meta);
+ guideToolbox(pptx,meta,data);
  guideClosure(pptx,meta);
  guideMeasurement(pptx,data,rows,meta);
 }
@@ -446,7 +534,12 @@ async function create(rows,meta={}){
  pptx.subject='Contractor Safety evaluation from isolated Intellect source';
  pptx.title='تقييم السلامة للمقاولين';pptx.lang='ar-SA';pptx.company='Vision Dimensions';
  const data=scoreData(rows),period=meta.general?'كامل الفترة':clean(meta.period)||'كامل المدة';
- for(let page=1;page<=6;page++)slideFrom(pptx,page);
+ reportCover(pptx,rows,{...meta,period},data);
+ slideFrom(pptx,2);
+ slideFrom(pptx,3);
+ reportAgenda(pptx,rows,{...meta,period});
+ slideFrom(pptx,5);
+ slideFrom(pptx,6);
  summarySlide(pptx,rows,{...meta,period},data);
  let s=slideFrom(pptx,7,true);noteSlide(pptx,s,data);
  const ranks=chunk(data.contractors,7);
