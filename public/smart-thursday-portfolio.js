@@ -340,8 +340,14 @@ function reportBaselineCard(x,latest,previous){
  return '<article class="r-delta-card"><div class="r-delta-title">'+e(x.label)+'</div><div class="r-delta-main '+cls+'">'+arrow+' '+signed(dr,1)+' نقطة</div><div class="r-pair"><span><small>'+e(previous.label)+'</small><b>'+r1(a.rate)+'%</b></span><i>←</i><span><small>'+e(latest.label)+'</small><b>'+r1(b.rate)+'%</b></span></div><div class="r-delta-mini"><span>فرق الإجمالي<b>'+signed(dt)+'</b></span><span>فرق المكتمل<b>'+signed(dc)+'</b></span><span>فرق المتبقي<b>'+signed(dp)+'</b></span></div></article>';
 }
 function exportThursdayReport(){
- if(!P.loaded||!P.portfolio)return;
- const win=window.open('','_blank');
+ const preopened=window.__VD_REPORT_PREOPENED_WINDOW;
+ if(preopened)delete window.__VD_REPORT_PREOPENED_WINDOW;
+ if(!P.loaded||!P.portfolio){
+   if(preopened&&!preopened.closed)preopened.close();
+   alert('تقرير الخميس لم يكتمل تحميله، حاول بعد اكتمال عرض البيانات.');
+   return;
+ }
+ const win=preopened||window.open('','_blank');
  if(!win){alert('اسمح بالنوافذ المنبثقة لتصدير التقرير');return}
 
  const x=P.portfolio,h=P.history||{},trend=h.trend||[];
@@ -541,11 +547,27 @@ function exportThursdayReport(){
  win.document.write(html);
  win.document.close();
  const archiveAndPrint=async()=>{
+   let shown=false;
+   const display=blob=>{
+     if(shown||win.closed)return;
+     const url=URL.createObjectURL(blob);
+     win.location.replace(url);
+     shown=true;
+   };
    try{
-     const outcome=await window.VDReportArchive?.archiveGeneratedPdf({win,selector:'.page',reportName:'تقرير الخميس الفني',filename:'VD_Thursday_Technical.pdf'});
+     const outcome=await window.VDReportArchive?.archiveGeneratedPdf({
+       win,selector:'.page',reportName:'تقرير الخميس الفني',filename:'VD_Thursday_Technical.pdf',onPdfReady:display
+     });
+     if(!shown&&outcome?.blob)display(outcome.blob);
      if(outcome?.ok===false)console.warn('Technical Thursday PDF archive unavailable',outcome.error);
+     if(outcome?.ok===false&&shown)alert('تم إنشاء تقرير الخميس، لكن أرشفته على pCloud لم تكتمل. راجع سجل التقارير.');
    }catch(error){console.warn('Technical Thursday PDF archive failed',error?.message)}
-   finally{if(!win.closed){win.focus();win.print()}}
+   finally{
+     if(!shown&&!win.closed){
+       win.focus();
+       win.document.body.insertAdjacentHTML('afterbegin','<button type="button" onclick="window.print()" style="padding:12px;margin:15px">طباعة التقرير أو حفظه PDF</button>');
+     }
+   }
  };
  if(win.document.readyState==='complete')setTimeout(archiveAndPrint,300);
  else win.addEventListener('load',()=>setTimeout(archiveAndPrint,300),{once:true});

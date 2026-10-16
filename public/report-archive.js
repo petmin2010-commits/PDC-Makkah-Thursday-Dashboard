@@ -42,28 +42,37 @@
    })();
    recent={key,at:Date.now(),job};return job;
  }
- async function archiveGeneratedPdf({report,win,selector,reportName,filename}={}){
+ async function archiveGeneratedPdf({report,win,selector,reportName,filename,onPdfReady}={}){
    const name=String(filename||('VD_'+(reportName||activeName())+'.pdf'));
-   const created=await record({reportName:reportName||activeName(),format:'PDF',filename:name});
-   if(!created)return {ok:false,error:'REGISTRATION_FAILED'};
-   if(!created.pcloudEnabled){
-     await call('/api/report-archive/'+encodeURIComponent(created.id)+'/failure',{reason:'PCLOUD_NOT_CONFIGURED'}).catch(e=>console.warn('Archive status update failed',e.message));
-     if(document.querySelector('.nav-item.active')?.dataset?.page==='reportArchive')refresh();
-     return {ok:false,id:created.id,error:'PCLOUD_NOT_CONFIGURED'};
-   }
+   let created=null,blob;
    try{
-     const blob=win?await window.VDReportPdfCapture?.createWindowPdf(win,selector):await window.VDReportPdfCapture?.createPdf(report);
+     // Generate a usable PDF even if the archive service is unavailable.
+     blob=win?await window.VDReportPdfCapture?.createWindowPdf(win,selector):await window.VDReportPdfCapture?.createPdf(report);
      if(!(blob instanceof Blob))throw Error('PDF_LIBRARY_UNAVAILABLE');
+     // Reveal the preopened PDF tab as soon as rendering finishes, without awaiting upload.
+     if(typeof onPdfReady==='function'){
+       try{onPdfReady(blob)}catch(viewError){console.error('PDF viewer failed',viewError)}
+     }
+     // Only create a register entry once a real PDF exists; failed renders leave no orphan rows.
+     created=await record({reportName:reportName||activeName(),format:'PDF',filename:name});
+     if(!created)return {ok:false,error:'REGISTRATION_FAILED',blob};
+     if(!created.pcloudEnabled){
+       await call('/api/report-archive/'+encodeURIComponent(created.id)+'/failure',{reason:'PCLOUD_NOT_CONFIGURED'}).catch(e=>console.warn('Archive status update failed',e.message));
+       if(document.querySelector('.nav-item.active')?.dataset?.page==='reportArchive')refresh();
+       return {ok:false,id:created.id,error:'PCLOUD_NOT_CONFIGURED',blob};
+     }
      const saved=await sendFile(created.id,blob,name);
      if(document.querySelector('.nav-item.active')?.dataset?.page==='reportArchive')refresh();
      console.info('PDF archived to pCloud',created.id);
-     return {ok:true,id:created.id,url:saved.url};
+     return {ok:true,id:created.id,url:saved.url,blob};
    }catch(error){
      const code=String(error?.message||'PDF_RENDER_FAILED');
      const reason=code.startsWith('PDF_FILE_SIZE')?'PDF_FILE_TOO_LARGE':code==='REPORT_NOT_READY'?'REPORT_NOT_READY':code==='PDF_LIBRARY_UNAVAILABLE'?'PDF_LIBRARY_UNAVAILABLE':/^(UPLOAD_|WEBDAV_|PCLOUD_)/.test(code)?'UPLOAD_FAILED':'PDF_RENDER_FAILED';
-     try{await call('/api/report-archive/'+encodeURIComponent(created.id)+'/failure',{reason})}catch(e){console.warn('Report archive status update failed',e.message)}
-     console.error('Automatic PDF archive failed',reason);
-     return {ok:false,id:created.id,error:reason};
+     if(created){
+       try{await call('/api/report-archive/'+encodeURIComponent(created.id)+'/failure',{reason})}catch(e){console.warn('Report archive status update failed',e.message)}
+     }
+     console.error('Automatic PDF archive failed',reason,code);
+     return {ok:false,id:created?.id,error:reason,blob};
    }
  }
  window.VDReportArchive={record,sendFile,archiveGeneratedPdf,refresh:()=>refresh()};

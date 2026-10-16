@@ -3749,63 +3749,101 @@
     document.getElementById(REPORT_ID)?.remove();
   }
 
-  function printReport(type) {
+  let exportBusy = false;
+  const activePdfUrls = new Set();
+  window.addEventListener('pagehide', () => {
+    for (const url of activePdfUrls) URL.revokeObjectURL(url);
+    activePdfUrls.clear();
+  });
+
+  // Popup blockers require this call to happen in the original user-click handler.
+  function createExportTab() {
+    const tab = window.open('', '_blank');
+    if (!tab) {
+      alert('من فضلك اسمح بالنوافذ المنبثقة لهذا الداشبورد، ثم اضغط تصدير مرة أخرى.');
+      return null;
+    }
+    try {
+      tab.document.open();
+      tab.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تجهيز التقرير PDF</title></head><body style="font:16px Tahoma,Arial,sans-serif;background:#f5f8fc;color:#142b50;padding:40px"><h2>جاري تجهيز التقرير PDF…</h2><p>سيظهر التقرير هنا تلقائيًا عند اكتمال إنشائه ويمكنك حفظه أو طباعته من أدوات PDF.</p><p>رفع نسخة pCloud وتحديث سجل التقارير يتمان تلقائيًا.</p></body></html>');
+      tab.document.close();
+    } catch (error) { console.warn('Report tab initialization failed',error) }
+    return tab;
+  }
+
+  function showPdfInTab(tab, blob) {
+    if (!tab || tab.closed) throw Error('REPORT_TAB_CLOSED');
+    const url=URL.createObjectURL(blob);
+    activePdfUrls.add(url);
+    tab.location.replace(url);
+    return url;
+  }
+
+  async function printReport(type, options={}) {
+    if (exportBusy) {
+      alert('يوجد تقرير قيد التجهيز. انتظر اكتماله قبل إصدار تقرير آخر.');
+      if(options?.outputTab&&!options.outputTab.closed)options.outputTab.close();
+      return {ok:false,error:'EXPORT_BUSY'};
+    }
+    const tab=options?.outputTab||createExportTab();
+    if (!tab) return {ok:false,error:'POPUP_BLOCKED'};
+    exportBusy=true;
     closeModal();
-
-    const report = buildReport(type);
-
-    if (!report) return;
-
-    const oldTitle = document.title;
-    const fallbackKey = getActivePageKey();
-    const fallbackCity = (getBrandInfo().city || '').includes('جدة') ? 'Jeddah' :
-      (getBrandInfo().city || '').includes('مكة') ? 'Makkah' : 'Project';
-    const fallbackType = String(fallbackKey || 'Report').replace(/[^A-Za-z0-9]/g,'') || 'Report';
-    const fileTitle = window.VDReportNaming?.build({ key: fallbackKey }) ||
-      ['VD', fallbackCity, fallbackType, 'General', Date.now()].join('_');
-
-    decorateReportIdentity(report, fileTitle, fallbackKey);
-    if(window.VDI18n?.getLanguage?.()==='en')window.VDI18n.translateRoot(report,'en');
-    document.title = fileTitle;
-
-    document.body.classList.add(
-      'vd-report-v2-mode'
-    );
-
-    let cleaned = false;
-    const cleanup = () => {
-      if (cleaned) return;
-      cleaned = true;
-      document.title = oldTitle;
+    const oldTitle=document.title;
+    let report=null, info=null, viewed=false;
+    const cleanup=()=>{
+      document.title=oldTitle;
       cleanupReport();
+      info?.remove();
+      exportBusy=false;
     };
-    const info = document.createElement('div');
-    info.textContent = 'جار إنشاء PDF وحفظ نسخة التقرير على pCloud قبل الطباعة…';
-    info.setAttribute('role','status');
-    Object.assign(info.style,{position:'fixed',inset:'auto 14px 14px auto',padding:'12px 18px',background:'#103d50',color:'#fff',borderRadius:'10px',boxShadow:'0 4px 18px #0004',zIndex:'2147483000',fontFamily:'Tahoma,Arial,sans-serif',fontSize:'14px'});
-    document.body.appendChild(info);
-    const printAfterArchive = async () => {
-      try {
-        if (typeof window.VDReportArchive?.archiveGeneratedPdf !== 'function') {
-          throw Error('ARCHIVE_MODULE_UNAVAILABLE');
+    try {
+      report=buildReport(type);
+      if(!report)throw Error('REPORT_NOT_READY');
+      const key=getActivePageKey();
+      const fallbackCity=(getBrandInfo().city||'').includes('جدة')?'Jeddah':(getBrandInfo().city||'').includes('مكة')?'Makkah':'Project';
+      const fallbackType=String(key||'Report').replace(/[^A-Za-z0-9]/g,'')||'Report';
+      const fileTitle=window.VDReportNaming?.build({key})||['VD',fallbackCity,fallbackType,'General',Date.now()].join('_');
+      decorateReportIdentity(report,fileTitle,key);
+      if(window.VDI18n?.getLanguage?.()==='en')window.VDI18n.translateRoot(report,'en');
+      document.title=fileTitle;
+      document.body.classList.add('vd-report-v2-mode');
+      info=document.createElement('div');
+      info.setAttribute('role','status');
+      info.textContent='جار تجهيز ملف PDF وأرشفته…';
+      Object.assign(info.style,{position:'fixed',inset:'auto 14px 14px auto',padding:'12px 18px',background:'#103d50',color:'#fff',borderRadius:'10px',boxShadow:'0 4px 18px #0004',zIndex:'2147483000',fontFamily:'Tahoma,Arial,sans-serif',fontSize:'14px'});
+      document.body.appendChild(info);
+      if(typeof window.VDReportArchive?.archiveGeneratedPdf!=='function')throw Error('ARCHIVE_MODULE_UNAVAILABLE');
+      const result=await window.VDReportArchive.archiveGeneratedPdf({
+        report,reportName:getActivePageName(),filename:fileTitle+'.pdf',
+        onPdfReady(blob){
+          showPdfInTab(tab,blob);
+          viewed=true;
+          info.textContent='تم تجهيز PDF. جار حفظ النسخة في pCloud…';
         }
-        const result = await window.VDReportArchive.archiveGeneratedPdf({report,reportName:getActivePageName(),filename:fileTitle+'.pdf'});
-        if (!result?.ok) {
-          console.warn('Report PDF not archived:',result?.error);
-          alert('لم تُحفظ نسخة التقرير على pCloud. تحقق من حالة التقرير في سجل التقارير الصادرة. يمكنك حفظ PDF من الطباعة ثم رفعه يدويًا.');
-        }
-      } catch (error) {
-        console.error('Automatic report archive failed:',error);
-        alert('حدث خلل أثناء أرشفة PDF. سيتم فتح الطباعة، ويمكنك رفع الملف من سجل التقارير الصادرة.');
-      } finally {
-        info.remove();
-        if (cleaned || !report.isConnected) return;
-        window.addEventListener('afterprint', cleanup, {once:true});
-        try { window.print(); } catch(error) { console.error('PDF print failed:',error);cleanup();return; }
-        setTimeout(cleanup,180000);
+      });
+      if(!viewed&&result?.blob){showPdfInTab(tab,result.blob);viewed=true;}
+      if(!viewed)throw Error(result?.error||'PDF_RENDER_FAILED');
+      if(!result?.ok) {
+        console.warn('PDF was generated but pCloud archive failed:',result?.error);
+        alert('تم تجهيز التقرير في تبويب جديد، لكن أرشفته على pCloud لم تكتمل. راجع حالة التقرير في سجل التقارير الصادرة، ويمكنك إعادة رفع نفس PDF.');
       }
-    };
-    requestAnimationFrame(() => setTimeout(printAfterArchive,350));
+      return {ok:!!result?.ok,viewed,archiveId:result?.id,error:result?.error};
+    } catch(error) {
+      console.error('VD report export failed:',error);
+      if(!viewed&&tab&&!tab.closed){
+        try {
+          tab.document.body.replaceChildren();
+          const h=tab.document.createElement('h2');
+          h.textContent='تعذر إنشاء ملف PDF';
+          const p=tab.document.createElement('p');
+          p.textContent='لم تكتمل عملية التصدير: '+String(error?.message||'خطأ غير معروف')+'. ارجع إلى الداشبورد وأعد المحاولة.';
+          tab.document.body.append(h,p);
+        } catch(_) {}
+      }
+      alert('لم يكتمل إنشاء ملف PDF. راجع التبويب الجديد وحالة سجل التقارير، ثم أعد المحاولة.');
+      return {ok:false,error:String(error?.message||'PDF_RENDER_FAILED')};
+    } finally {cleanup()}
   }
 
   function closeModal() {
@@ -3814,20 +3852,9 @@
       ?.classList.remove('open');
   }
 
-  function showModal() {
-    /*
-      التصدير موحّد ومباشر مثل تقرير الخميس:
-      لا توجد نافذة لاختيار نوع التقرير.
-      يتم إنشاء التقرير الكامل للتاب النشط فقط.
-    */
+  function showModal(options={}) {
     document.getElementById(MODAL_ID)?.remove();
-    try {
-      printReport('full');
-    } catch (error) {
-      console.error('VD report export failed:', error);
-      cleanupReport();
-      alert('تعذر تجهيز التقرير. يرجى إعادة تحميل الصفحة والمحاولة مرة أخرى.');
-    }
+    return printReport('full',options);
   }
 
   window.VDReportExport = {
@@ -3982,10 +4009,11 @@
   }
 
   window.VDReportExport = {
-    exportCurrent: () => showModal(),
-    exportCurrentTab: () => printReport('full'),
+    exportCurrent: options => showModal(options),
+    exportCurrentTab: options => printReport('full',options),
     showModal,
     printReport,
+    createExportTab,
     getActivePageKey
   };
 

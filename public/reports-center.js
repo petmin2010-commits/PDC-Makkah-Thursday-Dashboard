@@ -165,10 +165,14 @@
     const center = navFor('reportsCenter');
     if (!target) return;
 
-    const preopenedWindow =
-      key === 'importantLinks'
-        ? window.open('', '_blank')
-        : null;
+    // Open synchronously in the click before any navigation, filtering or network wait.
+    const preopenedWindow = key === 'importantLinks' || key === 'smartThursday'
+      ? window.open('', '_blank')
+      : window.VDReportExport?.createExportTab?.();
+    if(!preopenedWindow) {
+      alert('يرجى السماح بالنوافذ المنبثقة ثم إعادة المحاولة.');
+      return;
+    }
     const previousScopeOverride = window.__VD_REPORT_SCOPE_OVERRIDE;
     window.__VD_REPORT_SCOPE_OVERRIDE = 'General';
 
@@ -200,20 +204,20 @@
     if (key === 'smartThursday') {
       const special = document.getElementById('stpExportReport');
       if (special) {
-        special.click();
+        window.__VD_REPORT_PREOPENED_WINDOW = preopenedWindow;
+        try { special.click(); }
+        catch(error) { console.error('Thursday export failed',error);preopenedWindow.close(); }
+        finally { delete window.__VD_REPORT_PREOPENED_WINDOW; }
         setTimeout(finish, 900);
       } else {
+        preopenedWindow.close();
+        alert('تعذر تشغيل تقرير الخميس الذكي.');
         finish();
       }
       return;
     }
 
     if (key === 'importantLinks' && typeof window.exportImportantLinksReport === 'function') {
-      if (!preopenedWindow) {
-        alert('يرجى السماح بالنوافذ المنبثقة لتصدير تقرير الروابط.');
-        finish();
-        return;
-      }
       window.exportImportantLinksReport(preopenedWindow);
       setTimeout(finish, 900);
       return;
@@ -230,23 +234,21 @@
             : null;
 
     if (!exportFn) {
-      const originalButton =
-        document.querySelector('#vdUnifiedReportAction .vd-tab-report-btn');
-      if (originalButton) {
-        window.addEventListener('afterprint', finish, { once: true });
-        originalButton.click();
-        setTimeout(finish, 5000);
-        return;
-      }
-
+      preopenedWindow.close();
       alert('تعذر تشغيل أداة تصدير التقرير.');
       finish();
       return;
     }
-
-    window.addEventListener('afterprint', finish, { once: true });
-    exportFn();
-    setTimeout(finish, 5000);
+    try {
+      // Large reports can take longer than five seconds; wait for actual completion.
+      await Promise.resolve(exportFn({outputTab:preopenedWindow}));
+    } catch(error) {
+      console.error('Report center export failed',error);
+      if(!preopenedWindow.closed)preopenedWindow.close();
+      alert('لم يكتمل إنشاء التقرير. حاول مجددًا.');
+    } finally {
+      finish();
+    }
   }
 
   function renderReportsCenter() {
