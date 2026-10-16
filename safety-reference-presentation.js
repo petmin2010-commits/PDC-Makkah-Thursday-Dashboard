@@ -50,6 +50,17 @@ function slideFrom(pptx,index,cleanVersion=false){
  const file=path.join(ASSETS,name);
  if(!fs.existsSync(file))throw new Error('قالب السلامة الأصلي مفقود: '+name);
  slide.addImage({path:file,x:0,y:0,w:W,h:H});
+ // The template's "watch" button and play symbol are baked into the background image.
+ // Make those exact visual regions clickable without changing the design.
+ if(index===3&&!cleanVersion){
+  const url='https://youtu.be/oCOgBIT7tWc?si=Uz4y0x7HeaejTpYp';
+  for(const hit of [{x:8.98,y:5.41,w:1.41,h:.42},{x:3.55,y:3.70,w:1.10,h:1.10}]){
+   slide.addShape(pptx.ShapeType.rect,{...hit,
+    fill:{color:'FFFFFF',transparency:100},
+    line:{color:'FFFFFF',transparency:100},
+    hyperlink:{url,tooltip:'مشاهدة الفيديو التمهيدي على YouTube'}});
+  }
+ }
  return slide;
 }
 function txt(slide,t,x,y,w,h,opt={}){
