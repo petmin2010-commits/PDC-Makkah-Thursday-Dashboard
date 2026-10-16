@@ -3806,7 +3806,7 @@
     doc.body.appendChild(doc.adoptNode(report));
     const tools=doc.createElement('div');
     tools.className='vd-report-preview-tools';
-    tools.innerHTML='<span class="vd-report-export-progress" role="status">التقرير جاهز للعرض — جار إنشاء نسخة PDF وأرشفتها…</span><a href="#" class="vd-report-save-print">طباعة / حفظ PDF</a><a hidden class="vd-report-download">تنزيل PDF الأصلي</a>';
+    tools.innerHTML='<span class="vd-report-export-progress" role="status">التقرير جاهز للعرض — جار إنشاء نسخة PDF وأرشفتها…</span><a href="#" class="vd-report-save-print">طباعة / حفظ PDF</a>';
     report.prepend(tools);
     tools.querySelector('.vd-report-save-print').addEventListener('click',ev=>{
       ev.preventDefault();
@@ -3819,17 +3819,11 @@
         const el=tools.querySelector('.vd-report-export-progress');
         if(el)el.textContent=message;
       },
-      ready(blob){
+      ready(){
         if(tab.closed) return;
-        const url=URL.createObjectURL(blob);
-        activePdfUrls.add(url);
-        const link=tools.querySelector('.vd-report-download');
-        if(link) {
-          link.href=url;
-          link.download=String(fileTitle||'VD_Report').replace(/\.pdf$/i,'')+'.pdf';
-          link.hidden=false;
-        }
-        this.setStatus('ملف PDF جاهز للتنزيل — جار حفظ النسخة في pCloud…');
+        // The PDF Blob is uploaded to pCloud by the archive workflow;
+        // the user-facing preview keeps only the print / save PDF button.
+        this.setStatus('تم تجهيز ملف PDF — جار حفظ النسخة في pCloud…');
       }
     };
   }
@@ -3869,7 +3863,7 @@
       if(!ready&&result?.blob){preview?.ready(result.blob);ready=true;}
       if(!result?.ok){
         console.warn('Automatic report archive not completed:',result?.error);
-        preview?.setStatus(result?.error==='REGISTRATION_FAILED'?'تعذر تسجيل التقرير في السجل، تحقق من الاتصال والصلاحيات. يمكنك حفظ التقرير يدويًا.':ready?'PDF جاهز للتنزيل، لكن رفع pCloud لم يكتمل. راجع سجل التقارير.':'تعذر إنشاء PDF آليًا. تم تسجيل محاولة التصدير وحالتها في السجل. يمكنك طباعة التقرير أو حفظه من الزر.');
+        preview?.setStatus(result?.error==='REGISTRATION_FAILED'?'تعذر تسجيل التقرير في السجل، تحقق من الاتصال والصلاحيات. يمكنك حفظ التقرير يدويًا.':ready?'تم تجهيز ملف PDF، لكن رفع pCloud لم يكتمل. يمكنك حفظ التقرير عبر «طباعة / حفظ PDF».':'تعذر إنشاء PDF آليًا. تم تسجيل محاولة التصدير وحالتها في السجل. يمكنك طباعة التقرير أو حفظه من الزر.');
         return {ok:false,viewed:true,archived:false,error:result?.error};
       }
       preview?.setStatus('تم تجهيز التقرير وحفظ نسخة PDF في pCloud بنجاح.');
