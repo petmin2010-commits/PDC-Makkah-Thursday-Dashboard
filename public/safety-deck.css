@@ -37,10 +37,19 @@ html,body{margin:0;padding:0;background:#e8edf3;color:#153148;font-family:Cairo,
 .csd-level{border-radius:12px;padding:18px;text-align:center;background:#edf6fe;display:flex;flex-direction:column;gap:4px}
 .csd-level:nth-child(1){background:#ffeddf}.csd-level:nth-child(3){background:#dff6ef}
 .csd-level b{font-size:17px}.csd-level strong{font-size:32px;color:#07558e}.csd-level span{font-size:12px;color:#647a8b}
+.csd-quality-strip{display:flex;justify-content:space-between;align-items:center;gap:14px;border-radius:10px;background:#e9f3fa;border:1px solid #d1e4f2;padding:10px 16px;margin:-8px 0 14px;color:#173f65;font-size:12px;min-height:43px}
+.csd-quality-strip b{color:#0d5682;font-size:14px}
 .csd-insight p{font-size:15px;line-height:1.9;margin:10px 0}
 .csd-insight strong{color:#dd7826;font-size:20px}
 .csd-ranking{padding:20px 28px}
 .csd-issues{padding:25px 30px}
+.csd-issue-detail .csd-bar{min-height:92px;margin-bottom:10px}
+.csd-issue-detail .csd-bar-head{min-height:67px;align-items:flex-start}
+.csd-issue-detail .csd-bar-head span{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.55;max-width:81%;font-size:14px}
+.csd-issue-detail .csd-bar-head strong{padding-top:3px;flex-shrink:0}
+.csd-monthly .csd-bar{min-height:47px;margin-bottom:15px}
+.csd-risk .csd-bar{min-height:47px;margin-bottom:16px}
+.csd-risk-foot{padding:13px 18px;font-size:14px;color:#466980}
 .csd-bar{margin:0 0 16px;min-height:37px}
 .csd-bar-head{display:flex;justify-content:space-between;align-items:center;gap:20px;font-size:14px;margin-bottom:5px}
 .csd-bar-head span{max-width:80%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1d415e;font-weight:700}
@@ -56,6 +65,16 @@ html,body{margin:0;padding:0;background:#e8edf3;color:#153148;font-family:Cairo,
 .csd-action small{display:block;font-size:12px;margin:6px 0;color:#ba6b2b}
 .csd-action p{font-size:13px;line-height:1.8;margin:9px 0}
 .csd-contractor-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+.csd-contractor-grid-three{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.csd-contractor-grid-one{grid-template-columns:1fr;max-width:75%;margin:0 auto}
+.csd-contractor-grid-three .csd-contractor-head{padding:15px 14px}
+.csd-contractor-grid-three .csd-contractor-head h3{font-size:15px;line-height:1.4;min-height:42px}
+.csd-contractor-grid-three .csd-contractor-head p{font-size:11px}
+.csd-contractor-grid-three .csd-contractor-list{padding:13px}
+.csd-contractor-grid-three .csd-contractor-list .csd-bar{margin-bottom:19px}
+.csd-contractor-grid-three .csd-bar-head{display:block;min-height:42px}
+.csd-contractor-grid-three .csd-bar-head span{display:block;max-width:100%;white-space:normal;font-size:11px;line-height:1.4;max-height:48px}
+.csd-contractor-grid-three .csd-bar-head strong{display:block;font-size:11px;margin-top:2px}
 .csd-contractor{background:white;border-radius:16px;border:1px solid #d6e5f1;min-height:480px;overflow:hidden}
 .csd-contractor-head{padding:17px 22px;background:#eaf3fb;border-bottom:4px solid #e98b32}
 .csd-contractor-head h3{font-size:18px;margin:0 0 5px}
