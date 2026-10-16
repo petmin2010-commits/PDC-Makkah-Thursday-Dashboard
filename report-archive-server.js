@@ -4,7 +4,7 @@ module.exports=function installArchive({app,requireAuth_,getSheets,spreadsheetId
  const sheet='VD Report Archive',range=s=>"'VD Report Archive'!"+s;
  const headers=['رقم السجل','التاريخ','الوقت','المصدر','البريد الإلكتروني','اسم التقرير','النوع','اسم الملف','حالة الحفظ','الرابط','معرف pCloud','المجلد'];
  const columns=['id','date','time','issuer','email','reportName','format','filename','status','url','fileId','folder'];
- const archiveDeleteEmail='ahmad.zakaria-m@vd-2030.com';
+ const archiveDeleteEmail='ahmed.zakaria-m@vd-2030.com';
  const canDeleteArchiveRow=req=>String(req.session?.user?.email||'').trim().toLowerCase()===archiveDeleteEmail;
  const cloudHost=String(process.env.PCLOUD_API_HOST||'api.pcloud.com').trim();
  const cloudToken=process.env.PCLOUD_ACCESS_TOKEN||'';
