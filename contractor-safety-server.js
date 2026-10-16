@@ -1,4 +1,11 @@
 'use strict';
+// Strict project-specific source boundary: wrong environment overrides must fail closed.
+const VERIFIED_SOURCES=Object.freeze({Makkah:'1bu5hfCL9kLtVpYdV50tlZCHyhWnSyeHvIEqU0ItM8u0',Jeddah:'1PaUULWNLfnXQSg3rJPCgKq3fTVgNbJGzVPUwPGJJpGA'});
+function verifySource(city,spreadsheetId){
+ const expected=VERIFIED_SOURCES[city];
+ if(!expected||String(spreadsheetId||'')!==expected)throw Error('SAFETY_INTELLECT_SOURCE_MISMATCH_'+String(city||'UNKNOWN'));
+ return expected;
+}
 const WEIGHT_A=new Set('AQ AT AW AX AY BD BT BU BV BW BX'.split(' '));
 const WEIGHT_B=new Set('AR AS AU AV AZ BA BG'.split(' '));
 const clean=v=>String(v==null?'':v).replace(/\s+/g,' ').trim();
@@ -18,6 +25,7 @@ function normalize(row,headers,rowIndex){
 }
 const cache=new Map();
 async function getData({getSheets,spreadsheetId,city,refresh=false}){
+ spreadsheetId=verifySource(city,spreadsheetId);
  const key=city+':'+spreadsheetId,old=cache.get(key);
  if(!refresh&&old?.data&&Date.now()-old.time<180000)return old.data;
  if(old?.pending)return old.pending;
@@ -38,4 +46,4 @@ async function getData({getSheets,spreadsheetId,city,refresh=false}){
  try{return await pending}
  catch(e){cache.delete(key);throw e}
 }
-module.exports={getData,normalize,weights};
+module.exports={getData,normalize,weights,verifySource,VERIFIED_SOURCES};
