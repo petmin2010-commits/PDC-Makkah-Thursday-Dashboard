@@ -4,6 +4,8 @@ module.exports=function installArchive({app,requireAuth_,getSheets,spreadsheetId
  const sheet='VD Report Archive',range=s=>"'VD Report Archive'!"+s;
  const headers=['رقم السجل','التاريخ','الوقت','المصدر','البريد الإلكتروني','اسم التقرير','النوع','اسم الملف','حالة الحفظ','الرابط','معرف pCloud','المجلد'];
  const columns=['id','date','time','issuer','email','reportName','format','filename','status','url','fileId','folder'];
+ const archiveDeleteEmail='ahmad.zakaria-m@vd-2030.com';
+ const canDeleteArchiveRow=req=>String(req.session?.user?.email||'').trim().toLowerCase()===archiveDeleteEmail;
  const cloudHost=String(process.env.PCLOUD_API_HOST||'api.pcloud.com').trim();
  const cloudToken=process.env.PCLOUD_ACCESS_TOKEN||'';
  const cloudUser=String(process.env.PCLOUD_USERNAME||'').trim();
@@ -181,7 +183,7 @@ module.exports=function installArchive({app,requireAuth_,getSheets,spreadsheetId
  if(typeof probe.unref==='function')probe.unref();
  app.get('/api/report-archive',requireAuth_,async(req,res)=>{
    if(!permitted(req))return res.status(403).json({ok:false,error:'ACCESS_DENIED'});
-   try{const {rows}=await load();res.set('Cache-Control','no-store');res.json({ok:true,city,pcloudEnabled:cloudEnabled,items:rows.slice(-1000).reverse().map(visibleArchiveRow)})}
+   try{const {rows}=await load();res.set('Cache-Control','no-store');res.json({ok:true,city,pcloudEnabled:cloudEnabled,canDelete:canDeleteArchiveRow(req),items:rows.slice(-1000).reverse().map(visibleArchiveRow)})}
    catch(e){console.error('Archive list',e.message);res.status(500).json({ok:false,error:'ARCHIVE_READ_FAILED'})}
  });
  app.post('/api/report-archive',requireAuth_,authOrigin,async(req,res)=>{
@@ -194,6 +196,30 @@ module.exports=function installArchive({app,requireAuth_,getSheets,spreadsheetId
      await sheets.spreadsheets.values.append({spreadsheetId,range:range('A:L'),valueInputOption:'RAW',insertDataOption:'INSERT_ROWS',requestBody:{values:[row]}});
      res.status(201).json({ok:true,id,pcloudEnabled:cloudEnabled});
    }catch(e){console.error('Archive register',e.message);res.status(500).json({ok:false,error:'ARCHIVE_WRITE_FAILED'})}
+ });
+ // Delete a single archive register row. Restricted to the exact authorized account,
+ // independently of administrator role or UI visibility. pCloud files are never deleted.
+ app.delete('/api/report-archive/:id',requireAuth_,authOrigin,async(req,res)=>{
+   if(!canDeleteArchiveRow(req))return res.status(403).json({ok:false,error:'DELETE_ACCESS_DENIED'});
+   const id=String(req.params.id||'');
+   if(!/^[0-9a-f-]{36}$/i.test(id))return res.status(400).json({ok:false,error:'INVALID_ID'});
+   try{
+     const {sheets,rows}=await load();
+     const selected=find(rows,id);
+     if(!selected)return res.status(404).json({ok:false,error:'NOT_FOUND'});
+     const meta=await sheets.spreadsheets.get({spreadsheetId,fields:'sheets(properties(sheetId,title))'});
+     const properties=(meta.data.sheets||[]).map(s=>s.properties).find(p=>p?.title===sheet);
+     if(!Number.isInteger(properties?.sheetId))throw Error('ARCHIVE_SHEET_NOT_FOUND');
+     const rowIndex=selected.index+1; // values range begins at A2; Sheets indexes are zero-based
+     await sheets.spreadsheets.batchUpdate({spreadsheetId,requestBody:{requests:[{
+       deleteDimension:{range:{sheetId:properties.sheetId,dimension:'ROWS',startIndex:rowIndex,endIndex:rowIndex+1}}
+     }]}});
+     res.set('Cache-Control','no-store');
+     return res.json({ok:true,id,deletedRecord:selected.item.reportName,cloudFilePreserved:true});
+   }catch(error){
+     console.error('Archive record delete failed:',error?.message);
+     return res.status(500).json({ok:false,error:'ARCHIVE_DELETE_FAILED'});
+   }
  });
  app.post('/api/report-archive/:id/failure',requireAuth_,authOrigin,async(req,res)=>{
    try{

@@ -1,6 +1,6 @@
 (()=>{'use strict';
  const PAGE='reportArchivePage',byId=id=>document.getElementById(id);
- const state={items:[],pending:false,term:'',cloud:false};
+ const state={items:[],pending:false,term:'',cloud:false,canDelete:false};
  const activeName=()=>document.querySelector('#nav .nav-item.active span')?.textContent?.trim()||'تقرير الداشبورد';
  let recent=null;
  async function call(path,data){
@@ -119,17 +119,37 @@
     const actions=el('td');row.append(actions);
     const link=el('button','إضافة رابط');link.addEventListener('click',()=>linkRecord(item));actions.append(link);
     if(state.cloud&&!item.fileId){const upload=el('button',/فشل|تعذر|لم يكتمل/i.test(item.status||'')?'إعادة رفع':'رفع ملف');upload.addEventListener('click',()=>pickFile(item));actions.append(upload)}
+    if(state.canDelete&&item.id){const remove=el('button','حذف السجل');remove.className='ra-delete-record';remove.title='حذف هذا السجل فقط دون حذف ملف pCloud';remove.addEventListener('click',()=>deleteArchiveRow(item,remove));actions.append(remove)}
   }
   if(!items.length){const row=el('tr'),cell=el('td','لا توجد تقارير مطابقة');cell.colSpan=8;row.append(cell);tbody.append(row)}
   const note=el('p',state.cloud?'إعدادات pCloud موجودة. اضغط «اختبار اتصال pCloud» للتحقق من إمكانية رفع وتنزيل الملفات. لا يُعتبر أي تقرير محفوظًا حتى تتغير حالة السجل إلى «محفوظ في pCloud».':'pCloud غير مهيأ حاليًا؛ يمكنك إضافة رابط تقرير محفوظ يدويًا.');note.className='ra-note';page.append(note);
  }
  async function refresh(){
   if(state.pending)return;state.pending=true;
-  try{const data=await call('/api/report-archive');state.items=data.items||[];state.cloud=!!data.pcloudEnabled;render()}
+  try{const data=await call('/api/report-archive');state.items=data.items||[];state.cloud=!!data.pcloudEnabled;state.canDelete=data.canDelete===true;render()}
   catch(e){const page=byId(PAGE);page.replaceChildren(el('h3','تعذر فتح السجل'),el('p',e.message));const b=el('button','إعادة المحاولة');b.addEventListener('click',refresh);page.append(b)}
   finally{state.pending=false}
  }
  async function linkRecord(item){const url=prompt('ألصق رابط مشاركة التقرير من pCloud (https://):',item.url||'');if(!url)return;try{await call('/api/report-archive/'+encodeURIComponent(item.id)+'/link',{url});await refresh()}catch(e){alert('لم يُحفظ الرابط: '+e.message)}}
+ async function deleteArchiveRow(item,button){
+   if(!state.canDelete||!item?.id)return;
+   const details=[item.reportName||'تقرير',item.date||'',item.time||''].filter(Boolean).join(' — ');
+   if(!confirm('هل تريد حذف سجل التقرير التالي نهائيًا؟\n'+details+'\n\nسيتم حذف السجل المحدد فقط. لن يتم حذف الملف المخزن على pCloud، لكن رابط السجل لن يعمل بعد حذفه.'))return;
+   button.disabled=true;
+   button.textContent='جار الحذف...';
+   try{
+     const response=await fetch('/api/report-archive/'+encodeURIComponent(item.id),{method:'DELETE',credentials:'same-origin'});
+     const data=await response.json().catch(()=>({}));
+     if(!response.ok||!data.ok)throw Error(data.error||'تعذر حذف السجل');
+     state.items=state.items.filter(entry=>entry.id!==item.id);
+     render();
+     await refresh();
+   }catch(error){
+     button.disabled=false;
+     button.textContent='حذف السجل';
+     alert('تعذر حذف السجل: '+error.message);
+   }
+ }
  function pickFile(item){
   const input=el('input');input.type='file';input.accept='.'+item.format.toLowerCase();
   input.addEventListener('change',async()=>{
