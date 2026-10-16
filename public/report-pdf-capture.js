@@ -57,7 +57,7 @@ async function createPdf(report){
    report.style.maxWidth=originals.maxWidth;
  }
 }
-async function createWindowPdf(win,selector='.page'){
+async function createWindowPdf(win,selector='.page',onProgress){
  const Canvas=window.html2canvas,Pdf=window.jspdf?.jsPDF;
  if(typeof Canvas!=='function'||typeof Pdf!=='function')throw Error('PDF_LIBRARY_UNAVAILABLE');
  if(!win||win.closed||!win.document?.body)throw Error('REPORT_NOT_READY');
@@ -69,6 +69,7 @@ async function createWindowPdf(win,selector='.page'){
  const pdf=new Pdf({orientation:'landscape',unit:'mm',format:'a4',compress:true});
  for(let i=0;i<pages.length;i++){
    if(win.closed)throw Error('REPORT_NOT_READY');
+   if(typeof onProgress==='function')onProgress(i+1,pages.length);
    const canvas=await captureCompatible(Canvas,pages[i],{backgroundColor:'#fff',scale:1.35,useCORS:true,allowTaint:false,logging:false,removeContainer:true,scrollX:0,scrollY:0});
    if(canvas.width<10||canvas.height<10)throw Error('REPORT_NOT_READY');
    if(i)pdf.addPage('a4','landscape');

@@ -42,12 +42,12 @@
    })();
    recent={key,at:Date.now(),job};return job;
  }
- async function archiveGeneratedPdf({report,win,selector,reportName,filename,onPdfReady}={}){
+ async function archiveGeneratedPdf({report,win,selector,reportName,filename,onPdfReady,onProgress}={}){
    const name=String(filename||('VD_'+(reportName||activeName())+'.pdf'));
    let created=null,blob;
    try{
      // Generate a usable PDF even if the archive service is unavailable.
-     blob=win?await window.VDReportPdfCapture?.createWindowPdf(win,selector):await window.VDReportPdfCapture?.createPdf(report);
+     blob=win?await window.VDReportPdfCapture?.createWindowPdf(win,selector,onProgress):await window.VDReportPdfCapture?.createPdf(report);
      if(!(blob instanceof Blob))throw Error('PDF_LIBRARY_UNAVAILABLE');
      // Reveal the preopened PDF tab as soon as rendering finishes, without awaiting upload.
      if(typeof onPdfReady==='function'){

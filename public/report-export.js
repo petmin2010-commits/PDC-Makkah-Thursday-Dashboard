@@ -3790,6 +3790,50 @@
     return url;
   }
 
+  function openReportPreview(tab, report, fileTitle) {
+    if (!tab || tab.closed) throw Error('REPORT_TAB_CLOSED');
+    // Reuse the trusted styles of the source dashboard, but never switch its body into print mode.
+    const css=[...document.head.querySelectorAll('link[rel="stylesheet"], style')]
+      .map(node=>node.outerHTML).join('\n');
+    const base=(location.origin+'/').replace(/"/g,'&quot;');
+    const doc=tab.document;
+    doc.open();
+    doc.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="'+base+'"><title>تقرير جاهز للعرض</title>'+css+
+      '<style>html{background:#edf2f9!important}body.vd-report-v2-mode{background:#edf2f9!important;margin:0!important;padding:0 12px!important}body.vd-report-v2-mode #vdReportV2{display:block!important;max-width:297mm;margin:0 auto;box-shadow:0 0 20px #17376722}.vd-report-preview-tools{position:sticky!important;top:0!important;z-index:999999!important;display:flex!important;align-items:center;gap:12px;flex-wrap:wrap;padding:11px 18px!important;background:#123462!important;color:#fff!important;font:700 13px Tahoma,Arial,sans-serif!important;min-height:54px}.vd-report-preview-tools a{background:#fff!important;color:#163861!important;border-radius:6px;padding:9px 14px!important;text-decoration:none!important;white-space:nowrap;font:700 12px Tahoma,Arial,sans-serif!important;cursor:pointer}.vd-report-preview-tools .vd-report-export-progress{flex:1;min-width:180px;text-align:right}.vd-report-preview-tools a[hidden]{display:none!important}@media print{html,body{background:#fff!important}body.vd-report-v2-mode{padding:0!important}.vd-report-preview-tools{display:none!important}#vdReportV2{box-shadow:none!important;max-width:none!important}}</style></head><body class="vd-report-v2-mode"></body></html>');
+    doc.close();
+    doc.title=fileTitle;
+    // Move only the assembled report to the new tab. The original dashboard never changes.
+    doc.body.appendChild(doc.adoptNode(report));
+    const tools=doc.createElement('div');
+    tools.className='vd-report-preview-tools';
+    tools.innerHTML='<span class="vd-report-export-progress" role="status">التقرير جاهز للعرض — جار إنشاء نسخة PDF وأرشفتها…</span><a href="#" class="vd-report-save-print">طباعة / حفظ PDF</a><a hidden class="vd-report-download">تنزيل PDF الأصلي</a>';
+    report.prepend(tools);
+    tools.querySelector('.vd-report-save-print').addEventListener('click',ev=>{
+      ev.preventDefault();
+      if(!tab.closed)tab.print();
+    });
+    try{tab.focus()}catch(_){}
+    return {
+      setStatus(message){
+        if(tab.closed)return;
+        const el=tools.querySelector('.vd-report-export-progress');
+        if(el)el.textContent=message;
+      },
+      ready(blob){
+        if(tab.closed) return;
+        const url=URL.createObjectURL(blob);
+        activePdfUrls.add(url);
+        const link=tools.querySelector('.vd-report-download');
+        if(link) {
+          link.href=url;
+          link.download=String(fileTitle||'VD_Report').replace(/\.pdf$/i,'')+'.pdf';
+          link.hidden=false;
+        }
+        this.setStatus('ملف PDF جاهز للتنزيل — جار حفظ النسخة في pCloud…');
+      }
+    };
+  }
+
   async function printReport(type, options={}) {
     if (exportBusy) {
       alert('يوجد تقرير قيد التجهيز. انتظر اكتماله قبل إصدار تقرير آخر.');
@@ -3800,14 +3844,8 @@
     if (!tab) return {ok:false,error:'POPUP_BLOCKED'};
     exportBusy=true;
     closeModal();
-    const oldTitle=document.title;
-    let report=null, info=null, viewed=false;
-    const cleanup=()=>{
-      document.title=oldTitle;
-      cleanupReport();
-      info?.remove();
-      exportBusy=false;
-    };
+    let preview=null;
+    let report=null;
     try {
       report=buildReport(type);
       if(!report)throw Error('REPORT_NOT_READY');
@@ -3817,44 +3855,43 @@
       const fileTitle=window.VDReportNaming?.build({key})||['VD',fallbackCity,fallbackType,'General',Date.now()].join('_');
       decorateReportIdentity(report,fileTitle,key);
       if(window.VDI18n?.getLanguage?.()==='en')window.VDI18n.translateRoot(report,'en');
-      document.title=fileTitle;
-      document.body.classList.add('vd-report-v2-mode');
-      info=document.createElement('div');
-      info.setAttribute('role','status');
-      info.textContent='جار تجهيز ملف PDF وأرشفته…';
-      Object.assign(info.style,{position:'fixed',inset:'auto 14px 14px auto',padding:'12px 18px',background:'#103d50',color:'#fff',borderRadius:'10px',boxShadow:'0 4px 18px #0004',zIndex:'2147483000',fontFamily:'Tahoma,Arial,sans-serif',fontSize:'14px'});
-      document.body.appendChild(info);
+      preview=openReportPreview(tab,report,fileTitle);
+      // Allow the new browser tab to paint its real report pages before PDF rasterization.
+      await new Promise(resolve=>setTimeout(resolve,160));
       if(typeof window.VDReportArchive?.archiveGeneratedPdf!=='function')throw Error('ARCHIVE_MODULE_UNAVAILABLE');
+      let ready=false;
       const result=await window.VDReportArchive.archiveGeneratedPdf({
-        report,reportName:getActivePageName(),filename:fileTitle+'.pdf',
-        onPdfReady(blob){
-          showPdfInTab(tab,blob,fileTitle);
-          viewed=true;
-          info.textContent='تم تجهيز PDF. جار حفظ النسخة في pCloud…';
-        }
+        win:tab,selector:'.vd-report-v2-page',reportName:getActivePageName(),filename:fileTitle+'.pdf',
+        onProgress(current,total){preview?.setStatus('جار إنشاء PDF: صفحة '+current+' من '+total+' — التقرير متاح للعرض والطباعة الآن');},
+        onPdfReady(blob){preview?.ready(blob);ready=true;}
       });
-      if(!viewed&&result?.blob){showPdfInTab(tab,result.blob,fileTitle);viewed=true;}
-      if(!viewed)throw Error(result?.error||'PDF_RENDER_FAILED');
-      if(!result?.ok) {
-        console.warn('PDF was generated but pCloud archive failed:',result?.error);
-        alert('تم تجهيز التقرير في تبويب جديد، لكن أرشفته على pCloud لم تكتمل. راجع حالة التقرير في سجل التقارير الصادرة، ويمكنك إعادة رفع نفس PDF.');
+      if(!ready&&result?.blob){preview?.ready(result.blob);ready=true;}
+      if(!result?.ok){
+        console.warn('Automatic report archive not completed:',result?.error);
+        preview?.setStatus(ready?'PDF جاهز للتنزيل، لكن رفع pCloud لم يكتمل. راجع سجل التقارير.':'تعذر إنشاء PDF آليًا. يمكنك طباعة التقرير أو حفظه من الزر.');
+        return {ok:false,viewed:true,archived:false,error:result?.error};
       }
-      return {ok:!!result?.ok,viewed,archiveId:result?.id,error:result?.error};
+      preview?.setStatus('تم تجهيز التقرير وحفظ نسخة PDF في pCloud بنجاح.');
+      return {ok:true,viewed:true,archived:true,archiveId:result.id};
     } catch(error) {
       console.error('VD report export failed:',error);
-      if(!viewed&&tab&&!tab.closed){
-        try {
+      if(preview){
+        preview.setStatus('تعذر إكمال إنشاء PDF أو الأرشفة. يمكنك طباعة التقرير أو حفظه من الزر.');
+      } else if(tab&&!tab.closed){
+        try{
           tab.document.body.replaceChildren();
-          const h=tab.document.createElement('h2');
-          h.textContent='تعذر إنشاء ملف PDF';
-          const p=tab.document.createElement('p');
-          p.textContent='لم تكتمل عملية التصدير: '+String(error?.message||'خطأ غير معروف')+'. ارجع إلى الداشبورد وأعد المحاولة.';
-          tab.document.body.append(h,p);
-        } catch(_) {}
+          const message=tab.document.createElement('p');
+          message.textContent='تعذر تجهيز التقرير: '+String(error?.message||'خطأ غير معروف');
+          tab.document.body.appendChild(message);
+        }catch(_){}
       }
-      alert('لم يكتمل إنشاء ملف PDF. راجع التبويب الجديد وحالة سجل التقارير، ثم أعد المحاولة.');
-      return {ok:false,error:String(error?.message||'PDF_RENDER_FAILED')};
-    } finally {cleanup()}
+      if(!preview)alert('تعذر تجهيز التقرير. يرجى إعادة المحاولة.');
+      return {ok:false,error:String(error?.message||'REPORT_RENDER_FAILED'),viewed:!!preview};
+    } finally {
+      // The report lives in the new tab; never change the dashboard's print mode.
+      cleanupReport();
+      exportBusy=false;
+    }
   }
 
   function closeModal() {
