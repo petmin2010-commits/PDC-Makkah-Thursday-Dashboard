@@ -534,7 +534,8 @@ async function create(rows,meta={}){
  pptx.subject='Contractor Safety evaluation from isolated Intellect source';
  pptx.title='تقييم السلامة للمقاولين';pptx.lang='ar-SA';pptx.company='Vision Dimensions';
  const data=scoreData(rows),period=meta.general?'كامل الفترة':clean(meta.period)||'كامل المدة';
- reportCover(pptx,rows,{...meta,period},data);
+ // Preserve the approved cover exactly as supplied; do not replace it with a generated cover.
+ slideFrom(pptx,1);
  slideFrom(pptx,2);
  slideFrom(pptx,3);
  reportAgenda(pptx,rows,{...meta,period});
