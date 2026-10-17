@@ -2533,7 +2533,7 @@ require('./projects-report-defaults-server')({
 });
 
 const safetyCorrectiveImages=require('./safety-corrective-images-server')({ app, requireAuth_, getSheets, SPREADSHEET_ID, qSheet, APP, DateTime });
-require('./safety-corrective-server')({ app, requireAuth_, getSheets, SPREADSHEET_ID, qSheet, APP, DateTime, deletePhotos:safetyCorrectiveImages.deleteAllImages });
+require('./safety-corrective-server')({ app, requireAuth_, getSheets, SPREADSHEET_ID, qSheet, APP, DateTime, deletePhotos:safetyCorrectiveImages.deleteAllImages, getContractors:async()=>unique_((await readWorkOrdersBoot_()).map(r=>r.contractor)).sort((a,b)=>a.localeCompare(b,'ar')) });
 const projectsReportImages=require('./projects-report-images-server')({
   app,
   requireAuth_,

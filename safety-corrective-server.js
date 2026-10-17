@@ -6,7 +6,7 @@ const FH=['ReportId','FindingId','WorkOrder','Contractor','Consultant','WorkType
 const idSafe=s=>String(s||'').trim().replace(/[^A-Za-z0-9_-]/g,'').slice(0,64);
 const val=(x,n=1200)=>String(x??'').replace(/[\u0000-\u001F]/g,' ').trim().slice(0,n);
 const natural=x=>{const n=Number(x);return Number.isFinite(n)&&n>=0?Math.min(10000000,Math.floor(n)):0};
-module.exports=function installSafetyCorrective({app,requireAuth_,getSheets,SPREADSHEET_ID,qSheet,DateTime,APP,deletePhotos}){
+module.exports=function installSafetyCorrective({app,requireAuth_,getSheets,SPREADSHEET_ID,qSheet,DateTime,APP,deletePhotos,getContractors}){
   let initPromise=null;
   const stamp=()=>DateTime.now().setZone(APP?.TZ||'Asia/Riyadh').toISO();
   const actor=req=>val(req.session?.user?.name||req.session?.user?.email||req.session?.user?.username||'dashboard',120);
@@ -54,6 +54,7 @@ module.exports=function installSafetyCorrective({app,requireAuth_,getSheets,SPRE
     return {reportId:a[0],id:a[1],workOrder:a[2]||'',contractor:a[3]||'',consultant:a[4]||'',workType:a[5]||'',observation:a[6]||'',correctiveAction:a[7]||'',status:a[8]||'مفتوحة',beforeDescription:a[9]||'',afterDescription:a[10]||'',updatedAt:a[11]||'',updatedBy:a[12]||''};
   }
   const run=fn=>async(req,res)=>{try{res.set('Cache-Control','no-store');res.json({ok:true,...await fn(req)})}catch(e){console.error('safety corrective',e.message);res.status(400).json({ok:false,error:e.message||'تعذر تنفيذ العملية'})}};
+  app.get('/api/safety-corrective/contractors',requireAuth_,run(async()=>({contractors:typeof getContractors==='function'?await getContractors():[]})));
   app.get('/api/safety-corrective/reports',requireAuth_,run(async()=>{
     const rows=await all(REPORTS,'K');
     return {reports:rows.map(r=>metaObj(r.data)).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)))};

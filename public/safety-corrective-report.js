@@ -1,6 +1,6 @@
 (()=>{'use strict';
 const PAGE='safetyCorrectivePage',NAV='safetyCorrectiveNav',API='/api/safety-corrective';
-const state={report:null,findings:[],reports:[],current:null,photos:[],pending:{},photoDraft:{},loading:false,dirty:false};
+const state={report:null,findings:[],reports:[],contractors:[],current:null,photos:[],pending:{},photoDraft:{},loading:false,dirty:false};
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clean=v=>String(v??'').trim();
@@ -36,6 +36,7 @@ function mount(){
  $('scrPhotoGrid').addEventListener('input',e=>{if(e.target.matches('[data-caption]')){state.photoDraft[e.target.dataset.caption]=e.target.value;state.dirty=true}});
  $('scrMetaFields').addEventListener('input',()=>{$('scrMetaSave').classList.add('scr-unsaved')});
  refresh();
+ refreshContractors();
 }
 function markup(){return `
 <div class="scr-hero"><div><small>SAFETY • CORRECTIVE ACTIONS</small><h2>تقرير السلامة والإجراءات التصحيحية</h2><p>تقرير أسبوعي موحد مع صور قبل المعالجة وبعد المعالجة، وتوثيق كل ملاحظة بصور قبل وبعد المعالجة، ووصف الحالة والإجراء التصحيحي.</p></div><div class="scr-toolbar"><button id="scrExport" type="button" disabled>تصدير PDF</button></div></div>
@@ -61,7 +62,7 @@ function markup(){return `
 <h5>بيانات أمر العمل</h5>
 <div class="scr-ref-fields">
 <label>رقم أمر العمل<input id="scrWO" inputmode="numeric" maxlength="40" placeholder="رقم أمر العمل"></label>
-<label>المقاول<input id="scrContractor" maxlength="180" placeholder="اسم المقاول"></label>
+<label>المقاول<select id="scrContractor" aria-label="المقاول"><option value="">جاري تحميل المقاولين...</option></select></label>
 <label>الاستشاري<input id="scrConsultant" maxlength="180" value="أبعاد الرؤية"></label>
 <label>نوع أمر العمل<select id="scrType"><option value="">اختر نوع أمر العمل</option><option value="350">350</option><option value="360">360</option><option value="402">402</option><option value="801">801</option><option value="802">802</option><option value="طارئ">طارئ</option></select></label>
 <label class="scr-ref-observation">الملاحظات المرصودة<textarea id="scrObservation" rows="5" maxlength="1700" placeholder="اكتب الملاحظة كما ستظهر في التقرير"></textarea></label>
@@ -87,6 +88,25 @@ function leave(){document.body.classList.remove('scr-open');$(PAGE)?.classList.r
 function getMeta(){return {weekLabel:clean($('scrWeekLabel').value),startDate:$('scrStart').value,endDate:$('scrEnd').value,totalSites:Number($('scrSites').value||0),visitedSites:Number($('scrVisited').value||0),totalVisits:Number($('scrVisits').value||0),preparedBy:clean($('scrPrepared').value),notes:clean($('scrNotes').value)}}
 function fillMeta(r){$('scrWeekLabel').value=r.weekLabel||'';$('scrStart').value=r.startDate||'';$('scrEnd').value=r.endDate||'';$('scrSites').value=r.totalSites||0;$('scrVisited').value=r.visitedSites||0;$('scrVisits').value=r.totalVisits||0;$('scrPrepared').value=r.preparedBy||'';$('scrNotes').value=r.notes||'';$('scrWorkspace').hidden=false;$('scrExport').disabled=false;$('scrMetaSave').classList.remove('scr-unsaved');}
 function validateMeta(x){if(!validDate(x.startDate)||!validDate(x.endDate)||x.startDate>x.endDate)throw Error('حدد فترة زمنية صحيحة.');if(x.visitedSites>x.totalSites)throw Error('المواقع التي تمت زيارتها لا يمكن أن تتجاوز إجمالي المواقع.')}
+function renderContractorOptions(selected){
+ const el=$('scrContractor');if(!el)return;
+ const value=clean(selected===undefined?el.value:selected);
+ const options=[...new Set([...state.contractors,...state.findings.map(f=>f.contractor),value].map(clean).filter(Boolean))]
+   .sort((a,b)=>a.localeCompare(b,'ar'));
+ el.innerHTML='<option value="">'+(options.length?'اختر المقاول':'لا توجد أسماء مقاولين متاحة بعد')+'</option>'+
+   options.map(name=>'<option value="'+esc(name)+'">'+esc(name)+'</option>').join('');
+ el.value=value;
+}
+async function refreshContractors(){
+ try{
+  const data=await request('/contractors');
+  state.contractors=Array.isArray(data.contractors)?data.contractors.filter(v=>typeof v==='string'):[];
+  renderContractorOptions();
+ }catch(e){
+  renderContractorOptions();
+  notice('تعذر تحميل قائمة المقاولين من أوامر العمل: '+e.message,true);
+ }
+}
 async function refresh(){try{const j=await request('/reports');state.reports=j.reports||[];$('scrSelect').innerHTML='<option value="">اختر تقريرًا محفوظًا...</option>'+state.reports.map(r=>'<option value="'+esc(r.id)+'">'+esc((r.weekLabel||'تقرير')+' • '+r.startDate+' / '+r.endDate)+'</option>').join('');if(state.report)$('scrSelect').value=state.report.id;notice('اختر تقريرًا أو أنشئ تقريرًا جديدًا.')}catch(e){notice(e.message,true)}}
 async function create(){
  if(!confirm('إنشاء تقرير أسبوعي جديد؟'))return;
@@ -98,7 +118,7 @@ async function create(){
 async function load(id){
  if(!id){state.report=null;state.findings=[];state.current=null;$('scrWorkspace').hidden=true;$('scrExport').disabled=true;return}
  notice('جارٍ تحميل التقرير...');
- try{const j=await request('/reports/'+encodeURIComponent(id));state.report=j.report;$('scrSelect').value=j.report.id;state.findings=j.findings||[];state.current=null;state.photos=[];state.pending={};state.photoDraft={};state.dirty=false;fillMeta(j.report);renderKpis();renderFindings();$('scrEditor').hidden=true;notice('تم تحميل التقرير • '+state.findings.length+' ملاحظة.')}catch(e){notice(e.message,true)}
+ try{const j=await request('/reports/'+encodeURIComponent(id));state.report=j.report;$('scrSelect').value=j.report.id;state.findings=j.findings||[];state.current=null;state.photos=[];state.pending={};state.photoDraft={};state.dirty=false;fillMeta(j.report);renderContractorOptions();renderKpis();renderFindings();$('scrEditor').hidden=true;notice('تم تحميل التقرير • '+state.findings.length+' ملاحظة.')}catch(e){notice(e.message,true)}
 }
 async function saveMeta(){const data=getMeta();try{validateMeta(data);buttonBusy('scrMetaSave',true);const j=await request('/reports/'+state.report.id,'PUT',data);state.report=j.report;fillMeta(state.report);await refresh();renderKpis();notice('تم حفظ بيانات التقرير.')}catch(e){notice(e.message,true)}finally{buttonBusy('scrMetaSave',false)}}
 function renderKpis(){
@@ -120,6 +140,7 @@ function selectFinding(id){
  const priorType=clean(f.workType);const typeSelect=$('scrType');typeSelect.querySelectorAll('option[data-legacy]').forEach(o=>o.remove());
  if(priorType&&!Array.from(typeSelect.options).some(o=>o.value===priorType)){const opt=new Option(priorType,priorType);opt.dataset.legacy='true';typeSelect.add(opt)}
  typeSelect.value=priorType;
+ renderContractorOptions(f.contractor);
  $('scrEditor').hidden=false;$('scrEditorTitle').textContent=f.id?'تعديل ملاحظة السلامة':'إضافة ملاحظة جديدة';
  $('scrRemoveFinding').hidden=!f.id;$('scrPhotoSection').hidden=!f.id;renderFindings();renderPhotos();
  if(f.id)loadPhotos();
