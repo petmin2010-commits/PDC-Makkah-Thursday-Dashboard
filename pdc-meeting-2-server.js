@@ -3,7 +3,7 @@
  * PDC Meeting 2 read-only aggregation for the 44-slide approved source deck.
  * Missing/unverified metrics are null, never copied from the old PowerPoint.
  */
-module.exports=function installPdcMeeting2({app,requireAuth_,getWednesdayMeetingData,getPageData,getSheets,SPREADSHEET_ID,qSheet,APP}){
+module.exports=function installPdcMeeting2({app,requireAuth_,getWednesdayMeetingData,getPageData,getSheets,SPREADSHEET_ID,qSheet,APP,manualStore}){
  const normalize=s=>String(s??'').normalize('NFKC').replace(/[\u064B-\u065F\u0670\u0640]/g,'').replace(/\s+/g,' ').trim().toLowerCase();
  const countBy=(rows,key)=>{const m=new Map();for(const row of rows){const raw=String(row[key]??'').trim();if(raw)m.set(raw,(m.get(raw)||0)+1);}return [...m.entries()].sort((a,b)=>b[1]-a[1]).map(([label,value])=>({label,value}));};
  const done=s=>/^(تم التنفيذ|منجز|تم الانجاز|مكتمل)$/.test(normalize(s));
@@ -37,11 +37,12 @@ module.exports=function installPdcMeeting2({app,requireAuth_,getWednesdayMeeting
  }
  async function summary(from,to){
   if(!validDate(from)||!validDate(to)||from>to||((Date.parse(to)-Date.parse(from))/86400000)>62)throw Error('INVALID_PERIOD');
-  const [meeting,permitPage,emergencyPage,safety,quality]=await Promise.all([
+  const [meeting,permitPage,emergencyPage,safety,quality,manual]=await Promise.all([
     getWednesdayMeetingData(),
     getPageData('permits').catch(e=>({error:String(e.message||e),rows:[]})),
     getPageData('emergency').catch(e=>({error:String(e.message||e),rows:[]})),
-    matchingCorrective('safety',from,to),matchingCorrective('quality',from,to)
+    matchingCorrective('safety',from,to),matchingCorrective('quality',from,to),
+    manualStore.getRecord(from,to)
   ]);
   const unique=new Map();
   for(const row of meeting.rows||[]){
@@ -71,10 +72,17 @@ module.exports=function installPdcMeeting2({app,requireAuth_,getWednesdayMeeting
      bySection:countBy(work,'section'),byCategory:countBy(work,'category'),
      byContractor:countBy(work,'contractor').slice(0,15),from:'أوامر العمل - اجتماع PDC'},
    permits,emergency,safety,quality,
-   weekly:{available:false,reason:'تاريخ التنفيذ الفعلي وتاريخ اعتماد 155 غير مربوطين بعد لهذا التقرير'},
-   financial:{available:false,reason:'لا يوجد مصدر معتمد لأوامر الشراء والمستخلصات ونسبة الصرف'},
-   generators:{available:false,reason:'لم يُحدد مصدر أعمال المؤقتات والمولدات والصور'},
-   exports:{pptxReady:false,pdfReady:false,reason:'التقرير الكامل غير جاهز للتصدير حتى ربط الصور والمؤقتات والبيانات المالية وتحديث جميع مخططات القالب'}};
+   manual,
+   weekly:{...manual.weekly,available:manual.saved&&Object.values(manual.weekly).some(x=>x!==null),
+     source:'إدخال يدوي مؤقت',updatedAt:manual.updatedAt,
+     reason:'بيانات الإنجاز الأسبوعي تحتاج إدخالًا يدويًا إلى حين ربط التواريخ المعتمدة'},
+   financial:{...manual.financial,available:manual.saved&&(Object.entries(manual.financial).some(([k,v])=>k==='noticesByMonth'?v.length>0:v!==null)),
+     source:'إدخال يدوي مؤقت',updatedAt:manual.updatedAt,
+     reason:'أدخل المستخلصات وأوامر الشراء يدويًا لهذه الفترة ثم احفظ'},
+   generators:{...manual.generators,available:manual.saved&&Object.values(manual.generators).some(x=>x!==null&&x!==''),
+     source:'إدخال يدوي مؤقت',updatedAt:manual.updatedAt,
+     reason:'أدخل بيانات المؤقتات والمولدات يدويًا لهذه الفترة ثم احفظ'},
+   exports:{pptxReady:false,pdfReady:false,reason:'اكتملت واجهة الإدخال اليدوي للأرقام؛ تبقى مطابقة الصور وتحديث جميع شرائح القالب الأصلي قبل تفعيل التصدير الكامل'}};
  }
  app.get('/api/pdc-meeting-2/summary',requireAuth_,async(req,res)=>{
   try{const result=await summary(String(req.query.from||''),String(req.query.to||''));res.set('Cache-Control','no-store');res.json(result)}

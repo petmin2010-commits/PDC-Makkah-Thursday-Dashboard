@@ -2550,8 +2550,10 @@ require('./projects-report-defaults-server')({
   }
 });
 
-// PDC meeting 2: read-only 44-slide source coverage and live dashboard aggregation.
-require('./pdc-meeting-2-server')({app,requireAuth_,getWednesdayMeetingData,getPageData,getSheets,SPREADSHEET_ID,qSheet,APP});
+// PDC Meeting 2: manual values are saved by week in the existing Makkah Google Sheet.
+const pdcMeeting2ManualStore=require('./pdc-meeting-2-manual-store')({app,requireAuth_,getSheets,SPREADSHEET_ID,qSheet,DateTime,APP});
+// Live PDC Meeting 2 summary combines sheets and audited manual inputs, keeping provenance.
+require('./pdc-meeting-2-server')({app,requireAuth_,getWednesdayMeetingData,getPageData,getSheets,SPREADSHEET_ID,qSheet,APP,manualStore:pdcMeeting2ManualStore});
 
 const safetyCorrectiveImages=require('./safety-corrective-images-server')({ app, requireAuth_, getSheets, SPREADSHEET_ID, qSheet, APP, DateTime });
 require('./safety-corrective-server')({ app, requireAuth_, getSheets, SPREADSHEET_ID, qSheet, APP, DateTime, deletePhotos:safetyCorrectiveImages.deleteAllImages, getContractors:()=>require('./safety-contractor-info')({valuesGet,qSheet}) });

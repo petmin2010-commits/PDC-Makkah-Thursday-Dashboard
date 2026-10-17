@@ -31,7 +31,23 @@
    '<section class="pm2-section"><header><h3>3. السلامة والجودة</h3><small>تقارير الإجراءات التصحيحية المحفوظة للفترة نفسها</small></header>'+
    '<div class="pm2-metrics">'+metric('زيارات السلامة',a.safety.available?a.safety.visits:null)+metric('ملاحظات السلامة',a.safety.available?a.safety.findings:null)+metric('زيارات الجودة',a.quality.available?a.quality.visits:null)+metric('ملاحظات الجودة',a.quality.available?a.quality.findings:null)+'</div>'+
    '<div class="pm2-two">'+bars('ملاحظات السلامة حسب المقاول',a.safety.byContractor)+bars('ملاحظات الجودة حسب المقاول',a.quality.byContractor)+'</div></section>'+
-   '<section class="pm2-section"><header><h3>4. مطابقة الشرائح الـ 44 ومصادر البيانات</h3></header><div class="pm2-sources">'+
+   '<section class="pm2-section"><header><h3>4. البيانات اليدوية المؤقتة</h3><small>كل قيمة مرتبطة بالأسبوع المختار، مع توثيق المصدر</small></header>'+
+   '<div class="pm2-metrics">'+metric('ما تم اعتماد كمياته',a.financial.approvedQuantities,a.financial.available?'إدخال يدوي':'غير مدخل')+
+   metric('المستخلصات',a.financial.paymentCertificates)+metric('أوامر الشراء',a.financial.purchaseOrders)+
+   metric('نسبة الصرف %',a.financial.paymentRate)+metric('مواقع المولدات الحالية',a.generators.currentSites)+
+   metric('مواقع المولدات المغلقة',a.generators.closedSites)+metric('الكابلات المؤقتة',a.generators.temporaryCables)+
+   metric('المولدات الإجمالية',a.generators.generatorsTotal)+'</div>'+
+   '<div class="pm2-two">'+bars('الاتجاه الشهري للإشعارات',a.financial.noticesByMonth?.map(x=>({label:x.month,value:x.count})))+
+   bars('الإنجاز الأسبوعي واستلام 155',[
+    {label:'توصيلات منفذة',value:a.weekly.completedConnections},{label:'مشاريع منفذة',value:a.weekly.completedProjects},
+    {label:'توصيلات مستلمة 155',value:a.weekly.receivedConnections155},{label:'مشاريع مستلمة 155',value:a.weekly.receivedProjects155}
+   ].filter(x=>x.value!==null&&x.value!==undefined))+'</div>'+
+   (a.generators.finding||a.generators.correctiveAction||a.generators.observations?
+      '<div class="pm2-case"><h3>ملاحظات المؤقتات والمولدات</h3><p>'+esc(a.generators.observations||'')+'</p>'+
+      '<p><b>رقم أمر العمل:</b> '+esc(a.generators.workOrder||'—')+' | <b>المقاول:</b> '+esc(a.generators.contractor||'—')+' | <b>الموقع:</b> '+esc(a.generators.location||'—')+'</p>'+
+      '<p><b>الملاحظة:</b> '+esc(a.generators.finding||'—')+'</p><p><b>التصحيح:</b> '+esc(a.generators.correctiveAction||'—')+'</p></div>':'')+
+    '</section>'+
+   '<section class="pm2-section"><header><h3>5. مطابقة الشرائح الـ 44 ومصادر البيانات</h3></header><div class="pm2-sources">'+
    message('الشرائح 1–2 | الإنشاءات',a.construction)+message('الشريحة 3 | التصاريح',a.permits)+message('الشريحتان 4–5 | الطوارئ',a.emergency)+
    message('الشريحة 6 | الإنجاز الأسبوعي',a.weekly)+message('الشرائح 7–24 | السلامة',a.safety)+message('الشرائح 25–38 | الجودة',a.quality)+
    message('بيانات المستخلصات وأوامر الشراء',a.financial)+message('الشرائح 39–44 | المؤقتات والمولدات',a.generators)+'</div></section>';
@@ -45,7 +61,7 @@
   loading=true;$('pm2Refresh').disabled=true;$('pm2Status').textContent='جار قراءة المصادر الحية...';
   try{const r=await fetch(API+'?from='+encodeURIComponent(from)+'&to='+encodeURIComponent(to),{credentials:'same-origin',cache:'no-store'});
    const json=await r.json();if(!r.ok||!json.ok)throw Error(json.error||'تعذر القراءة');
-   last=json;update();$('pm2Status').textContent='تم تحديث البيانات';
+   last=json;update();document.dispatchEvent(new CustomEvent('pm2:summary-loaded',{detail:json}));$('pm2Status').textContent='تم تحديث البيانات';
   }catch(e){$('pm2Status').textContent='تعذر التحديث: '+String(e.message||e);}
   finally{loading=false;$('pm2Refresh').disabled=false;}
  }

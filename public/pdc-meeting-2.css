@@ -42,4 +42,30 @@
 .pm2-page .pm2-exports>p{font-size:11px;line-height:1.8}
 body.pm2-active #filterBar,body.pm2-active #vdUnifiedControls,body.pm2-active .topbar .filters{display:none!important}
 @media(max-width:850px){.pm2-page .pm2-two{grid-template-columns:1fr}.pm2-page .pm2-head{flex-direction:column;align-items:start}.pm2-page .pm2-sources{grid-template-columns:1fr}}
-@media print{.pm2-page .pm2-tools,.pm2-page .pm2-exports{display:none!important}}
+/* Weekly manual entry: persists in a separate Makkah sheet, by report dates. */
+.pm2-page .pm2-manual{padding:0!important;border:1.5px solid #74aed0;background:#f9fcff}
+.pm2-page .pm2-manual>summary{cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;list-style:none;padding:16px 18px;color:#133d62;font-weight:800;font-size:14px;background:#e7f3fa;border-radius:13px}
+.pm2-page .pm2-manual>summary::-webkit-details-marker{display:none}
+.pm2-page .pm2-manual>summary::before{content:'▾';color:#287eac}
+.pm2-page .pm2-manual>summary small{font-size:10px;font-weight:600;color:#557d94}
+.pm2-page .pm2-manual[open]>summary{border-radius:13px 13px 0 0;border-bottom:1px solid #bed9eb}
+.pm2-page .pm2-manual-intro{padding:13px 18px 0;font-size:11px;color:#597d96;line-height:1.75}
+.pm2-page .pm2-manual-groups{padding:4px 16px 15px}
+.pm2-page .pm2-manual-groups section{margin-top:13px;padding:13px;background:white;border:1px solid #deebf4;border-radius:11px}
+.pm2-page .pm2-manual-groups h3{margin:0 0 12px;font-size:14px;color:#0b4872}
+.pm2-page .pm2-manual-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-bottom:13px}
+.pm2-page .pm2-manual-field{display:flex;flex-direction:column;gap:6px;margin:0 0 10px;font-size:11px}
+.pm2-page .pm2-manual-field>span{color:#254e72;font-weight:800}
+.pm2-page .pm2-manual-field input,.pm2-page .pm2-manual-field textarea{width:100%;box-sizing:border-box;min-width:0;background:#fff;border:1px solid #c3dbe9;color:#143f61;padding:10px;font:12px/1.5 Cairo,Tahoma,sans-serif;border-radius:9px;direction:rtl}
+.pm2-page .pm2-manual-field textarea{resize:vertical;min-height:60px}
+.pm2-page .pm2-manual-field :is(input,textarea):focus-visible{outline:2px solid #2289bc}
+.pm2-page .pm2-manual-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 17px 8px}
+.pm2-page .pm2-manual-actions .pm2-secondary{border:1px solid #afd2e6;background:#f1f9ff;color:#146493}
+.pm2-page #pm2ManualStatus{font-size:11px;color:#1f785b}
+.pm2-page #pm2ManualStatus.error{color:#b03636}
+.pm2-page #pm2ManualAudit{display:block;padding:2px 17px 14px}
+.pm2-page .pm2-case{margin-top:12px;border-radius:10px;padding:14px;border:1px solid #b6d5e8;background:#f4fafe}
+.pm2-page .pm2-case h3{font-size:13px;color:#12476f}
+.pm2-page .pm2-case p{white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;color:#2c5676}
+@media(max-width:850px){.pm2-page .pm2-manual>summary{flex-wrap:wrap}.pm2-page .pm2-manual-grid{grid-template-columns:1fr}}
+@media print{.pm2-page .pm2-tools,.pm2-page .pm2-exports,.pm2-page .pm2-manual{display:none!important}}
