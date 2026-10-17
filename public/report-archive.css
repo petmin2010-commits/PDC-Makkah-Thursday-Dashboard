@@ -14,6 +14,8 @@
 #reportArchivePage .ra-delete-record{background:#9d2633;color:#fff;border:1px solid #81202a}
 #reportArchivePage .ra-delete-record:hover{background:#7d1d2a}
 #reportArchivePage .ra-delete-record:disabled{opacity:.6;cursor:wait}
+/* Archive row action labels must remain white over green/red buttons, even with global dashboard overrides. */
+#reportArchivePage .ra-grid tbody td > button{color:#fff!important;-webkit-text-fill-color:#fff!important}
 @media print{#reportArchivePage{display:none!important}}
 /* Archive-only interface: never reuse project data filters or project counters. */
 body.vd-report-archive-active #vdUnifiedControls,
