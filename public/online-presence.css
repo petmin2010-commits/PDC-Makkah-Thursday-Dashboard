@@ -20,3 +20,46 @@
 .vd-online-panel .vd-online-empty{color:#63796f}
 .vd-online-panel-foot{display:block;font-size:10px;color:#788d84;margin-top:8px}
 @media print{.vd-online-users,.vd-online-panel{display:none!important}}
+
+/* Sidebar: scroll only navigation; presence and LIVE SHEETS stay docked. */
+.sidebar{
+  height:100vh;
+  height:100dvh;
+  min-height:0;
+  overflow:hidden!important;
+  display:flex!important;
+  flex-direction:column!important;
+}
+.sidebar>.brand,.sidebar>.vd-sidebar-search{flex-shrink:0}
+.sidebar>#nav{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
+}
+.sidebar>.sidebar-bottom-fixed{
+  flex:0 0 auto!important;
+  margin-top:auto;
+  min-width:0;
+  padding-top:7px;
+  padding-bottom:2px;
+  position:relative;
+  z-index:1;
+  background:transparent;
+}
+.sidebar-bottom-fixed>.vd-online-users{margin:0 1px 7px}
+.sidebar-bottom-fixed>.side-foot{
+  margin:0!important;
+  padding:11px 5px 0;
+  flex:0 0 auto;
+}
+@media(max-width:850px){
+  .sidebar-bottom-fixed>.vd-online-users{margin:0 0 7px;gap:2px;justify-content:center;padding:5px 2px;min-height:38px}
+  .sidebar-bottom-fixed>.vd-online-users .vd-online-label,
+  .sidebar-bottom-fixed>.vd-online-users .vd-online-dot{display:none}
+  .sidebar-bottom-fixed>.vd-online-users strong{padding:2px 4px;min-width:18px;font-size:10px}
+  .sidebar-bottom-fixed>.vd-online-users button{width:23px;height:23px;font-size:12px}
+}
