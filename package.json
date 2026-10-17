@@ -12,6 +12,7 @@
     "googleapis": "^156.0.0",
     "luxon": "^3.7.1",
     "officetopdf-js": "0.1.3",
+    "pdf-lib": "1.17.1",
     "pptxgenjs": "^4.0.1"
   }
 }

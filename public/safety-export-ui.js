@@ -47,7 +47,7 @@ async function choose(format){
   const res=await fetch('/api/safety/contractor-evaluation/presentation',{
    method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify(req)
   });
-  if(!res.ok){const e=await res.json().catch(()=>({}));throw Error(e.error||'تعذر إصدار التقرير')}
+  if(!res.ok){const e=await res.json().catch(()=>({}));throw Error(e.error||('تعذر إصدار التقرير (HTTP '+res.status+'). أعد المحاولة أو سجّل الدخول مجددًا عند انتهاء الجلسة.'))}
   const blob=await res.blob();
   if(blob.size<1000)throw Error('ملف التقرير فارغ');
   if(format==='pdf'&&!(await blob.slice(0,5).text()).startsWith('%PDF-'))throw Error('ملف PDF غير صالح');

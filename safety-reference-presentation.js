@@ -614,6 +614,15 @@ async function create(rows,meta={}){
  appendGuidance(pptx,data,rows,{...meta,period});
  slideFrom(pptx,12);slideFrom(pptx,13);
  applySafetyPageLogos(pptx);
+ // Create a small, independent slide batch for bounded-memory PDF conversion.
+ if(meta.countOnly)return pptx._slides.length;
+ if(Array.isArray(meta.slideRange)){
+  const from=Math.max(0,Math.trunc(Number(meta.slideRange[0])||0));
+  const until=Math.min(pptx._slides.length,Math.trunc(Number(meta.slideRange[1])||0));
+  if(until<=from)throw Error('INVALID_SLIDE_RANGE');
+  pptx._slides=pptx._slides.slice(from,until);
+  pptx._slides.forEach((slide,index)=>{slide._slideNum=index+1;slide._slideId=256+index;slide._rId=index+2;});
+ }
  return pptx.write({outputType:'nodebuffer'});
 }
 module.exports={create,scoreData};

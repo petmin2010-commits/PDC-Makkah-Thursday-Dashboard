@@ -216,15 +216,12 @@ module.exports=({app,requireAuth_,getSheets,spreadsheetId,city})=>{
    const filtered=all?data.rows:filter(data.rows,request.filters);
    if(!Array.isArray(filtered))throw Error('Invalid safety filter');
    const period=all?'كامل الفترة':String(request.period||'كامل المدة').slice(0,140);
-   // Both formats originate from the same approved, branded presentation.
-   const pptxBuffer=await require('./safety-reference-presentation').create(filtered,{city:city==='Jeddah'?'جدة':'مكة',period,general:all,detailed:details});
-   let buffer=pptxBuffer;
-   if(format==='pdf'){
-    const {pptxToPdf}=await import('officetopdf-js');
-    const converted=await pptxToPdf(pptxBuffer);
-    buffer=Buffer.isBuffer(converted)?converted:Buffer.from(converted);
-    if(buffer.length<1000||buffer.subarray(0,5).toString('ascii')!=='%PDF-')throw Error('INVALID_CONVERTED_PDF');
-   }
+   // Every PDF page comes from an actual slide of the approved PPTX presentation.
+   // The bounded converter splits pages to avoid exceeding Render's 512 MiB memory cap.
+   const meta={city:city==='Jeddah'?'جدة':'مكة',period,general:all,detailed:details};
+   const buffer=format==='pdf'
+     ? await require('./safety-pdf-bounded').create(filtered,meta)
+     : await require('./safety-reference-presentation').create(filtered,meta);
    const name='VD_Contractor_Safety_'+city+'_'+(all?'General':'Filtered')+'_'+new Date().toISOString().slice(0,10)+'.'+format;
    res.set('Cache-Control','no-store');
    res.set('Content-Type',format==='pdf'?'application/pdf':'application/vnd.openxmlformats-officedocument.presentationml.presentation');
