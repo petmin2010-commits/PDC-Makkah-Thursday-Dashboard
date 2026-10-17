@@ -123,3 +123,6 @@ body.scr-open #violationPeriodSlicer {
 }
 .scr-original-contractors .scr-contractor-count:focus-visible{outline:2px solid #f28a23}
 .scr-original-highlights textarea[readonly]{cursor:default;white-space:pre-wrap;overflow-wrap:anywhere;background:#e7f0fc;color:#123d66;}
+
+.scr-original-contractors tfoot th,.scr-original-contractors tfoot td{font-weight:900;background:#bdd4ea;color:#13395c;border-top:2px solid #8daecf;text-align:center;padding:9px 6px;}
+.scr-original-contractors .scr-contractors-empty td{font-weight:500;color:#55708b;text-align:center;padding:22px 8px;}
