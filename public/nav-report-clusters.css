@@ -1,4 +1,4 @@
-/* Six report links, two distinct framed navigation groups. */
+﻿/* Six report links, two distinct framed navigation groups. */
 /* No markup replacement: original buttons, handlers, IDs, and permissions are unchanged. */
 #nav .vd-report-cluster{
   --vd-cluster-ink:#79c4ff;
@@ -61,7 +61,7 @@
   --nav-ic2:#be2034;
   --nav-accent:#ff6a71;
 }
-#nav .vd-report-cluster--safety .nav-item::before{
+#nav .vd-report-cluster--safety .nav-item[data-page]::before{
   content:""!important;
   color:transparent!important;
   background:url("/safety-helmet-nav.svg?v=20261015-1") center / 18px 18px no-repeat,linear-gradient(145deg,#ff6971,#bf2035)!important;
@@ -119,3 +119,20 @@
 #nav .vd-report-cluster--central .nav-item{--nav-ic1:#59bcff;--nav-ic2:#176fe9;--nav-accent:#59bcff;}
 #nav .vd-report-cluster--central .nav-item::before{content:""!important;color:transparent!important;background:url("/nav-central-reports.svg?v=20261017-1") center / 18px 18px no-repeat,linear-gradient(145deg,#59bcff,#176fe9)!important;border-color:rgba(255,255,255,.36);}
 #nav .vd-report-cluster--central .nav-item:hover{background:rgba(73,158,255,.11);}
+/* 2026-10-18: force the four safety entries back to the approved red design. */
+#nav .vd-report-cluster--safety {
+ border:2px solid #ed4b55!important;
+ background:linear-gradient(150deg,rgba(188,31,47,.19),rgba(70,10,20,.12))!important;
+ box-shadow:inset 0 0 0 1px rgba(255,190,190,.10),0 0 12px rgba(216,45,57,.20)!important;
+}
+#nav .vd-report-cluster--safety>.vd-report-cluster-title{
+ display:flex!important;font-size:11px!important;min-height:20px!important;color:#ff9aa0!important;
+ padding:2px 7px 7px!important;white-space:normal!important;
+}
+#nav .vd-report-cluster--safety .nav-item[data-page]::before{
+ background:url("/safety-helmet-nav.svg?v=20261015-1") center / 18px 18px no-repeat,linear-gradient(145deg,#ff6d75,#b91d33)!important;
+ border-color:rgba(255,192,192,.70)!important;
+}
+@media(max-width:850px){
+ #nav .vd-report-cluster--safety>.vd-report-cluster-title{font-size:10px!important;}
+}

@@ -64,6 +64,7 @@ function canLabel(label){
     return names.some(v=>state.allow.has(canon(v)))||
       ['اجتماع الـ PDC','اجتماع PDC','اجتماع مع PDC'].some(v=>state.allow.has(canon(v)));
   }
+  if(norm(label)===norm('تقرير المؤقتات والمولدات') && state.admin)return true;
   if(norm(label)===norm('إدارة المستخدمين والصلاحيات'))return state.admin;
   if(state.all)return true;
   if(state.precise)return state.exact.has(norm(label));

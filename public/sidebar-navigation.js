@@ -78,44 +78,49 @@ function buildGroups(nav){
  nav.classList.add('vd-sidebar-ready');
 }
 function installReportClusters(nav){
- if(nav.dataset.vdReportClusters==="1")return;
  const configs=[
   {key:"safety",title:"السلامة ومخالفاتها وتقاريرها",pages:["safety","safetyCorrective","temporaryGenerators","contractorSafety"]},
   {key:"quality",title:"الجودة ومخالفاتها وتقاريرها",pages:["qualityCorrective","executionViolations","minutes"]},
   {key:"intelligence",title:"مجموعة التحليل الذكي",ids:["smartCenterNav","temporalMemoryNav","investigationRoomNav","explainableDecisionNav"],pages:["smartThursday","projectsReportEngine"]},
   {key:"central",title:"تقارير مركزية",pages:["reportsCenter","excelExport","reportArchive"]}
  ];
- let built=0;
  for(const cfg of configs){
-  const items=[...(cfg.ids||[]).map(id=>nav.querySelector("#"+id)),...(cfg.pages||[]).map(page=>nav.querySelector(".nav-item[data-page="+JSON.stringify(page)+"]"))];
-  if(items.some(item=>!item)||!items.every(item=>item.parentElement===items[0].parentElement))continue;
-  const parent=items[0].parentElement;
-  const frame=document.createElement("section");
-  frame.className="vd-report-cluster vd-report-cluster--"+cfg.key;
-  frame.setAttribute("role","group");
-  frame.setAttribute("aria-label",cfg.title);
-  const heading=document.createElement("div");
-  heading.className="vd-report-cluster-title";
-  heading.textContent=cfg.title;
-  frame.appendChild(heading);
-  parent.insertBefore(frame,items[0]);
-  items.forEach(item=>frame.appendChild(item));
-  built++;
+  const items=[...(cfg.ids||[]).map(id=>nav.querySelector("#"+id)),...(cfg.pages||[]).map(page=>nav.querySelector('.nav-item[data-page="'+page+'"]'))].filter(Boolean);
+  if(!items.length)continue;
+  // Do not let a missing or permission-hidden tab remove the entire safety frame.
+  const robust=cfg.key==="safety"||cfg.key==="quality";
+  const cls="vd-report-cluster--"+cfg.key;
+  let frame=nav.querySelector("."+cls);
+  if(!frame&&!robust&&items.length!==(cfg.ids||[]).length+(cfg.pages||[]).length)continue;
+  if(!frame&&!robust&&!items.every(item=>item.parentElement===items[0].parentElement))continue;
+  if(!frame){
+   const anchor=items.find(item=>item.closest(".vd-nav-group-items"))||items[0];
+   const parent=anchor.closest(".vd-nav-group-items")||anchor.parentElement;
+   if(!parent)continue;
+   frame=document.createElement("section");
+   frame.className="vd-report-cluster "+cls;
+   frame.setAttribute("role","group");frame.setAttribute("aria-label",cfg.title);
+   const heading=document.createElement("div");heading.className="vd-report-cluster-title";
+   heading.textContent=cfg.title;frame.appendChild(heading);
+   parent.insertBefore(frame,anchor);
+  }
+  items.forEach(item=>{if(item.parentElement!==frame)frame.appendChild(item)});
  }
- // Keep central reports immediately after the quality cluster, across sidebar sections.
- const qualityCluster=nav.querySelector('.vd-report-cluster--quality');
- const centralCluster=nav.querySelector('.vd-report-cluster--central');
- if(qualityCluster&&centralCluster){
-  qualityCluster.insertAdjacentElement('afterend',centralCluster);
-  const selected=activeGroup(nav);
-  if(selected&&!selected.classList.contains('is-open'))setOneOpen(nav,selected,false);
+ const quality=nav.querySelector(".vd-report-cluster--quality");
+ const central=nav.querySelector(".vd-report-cluster--central");
+ if(quality&&central&&central.previousElementSibling!==quality){
+  quality.insertAdjacentElement("afterend",central);
  }
- if(built===configs.length)nav.dataset.vdReportClusters="1";
+ nav.dataset.vdReportClusters=nav.querySelector(".vd-report-cluster--safety")?"1":"0";
 }
 function boot(){
  const sidebar=$('.sidebar'),nav=$('#nav');if(!sidebar||!nav)return;
  installToggle(sidebar);
- let tries=0;const wait=()=>{tries++;if($('#smartCenterNav',nav)||tries>=8){buildGroups(nav);installReportClusters(nav);installSearch(sidebar,nav)}else setTimeout(wait,90)};
+ let tries=0;const wait=()=>{tries++;if($('#smartCenterNav',nav)||tries>=8){buildGroups(nav);installReportClusters(nav);installSearch(sidebar,nav);
+  let repairing=false;
+  const repair=()=>{if(repairing)return;repairing=true;setTimeout(()=>{repairing=false;installReportClusters(nav)},25)};
+  new MutationObserver(mutations=>{if(mutations.some(m=>m.type==="childList"))repair()}).observe(nav,{childList:true,subtree:true});
+  setTimeout(()=>installReportClusters(nav),750);setTimeout(()=>installReportClusters(nav),2200)}else setTimeout(wait,90)};
  setTimeout(wait,160);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
