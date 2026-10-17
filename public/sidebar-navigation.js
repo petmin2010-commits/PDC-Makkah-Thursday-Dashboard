@@ -77,10 +77,35 @@ function buildGroups(nav){
   .observe(nav,{subtree:true,attributes:true,attributeFilter:['class']});
  nav.classList.add('vd-sidebar-ready');
 }
+function installReportClusters(nav){
+ if(nav.dataset.vdReportClusters==="1")return;
+ const configs=[
+  {key:"safety",title:"مجموعة السلامة",pages:["safety","safetyCorrective","contractorSafety"]},
+  {key:"quality",title:"مجموعة الجودة والمخالفات",pages:["qualityCorrective","executionViolations","minutes"]}
+ ];
+ let built=0;
+ for(const cfg of configs){
+  const items=cfg.pages.map(page=>nav.querySelector(".nav-item[data-page="+JSON.stringify(page)+"]"));
+  if(items.some(item=>!item)||!items.every(item=>item.parentElement===items[0].parentElement))continue;
+  const parent=items[0].parentElement;
+  const frame=document.createElement("section");
+  frame.className="vd-report-cluster vd-report-cluster--"+cfg.key;
+  frame.setAttribute("role","group");
+  frame.setAttribute("aria-label",cfg.title);
+  const heading=document.createElement("div");
+  heading.className="vd-report-cluster-title";
+  heading.textContent=cfg.title;
+  frame.appendChild(heading);
+  parent.insertBefore(frame,items[0]);
+  items.forEach(item=>frame.appendChild(item));
+  built++;
+ }
+ if(built===configs.length)nav.dataset.vdReportClusters="1";
+}
 function boot(){
  const sidebar=$('.sidebar'),nav=$('#nav');if(!sidebar||!nav)return;
  installToggle(sidebar);
- let tries=0;const wait=()=>{tries++;if($('#smartCenterNav',nav)||tries>=8){buildGroups(nav);installSearch(sidebar,nav)}else setTimeout(wait,90)};
+ let tries=0;const wait=()=>{tries++;if($('#smartCenterNav',nav)||tries>=8){buildGroups(nav);installReportClusters(nav);installSearch(sidebar,nav)}else setTimeout(wait,90)};
  setTimeout(wait,160);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
