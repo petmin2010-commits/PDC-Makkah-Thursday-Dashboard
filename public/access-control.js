@@ -36,7 +36,8 @@ const aliases=new Map([
   [norm('تقييم المقاولين بالسلامة'),norm('تقييم السلامة للمقاولين')],
   [norm('تقيم السلامة للمقاولين'),norm('تقييم السلامة للمقاولين')],
   [norm('تقرير السلامة والإجراءات التصحيحية'),norm('مخالفات السلامة')],
-  [norm('Projects Report Engine'),norm('المشاريع')]
+  [norm('تقرير الجودة والإجراءات التصحيحية'),norm('السلامة والجودة')],
+   [norm('Projects Report Engine'),norm('المشاريع')]
 ]);
 function canon(value){
   const n=norm(value);
@@ -149,7 +150,7 @@ function wrapOpenPage(){
   const pageLabels={
     master:'الرئيسية',projects:'المشاريع',connections:'التوصيلات',permits:'التصاريح',
     assets:'الأصول',closures:'الإغلاقات',tasks:'متابعة أعمال المواقع',emergency:'الطوارئ',
-    safety:'مخالفات السلامة',safetyCorrective:'مخالفات السلامة',contractorSafety:'تقييم السلامة للمقاولين',executionViolations:'مخالفات التنفيذ',
+    safety:'مخالفات السلامة',qualityCorrective:'تقرير الجودة والإجراءات التصحيحية',safetyCorrective:'مخالفات السلامة',contractorSafety:'تقييم السلامة للمقاولين',executionViolations:'مخالفات التنفيذ',
     minutes:'محاضر مخالفة إثبات الحالة',dataQuality:'جودة البيانات',hrStaff:'الموارد البشرية للكادر',
     employeeEvaluation:'تقييم مهندسي المواقع',electricityEngineerEvaluation:'تقييم مهندسي شركة الكهرباء',
     wednesdayMeeting:'اجتماع الـ PDC',smartThursday:'تقرير الخميس الذكي',

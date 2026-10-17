@@ -2534,6 +2534,8 @@ require('./projects-report-defaults-server')({
 
 const safetyCorrectiveImages=require('./safety-corrective-images-server')({ app, requireAuth_, getSheets, SPREADSHEET_ID, qSheet, APP, DateTime });
 require('./safety-corrective-server')({ app, requireAuth_, getSheets, SPREADSHEET_ID, qSheet, APP, DateTime, deletePhotos:safetyCorrectiveImages.deleteAllImages, getContractors:()=>require('./safety-contractor-info')({valuesGet,qSheet}) });
+const qualityCorrectiveImages=require('./quality-corrective-images-server')({ app, requireAuth_, getSheets, SPREADSHEET_ID, qSheet, APP, DateTime });
+require('./quality-corrective-server')({ app, requireAuth_, getSheets, SPREADSHEET_ID, qSheet, APP, DateTime, deletePhotos:qualityCorrectiveImages.deleteAllImages, getContractors:()=>require('./safety-contractor-info')({valuesGet,qSheet}) });
 const projectsReportImages=require('./projects-report-images-server')({
   app,
   requireAuth_,
