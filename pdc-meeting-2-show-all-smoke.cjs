@@ -37,7 +37,7 @@ async function backend(city){
  let result=null,status=200;const res={set(){},json(x){result=x;return x},status(code){status=code;return this}};
  await routes['/api/pdc-meeting-2/summary']({query:{from:'2026-01-01',to:'2026-10-17'}},res);
  assert.equal(status,200,'no INVALID_PERIOD even with long supplied range');
- assert.equal(result.scope,'all');assert.equal(result.construction.total,2);assert.equal(result.permits.total,2);
+ assert.equal(result.scope,'all');assert.equal(result.construction.total,3);assert.equal(result.construction.uniqueWorkOrders,2);assert.equal(result.construction.repeatedRows,1);assert.equal(result.construction.countBasis,'rows');assert.equal(result.permits.total,2);
  assert.equal(result.safety.reportsCount,2);assert.equal(result.safety.visits,125);assert.equal(result.safety.findings,2);
  assert.equal(result.quality.reportsCount,1);assert.equal(result.quality.findings,1);
  assert.equal(result.manualHistory.length,2);assert.equal(result.financial.purchaseOrders,102);
@@ -46,7 +46,7 @@ async function backend(city){
 }
 async function browser(city,browser){
  const folder=path.join(ROOT,city),pub=path.join(folder,'public'),html=fs.readFileSync(path.join(pub,'index.html'),'utf8');
- assert(html.includes('pdc-meeting-2.js?v=20261017-show-all-3'));
+ assert(html.includes('pdc-meeting-2.js?v=20261018-row-count-4'));
  const page=await browser.newPage();
  await page.setContent('<html lang="ar" dir="rtl"><head><meta charset="utf-8"></head><body><div id="pageTitle"></div><div id="filterBar"></div><aside class="sidebar"><nav id="nav"><button class="nav-item" data-page="wednesdayMeeting"><span>اجتماع PDC</span></button><button class="nav-item" id="pdcMeeting2Nav" data-page="pdcMeeting2"><span>اجتماع PDC 2</span></button></nav></aside><main><section class="page active" id="meetingPage"></section></main></body></html>');
  await page.evaluate(({newer,older})=>{

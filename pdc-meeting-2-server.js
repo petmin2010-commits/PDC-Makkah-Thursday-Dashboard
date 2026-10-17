@@ -67,9 +67,12 @@ module.exports=function installPdcMeeting2({app,requireAuth_,getWednesdayMeeting
    aggregateCorrective('safety'),aggregateCorrective('quality'),
    manualStore.listRecords().catch(e=>{console.warn('[pdc2] manual records',String(e.message||e));return []})
   ]);
-  const unique=new Map();
-  for(const row of meeting.rows||[]){const id=String(row.workOrder||'').trim();if(id&&!unique.has(id))unique.set(id,row);}
-  const work=[...unique.values()];
+  // Same counting unit as the main dashboard: each populated work-order row.
+  // Repeated order numbers can represent separate records; never collapse them.
+  const work=(meeting.rows||[]).filter(r=>String(r?.workOrder||'').trim());
+  const distinctIds=new Set(work.map(r=>String(r.workOrder).trim()));
+  const uniqueWorkOrders=distinctIds.size;
+  const repeatedRows=work.length-uniqueWorkOrders;
   const complete=work.filter(r=>r.completed===true||done(r.executionRaw));
   const notStarted=work.filter(r=>pending(r.executionRaw)),progress=work.filter(r=>inProgress(r.executionRaw));
   const received155=work.filter(r=>{const s=normalize(r.contractor155Status);return /مستلم/.test(s)&&!/غير مستلم|لم يستلم|لم يتم استلام/.test(s)}).length;
@@ -88,7 +91,8 @@ module.exports=function installPdcMeeting2({app,requireAuth_,getWednesdayMeeting
   return {ok:true,scope:'all',updatedAt:new Date().toISOString(),
    period:{from:latestManual.from||'',to:latestManual.to||''},
    template:{originalSlideCount:44,aspect:'16:9',version:'2026-10-14'},
-   construction:{available:true,total:work.length,completed:complete.length,notStarted:notStarted.length,
+   construction:{available:true,total:work.length,uniqueWorkOrders,repeatedRows,countBasis:'rows',
+    completed:complete.length,notStarted:notStarted.length,
     inProgress:progress.length,received155,
     unclassified:Math.max(0,work.length-complete.length-notStarted.length-progress.length),
     bySection:countBy(work,'section'),byCategory:countBy(work,'category'),byContractor:countBy(work,'contractor').slice(0,15),

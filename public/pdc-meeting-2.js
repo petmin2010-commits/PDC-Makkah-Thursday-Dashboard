@@ -38,8 +38,8 @@
   const root=$('pm2Results');if(!root||!last)return;
   const a=last;
   $('pm2Snapshot').textContent='تاريخ القراءة: '+new Date(a.updatedAt).toLocaleString('ar-SA',{timeZone:'Asia/Riyadh'})+' — جميع سجلات أوامر العمل والتصاريح والطوارئ وتقارير السلامة والجودة المحفوظة. الأرقام المالية والمولدات تخص آخر إدخال يدوي محفوظ'+(a.manual?.saved?' ('+a.manual.from+' إلى '+a.manual.to+')':'')+'.';
-  root.innerHTML='<section class="pm2-section"><header><h3>1. الإنشاءات وأوامر العمل</h3><small>الورقة الحية — بدون احتساب الأمر المكرر أكثر من مرة</small></header>'+
-   '<div class="pm2-metrics">'+metric('إجمالي أوامر العمل',a.construction.total)+metric('تم التنفيذ',a.construction.completed)+metric('جار العمل (حالة صريحة)',a.construction.inProgress)+metric('لم يتم البدء (حالة صريحة)',a.construction.notStarted)+metric('مستلم 155',a.construction.received155)+'</div>'+
+  root.innerHTML='<section class="pm2-section"><header><h3>1. الإنشاءات وأوامر العمل</h3><small>مطابق لعداد الرئيسية: كل صف مسند يُحتسب، حتى عند تكرار رقم أمر العمل</small></header>'+
+   '<div class="pm2-metrics">'+metric('إجمالي أوامر العمل',a.construction.total)+metric('أرقام الأوامر الفريدة',a.construction.uniqueWorkOrders)+metric('صفوف الأوامر ذات الأرقام المكررة',a.construction.repeatedRows)+metric('تم التنفيذ',a.construction.completed)+metric('جار العمل (حالة صريحة)',a.construction.inProgress)+metric('لم يتم البدء (حالة صريحة)',a.construction.notStarted)+metric('مستلم 155',a.construction.received155)+'</div>'+
    '<div class="pm2-two">'+bars('توزيع الأوامر حسب القسم',a.construction.bySection)+bars('أعلى المقاولين حسب عدد الأوامر',a.construction.byContractor)+'</div></section>'+
    '<section class="pm2-section"><header><h3>2. التصاريح والطوارئ</h3><small>تحديث مباشر من الورقتين</small></header>'+
    '<div class="pm2-metrics">'+metric('التصاريح المسجلة',a.permits.available?a.permits.total:null)+metric('إشعارات الطوارئ',a.emergency.available?a.emergency.total:null)+metric('الطوارئ المنجزة',a.emergency.available?a.emergency.completed:null)+metric('الطوارئ المجدولة',a.emergency.available?a.emergency.scheduled:null)+'</div>'+
