@@ -38,7 +38,14 @@
   overflow-x:hidden!important;
   overflow-y:auto!important;
   overscroll-behavior:contain;
-  scrollbar-width:thin;
+  scrollbar-width:none; /* Firefox: hide the track, not the scrolling. */
+  -ms-overflow-style:none;
+}
+/* Chromium, Chrome, Edge and Safari: hide only the menu scrollbar. */
+.sidebar>#nav::-webkit-scrollbar{
+  display:none;
+  width:0;
+  height:0;
 }
 .sidebar>.sidebar-bottom-fixed{
   flex:0 0 auto!important;
