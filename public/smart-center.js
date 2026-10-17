@@ -127,7 +127,7 @@ function installUi(){
  if(excelExportBtn)nav.insertBefore(excelExportBtn,anchor);
  if(projectsReportEngineBtn)nav.insertBefore(projectsReportEngineBtn,anchor);
  // Keep existing report and violation tabs in the smart analytics/reports section.
- for(const pageKey of ['safety','safetyCorrective','qualityCorrective','contractorSafety','executionViolations','minutes']){
+ for(const pageKey of ['safety','safetyCorrective','contractorSafety','qualityCorrective','executionViolations','minutes']){
   const tab=nav.querySelector(`.nav-item[data-page="${pageKey}"]`);
   if(tab)nav.insertBefore(tab,anchor);
  }
