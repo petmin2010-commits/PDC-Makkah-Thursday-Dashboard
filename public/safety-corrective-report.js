@@ -397,6 +397,80 @@ function originalSummaryCss(){return '@media print{.scr-p-summary{page-break-ins
 '.scr-p-extra-notes{font-size:9pt;padding-top:4mm;color:#456786}';
 }
 
+
+function originalFindingCss(){return `
+@page{size:13.333in 7.5in;margin:0}
+html,body{margin:0!important;padding:0!important;background:#fff!important}
+.sheet{width:13.333in;height:7.5in;min-height:7.5in;max-height:7.5in;break-after:page;page-break-after:always;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.sheet:last-child{break-after:auto;page-break-after:auto}
+.scr-f-slide{direction:rtl;color:#0c3763;background:#fff;border:0!important;padding:0!important;position:relative;font-family:Tahoma,Arial,sans-serif;box-shadow:none}
+.scr-f-slide::before{content:none!important}
+.scr-f-header{height:22mm;display:flex;align-items:center;justify-content:space-between;padding:0 10mm;border-bottom:1.25mm solid #ff8423;position:relative}
+.scr-f-header h2{font-size:17pt;font-weight:900;margin:0;color:#0d3866}
+.scr-f-logos{display:flex;direction:ltr;align-items:center;gap:10mm;height:100%}
+.scr-f-logos img{max-width:34mm;max-height:14mm;width:auto;height:auto;object-fit:contain}
+.scr-f-frame{position:absolute;top:26mm;right:6mm;left:6mm;bottom:10mm;border:0.55mm solid #d2d9df;border-radius:18mm;box-shadow:0 0.5mm 0.65mm #0002;display:grid;grid-template-columns:.82fr 1fr 1fr;gap:7mm;padding:6mm;direction:rtl}
+.scr-f-order{background:#113f6b;border-radius:13mm;box-shadow:0 0.65mm 0.9mm #0003;padding:6mm 5mm 4mm;display:flex;flex-direction:column;min-width:0;min-height:0;color:#123d67}
+.scr-f-order h3{color:#fff;font-size:17pt;font-weight:900;text-align:center;margin:0 0 4mm;padding-bottom:3mm;border-bottom:.75mm solid #f78a24}
+.scr-f-detail{border-radius:3.5mm;background:#fff;text-align:right;min-height:15mm;margin-bottom:3mm;box-shadow:0 .5mm .65mm #0002;padding:3mm 3.5mm;display:flex;justify-content:flex-start;align-items:center;gap:1.8mm;flex-wrap:wrap;min-width:0;font-size:10.5pt;font-weight:700;line-height:1.3}
+.scr-f-detail b{color:#123d67;flex:none}
+.scr-f-detail span{color:#174573;font-weight:900;overflow-wrap:anywhere;min-width:0}
+.scr-f-observed{flex:1;display:block;border-radius:7mm;margin-bottom:0;padding:4mm 4mm;min-height:32mm;overflow:hidden}
+.scr-f-observed b{display:block;margin-bottom:2mm}
+.scr-f-observed span{display:block;white-space:pre-wrap;font-size:11pt;line-height:1.4}
+.scr-f-card{border:.55mm solid #d4dbe0;border-radius:17mm;box-shadow:0 .6mm .8mm #0003;background:#fff;min-width:0;min-height:0;padding:3.3mm 5mm 7mm;display:flex;flex-direction:column;position:relative;align-items:stretch}
+.scr-f-card h3{border-radius:3.5mm;padding:2.7mm 1mm;margin:0 0 4mm;background:#ff831c;color:#fff;font-size:16pt;min-height:14mm;text-align:center;font-weight:900;box-shadow:0 .7mm 1mm #0003}
+.scr-f-after h3{background:#123e69}
+.scr-f-photo-border{margin:0 1mm;border:0.55mm dashed #f88722;border-radius:15mm;padding:3.1mm;height:85mm;min-height:85mm;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.scr-f-after .scr-f-photo-border{border-color:#124370}
+.scr-f-photo-border img{display:block;max-width:100%;max-height:100%;width:100%;height:100%;object-fit:contain;border-radius:11mm;background:#f7f9fb}
+.scr-f-photo-empty{color:#7086a0;font-weight:700;font-size:12pt;text-align:center}
+.scr-f-caption{margin-top:4mm;min-height:23mm;max-height:35mm;background:#f6f9fc;border:.4mm solid #c9d3da;border-radius:4mm;box-shadow:0 .65mm .85mm #0002;padding:3mm 3.3mm;text-align:center;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;align-content:center;gap:1mm;overflow:hidden;font-size:11pt;font-weight:900;line-height:1.3;overflow-wrap:anywhere}
+.scr-f-caption span{white-space:pre-wrap}
+.scr-f-before .scr-f-caption{color:#f17c11}
+.scr-f-after .scr-f-caption{color:#113f6b}
+.scr-f-arrow{position:absolute;left:33.2%;top:51%;transform:translate(-50%,-50%);z-index:2;width:10mm;height:12mm;background:#fa8520;clip-path:polygon(0 50%,44% 0,44% 28%,100% 28%,100% 72%,44% 72%,44% 100%);filter:drop-shadow(0 .4mm .4mm #b95e17)}
+.scr-f-footer{position:absolute;bottom:2.4mm;right:12mm;left:12mm;text-align:center;font-size:7.5pt;color:#16416b;white-space:nowrap}
+@media print{.print-actions{display:none!important}.scr-f-slide{break-inside:avoid;page-break-inside:avoid}}
+`;}
+
+
+function originalFindingFitScript(){return '<script>window.fitSafetySlides=function(){document.querySelectorAll(".scr-f-slide [data-fittext]").forEach(function(el){var inner=el.querySelector("span");if(!inner)return;var font=parseFloat(getComputedStyle(inner).fontSize);while(el.scrollHeight>el.clientHeight+2&&font>9){font-=.5;inner.style.fontSize=font+"px";}})};window.addEventListener("load",window.fitSafetySlides);<\\/script>'.replace('\\/script','/script');}
+
+function renderFindingSlide(f,photos,index,total){
+ const imageFor=before=>{
+  const picked=photos.filter(p=>p&&p.dataUrl&&(before?Number(p.slot)<=4:Number(p.slot)>4));
+  return picked.find(p=>Number(p.slot)===(before?1:5))||picked[0]||null;
+ };
+ const card=(before)=>{
+  const photo=imageFor(before);
+  const description=before?(f.beforeDescription||f.observation||'—'):(f.correctiveAction||'في انتظار التصحيح');
+  const caption=before?'وصف الحالة':'وصف الإجراء التصحيحي';
+  const heading=before?'قبل المعالجة':'بعد المعالجة';
+  const phaseClass=before?'scr-f-before':'scr-f-after';
+  const image=photo?'<img src="'+esc(photo.dataUrl)+'" alt="'+heading+'">':'<span class="scr-f-photo-empty">لم تُرفق صورة '+heading+'</span>';
+  return '<section class="scr-f-card '+phaseClass+'"><h3>'+heading+'</h3>'+
+    '<div class="scr-f-photo-border">'+image+'</div>'+
+    '<div class="scr-f-caption" data-fittext="1"><b>'+caption+' :</b><span>'+esc(description)+'</span></div></section>';
+ };
+ const info=(label,value)=>'<div class="scr-f-detail"><b>'+label+' :</b><span>'+esc(value||'—')+'</span></div>';
+ return '<section class="sheet scr-f-slide" data-finding-slide="'+(index+1)+'">'+
+  '<header class="scr-f-header"><h2>بيانات المعالجة والتوثيق</h2><div class="scr-f-logos">'+
+  '<img src="/assets/pdc-logo.png" alt="PDC"><img src="/assets/saudi-electricity-logo.png" alt="الشركة السعودية للكهرباء"></div></header>'+
+  '<div class="scr-f-frame">'+
+   '<aside class="scr-f-order"><h3>بيانات أمر العمل</h3>'+
+    info('رقم أمر العمل',f.workOrder)+info('المقاول',f.contractor)+
+    info('الاستشاري',f.consultant||'أبعاد الرؤية')+
+    info('نوع أمر العمل',f.workType)+
+    '<div class="scr-f-detail scr-f-observed" data-fittext="1"><b>الملاحظات المرصودة :</b><span>'+esc(f.observation||'—')+'</span></div>'+
+   '</aside>'+
+   card(true)+card(false)+
+   '<span class="scr-f-arrow" aria-hidden="true"></span>'+
+  '</div>'+
+  '<footer class="scr-f-footer">تقرير الإجراءات التصحيحية لكل أسبوع | '+esc(city)+' | الملاحظة '+(index+1)+' من '+total+'</footer>'+
+  '</section>';
+}
+
 const summaryCounts=()=>{
  const r=state.report||{},detail=detailCount(),grouped={};
  for(const item of summaryContractors())grouped[item.name]=item.count;
@@ -429,15 +503,15 @@ async function printReport(){
  '<div class="foot">تقرير السلامة | '+esc(city)+'</div></section>';
 
  for(let i=0;i<rows.length;i++){
- const {f,photos}=rows[i],phase=(before)=>{const available=photos.filter(p=>p.dataUrl&&(before?Number(p.slot)<=4:Number(p.slot)>4)),primary=available.find(p=>Number(p.slot)===(before?1:5)),list=primary?[primary]:available.slice(0,1),label=before?'وصف الحالة':'وصف الإجراء التصحيحي',description=before?(f.beforeDescription||f.observation):(f.correctiveAction||'في انتظار التصحيح');return '<section class="photos-col '+(before?'before':'after')+'"><h3>'+(before?'قبل المعالجة':'بعد المعالجة')+'</h3><div class="photo-list">'+(list.length?list.map(p=>'<figure><img src="'+esc(p.dataUrl)+'"></figure>').join(''):'<div class="empty">لم تُرفق صور لهذه المرحلة</div>')+'</div><div style="white-space:pre-wrap;text-align:center;border:1px solid #c6d4df;border-radius:10px;background:#f6f9fb;padding:12px 8px;margin-top:10px;color:'+(before?'#e67916':'#17446e')+';font-weight:bold"><b>'+label+': </b>'+esc(description)+'</div></section>'};
- pages+='<section class="sheet">'+brand('بيانات المعالجة والتوثيق')+'<div class="finding-title">الملاحظة '+(i+1)+' من '+rows.length+'</div><div class="finding-meta">'+[['أمر العمل',f.workOrder],['نوع أمر العمل',f.workType],['المقاول',f.contractor],['الاستشاري',f.consultant],['الحالة',f.status]].map(x=>'<span><b>'+x[0]+': </b>'+esc(x[1]||'—')+'</span>').join('')+'</div><div class="finding-text"><b>الملاحظات المرصودة:</b> '+esc(f.observation)+'</div><div class="photos">'+phase(true)+phase(false)+'</div><div class="foot">تقرير الإجراءات التصحيحية لكل أسبوع | '+esc(city)+'</div></section>';
+  const {f,photos}=rows[i];
+  pages+=renderFindingSlide(f,photos,i,rows.length);
  }
  pages+='<section class="sheet end">'+brand('أبعاد الرؤية للاستشارات الهندسية')+'<h1>شكرًا لتعاونكم</h1><h2>معًا لرفع جودة التنفيذ والسلامة</h2><p>دائرة مشاريع التوزيع – '+esc(city)+'</p></section>';
    // Only the approved, original 16:9 front and last pages are immutable; content pages are data-driven.
   pages=pages.replace(/^<section class="sheet cover">[\s\S]*?<\/section>/,approvedCoverHtml(r))
              .replace(/<section class="sheet end">[\s\S]*?<\/section>$/,approvedEndingHtml());
 if(win.closed)throw Error('أُغلقت نافذة التقرير أثناء التجهيز.');
- win.document.open();win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+esc('VD-Safety-'+city+'-'+r.startDate)+'</title><style>'+printCss()+originalSummaryCss()+approvedEndcapsCss()+'</style></head><body><div class="print-actions"><button onclick="window.print()">طباعة أو حفظ التقرير PDF</button> – تأكد من تحميل الصور قبل الطباعة</div>'+pages+'</body></html>');win.document.close();window.VDReportArchive?.record({reportName:'تقرير السلامة والإجراءات التصحيحية',format:'PDF',filename:'VD_Safety_Corrective.pdf'});notice('تقرير PDF جاهز في نافذة جديدة. استخدم زر الطباعة للحفظ.');
+ win.document.open();win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+esc('VD-Safety-'+city+'-'+r.startDate)+'</title><style>'+printCss()+originalSummaryCss()+approvedEndcapsCss()+originalFindingCss()+'</style></head><body><div class="print-actions"><button onclick="window.print()">طباعة أو حفظ التقرير PDF</button> – تأكد من تحميل الصور قبل الطباعة</div>'+pages+originalFindingFitScript()+'</body></html>');win.document.close();window.VDReportArchive?.record({reportName:'تقرير السلامة والإجراءات التصحيحية',format:'PDF',filename:'VD_Safety_Corrective.pdf'});notice('تقرير PDF جاهز في نافذة جديدة. استخدم زر الطباعة للحفظ.');
  }catch(e){if(!win.closed)win.close();notice('تعذر تجهيز التقرير: '+e.message,true)}finally{buttonBusy('scrExport',false)}
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
