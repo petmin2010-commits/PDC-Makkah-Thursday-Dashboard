@@ -18,6 +18,7 @@ const GROUPS=[
   ['safety','تقرير مخالفات السلامة','PDF','shield-alert'],
   ['safetyCorrective','تقرير السلامة والإجراءات التصحيحية الأسبوعي','PDF','shield-check'],
   ['qualityCorrective','تقرير الجودة والإجراءات التصحيحية الأسبوعي','PDF','badge-check'],
+  ['temporaryGenerators','تقرير أعمال المؤقتات والمولدات','PDF','zap'],
   ['contractorSafety','تقييم السلامة للمقاولين','PDF / PPTX','users'],
   ['executionViolations','تقرير مخالفات التنفيذ','PDF','alert-triangle'],
   ['minutes','تقرير المحاضر وإثباتات الحالة','PDF','files'],
@@ -43,7 +44,7 @@ const GROUPS=[
  ]}
 ];
 const LABELS={projectCompletionAnalysis:'projects',projectsReportEnginePdf:'projectsReportEngine',projectsReportEngineExcel:'projectsReportEngine',archivePdf:'reportArchive',archiveCsv:'reportArchive'};
-const SPECIAL=new Set(['safetyCorrective','qualityCorrective','projectsReportEnginePdf','projectsReportEngineExcel','excelExport','archivePdf','archiveCsv']);
+const SPECIAL=new Set(['safetyCorrective','qualityCorrective','temporaryGenerators','projectsReportEnginePdf','projectsReportEngineExcel','excelExport','archivePdf','archiveCsv']);
 const $=(q,scope=document)=>scope.querySelector(q);
 const $$=(q,scope=document)=>[...scope.querySelectorAll(q)];
 const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -78,7 +79,7 @@ function render(){
  $$('[data-report-page]',root).forEach(b=>b.addEventListener('click',()=>dispatch(b.dataset.reportPage,b)));
 }
 function card([key,label,format]){
- const special=key==='excelExport'||key.startsWith('projectsReportEngine')||key==='safetyCorrective'||key==='qualityCorrective'||key==='pdcMeeting2';
+ const special=key==='excelExport'||key.startsWith('projectsReportEngine')||key==='safetyCorrective'||key==='qualityCorrective'||key==='temporaryGenerators'||key==='pdcMeeting2';
  const act=key==='excelExport'?'اختيار الأعمدة والتصدير':key==='projectsReportEnginePdf'?'إعداد تقرير PDF':key==='projectsReportEngineExcel'?'إعداد ملف Excel':key==='archiveCsv'?'تصدير CSV':(special?'اختيار التقرير والتصدير':'تصدير التقرير');
  return '<article class="rc-card rc-unified-card"><div class="rc-card-copy"><strong>'+esc(label)+'</strong><small>'+esc(nav(key)?.querySelector('span')?.textContent?.trim()||label)+'</small><span class="rc-format">'+esc(format)+'</span></div><button class="rc-export-btn" type="button" data-report-page="'+esc(key)+'">'+act+'</button></article>';
 }
@@ -88,7 +89,7 @@ function lock(btn,on){busy=on;if(btn){btn.disabled=on;btn.classList.toggle('is-l
 async function dispatch(key,btn){
  if(busy)return;
  if(!permitted(key)){alert('لا تتوفر صلاحية استخدام هذا التقرير.');return}
- if(key==='safetyCorrective'||key==='qualityCorrective')return chooseCorrective(key);
+ if(key==='safetyCorrective'||key==='qualityCorrective'||key==='temporaryGenerators')return chooseCorrective(key);
  if(key==='projectsReportEnginePdf'||key==='projectsReportEngineExcel')return chooseProjectReport(key);
  if(key==='excelExport'){nav('excelExport')?.click();$('#xeSheet')?.focus();return}
  if(key==='pdcMeeting2'){nav('pdcMeeting2')?.click();return}
@@ -114,8 +115,8 @@ function overlay(title,description,content,action,onConfirm){
 function closeDialog(){if(dialog){dialog.remove();dialog=null}}
 function showError(layer,msg){const el=$('.rc-modal-error',layer);if(el){el.hidden=false;el.textContent=msg}const submit=$('#rcModalSubmit',layer);if(submit)submit.disabled=false}
 async function chooseCorrective(key){
- const safety=key==='safetyCorrective', endpoint=safety?'/api/safety-corrective':'/api/quality-corrective';
- const title=safety?'تقرير السلامة والإجراءات التصحيحية':'تقرير الجودة والإجراءات التصحيحية';
+ const safety=key==='safetyCorrective',temporary=key==='temporaryGenerators',endpoint=safety?'/api/safety-corrective':temporary?'/api/temporary-generators':'/api/quality-corrective';
+ const title=safety?'تقرير السلامة والإجراءات التصحيحية':temporary?'تقرير المؤقتات والمولدات':'تقرير الجودة والإجراءات التصحيحية';
  const layer=overlay(title,'اختر التقرير الأسبوعي المحفوظ. سيتم تصدير PDF بنفس القالب المعتمد للغلاف والنهاية.',
  '<label class="rc-dialog-label">التقرير الأسبوعي<select id="rcCorrectiveSelect"><option value="">جارٍ تحميل التقارير...</option></select></label>', 'تصدير PDF',async modal=>{
   const select=$('#rcCorrectiveSelect',modal),id=select?.value;if(!id){showError(modal,'اختر تقريرًا محفوظًا أولًا.');return}
@@ -123,7 +124,7 @@ async function chooseCorrective(key){
   const win=window.open('','_blank','width=1440,height=920');if(!win){showError(modal,'اسمح بالنوافذ المنبثقة لتصدير التقرير.');return}
   lock($('#rcModalSubmit',modal),true);
   try{
-   const exporter=safety?window.VDSafetyCorrectiveCenter:window.VDQualityCorrectiveCenter;
+   const exporter=safety?window.VDSafetyCorrectiveCenter:temporary?window.VDTemporaryGeneratorsCenter:window.VDQualityCorrectiveCenter;
    if(!exporter)throw Error('مولّد التقرير غير متاح.');
    closeDialog();nav(key)?.click();
    await exporter.prepare(id);
@@ -138,7 +139,7 @@ async function chooseCorrective(key){
   const select=$('#rcCorrectiveSelect',layer);
   select.innerHTML='<option value="">اختر التقرير...</option>'+
    (json.reports||[]).map(r=>'<option value="'+esc(r.id)+'">'+esc((r.weekLabel||'تقرير أسبوعي')+' | '+(r.startDate||'')+' - '+(r.endDate||''))+'</option>').join('');
-  if(!(json.reports||[]).length)showError(layer,'لا توجد تقارير محفوظة بعد. أنشئ تقريرًا في تبويب '+(safety?'السلامة':'الجودة')+' أولًا.');
+  if(!(json.reports||[]).length)showError(layer,'لا توجد تقارير محفوظة بعد. أنشئ تقريرًا في تبويب '+(safety?'السلامة':temporary?'المؤقتات':'الجودة')+' أولًا.');
  }catch(e){if(dialog===layer)showError(layer,e.message)}
 }
 function chooseProjectReport(key){

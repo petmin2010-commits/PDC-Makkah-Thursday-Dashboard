@@ -165,7 +165,7 @@ function wrapOpenPage(){
   const pageLabels={
     master:'الرئيسية',projects:'المشاريع',connections:'التوصيلات',permits:'التصاريح',
     assets:'الأصول',closures:'الإغلاقات',tasks:'متابعة أعمال المواقع',emergency:'الطوارئ',
-    safety:'مخالفات السلامة',qualityCorrective:'تقرير الجودة والإجراءات التصحيحية',safetyCorrective:'تقرير السلامة والإجراءات التصحيحية',contractorSafety:'تقييم السلامة للمقاولين',executionViolations:'مخالفات التنفيذ',
+    safety:'مخالفات السلامة',qualityCorrective:'تقرير الجودة والإجراءات التصحيحية',safetyCorrective:'تقرير السلامة والإجراءات التصحيحية',temporaryGenerators:'تقرير المؤقتات والمولدات',contractorSafety:'تقييم السلامة للمقاولين',executionViolations:'مخالفات التنفيذ',
     minutes:'محاضر مخالفة إثبات الحالة',dataQuality:'جودة البيانات',hrStaff:'الموارد البشرية للكادر',
     employeeEvaluation:'تقييم مهندسي المواقع',electricityEngineerEvaluation:'تقييم مهندسي شركة الكهرباء',
     wednesdayMeeting:'اجتماع الـ PDC',pdcMeeting2:'اجتماع PDC 2',smartThursday:'تقرير الخميس الذكي',
