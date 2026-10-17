@@ -56,6 +56,12 @@ function labelOf(el){
 }
 
 function canLabel(label){
+  // PDC 2 inherits the current PDC meeting permission until explicitly granted.
+  if(norm(label)===norm('اجتماع PDC 2')){
+    return state.admin||state.all||state.exact.has(norm(label))||state.allow.has(canon(label))||
+      (state.precise?(state.exact.has(norm('اجتماع PDC'))||state.exact.has(norm('اجتماع مع PDC'))):
+       (state.allow.has(canon('اجتماع PDC'))||state.allow.has(canon('اجتماع مع PDC'))));
+  }
   if(norm(label)===norm('إدارة المستخدمين والصلاحيات'))return state.admin;
   if(state.all)return true;
   if(state.precise)return state.exact.has(norm(label));

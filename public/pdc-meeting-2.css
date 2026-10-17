@@ -1,0 +1,45 @@
+/* PDC Meeting 2 — isolated live consolidated report; original PPTX remains immutable. */
+.pm2-page{direction:rtl;color:#153d5e;font-family:Cairo,Tahoma,sans-serif}
+.pm2-page .pm2-head{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:21px 24px;border-radius:17px;background:linear-gradient(120deg,#123b64,#28749d);color:#fff;margin:10px 0 13px}
+.pm2-page .pm2-head small{letter-spacing:.05em;font-size:10px;color:#add9ed}
+.pm2-page .pm2-head h2{font-size:25px;margin:4px 0;color:#fff}
+.pm2-page .pm2-head p{font-size:12px;line-height:1.85;margin:2px 0 0;max-width:720px;color:#edf7ff}
+.pm2-page .pm2-count{white-space:nowrap;border-radius:25px;border:1px solid #b9d8ec;padding:9px 14px;font-size:11px;color:#fff}
+.pm2-page .pm2-panel,.pm2-page .pm2-section{background:#fff;border-radius:15px;border:1px solid #d6e6f2;box-shadow:0 3px 13px #123e5c0a;margin:13px 0;padding:15px 17px}
+.pm2-page .pm2-tools{display:flex;align-items:end;flex-wrap:wrap;gap:13px}
+.pm2-page label{display:flex;flex-direction:column;gap:6px;font-size:11px;font-weight:800}
+.pm2-page input{border:1px solid #9bc0da;border-radius:8px;padding:8px 11px;font:11px Cairo,Tahoma;background:#fff;color:#153d5e}
+.pm2-page button{font:800 11px Cairo,Tahoma;border:0;border-radius:9px;color:#fff;background:#126895;padding:10px 17px;cursor:pointer}
+.pm2-page button:hover:not(:disabled){filter:brightness(1.14)}
+.pm2-page button:disabled{background:#c7d1da;cursor:not-allowed}
+.pm2-page #pm2Status{font-size:11px;color:#315d77}
+.pm2-page .pm2-muted{font-size:11px;line-height:1.7;color:#74869a}
+.pm2-page .pm2-section>header{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-bottom:12px;border-bottom:1px solid #e4edf4;padding-bottom:9px}
+.pm2-page .pm2-section>header h3,.pm2-page .pm2-exports h3{font-size:17px;color:#134974;margin:0}
+.pm2-page .pm2-section>header small{font-size:10px;color:#688298}
+.pm2-page .pm2-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:11px;margin-bottom:14px}
+.pm2-page .pm2-metric{padding:13px;border-radius:11px;min-height:87px;border:1px solid #dce7f0;border-top:4px solid #297bae;background:#f8fbff;display:flex;flex-direction:column;gap:6px}
+.pm2-page .pm2-metric span{font-size:11px;color:#355b7b}
+.pm2-page .pm2-metric strong{font:800 26px Arial,sans-serif;color:#103963}
+.pm2-page .pm2-metric small{font-size:9px;color:#698198}
+.pm2-page .pm2-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.pm2-page .pm2-chart{border:1px solid #e0ebf1;border-radius:11px;padding:13px;min-width:0}
+.pm2-page .pm2-chart h3{font-size:12px;color:#133f67;margin:0 0 12px}
+.pm2-page .pm2-bar{margin:8px 0}
+.pm2-page .pm2-bar>div{display:flex;justify-content:space-between;gap:6px;align-items:center;font-size:10px}
+.pm2-page .pm2-bar>div span{overflow-wrap:anywhere;max-width:85%;color:#335670}
+.pm2-page .pm2-bar b{font:800 11px Arial;color:#1d5d88}
+.pm2-page .pm2-bar>i{display:block;height:9px;background:#eaf2f9;border-radius:5px;overflow:hidden;margin-top:4px}
+.pm2-page .pm2-bar>i>em{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,#2f94c3,#215480);min-width:0}
+.pm2-page .pm2-sources{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:10px}
+.pm2-page .pm2-source{border:1px solid #dee8f1;border-radius:11px;padding:11px 12px;min-width:0}
+.pm2-page .pm2-source b{font-size:11px;color:#174b71}
+.pm2-page .pm2-source>span{font-size:9px;float:left;padding:3px 7px;border-radius:12px}
+.pm2-page .pm2-source .ok{background:#e5f6ec;color:#18734e}
+.pm2-page .pm2-source .missing{background:#fff0e6;color:#a05225}
+.pm2-page .pm2-source p{font-size:10px;color:#60778d;line-height:1.6;margin:7px 0 0;overflow-wrap:anywhere;clear:both}
+.pm2-page .pm2-exports div{display:flex;gap:9px;margin:11px 0}
+.pm2-page .pm2-exports>p{font-size:11px;line-height:1.8}
+body.pm2-active #filterBar,body.pm2-active #vdUnifiedControls,body.pm2-active .topbar .filters{display:none!important}
+@media(max-width:850px){.pm2-page .pm2-two{grid-template-columns:1fr}.pm2-page .pm2-head{flex-direction:column;align-items:start}.pm2-page .pm2-sources{grid-template-columns:1fr}}
+@media print{.pm2-page .pm2-tools,.pm2-page .pm2-exports{display:none!important}}

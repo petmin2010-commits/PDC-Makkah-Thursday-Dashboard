@@ -2550,6 +2550,9 @@ require('./projects-report-defaults-server')({
   }
 });
 
+// PDC meeting 2: read-only 44-slide source coverage and live dashboard aggregation.
+require('./pdc-meeting-2-server')({app,requireAuth_,getWednesdayMeetingData,getPageData,getSheets,SPREADSHEET_ID,qSheet,APP});
+
 const safetyCorrectiveImages=require('./safety-corrective-images-server')({ app, requireAuth_, getSheets, SPREADSHEET_ID, qSheet, APP, DateTime });
 require('./safety-corrective-server')({ app, requireAuth_, getSheets, SPREADSHEET_ID, qSheet, APP, DateTime, deletePhotos:safetyCorrectiveImages.deleteAllImages, getContractors:()=>require('./safety-contractor-info')({valuesGet,qSheet}) });
 const qualityCorrectiveImages=require('./quality-corrective-images-server')({ app, requireAuth_, getSheets, SPREADSHEET_ID, qSheet, APP, DateTime });

@@ -1,5 +1,7 @@
 node_modules/
 .env
 credentials.json
+# Internal weekly deck includes site photos and contractor details; never commit to public GitHub.
+report-templates/
 *.log
 .DS_Store
