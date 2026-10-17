@@ -164,5 +164,19 @@ module.exports=function install({app,requireAuth_,getSheets,SPREADSHEET_ID,qShee
   // Serialize writers on the current Render instance; version rejects stale clients.
   const job=queue.then(()=>save(p,req.body,req));queue=job.catch(()=>{});return job;
  }));
- return {getRecord:async(from,to)=>(await read(validatePeriod(from,to))).item,fieldNames:NAMES,sanitize};
+ async function listRecords(){
+  const {api,prop}=await getMeta();if(!prop)return [];
+  const response=await api.spreadsheets.values.get({spreadsheetId:SPREADSHEET_ID,range:qSheet(SHEET)+'!A2:'+lastCol});
+  const items=[],seen=new Set();
+  for(const row of response.data.values||[]){
+   try{
+    const range=validatePeriod(String(row?.[1]||''),String(row?.[2]||''));
+    if(seen.has(range.key))continue;seen.add(range.key);
+    items.push(decode(row,range));
+   }catch(e){/* malformed historical row: do not block the dashboard */}
+  }
+  return items.sort((a,b)=>b.to.localeCompare(a.to)||String(b.updatedAt).localeCompare(String(a.updatedAt)));
+ }
+ return {getRecord:async(from,to)=>(await read(validatePeriod(from,to))).item,
+  listRecords,fieldNames:NAMES,sanitize};
 };

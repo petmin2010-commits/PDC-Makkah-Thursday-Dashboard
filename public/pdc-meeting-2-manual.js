@@ -1,5 +1,12 @@
 (()=>{'use strict';
 const get=id=>document.getElementById(id),API='/api/pdc-meeting-2/manual';
+function weekRange(){
+ const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+ const d={};for(const p of parts)if(p.type!=='literal')d[p.type]=p.value;
+ const t=new Date(Date.UTC(+d.year,+d.month-1,+d.day)),back=(t.getUTCDay()-4+7)%7;
+ t.setUTCDate(t.getUTCDate()-back);const to=t.toISOString().slice(0,10);
+ t.setUTCDate(t.getUTCDate()-6);return {from:t.toISOString().slice(0,10),to};
+}
 const spec=[
  ['approvedQuantities','ما تم اعتماد كمياته','financial',0],
  ['purchaseOrders','عدد أوامر الشراء','financial',0],
@@ -25,7 +32,7 @@ const strings=[
  ['correctiveAction','الإجراء التصحيحي','textarea',1500]
 ];
 const esc=v=>String(v??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
-let state={loaded:false,saved:false,dirty:false,saving:false,from:'',to:'',version:0};
+let state={loaded:false,saved:false,dirty:false,saving:false,loadingManual:false,from:'',to:'',version:0};
 function numField([key,label,section,step]){
  return '<label class="pm2-manual-field"><span>'+esc(label)+'</span><input type="number" inputmode="decimal" data-manual-field="'+esc(key)+'" data-manual-section="'+section+'" min="0" max="'+(key==='paymentRate'?100:100000000)+'" step="'+(step||1)+'" placeholder="غير مدخل"></label>';
 }
@@ -37,8 +44,9 @@ function strField([key,label,type,max]){
 function mount(){
  const root=get('pm2Results'),before=root?.parentElement;if(!root||!before||get('pm2ManualDetails'))return;
  const panel=document.createElement('details');panel.id='pm2ManualDetails';panel.className='pm2-panel pm2-manual';
- panel.innerHTML='<summary><span>إدخال يدوي مؤقت — بيانات التقرير الأسبوعي</span><small>حفظ منفصل لكل فترة داخل شيت مكة</small></summary>'+
-  '<div class="pm2-manual-intro">الحقول الفارغة تعني «غير متاح» وليست صفرًا. تُحدَّث الكروت بعد الحفظ، وتبقى بيانات كل فترة محفوظة مستقلة. يظهر اسم آخر مستخدم وتاريخ التعديل.</div>'+
+ panel.innerHTML='<summary><span>إدخال يدوي مؤقت — بيانات التقرير الأسبوعي</span><small>حفظ منفصل لكل أسبوع داخل شيت الداشبورد</small></summary>'+
+  '<div class="pm2-manual-intro">هذه التواريخ لحفظ أو تعديل إدخالات أسبوع معين فقط، ولا تُفلتر أي كارت أو شارت في التقرير. الحقول الفارغة تعني «غير متاح» وليست صفرًا. تظهر البيانات المالية الأحدث في الكروت وجميع الأسابيع المحفوظة في السجل أسفل التقرير.</div>'+
+  '<div class="pm2-manual-dates"><label>أسبوع الإدخال من تاريخ <input id="pm2From" type="date"></label><label>إلى تاريخ <input id="pm2To" type="date"></label></div>'+
   '<div class="pm2-manual-groups">'+
    '<section><h3>المستخلصات وأوامر الشراء</h3><div class="pm2-manual-grid">'+spec.filter(s=>s[2]==='financial').map(numField).join('')+'</div>'+
    '<label class="pm2-manual-field"><span>الاتجاه الشهري للإشعارات (سطر لكل شهر: 2026-05: 159)</span><textarea id="pm2ManualNotices" rows="4" placeholder="2026-05: 159&#10;2026-06: 135"></textarea></label></section>'+
@@ -48,7 +56,7 @@ function mount(){
   '</div><div class="pm2-manual-actions"><button type="button" id="pm2ManualSave" disabled>حفظ البيانات اليدوية</button><button type="button" class="pm2-secondary" id="pm2ManualReload">استعادة البيانات المحفوظة</button><span id="pm2ManualStatus" role="status">اختر الفترة وانتظر تحديث البيانات.</span></div>'+
   '<small id="pm2ManualAudit" class="pm2-muted">مصدر الإدخال: PDC Meeting 2 Manual Data</small>';
  before.insertBefore(panel,root);
- panel.querySelectorAll('input,textarea').forEach(n=>n.addEventListener('input',()=>{
+ panel.querySelectorAll('[data-manual-field],[data-manual-string],#pm2ManualNotices').forEach(n=>n.addEventListener('input',()=>{
   if(state.loaded&&!state.saving){state.dirty=true;get('pm2ManualSave').disabled=false;status('تغييرات لم تُحفظ بعد.')}
  }));
  get('pm2ManualSave').onclick=save;
@@ -56,7 +64,7 @@ function mount(){
   if(state.dirty&&!window.confirm('سيتم إلغاء التعديلات غير المحفوظة. هل تريد الاستمرار؟'))return;
   await reload();
  };
- // Capture date changes before base UI refresh so users cannot silently lose unsaved edits.
+ // Switching the period edits a different manual record; the main dashboard remains unfiltered.
  for(const key of ['pm2From','pm2To']){
   get(key)?.addEventListener('change',e=>{
    if(!state.dirty)return;
@@ -66,14 +74,20 @@ function mount(){
    state.dirty=false;state.loaded=false;get('pm2ManualSave').disabled=true;
   },true);
  }
+ for(const key of ['pm2From','pm2To'])get(key)?.addEventListener('change',()=>{
+  state.loaded=false;get('pm2ManualSave').disabled=true;reload();
+ });
+ const current=weekRange();get('pm2From').value=current.from;get('pm2To').value=current.to;
  document.addEventListener('pm2:summary-loaded',e=>{
-  const data=e.detail,period=data?.period,manual=data?.manual;if(!period||!manual)return;
-  if(!state.loaded||period.from!==state.from||period.to!==state.to||!state.dirty)fill(manual);
+  const manual=e.detail?.manual;if(!manual)return;
+  // Do not reset a user's chosen editing week during an automatic dashboard refresh.
+  if(!state.loaded&&!state.dirty&&!state.loadingManual)fill(manual);
  });
 }
 function status(message,error=false){const e=get('pm2ManualStatus');if(e){e.textContent=message;e.classList.toggle('error',error)}}
 function fill(manual){
- const from=manual.from||get('pm2From').value,to=manual.to||get('pm2To').value;
+ const today=weekRange(),from=manual.from||get('pm2From').value||today.from,to=manual.to||get('pm2To').value||today.to;
+ get('pm2From').value=from;get('pm2To').value=to;
  state={...state,from,to,loaded:true,saved:Boolean(manual.saved),version:manual.version||0,dirty:false};
  spec.forEach(([k,,section])=>{const input=document.querySelector('[data-manual-field="'+k+'"]');if(input)input.value=manual[section]?.[k]??''});
  strings.forEach(([k])=>{const input=document.querySelector('[data-manual-string="'+k+'"]');if(input)input.value=manual.generators?.[k]??''});
@@ -111,19 +125,20 @@ function collect(){
 }
 async function reload(){
  const from=get('pm2From').value,to=get('pm2To').value;
- if(!from||!to||from>to)return;
- status('جار قراءة الإدخال المحفوظ...');get('pm2ManualReload').disabled=true;
+ if(!from||!to||from>to){status('حدد تاريخي أسبوع الإدخال بالترتيب الصحيح.',true);return;}
+ state.loadingManual=true;state.loaded=false;
+ status('جار قراءة الإدخال المحفوظ لهذا الأسبوع فقط...');get('pm2ManualReload').disabled=true;
  try{
   const r=await fetch(API+'?from='+encodeURIComponent(from)+'&to='+encodeURIComponent(to),{credentials:'same-origin',cache:'no-store'});
   const j=await r.json();if(!r.ok||!j.ok)throw Error(j.error||'تعذر قراءة الإدخال');
   fill(j.manual);
  }catch(e){status('تعذر الاستعادة: '+String(e.message||e),true)}
- finally{get('pm2ManualReload').disabled=false;}
+ finally{state.loadingManual=false;get('pm2ManualReload').disabled=false;}
 }
 async function save(){
  if(state.saving||!state.loaded||!state.dirty)return;
  const from=get('pm2From').value,to=get('pm2To').value;
- if(from!==state.from||to!==state.to){status('تم تغيير الفترة. اضغط تحديث البيانات أولًا.',true);return;}
+ if(from!==state.from||to!==state.to){status('تم تغيير أسبوع الإدخال. استعد سجله أولًا قبل الحفظ.',true);return;}
  let body;try{body={from,to,version:state.version,...collect()}}catch(e){status(e.message,true);return;}
  state.saving=true;get('pm2ManualSave').disabled=true;
  status('جار حفظ بيانات الأسبوع على Google Sheets...');

@@ -71,3 +71,14 @@ body.pm2-active #filterBar,body.pm2-active #vdUnifiedControls,body.pm2-active .t
 .pm2-page .pm2-case p{white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;color:#2c5676}
 @media(max-width:850px){.pm2-page .pm2-manual>summary{flex-wrap:wrap}.pm2-page .pm2-manual-grid{grid-template-columns:1fr}}
 @media print{.pm2-page .pm2-tools,.pm2-page .pm2-exports,.pm2-page .pm2-manual{display:none!important}}
+
+/* PDC 2: all available records are shown, no date filter in the main report. */
+.pm2-page .pm2-all-indicator{font-size:11px;color:#326683;font-weight:800;margin-inline-start:auto}
+.pm2-page .pm2-history-scroll{max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;border:1px solid #ddeaf4;border-radius:11px}
+.pm2-page .pm2-history{border-collapse:collapse;min-width:1350px;width:100%;font:11px/1.5 Cairo,Tahoma,sans-serif;color:#1b4765}
+.pm2-page .pm2-history th,.pm2-page .pm2-history td{padding:10px 11px;text-align:right;border-bottom:1px solid #e0eaf3;white-space:nowrap}
+.pm2-page .pm2-history th{background:#edf6fb;color:#134a73;font-weight:800;position:sticky;top:0}
+.pm2-page .pm2-history tbody tr:nth-child(even){background:#f8fbfe}
+.pm2-page .pm2-manual-dates{display:flex;align-items:end;gap:12px;flex-wrap:wrap;padding:13px 18px 4px}
+.pm2-page .pm2-manual-dates label{min-width:175px;display:flex;flex-direction:column;gap:6px;color:#245575;font-size:11px;font-weight:800}
+.pm2-page .pm2-manual-dates input{width:100%;box-sizing:border-box;border:1px solid #b6d4e8;background:white;color:#133e60;border-radius:8px;padding:9px;font:11px Cairo,Tahoma}
