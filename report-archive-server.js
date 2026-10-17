@@ -127,6 +127,8 @@ module.exports=function installArchive({app,requireAuth_,getSheets,spreadsheetId
    await mkcol(root);await mkcol(cityPath);await mkcol(monthPath);
    const filepath=monthPath+'/'+id.slice(0,8)+'_'+filename(name);
    await dav('PUT',filepath,{body:buffer,headers:{'Content-Type':'application/octet-stream'},expected:[200,201,204]});
+   const actual=await getDavFile(filepath);
+   if(actual.length!==buffer.length||!crypto.timingSafeEqual(crypto.createHash('sha256').update(actual).digest(),crypto.createHash('sha256').update(buffer).digest()))throw Error('WEBDAV_VERIFY_FAILED');
    return {fileId:'webdav',folder:filepath};
  }
  async function getDavFile(p){
@@ -159,6 +161,8 @@ module.exports=function installArchive({app,requireAuth_,getSheets,spreadsheetId
    const result=await cloud('uploadfile',{},form);
    const fileId=result.fileids?.[0]||result.metadata?.[0]?.fileid;
    if(!fileId)throw Error('PCLOUD_FILE_NOT_SAVED');
+   const proof=await cloud('stat',{fileid:String(fileId)});
+   if(String(proof.metadata?.fileid||'')!==String(fileId)||Number(proof.metadata?.size)!==buffer.length)throw Error('PCLOUD_VERIFY_FAILED');
    return {fileId:String(fileId),folder:parent};
  }
  app.get('/api/report-archive/pcloud-status',requireAuth_,async(req,res)=>{
@@ -190,7 +194,11 @@ module.exports=function installArchive({app,requireAuth_,getSheets,spreadsheetId
    try{
      const name=clean(req.body?.reportName),format=clean(req.body?.format,8).toUpperCase();
      if(!name||!['PDF','XLSX','PPTX','CSV','HTML'].includes(format))return res.status(400).json({ok:false,error:'INVALID_REPORT'});
-     const user=req.session.user||{},now=DateTime.now().setZone('Asia/Riyadh'),id=crypto.randomUUID();
+     const user=req.session.user||{},now=DateTime.now().setZone('Asia/Riyadh');
+      const key=String(req.body?.clientKey||'');
+      const id=/^[0-9a-f-]{36}$/i.test(key)?key:crypto.randomUUID();
+      // A retry after a browser/network interruption must reuse the same archive row.
+      if(key){const existing=(await load()).rows.find(r=>String(r[0])===id);if(existing){if(String(existing[4]||'')!==String(user.email||''))return res.status(403).json({ok:false,error:'ARCHIVE_OWNER_MISMATCH'});return res.json({ok:true,id,pcloudEnabled:cloudEnabled,alreadySaved:!!existing[10],url:String(existing[9]||'')})}}
      const row=[id,now.toFormat('yyyy-MM-dd'),now.toFormat('HH:mm:ss'),clean(user.name),clean(user.email),name,format,filename(req.body?.filename||name+'.'+format.toLowerCase()),'تم بدء التصدير','','',''];
      const sheets=await getSheets();await ensure(sheets);
      await sheets.spreadsheets.values.append({spreadsheetId,range:range('A:L'),valueInputOption:'RAW',insertDataOption:'INSERT_ROWS',requestBody:{values:[row]}});
@@ -268,9 +276,17 @@ module.exports=function installArchive({app,requireAuth_,getSheets,spreadsheetId
      if(ext!==found.item.format)return res.status(400).json({ok:false,error:'FORMAT_MISMATCH'});
      if(ext==='PDF'&&req.body.subarray(0,5).toString()!=='%PDF-')return res.status(400).json({ok:false,error:'NOT_PDF'});
      if(['XLSX','PPTX'].includes(ext)&&req.body.subarray(0,2).toString()!=='PK')return res.status(400).json({ok:false,error:'NOT_OFFICE'});
-     const saved=await upload(req.body,file,id),url=archiveUrl(req,id);
-     await sheets.spreadsheets.values.update({spreadsheetId,range:range('H'+(found.index+2)+':L'+(found.index+2)),valueInputOption:'RAW',requestBody:{values:[[file,'محفوظ في pCloud',url,saved.fileId,saved.folder]]}});
-     res.json({ok:true,url});
+     const url=archiveUrl(req,id);
+     if(found.item.fileId&&found.item.url)return res.json({ok:true,url:found.item.url,verified:true,reused:true});
+     const saved=await upload(req.body,file,id);
+     const values=[[file,'محفوظ في pCloud',url,saved.fileId,saved.folder]];
+     let committed=false,lastError;
+     for(let attempt=0;attempt<4&&!committed;attempt++){
+       try{await sheets.spreadsheets.values.update({spreadsheetId,range:range('H'+(found.index+2)+':L'+(found.index+2)),valueInputOption:'RAW',requestBody:{values}});committed=true}
+       catch(e){lastError=e;if(attempt<3)await new Promise(resolve=>setTimeout(resolve,500*(attempt+1)))}
+     }
+     if(!committed)throw Error('ARCHIVE_LINK_COMMIT_FAILED_'+String(lastError?.code||''));
+     return res.json({ok:true,url,verified:true});
    }catch(e){
      const reason=String(e?.message||'UPLOAD_FAILED');
      console.error('Archive upload',reason);

@@ -854,7 +854,14 @@ async function printReport(externalWindow=null){
  const go=async()=>{
   const imgs=[...win.document.images];
   await Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(resolve=>{const timer=setTimeout(resolve,8000);const done=()=>{clearTimeout(timer);resolve()};img.addEventListener('load',done,{once:true});img.addEventListener('error',done,{once:true})})));
-  setTimeout(()=>{win.focus();window.VDReportArchive?.record({reportName:'Projects Report Engine - '+clean(state.report.workOrder),format:'PDF',filename:title+'.pdf'});win.print()},350);
+  setTimeout(async()=>{
+    try{
+      const result=await window.VDReportArchive.archiveGeneratedPdf({win,selector:'.pre-print-section',reportName:'Projects Report Engine - '+clean(r.workOrder),filename:title+'.pdf'});
+      if(!result?.ok)console.warn('Project report retained for print; pCloud retry pending',result?.error);
+      else console.info('Project report archived:',result.url);
+    }catch(error){console.error('Project report pCloud archival failed:',error)}
+    finally{if(!win.closed){win.focus();win.print()}}
+   },350);
  };
  if(win.document.readyState==='complete')go();else win.addEventListener('load',go,{once:true});
 }

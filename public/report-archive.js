@@ -2,91 +2,131 @@
  const PAGE='reportArchivePage',byId=id=>document.getElementById(id);
  const state={items:[],pending:false,term:'',cloud:false,canDelete:false};
  const activeName=()=>document.querySelector('#nav .nav-item.active span')?.textContent?.trim()||'تقرير الداشبورد';
- let recent=null;
+ const STORE='reports',DATABASE='vd-report-pcloud-pending-v1',inflight=new Set();
+ let databasePromise=null,flushing=null;
+ const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+ function openDatabase(){
+  if(databasePromise)return databasePromise;
+  databasePromise=new Promise(resolve=>{
+   if(!('indexedDB' in window))return resolve(null);
+   let req;
+   try{req=indexedDB.open(DATABASE,1)}catch(error){console.warn('Archive IndexedDB unavailable',error);return resolve(null)}
+   req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(STORE))req.result.createObjectStore(STORE,{keyPath:'clientKey'})};
+   req.onsuccess=()=>resolve(req.result);
+   req.onerror=()=>{console.warn('Archive IndexedDB opening failed',req.error);resolve(null)};
+   req.onblocked=()=>resolve(null);
+  });
+  return databasePromise;
+ }
+ async function pendingOperation(mode,job){
+  const db=await openDatabase();if(!db)return mode==='get'?[]:false;
+  return new Promise(resolve=>{
+   try{
+    const tx=db.transaction(STORE,mode==='get'?'readonly':'readwrite'),store=tx.objectStore(STORE);
+    const request=mode==='get'?store.getAll():mode==='remove'?store.delete(job.clientKey):store.put(job);
+    request.onsuccess=()=>resolve(mode==='get'?request.result||[]:true);
+    request.onerror=()=>{console.warn('Archive queue failed',request.error);resolve(mode==='get'?[]:false)};
+   }catch(e){console.warn('Archive queue transaction error',e);resolve(mode==='get'?[]:false)}
+  });
+ }
+ const localAll=()=>pendingOperation('get');
+ const localSave=job=>pendingOperation('put',job);
+ const localDelete=job=>pendingOperation('remove',job);
  async function call(path,data){
-   const r=await fetch(path,{method:data?'POST':'GET',credentials:'same-origin',headers:data?{'Content-Type':'application/json'}:{},body:data?JSON.stringify(data):undefined});
-   const j=await r.json().catch(()=>({}));
-   if(!r.ok||!j.ok)throw Error(j.error||'فشل الاتصال بسجل التقارير');
-   return j;
+  const r=await fetch(path,{method:data?'POST':'GET',credentials:'same-origin',cache:'no-store',headers:data?{'Content-Type':'application/json'}:{},body:data?JSON.stringify(data):undefined,signal:AbortSignal.timeout(65000)});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok||!j.ok)throw Error(j.error||'تعذر اتصال أرشفة التقارير');
+  return j;
  }
  async function sendFile(id,blob,name){
-   const r=await fetch('/api/report-archive/'+encodeURIComponent(id)+'/upload',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/octet-stream','X-Report-Filename':encodeURIComponent(name)},body:blob});
-   const x=await r.json().catch(()=>({}));if(!r.ok||!x.ok)throw Error(x.error||'فشل حفظ الملف على pCloud');return x;
+  if(!(blob instanceof Blob)||blob.size<1)throw Error('REPORT_FILE_MISSING');
+  let error;
+  for(let i=0;i<3;i++){
+   try{
+    const r=await fetch('/api/report-archive/'+encodeURIComponent(id)+'/upload',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/octet-stream','X-Report-Filename':encodeURIComponent(name)},body:blob,signal:AbortSignal.timeout(180000)});
+    const x=await r.json().catch(()=>({}));if(!r.ok||!x.ok)throw Error(x.error||'UPLOAD_FAILED');
+    if(!x.url||x.verified!==true||!/^https:\/\//i.test(x.url))throw Error('PCLOUD_LINK_NOT_VERIFIED');
+    return x;
+   }catch(e){error=e;if(i<2)await wait(900*(i+1))}
+  }
+  throw error||Error('UPLOAD_FAILED');
+ }
+ function queueEvent(status,detail={}){try{window.dispatchEvent(new CustomEvent('vd:report-archive-status',{detail:{status,...detail}}))}catch(_){}}
+ async function runJob(job,onRegistered){
+  if(inflight.has(job.clientKey))return {ok:false,error:'UPLOAD_IN_PROGRESS',id:job.archiveId};
+  inflight.add(job.clientKey);
+  let created=null;
+  try{
+   created=await call('/api/report-archive',{reportName:job.reportName,format:job.format,filename:job.filename,clientKey:job.clientKey});
+   job.archiveId=created.id;await localSave(job);
+   if(typeof onRegistered==='function')onRegistered(created.id);
+   if(!created.pcloudEnabled)throw Error('PCLOUD_NOT_CONFIGURED');
+   const saved=created.alreadySaved&&created.url?{url:created.url,verified:true}:await sendFile(created.id,job.blob,job.filename);
+   if(!saved?.verified||!saved.url)throw Error('PCLOUD_LINK_NOT_VERIFIED');
+   await localDelete(job);
+   queueEvent('archived',{id:created.id,url:saved.url});
+   if(document.querySelector('.nav-item.active')?.dataset.page==='reportArchive')refresh();
+   return {ok:true,id:created.id,url:saved.url,pcloudEnabled:true,verified:true};
+  }catch(e){
+   job.attempts=(job.attempts||0)+1;job.lastError=String(e.message||e);
+   await localSave(job);
+   if(job.archiveId)await call('/api/report-archive/'+encodeURIComponent(job.archiveId)+'/failure',{reason:job.lastError==='PCLOUD_NOT_CONFIGURED'?'PCLOUD_NOT_CONFIGURED':'UPLOAD_FAILED'}).catch(()=>{});
+   queueEvent('pending',{id:job.archiveId,error:job.lastError});
+   console.warn('Archive queued for retry',job.archiveId,job.lastError);
+   return {ok:false,id:job.archiveId,archiveError:job.lastError,pending:true};
+  }finally{inflight.delete(job.clientKey)}
  }
  async function record(input={}){
-   const reportName=String(input.reportName||activeName()).trim(),format=String(input.format||'PDF').toUpperCase();
-   const filename=String(input.filename||('VD_'+reportName+'.'+format.toLowerCase())).trim();
-   const key=reportName+'|'+format+'|'+filename;
-   if(recent&&recent.key===key&&Date.now()-recent.at<4000)return recent.job;
-   const job=(async()=>{
-     try{
-       const result=await call('/api/report-archive',{reportName,format,filename});
-       if(input.blob){
-         if(!result.pcloudEnabled){
-           result.archiveError='PCLOUD_NOT_CONFIGURED';
-           await call('/api/report-archive/'+encodeURIComponent(result.id)+'/failure',{reason:'PCLOUD_NOT_CONFIGURED'}).catch(e=>console.warn('Archive status update failed',e.message));
-         }else{
-           try{
-             const saved=await sendFile(result.id,input.blob,filename);
-             result.url=saved.url;
-           }catch(e){
-             result.archiveError=e.message;
-             console.warn('Archive upload',e.message);
-             await call('/api/report-archive/'+encodeURIComponent(result.id)+'/failure',{reason:'UPLOAD_FAILED'}).catch(err=>console.warn('Archive status update failed',err.message));
-           }
-         }
-       }
-       if(document.querySelector('.nav-item.active')?.dataset?.page==='reportArchive')refresh();
-       return result;
-     }catch(e){console.error('Report archive:',e.message);return null}
-   })();
-   recent={key,at:Date.now(),job};return job;
+  const reportName=String(input.reportName||activeName()).trim(),format=String(input.format||'PDF').toUpperCase();
+  const filename=String(input.filename||('VD_'+reportName+'.'+format.toLowerCase())).trim();
+  // A browser print dialog does not yield an actual PDF Blob; never record an invented upload.
+  if(!(input.blob instanceof Blob)||input.blob.size===0){
+   console.warn('No electronic report file supplied; archive not registered:',reportName);
+   queueEvent('file-missing',{error:'REPORT_FILE_MISSING',reportName});
+   return {ok:false,archiveError:'REPORT_FILE_MISSING'};
+  }
+  const job={clientKey:crypto.randomUUID(),archiveId:null,reportName,format,filename,blob:input.blob,attempts:0,createdAt:Date.now()};
+  const durable=await localSave(job);
+  if(!durable)console.warn('Persistent archive queue unavailable: retry only while current tab remains open');
+  return runJob(job,input.onRegistered);
  }
- async function archiveGeneratedPdf({report,win,selector,reportName,filename,onPdfReady,onProgress,onRegistered}={}){
-   const name=String(filename||('VD_'+(reportName||activeName())+'.pdf'));
-   // Register before any heavy PDF rendering. Avoid blocking rendering on Sheets.
-   const registration=record({reportName:reportName||activeName(),format:'PDF',filename:name})
-     .then(created=>{
-       if(created?.id&&typeof onRegistered==='function'){
-         try{onRegistered(created.id)}catch(e){console.warn('Archive progress callback failed',e)}
-       }
-       return created;
-     });
-   let created=null,blob;
-   try{
-     // Generate a usable PDF even if the archive service is unavailable.
-     blob=win?await window.VDReportPdfCapture?.createWindowPdf(win,selector,onProgress):await window.VDReportPdfCapture?.createPdf(report);
-     if(!(blob instanceof Blob))throw Error('PDF_LIBRARY_UNAVAILABLE');
-     // Reveal the preopened PDF tab as soon as rendering finishes, without awaiting upload.
-     if(typeof onPdfReady==='function'){
-       try{onPdfReady(blob)}catch(viewError){console.error('PDF viewer failed',viewError)}
-     }
-     // Complete the already-started registration and update its pCloud link.
-     created=await registration;
-     if(!created)return {ok:false,error:'REGISTRATION_FAILED',blob};
-     if(!created.pcloudEnabled){
-       await call('/api/report-archive/'+encodeURIComponent(created.id)+'/failure',{reason:'PCLOUD_NOT_CONFIGURED'}).catch(e=>console.warn('Archive status update failed',e.message));
-       if(document.querySelector('.nav-item.active')?.dataset?.page==='reportArchive')refresh();
-       return {ok:false,id:created.id,error:'PCLOUD_NOT_CONFIGURED',blob};
-     }
-     const saved=await sendFile(created.id,blob,name);
-     if(document.querySelector('.nav-item.active')?.dataset?.page==='reportArchive')refresh();
-     console.info('PDF archived to pCloud',created.id);
-     return {ok:true,id:created.id,url:saved.url,blob};
-   }catch(error){
-     // Even failed PDF rendering must leave a traceable archive record.
-     if(!created)created=await registration;
-     const code=String(error?.message||'PDF_RENDER_FAILED');
-     const reason=code.startsWith('PDF_FILE_SIZE')?'PDF_FILE_TOO_LARGE':code==='REPORT_NOT_READY'?'REPORT_NOT_READY':code==='PDF_LIBRARY_UNAVAILABLE'?'PDF_LIBRARY_UNAVAILABLE':/^(UPLOAD_|WEBDAV_|PCLOUD_)/.test(code)?'UPLOAD_FAILED':'PDF_RENDER_FAILED';
-     if(created){
-       try{await call('/api/report-archive/'+encodeURIComponent(created.id)+'/failure',{reason})}catch(e){console.warn('Report archive status update failed',e.message)}
-     }
-     console.error('Automatic PDF archive failed',reason,code);
-     return {ok:false,id:created?.id,error:reason,blob};
+ async function archiveGeneratedPdf({report,win,selector,reportName,filename,onPdfReady,onProgress,onRegistered,wide=false}={}){
+  let blob;
+  try{
+   const capture=window.VDReportPdfCapture;
+   if(!capture)throw Error('PDF_LIBRARY_UNAVAILABLE');
+   blob=win?(wide?await capture.createWindowPdfWide(win,selector,onProgress):await capture.createWindowPdf(win,selector,onProgress)):await capture.createPdf(report);
+   if(!(blob instanceof Blob)||blob.size<800)throw Error('PDF_LIBRARY_UNAVAILABLE');
+   if(typeof onPdfReady==='function')try{onPdfReady(blob)}catch(e){console.warn('Report viewer callback error',e)}
+   const result=await record({reportName:reportName||activeName(),format:'PDF',filename:filename||'VD_Report.pdf',blob,onRegistered});
+   return {...result,error:result.archiveError,blob};
+  }catch(e){
+   queueEvent('capture-failed',{error:String(e.message||e)});
+   console.error('PDF generation failed; no archive row was registered:',e);
+   return {ok:false,error:String(e.message||e),blob};
+  }
+ }
+ async function flushPending(){
+  if(flushing)return flushing;
+  flushing=(async()=>{
+   const jobs=await localAll();
+   for(const job of jobs){
+    if(inflight.has(job.clientKey))continue;
+    if(!job.blob||!job.filename){await localDelete(job);continue}
+    await runJob(job);
    }
+  })().finally(()=>{flushing=null});
+  return flushing;
  }
- window.VDReportArchive={record,sendFile,archiveGeneratedPdf,refresh:()=>refresh()};
- const el=(tag,txt)=>{const x=document.createElement(tag);if(txt!==undefined)x.textContent=txt;return x};
+ window.VDReportArchive={record,sendFile,archiveGeneratedPdf,refresh:()=>refresh(),retryPending:flushPending,queueList:localAll};
+ const onlineRetry=()=>{if(document.visibilityState!=='hidden'&&navigator.onLine!==false)flushPending().catch(console.warn)};
+ window.addEventListener('online',onlineRetry);
+ window.addEventListener('focus',onlineRetry);
+ document.addEventListener('visibilitychange',onlineRetry);
+ setInterval(onlineRetry,120000);
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(onlineRetry,1200),{once:true});
+ else setTimeout(onlineRetry,1200);
+const el=(tag,txt)=>{const x=document.createElement(tag);if(txt!==undefined)x.textContent=txt;return x};
  function render(){
   const page=byId(PAGE);if(!page)return;page.replaceChildren();
   const head=el('div');head.className='ra-head';const name=el('div');name.append(el('small','REPORT ARCHIVE'),el('h2','سجل التقارير الصادرة'),el('p','التاريخ والوقت بتوقيت السعودية | المُصدِر | اسم التقرير | رابط التقرير'));head.append(name);

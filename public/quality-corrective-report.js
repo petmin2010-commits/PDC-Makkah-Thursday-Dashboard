@@ -511,7 +511,13 @@ async function printReport(externalWindow=null){
   pages=pages.replace(/^<section class="sheet cover">[\s\S]*?<\/section>/,approvedCoverHtml(r))
              .replace(/<section class="sheet end">[\s\S]*?<\/section>$/,approvedEndingHtml());
 if(win.closed)throw Error('أُغلقت نافذة التقرير أثناء التجهيز.');
- win.document.open();win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+esc('VD-Quality-'+city+'-'+r.startDate)+'</title><style>'+printCss()+originalSummaryCss()+approvedEndcapsCss()+originalFindingCss()+'</style></head><body><div class="print-actions"><button onclick="window.print()">طباعة أو حفظ التقرير PDF</button> – تأكد من تحميل الصور قبل الطباعة</div>'+pages+originalFindingFitScript()+'</body></html>');win.document.close();window.VDReportArchive?.record({reportName:'تقرير الجودة والإجراءات التصحيحية',format:'PDF',filename:'VD_Quality_Corrective.pdf'});notice('تقرير PDF جاهز في نافذة جديدة. استخدم زر الطباعة للحفظ.');
+ win.document.open();win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+esc('VD-Quality-'+city+'-'+r.startDate)+'</title><style>'+printCss()+originalSummaryCss()+approvedEndcapsCss()+originalFindingCss()+'</style></head><body><div class="print-actions"><button onclick="window.print()">طباعة أو حفظ التقرير PDF</button> – تأكد من تحميل الصور قبل الطباعة</div>'+pages+originalFindingFitScript()+'</body></html>');win.document.close();
+  const result=await window.VDReportArchive.archiveGeneratedPdf({win,selector:'.sheet',wide:true,
+    reportName:'تقرير الجودة والإجراءات التصحيحية',
+    filename:'VD_Quality_Corrective_'+String(r.startDate||'Week')+'_'+city+'.pdf'});
+  if(result?.ok){notice('تم حفظ تقرير الجودة على pCloud وتسجيل رابط الأرشفة بنجاح.');}
+  else{notice('الملف جاهز للطباعة، لكن الأرشفة لم تكتمل: '+String(result?.error||'تعذر الرفع')+'. إذا تم إنشاء الملف فسيعاد رفعه تلقائيًا.',true);}
+  return result;
  }catch(e){if(!win.closed)win.close();notice('تعذر تجهيز التقرير: '+e.message,true)}finally{buttonBusy('qcrExport',false)}
 }
 window.VDQualityCorrectiveCenter={
