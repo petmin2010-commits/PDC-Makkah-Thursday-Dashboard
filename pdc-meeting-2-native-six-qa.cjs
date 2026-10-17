@@ -10,10 +10,10 @@ try{
  await p.addScriptTag({path:'C:/VD-Agent/jszip.min.js'});
  await p.addScriptTag({path:root+'/vendor/pptxgen.bundle.js'});
  await p.addScriptTag({path:root+'/pdc-meeting-2-original-six.js'});
- const encoded=fs.readFileSync('C:/VD-Agent/pdc2-six-for-qa.pptx').toString('base64');
+ const encoded=fs.readFileSync('C:/Users/a_salama/Documents/dashboard-report-work/Nav-Analytics-Makkah-20261017/private-assets/pdc2-first-six-sanitized.pptx').toString('base64');
  const out=await p.evaluate(async code=>{
   const b64=atob(code),originalBytes=Uint8Array.from(b64,c=>c.charCodeAt(0));
-  const summary={construction:{total:1168,completed:994,inProgress:100,notStarted:74,received155:448,notReceived155:546},emergency:{available:true,total:913,completed:865,inProgress:25,notStarted:23,scheduled:900,unscheduled:13},permits:{available:true,total:1168},financial:{approvedQuantities:20,purchaseOrders:20,paymentCertificates:30,paymentRate:25}};
+  const summary={construction:{total:1168,completed:994,inProgress:100,notStarted:74,received155:448,notReceived155:546,byRegionSection:{makkahConnections:{total:903,completed:800,inProgress:61,notStarted:42,received155:411},total:{total:1168,completed:994,inProgress:100,notStarted:74,received155:448}}},emergency:{available:true,total:913,completed:865,inProgress:25,notStarted:23,scheduled:900,unscheduled:13},permits:{available:true,total:1168},financial:{approvedQuantities:20,purchaseOrders:20,paymentCertificates:30,paymentRate:25},weekly:{completedConnections:44,receivedConnections155:11,completedProjects:6,receivedProjects155:3}};
   const pptx=new PptxGenJS();pptx.layout='LAYOUT_WIDE';
   const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;
   const ctx=canvas.getContext('2d');ctx.fillStyle='#0077aa';ctx.fillRect(0,0,640,360);ctx.fillStyle='white';ctx.font='20px Arial';ctx.fillText('SAFETY',50,70);
@@ -28,13 +28,17 @@ try{
   const slides=(pres.match(/<p:sldId\b/g)||[]).length;
   const first=await z.file('ppt/slides/slide1.xml').async('string');
   const fourth=await z.file('ppt/slides/slide4.xml').async('string');
+  const tableSlide=await z.file('ppt/slides/slide2.xml').async('string');
+  const weeklySlide=await z.file('ppt/slides/slide6.xml').async('string');
   const chart=await z.file('ppt/charts/chart1.xml').async('string');
   const lastRel=await z.file('ppt/slides/_rels/slide8.xml.rels').async('string');
-  const oldTitles=first.includes('>1153<')||fourth.includes('>900<');
+  const oldTitles=first.includes('>1153<')||!first.includes('>1168<')||!first.includes('>448<')||!fourth.includes('>913<');
+  const nativeTable=tableSlide.includes('>903<')&&tableSlide.includes('>411<');
+  const nativeWeekly=weeklySlide.includes('>44<')&&weeklySlide.includes('>11<');
   const hasImages=Object.keys(z.files).some(x=>x.includes('PDC2_REPORT_'));
-  return {slides,hasImages,oldTitles,chartHas994:chart.includes('>994<'),imageRels:lastRel.includes('PDC2_REPORT_'),templateLogoFiles:!!z.file('ppt/media/image1.png')&&!!z.file('ppt/media/image2.png'),originalCharts:!!z.file('ppt/charts/chart12.xml'),size:merged.blob.size,contentTypes:(await z.file('[Content_Types].xml').async('string')).includes('ppt/slides/slide8.xml')};
+  return {slides,hasImages,oldTitles,nativeTable,nativeWeekly,chartHas994:chart.includes('>994<'),imageRels:lastRel.includes('PDC2_REPORT_'),templateLogoFiles:!!z.file('ppt/media/image1.png')&&!!z.file('ppt/media/image2.png'),originalCharts:!!z.file('ppt/charts/chart12.xml'),size:merged.blob.size,contentTypes:(await z.file('[Content_Types].xml').async('string')).includes('ppt/slides/slide8.xml')};
  },encoded);
- console.log(JSON.stringify(out));assert.equal(out.slides,8);assert(out.hasImages);assert(!out.oldTitles);assert(out.chartHas994);assert(out.imageRels);assert(out.originalCharts);assert(out.contentTypes);
+ console.log(JSON.stringify(out));assert.equal(out.slides,8);assert(out.hasImages);assert(!out.oldTitles);assert(out.nativeTable);assert(out.nativeWeekly);assert(out.chartHas994);assert(out.imageRels);assert(out.originalCharts);assert(out.contentTypes);
  console.log('PASS NATIVE: unchanged original native slide geometry plus 12 updated chart caches plus appended two image slides');
 }finally{await b.close();}
 })().catch(e=>{console.error(e.stack||e);process.exit(1)});

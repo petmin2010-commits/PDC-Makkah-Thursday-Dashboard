@@ -20,13 +20,28 @@ module.exports=function installPdc2OriginalSix({app,requireAuth_}){
   if(data.length<1000||data.subarray(0,2).toString()!=='PK')throw Error('INVALID_TEMPLATE_CONTENT');
   return data;
  };
- let templateBytes=null,availabilityReason=null;
+ // The six-slide visual draft is also stored as a data-free native PPTX.
+ // This lets the exact PowerPoint geometry/fonts/charts work on Render even when
+ // an old environment setting points at the *path* of the local AES key.
+ const cleanFile=path.join(__dirname,'private-assets','pdc2-first-six-sanitized.pptx');
+ const cleanSha256='34498548b8a556d20ec70b1753750948c536a1d62426a85d549bddac8d893701';
+ let templateBytes=null,templateSource=null,availabilityReason=null;
  try{
   templateBytes=loadSource();
-  console.info('[PDC2 original six] verified: source decrypted and authenticated; six-slide template ready');
+  templateSource='encrypted-original-six';
+  console.info('[PDC2 original six] verified: encrypted source decrypted; six native slides ready');
  }catch(e){
-  availabilityReason=e.message||'UNAVAILABLE';
-  console.warn('[PDC2 original six] unavailable:',availabilityReason);
+  availabilityReason=e.message||'ENCRYPTED_UNAVAILABLE';
+  try{
+   const clean=fs.readFileSync(cleanFile);
+   const digest=crypto.createHash('sha256').update(clean).digest('hex');
+   if(digest!==cleanSha256)throw Error('SANITIZED_TEMPLATE_HASH_MISMATCH');
+   if(clean.subarray(0,2).toString()!=='PK')throw Error('SANITIZED_TEMPLATE_INVALID_ZIP');
+   templateBytes=clean;templateSource='sanitized-original-six';
+   console.info('[PDC2 original six] verified: sanitized draft geometry loaded; six native slides ready');
+  }catch(cleanError){
+   console.error('[PDC2 original six] both sources unavailable:',availabilityReason,cleanError.message);
+  }
  }
  const hasSource=()=>Buffer.isBuffer(templateBytes);
  const allowed=req=>{
@@ -38,7 +53,7 @@ module.exports=function installPdc2OriginalSix({app,requireAuth_}){
  app.get('/api/pdc-meeting-2/template-six/status',requireAuth_,(req,res)=>{
   res.set('Cache-Control','private, no-store');
   if(!allowed(req))return res.status(403).json({ok:false,error:'PDC2_PERMISSION_REQUIRED'});
-  res.json({ok:true,available:hasSource(),source:'original-pptx-six',verifiedSlides:6,
+  res.json({ok:true,available:hasSource(),source:templateSource||'original-pptx-six',verifiedSlides:6,
    description:'Original first six native PPTX slides; no rebuilt HTML slide may substitute them.'});
  });
  app.get('/api/pdc-meeting-2/template-six',requireAuth_,(req,res)=>{

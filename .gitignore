@@ -9,3 +9,5 @@ report-templates/
 # Keep only AES-GCM ciphertext of the first-six slide template in Git.
 private-assets/*
 !private-assets/pdc2-original-first-six.pptx.enc
+# Data-free first-six native layout; contains no historical contractor data
+!private-assets/pdc2-first-six-sanitized.pptx

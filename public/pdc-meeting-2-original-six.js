@@ -66,7 +66,11 @@ function patchSlide(xml,n,s){
      'Rectangle 17':f.paymentCertificates,'Rectangle 21':f.approvedQuantities,
      'Rectangle 25':e.total}
  }[n]||{};
- return xml.replace(/<p:sp>[\s\S]*?<\/p:sp>/g,shape=>{
+ // Clean historical numeric runs BEFORE inserting live values. The old
+ // post-processing rule accidentally erased the newly inserted live metrics.
+ const blank=xml.replace(/<a:t>([\s\d.,%٠-٩٪]+)<\/a:t>/g,(_tag,t)=>
+   /^\s*155\s*$/.test(t)?'<a:t>155</a:t>':'<a:t>—</a:t>');
+ return blank.replace(/<p:sp>[\s\S]*?<\/p:sp>/g,shape=>{
   const title=(shape.match(/<p:cNvPr\b[^>]*\bname="([^"]+)"/)||[])[1]||'';
   let text=shape;
   if(Object.prototype.hasOwnProperty.call(shapeValues,title)){
@@ -82,13 +86,56 @@ function patchSlide(xml,n,s){
       /^[\s\d.,%٠-٩٪]+$/.test(body)?'<a:t>—</a:t>':tag);
   }
   return text;
- }).replace(/<a:t>([\s\d.,%٠-٩٪]+)<\/a:t>/g,(_tag,t)=>/^\s*\d+\s*$/.test(t)&&t.trim()==='155'?'<a:t>155</a:t>':'<a:t>—</a:t>');
+ });
+}
+// Fill native PowerPoint TABLES without moving/recreating any cell, color,
+// line or font. Unmapped values remain blank rather than copying stale data.
+function replaceTableValues(xml,slideNo,s){
+ const set=(cell,value)=>{
+  const text=value===null||value===undefined||value===''?'—':String(value);
+  return cell.replace(/<a:t>[\s\S]*?<\/a:t>/,'<a:t>'+xmlEsc(text)+'</a:t>');
+ };
+ if(slideNo===2){
+  const keys=['makkahConnections','makkahProjects','makkahCentral','makkahAutomation',
+              'khulaisConnections','khulaisProjects','khulaisAutomation','total'];
+  const groups=s.construction?.byRegionSection||{};
+  return xml.replace(/<a:tbl>[\s\S]*?<\/a:tbl>/,(table)=>{
+   let row=-1;
+   return table.replace(/<a:tr\b[^>]*>[\s\S]*?<\/a:tr>/g,(rowXml)=>{
+    row++;if(row<3||row>10)return rowXml;
+    const g=groups[keys[row-3]];
+    if(!g)return rowXml;
+    let cell=-1;
+    return rowXml.replace(/<a:tc\b[^>]*>[\s\S]*?<\/a:tc>/g,tc=>{
+     cell++;
+     const colVals={3:g.total,4:g.completed,7:g.inProgress,8:g.notStarted,14:g.received155,
+      15:g.total?Math.round(1000*g.completed/g.total)/10+'%':'—'};
+     return Object.prototype.hasOwnProperty.call(colVals,cell)?set(tc,colVals[cell]):tc;
+    });
+   });
+  });
+ }
+ if(slideNo===6){
+  const w=s.weekly||{};
+  const sequences=[[w.completedConnections,w.receivedConnections155],[w.completedProjects,w.receivedProjects155]];
+  let n=-1;
+  return xml.replace(/<a:tbl>[\s\S]*?<\/a:tbl>/g,(table)=>{
+   n++;
+   let row=-1;
+   return table.replace(/<a:tr\b[^>]*>[\s\S]*?<\/a:tr>/g,(rowXml)=>{
+    row++;
+    if((row!==1&&row!==3)||!sequences[n])return rowXml;
+    return rowXml.replace(/<a:tc\b[^>]*>[\s\S]*?<\/a:tc>/,tc=>set(tc,sequences[n][row===1?0:1]));
+   });
+  });
+ }
+ return xml;
 }
 const nudge=async(zip,s)=>{
  for(let i=1;i<=6;i++){
   const name='ppt/slides/slide'+i+'.xml';
   if(!zip.file(name))throw Error('ORIGINAL_SLIDE_MISSING_'+i);
-  const updated=patchSlide(await zip.file(name).async('string'),i,s);
+  const updated=replaceTableValues(patchSlide(await zip.file(name).async('string'),i,s),i,s);
   zip.file(name,updated.replace(/<a:t>([^<]*[\u0600-\u06ff][^<]*)<\/a:t>/g,(_tag,t)=>
    '<a:t>'+t.replace(/\d+(?:[.,]\d+)?/g,n=>n==='155'?n:'—')+'</a:t>'));
  }

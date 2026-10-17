@@ -88,6 +88,33 @@ module.exports=function installPdcMeeting2({app,requireAuth_,getWednesdayMeeting
    else if(inProgress(item.executionRaw))byBusinessType[key].inProgress++;
    else if(pending(item.executionRaw))byBusinessType[key].notStarted++;
   }
+  // Region-by-department breakdown populates the ORIGINAL construction
+  // table on slide 2 (Makkah/Khulais; connections/projects). One work row
+  // contributes to exactly one category; no unique-order deduplication.
+  const emptyGroup=()=>({total:0,completed:0,inProgress:0,notStarted:0,received155:0});
+  const byRegionSection={
+   makkahConnections:emptyGroup(),makkahProjects:emptyGroup(),
+   makkahCentral:emptyGroup(),makkahAutomation:emptyGroup(),
+   khulaisConnections:emptyGroup(),khulaisProjects:emptyGroup(),
+   khulaisAutomation:emptyGroup(),other:emptyGroup(),total:emptyGroup()
+  };
+  for(const item of work){
+   const region=normalize([item.region,item.office].filter(Boolean).join(' '));
+   const dept=normalize([item.section,item.category].filter(Boolean).join(' '));
+   const khulais=/خليص/.test(region),conn=/توصيل/.test(dept);
+   const auto=/اتمتة|أتمتة/.test(region+' '+dept),central=/المشاعر|المركزية/.test(region);
+   const key=auto?(khulais?'khulaisAutomation':'makkahAutomation'):
+    conn?(khulais?'khulaisConnections':'makkahConnections'):
+    /مشاريع|مشروع/.test(dept)?(khulais?'khulaisProjects':central?'makkahCentral':'makkahProjects'):'other';
+   const doneRow=item.completed===true||done(item.executionRaw);
+   for(const target of [byRegionSection[key],byRegionSection.total]){
+    target.total++;
+    if(doneRow)target.completed++;
+    else if(inProgress(item.executionRaw))target.inProgress++;
+    else if(pending(item.executionRaw))target.notStarted++;
+    if(doneRow&&normalize(item.contractor155Status)==='نعم')target.received155++;
+   }
+  }
   const received155=complete.filter(r=>normalize(r.contractor155Status)==='نعم').length;
   const notReceived155=complete.filter(r=>normalize(r.contractor155Status)==='لا').length;
   const permits=permitPage.error?{available:false,reason:permitPage.error}:
@@ -107,7 +134,7 @@ module.exports=function installPdcMeeting2({app,requireAuth_,getWednesdayMeeting
    template:{originalSlideCount:44,aspect:'16:9',version:'2026-10-14'},
    construction:{available:true,total:work.length,uniqueWorkOrders,repeatedRows,countBasis:'rows',
     completed:complete.length,notStarted:notStarted.length,
-    inProgress:progress.length,received155,notReceived155,byBusinessType,
+    inProgress:progress.length,received155,notReceived155,byBusinessType,byRegionSection,
     unclassified:Math.max(0,work.length-complete.length-notStarted.length-progress.length),
     bySection:countBy(work,'section'),byCategory:countBy(work,'category'),byContractor:countBy(work,'contractor').slice(0,15),
     from:'أوامر العمل — جميع السجلات'},
