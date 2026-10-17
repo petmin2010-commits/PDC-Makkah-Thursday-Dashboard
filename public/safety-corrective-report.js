@@ -35,8 +35,16 @@ function mount(){
  $('scrPhotoGrid').addEventListener('click',photoClick);
  $('scrPhotoGrid').addEventListener('input',e=>{if(e.target.matches('textarea,input:not([type=file]),select'))state.dirty=true;});
  $('scrMetaFields').addEventListener('input',()=>{$('scrMetaSave').classList.add('scr-unsaved');renderKpis()});
- $('scrAddContractor').addEventListener('click',()=>{const t=$('scrContractorRows');t.insertAdjacentHTML('beforeend','<tr><td><input data-contractor-name maxlength="120" aria-label="اسم المقاول" placeholder="اسم المقاول"></td><td><input data-contractor-count type="number" min="0" aria-label="عدد ملاحظات السلامة"></td><td><button type="button" class="scr-remove-contractor" aria-label="حذف المقاول" title="حذف الصف">×</button></td></tr>');$('scrMetaSave').classList.add('scr-unsaved');renderKpis()});
- $('scrContractorRows').addEventListener('click',e=>{if(!e.target.matches('.scr-remove-contractor'))return;e.target.closest('tr')?.remove();if(!$('scrContractorRows').children.length)renderContractorRows([]);$('scrMetaSave').classList.add('scr-unsaved');renderKpis()});
+ $('scrAddContractor').addEventListener('click',()=>{const t=$('scrContractorRows');t.insertAdjacentHTML('beforeend',contractorRow());$('scrMetaSave').classList.add('scr-unsaved');renderKpis()});
+ $('scrContractorRows').addEventListener('click',e=>{
+   if(!e.target.matches('.scr-remove-contractor'))return;
+   const row=e.target.closest('tr'),name=clean(row?.querySelector('[data-contractor-name]')?.value);
+   if(name&&(contractorCountMap().get(contractorKey(name))?.count||0)>0){
+    notice('هذا المقاول لديه ملاحظات محفوظة. انقل الملاحظات أو احذفها أولاً لتتمكن من حذف صفه.',true);return;
+   }
+   row?.remove();if(!$('scrContractorRows').children.length)renderContractorRows([]);
+   $('scrMetaSave').classList.add('scr-unsaved');renderKpis();
+  });
  refresh();
  refreshContractors();
  refreshWorkTypes();
@@ -64,7 +72,7 @@ function markup(){return `
 </section>
 <section class="scr-original-contractors">
 <table aria-label="ملاحظات السلامة حسب المقاول"><thead><tr><th>المقاول</th><th>عدد ملاحظات السلامة</th><th class="scr-row-actions">حذف</th></tr></thead><tbody id="scrContractorRows"></tbody></table>
-<button id="scrAddContractor" class="scr-add-contractor" type="button">+ إضافة مقاول</button><small id="scrContractorHint">يمكن تعديل أسماء المقاولين وأعداد الملاحظات.</small>
+<button id="scrAddContractor" class="scr-add-contractor" type="button">+ إضافة مقاول</button><small id="scrContractorHint">أسماء المقاولين قابلة للتعديل، والأعداد تُحتسب تلقائيًا من الملاحظات المحفوظة.</small>
 </section>
 </div>
 <details class="scr-original-extras"><summary>بيانات الفترة والاعتماد وملاحظات التقرير العامة</summary><div class="scr-grid">
@@ -108,17 +116,51 @@ function markup(){return `
 </div></div></section></div>`}
 function open(){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));$(PAGE).classList.add('active');document.querySelectorAll('#nav .nav-item').forEach(x=>x.classList.toggle('active',x.id===NAV));const bar=$('filterBar');if(bar)bar.style.display='none';const title=$('pageTitle');if(title)title.textContent='تقرير السلامة والإجراءات التصحيحية';document.body.classList.add('scr-open');}
 function leave(){document.body.classList.remove('scr-open');$(PAGE)?.classList.remove('active');const bar=$('filterBar');if(bar)bar.style.display='';}
+const contractorKey=value=>clean(value).normalize('NFKC').replace(/\s+/g,' ').replace(/[\u0640\u064B-\u065F]/g,'').toLocaleLowerCase('ar');
+function contractorCountMap(){
+ const totals=new Map();
+ for(const finding of state.findings){
+  const name=clean(finding.contractor)||'غير محدد',key=contractorKey(name);
+  if(!totals.has(key))totals.set(key,{name,count:0});
+  totals.get(key).count++;
+ }
+ return totals;
+}
+function contractorRow(name='',count=0){
+ return '<tr><td><input data-contractor-name maxlength="120" aria-label="اسم المقاول" placeholder="اسم المقاول" value="'+esc(name)+'"></td>'+
+  '<td><output class="scr-contractor-count" data-contractor-count aria-label="عدد الملاحظات المحتسب تلقائيًا">'+fmt(count)+'</output></td>'+
+  '<td><button type="button" class="scr-remove-contractor" aria-label="حذف المقاول" title="حذف المقاول إذا لم تكن له ملاحظات">×</button></td></tr>';
+}
 function summaryContractors(){
- return [...$('scrContractorRows').querySelectorAll('tr')].map(tr=>({
-  name:clean(tr.querySelector('[data-contractor-name]')?.value),
-  count:Number(tr.querySelector('[data-contractor-count]')?.value||0)
- })).filter(x=>x.name).slice(0,60)
+ const counts=contractorCountMap(),names=new Map();
+ for(const tr of $('scrContractorRows').querySelectorAll('tr')){
+  const name=clean(tr.querySelector('[data-contractor-name]')?.value),key=contractorKey(name);
+  if(name&&!names.has(key))names.set(key,{name,count:counts.get(key)?.count||0});
+ }
+ for(const [key,value] of counts)if(!names.has(key))names.set(key,{...value});
+ return [...names.values()];
 }
 function renderContractorRows(values){
- const list=Array.isArray(values)&&values.length?values:[{name:'',count:''}];
- $('scrContractorRows').innerHTML=list.map(x=>'<tr><td><input data-contractor-name maxlength="120" aria-label="اسم المقاول" placeholder="اسم المقاول" value="'+esc(x.name||'')+'"></td>'+
- '<td><input data-contractor-count type="number" min="0" aria-label="عدد ملاحظات السلامة" value="'+esc(x.count??'')+'"></td>'+
- '<td><button type="button" class="scr-remove-contractor" aria-label="حذف المقاول" title="حذف الصف">×</button></td></tr>').join('');
+ const totals=contractorCountMap(),names=new Map();
+ for(const item of Array.isArray(values)?values:[]){
+  const name=clean(item?.name),key=contractorKey(name);
+  if(name&&!names.has(key))names.set(key,name);
+ }
+ for(const [key,item] of totals)if(!names.has(key))names.set(key,item.name);
+ $('scrContractorRows').innerHTML=names.size?[...names].map(([key,name])=>contractorRow(name,totals.get(key)?.count||0)).join(''):contractorRow();
+}
+function syncContractorCounts(){
+ const tbody=$('scrContractorRows');if(!tbody)return;
+ const totals=contractorCountMap(),existing=new Set();
+ for(const row of tbody.querySelectorAll('tr')){
+  const name=clean(row.querySelector('[data-contractor-name]')?.value),key=contractorKey(name);
+  if(name)existing.add(key);
+  const value=row.querySelector('[data-contractor-count]');
+  if(value)value.textContent=fmt(totals.get(key)?.count||0);
+ }
+ for(const [key,item] of totals){
+  if(!existing.has(key)){tbody.insertAdjacentHTML('beforeend',contractorRow(item.name,item.count));existing.add(key)}
+ }
 }
 const observationNotes=()=>state.findings.map(f=>clean(f.observation)).filter(Boolean);
 const highlightsText=()=>observationNotes().map((note,i)=>(i+1)+'- '+note).join('\n\n');
@@ -201,8 +243,9 @@ function renderKpis(){
  $('scrCoverage').textContent=coverage.toLocaleString('en-US')+'%';
  for(const [id,value] of [['scrAutoFindings',detail.total],['scrAutoOpen',detail.open],['scrAutoClosed',detail.closed]])$(id).textContent=fmt(value);
  $('scrCountsHint').textContent='إجمالي '+detail.total+' ملاحظة محفوظة: '+detail.open+' مفتوحة (تشمل جاري التصحيح) + '+detail.closed+' مغلقة. يُحدث العداد تلقائيًا بعد الحفظ أو الحذف.';
- const listed=summaryContractors(),sum=listed.reduce((n,x)=>n+x.count,0);
- $('scrContractorHint').textContent=listed.length?'مجموع ملاحظات المقاولين: '+sum+' من أصل '+detail.total+(sum===detail.total?' (متطابق).':' (راجع المقاولين غير المدرجين).'):'أضف أسماء المقاولين وأعداد الملاحظات.';
+ syncContractorCounts();
+ const counted=summaryContractors().reduce((sum,item)=>sum+item.count,0);
+ $('scrContractorHint').textContent='العدد محسوب تلقائيًا من '+detail.total+' ملاحظة محفوظة في هذا الأسبوع. مجموع جدول المقاولين: '+counted+'.';
 }
 function renderFindings(){
  const list=$('scrFindingList'),has=state.findings.length>0;
@@ -372,12 +415,8 @@ function originalSummaryCss(){return '@media print{.scr-p-summary{page-break-ins
 }
 
 const summaryCounts=()=>{
- const f=state.findings,r=state.report||{},detail=detailCount(),grouped={};
- f.forEach(x=>{const name=x.contractor||'غير محدد';grouped[name]=(grouped[name]||0)+1});
- if(Array.isArray(r.contractorBreakdown)&&r.contractorBreakdown.length){
-  Object.keys(grouped).forEach(k=>delete grouped[k]);
-  for(const x of r.contractorBreakdown)grouped[x.name]=(grouped[x.name]||0)+Number(x.count||0);
- }
+ const r=state.report||{},detail=detailCount(),grouped={};
+ for(const item of summaryContractors())grouped[item.name]=item.count;
  return {total:detail.total,closed:detail.closed,open:detail.open,coverage:r.totalSites?100*r.visitedSites/r.totalSites:0,grouped};
 };
 const brand=title=>'<header class="brand"><img src="/company-logo.png" alt="أبعاد الرؤية"><h2>'+esc(title)+'</h2><img src="/pdc-logo.jpg" alt="PDC"></header>';

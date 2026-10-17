@@ -57,6 +57,23 @@ module.exports=function installSafetyCorrective({app,requireAuth_,getSheets,SPRE
   function parseContractors(raw){
     try{return normalizeContractors(JSON.parse(String(raw||'[]')))}catch(_){return []}
   }
+  // The finding records are the sole source of truth for contractor counts.
+  // Existing report contractor names are retained (with zero when no findings).
+  const contractorKey=s=>val(s,180).normalize('NFKC').replace(/\s+/g,' ').replace(/[\u0640\u064B-\u065F]/g,'').toLocaleLowerCase('ar');
+  function derivedContractorBreakdown(findings,stored){
+    const grouped=new Map();
+    for(const row of normalizeContractors(stored)){
+      const key=contractorKey(row.name);
+      if(key&&!grouped.has(key))grouped.set(key,{name:row.name,count:0});
+    }
+    for(const finding of findings){
+      const name=val(finding.contractor,180)||'غير محدد',key=contractorKey(name);
+      if(!grouped.has(key))grouped.set(key,{name,count:0});
+      grouped.get(key).count++;
+    }
+    return [...grouped.values()];
+  }
+
   function metaRow(id,src,req){
     const sites=natural(src.totalSites),visited=natural(src.visitedSites);
     if(visited>sites)throw new Error('عدد المواقع التي تمت زيارتها لا يمكن أن يتجاوز عدد المواقع الإجمالي.');
@@ -110,7 +127,10 @@ module.exports=function installSafetyCorrective({app,requireAuth_,getSheets,SPRE
   app.put('/api/safety-corrective/reports/:id',requireAuth_,run(async req=>{
     const id=idSafe(req.params.id),found=(await all(REPORTS,'P')).find(r=>r.data[0]===id);
     if(!found)throw new Error('التقرير المطلوب غير موجود.');
-    const row=metaRow(id,{...metaObj(found.data),...(req.body||{})},req);
+    const changes={...metaObj(found.data),...(req.body||{})};
+    const findings=(await all(FINDINGS,'M')).filter(item=>item.data[0]===id).map(item=>findingObj(item.data));
+    changes.contractorBreakdown=derivedContractorBreakdown(findings,changes.contractorBreakdown);
+    const row=metaRow(id,changes,req);
     if(!/^\d{4}-\d\d-\d\d$/.test(row[1])||!/^\d{4}-\d\d-\d\d$/.test(row[2])||row[1]>row[2])throw new Error('حدد تاريخ بداية ونهاية صالحين للتقرير.');
     await upsert(REPORTS,row,0,'P');return {report:metaObj(row)};
   }));
@@ -118,7 +138,9 @@ module.exports=function installSafetyCorrective({app,requireAuth_,getSheets,SPRE
     const id=idSafe(req.params.id),r=(await all(REPORTS,'P')).find(x=>x.data[0]===id);
     if(!r)throw new Error('لم يتم العثور على التقرير.');
     const findings=(await all(FINDINGS,'M')).filter(x=>x.data[0]===id).map(x=>findingObj(x.data));
-    return {report:metaObj(r.data),findings};
+    const report=metaObj(r.data);
+    report.contractorBreakdown=derivedContractorBreakdown(findings,report.contractorBreakdown);
+    return {report,findings};
   }));
   app.post('/api/safety-corrective/reports/:id/findings',requireAuth_,run(async req=>{
     const reportId=idSafe(req.params.id);

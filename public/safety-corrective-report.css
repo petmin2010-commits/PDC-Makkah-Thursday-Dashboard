@@ -116,4 +116,11 @@ body.scr-open #violationPeriodSlicer {
 .scr-ref-card .scr-phase-actions .scr-danger{flex:0 0 auto}
 @media(max-width:600px){.scr-ref-card .scr-phase-actions{flex-wrap:wrap}.scr-ref-card .scr-phase-actions button{flex:1 1 auto}}
 
+/* Contractor observations always come from saved findings, never manual number fields. */
+.scr-original-contractors .scr-contractor-count{
+ display:block;width:100%;text-align:center;padding:5px 2px;font-size:14px;
+ font-weight:900;color:#123e69;line-height:1.35;font-variant-numeric:tabular-nums;
+ cursor:default;user-select:text;
+}
+.scr-original-contractors .scr-contractor-count:focus-visible{outline:2px solid #f28a23}
 .scr-original-highlights textarea[readonly]{cursor:default;white-space:pre-wrap;overflow-wrap:anywhere;background:#e7f0fc;color:#123d66;}
