@@ -5,3 +5,7 @@ credentials.json
 report-templates/
 *.log
 .DS_Store
+
+# Keep only AES-GCM ciphertext of the first-six slide template in Git.
+private-assets/*
+!private-assets/pdc2-original-first-six.pptx.enc

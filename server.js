@@ -2554,6 +2554,7 @@ require('./projects-report-defaults-server')({
 const pdcMeeting2ManualStore=require('./pdc-meeting-2-manual-store')({app,requireAuth_,getSheets,SPREADSHEET_ID,qSheet,DateTime,APP});
 // Live PDC Meeting 2 summary combines sheets and audited manual inputs, keeping provenance.
 require('./pdc-meeting-2-server')({app,requireAuth_,getWednesdayMeetingData,getPageData,getSheets,SPREADSHEET_ID,qSheet,APP,manualStore:pdcMeeting2ManualStore});
+require('./pdc-meeting-2-original-six-server')({app,requireAuth_});
 
 const safetyCorrectiveImages=require('./safety-corrective-images-server')({ app, requireAuth_, getSheets, SPREADSHEET_ID, qSheet, APP, DateTime });
 require('./safety-corrective-server')({ app, requireAuth_, getSheets, SPREADSHEET_ID, qSheet, APP, DateTime, deletePhotos:safetyCorrectiveImages.deleteAllImages, getContractors:()=>require('./safety-contractor-info')({valuesGet,qSheet}) });

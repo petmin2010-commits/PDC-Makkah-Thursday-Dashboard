@@ -1,7 +1,7 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id),esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),num=x=>x==null||x===''?'—':Number(x).toLocaleString('en-US');
 const ksaDate=()=>{const v={};new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).forEach(x=>{if(x.type!=='literal')v[x.type]=x.value});return v.year+'-'+v.month+'-'+v.day};
-let summary=null,sources=null,running=false;
+let summary=null,sources=null,running=false,originalTemplateReady=false,originalTemplateReason='التحقق من القالب الأصلي جارٍ';
 async function get(url){const r=await fetch(url,{credentials:'same-origin',cache:'no-store'}),j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)throw Error(j.error||'SOURCE_READ_FAILED');return j;}
 async function latest(kind){
  const base=kind==='safety'?'/api/safety-corrective':'/api/quality-corrective';
@@ -13,22 +13,25 @@ async function latest(kind){
  }
  return {report:null,reason:'لا يوجد تقرير مكتمل يحتوي على ملاحظات؛ لا تُستخدم المسودات الفارغة'};
 }
-function ready(){return !!summary&&!!sources?.safety?.report&&!!sources?.quality?.report&&!running;}
+function ready(){return !!summary&&!!sources?.safety?.report&&!!sources?.quality?.report&&originalTemplateReady&&!running&&!!window.VDPdcOriginalSix?.mergeNative;}
 function indicators(){
  const host=$('pm2AggregateSources');if(!host)return;
  const arr=[
-  ['الشرائح 1–6','جميع البيانات التشغيلية المتاحة حاليًا',true],
+  ['الشرائح 1–6: الدرافت الأصلي',originalTemplateReady?'مطابقة أصلية لمواقع العناصر والتنسيقات والشارتات في PowerPoint':'غير متاح للتصدير: '+originalTemplateReason,originalTemplateReady],
   ['آخر تقرير سلامة مكتمل',sources?.safety?.report?String(sources.safety.report.weekLabel||'')+' | '+sources.safety.count+' ملاحظات'+(sources.safety.skipped?' | تم استبعاد '+sources.safety.skipped+' مسودة أحدث':''):(sources?.safety?.reason||'جار تحديد المصدر'),!!sources?.safety?.report],
   ['آخر تقرير جودة مكتمل',sources?.quality?.report?String(sources.quality.report.weekLabel||'')+' | '+sources.quality.count+' ملاحظات'+(sources.quality.skipped?' | تم استبعاد '+sources.quality.skipped+' مسودة أحدث':''):(sources?.quality?.reason||'جار تحديد المصدر'),!!sources?.quality?.report],
   ['تقرير المؤقتات والمولدات','قيد الإنشاء — يضاف تلقائيًا إلى التجميع عند اكتمال مصدره',null]
  ];
  host.innerHTML=arr.map(([name,label,ok])=>'<div class="pm2-agg-line '+(ok===true?'ready':ok===false?'unready':'pending')+'"><b>'+esc(name)+'</b><span>'+esc(label)+'</span></div>').join('');
- for(const id of ['pm2ExportPptx','pm2ExportPdf'])$(id).disabled=!ready();
- $('pm2ExportsNote').textContent=ready()?'التصدير متاح للأجزاء المكتملة. المؤقتات تُضاف عند جاهزية تقريرها. تُصدّر صفحات PowerPoint كشرائح مصورة للمحافظة على المظهر؛ ولا تكون عناصرها قابلة للتعديل.':'يلزم تقرير سلامة وتقرير جودة صالحان قبل التجميع. لن تستخدم المنظومة بيانات قديمة لملء الملاحظات الناقصة.';
+ $('pm2ExportPptx').disabled=!ready();
+ $('pm2ExportPdf').disabled=true;
+ $('pm2ExportsNote').textContent=ready()?'PowerPoint يَستخدم الشرائح الست الأصلية بعناصرها وشارتاتها، ويُلحق تقارير السلامة والجودة كصفحات مرئية. تصدير PDF معطّل مؤقتًا حتى تتوفر عملية تحويل مطابقة للشرائح الأصلية.':'التصدير مُعلّق حفاظًا على مطابقة الشرائح الست الأصلية: '+originalTemplateReason+'. لا يُسمح باستخدام تصميم HTML البديل، أو إعادة نشر بيانات قديمة.';
 }
 async function discover(){
- try{const [safety,quality]=await Promise.all([latest('safety'),latest('quality')]);sources={safety,quality};}
- catch(e){sources={safety:{reason:e.message},quality:{reason:e.message}};}
+ const [a,b,c]=await Promise.allSettled([latest('safety'),latest('quality'),get('/api/pdc-meeting-2/template-six/status')]);
+ sources={safety:a.status==='fulfilled'?a.value:{reason:String(a.reason?.message||a.reason)},quality:b.status==='fulfilled'?b.value:{reason:String(b.reason?.message||b.reason)}};
+ originalTemplateReady=c.status==='fulfilled'&&c.value.available===true;
+ originalTemplateReason=originalTemplateReady?'القالب الأصلي متاح':'القالب الأصلي غير مفعل على خدمة التصدير';
  indicators();
 }
 const bars=a=>{
@@ -56,7 +59,7 @@ async function archive(blob,format,filename){
  catch(e){return {ok:false,error:String(e.message||e)}}
 }
 async function compose(format){
- if(!ready())return;
+ if(!ready()||format!=='PPTX')return;
  const win=window.open('','_blank','width=1440,height=960');if(!win){notify('اسمح بالنوافذ المنبثقة لمعاينة شرائح التقرير.');return;}
  running=true;indicators();
  win.document.write('<html lang="ar" dir="rtl"><meta charset="utf-8"><body style="font:20px Tahoma;padding:45px">جار تجميع شرائح التقرير...</body></html>');
@@ -68,19 +71,16 @@ async function compose(format){
   const generator=typeof window.VDGeneratorReportCenter?.assembleLatest==='function'?
    await window.VDGeneratorReportCenter.assembleLatest():null;
   const styles=await fetch('/pdc-meeting-2-print.css',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('PRINT_STYLE_MISSING');return r.text()});
-  const body=six(live)+safety.html+quality.html+(generator?.html||'');
+  const body=safety.html+quality.html+(generator?.html||''); // Native original first six are merged into PowerPoint; never render the HTML approximation.
   const css=safety.css+'\n'+quality.css+'\n'+(generator?.css||'')+'\n'+styles+'\n@page{size:13.333333in 7.5in;margin:0}';
   const scripts=(safety.fitScript||'')+(quality.fitScript||'')+(generator?.fitScript||'');
   win.document.open();win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تقرير اجتماع PDC 2 التجميعي</title><style>'+css+'</style></head><body>'+body+scripts+'</body></html>');win.document.close();
   await win.document.fonts?.ready;
-  const pages=[...win.document.querySelectorAll('.sheet')],expected=6+safety.slideCount+quality.slideCount+(generator?.slideCount||0);
+  const pages=[...win.document.querySelectorAll('.sheet')],expected=safety.slideCount+quality.slideCount+(generator?.slideCount||0);
   if(pages.length!==expected)throw Error('SLIDE_COUNT_MISMATCH');
   const filename='VD_PDC2_Makkah_'+ksaDate()+'.'+(format==='PDF'?'pdf':'pptx');
-  let blob;
-  if(format==='PDF'){
-   if(!window.VDReportPdfCapture)throw Error('PDF_CAPTURE_UNAVAILABLE');
-   blob=await window.VDReportPdfCapture.createWindowPdfWide(win,'.sheet',(i,n)=>notify('تصدير PDF: الشريحة '+i+' من '+n));
-  }else{
+  let blob;{
+   // PDF is blocked until a native Office-compatible converter is available. No approximate replica.
    const Pptx=window.pptxgen||window.PptxGenJS;if(typeof Pptx!=='function')throw Error('PPTX_LIBRARY_UNAVAILABLE');
    const pptx=new Pptx();pptx.layout='LAYOUT_WIDE';pptx.author='Vision Dimensions';pptx.subject='PDC 2 Makkah Consolidated';
    for(let i=0;i<pages.length;i++){
@@ -90,13 +90,18 @@ async function compose(format){
     pptx.addSlide().addImage({data:canvas.toDataURL('image/jpeg',0.88),x:0,y:0,w:13.333333,h:7.5});
     canvas.width=0;canvas.height=0;
    }
-   blob=await pptx.write({outputType:'blob'});
+   const appended=await pptx.write({outputType:'blob'});
+   const source=await fetch('/api/pdc-meeting-2/template-six',{credentials:'same-origin',cache:'no-store'});
+   if(!source.ok)throw Error('ORIGINAL_SIX_SOURCE_UNAVAILABLE');
+   const native=await VDPdcOriginalSix.mergeNative(await source.arrayBuffer(),live,appended);
+   if(native.slideCount!==6+expected)throw Error('NATIVE_SLIDE_COUNT_MISMATCH');
+   blob=native.blob;
   }
   if(!(blob instanceof Blob)||blob.size<1000)throw Error('EMPTY_EXPORT');
   download(blob,filename);
   notify('تم تنزيل '+format+' من '+pages.length+' شريحة. جار رفع النسخة إلى pCloud...');
   const stored=await archive(blob,format,filename);
-  notify('اكتمل التقرير التجميعي ('+pages.length+' شريحة): '+(stored?.ok?'تمت أرشفته على pCloud.':'تم تنزيل الملف؛ لم تكتمل الأرشفة: '+String(stored?.archiveError||stored?.error||'يرجى المراجعة'))+' المؤقتات قيد الإنشاء.');
+  notify('اكتمل التقرير التجميعي ('+(pages.length+6)+' شريحة): '+(stored?.ok?'تمت أرشفته على pCloud.':'تم تنزيل الملف؛ لم تكتمل الأرشفة: '+String(stored?.archiveError||stored?.error||'يرجى المراجعة'))+' المؤقتات قيد الإنشاء.');
  }catch(e){notify('تعذر التجميع: '+String(e.message||e));if(!win.closed)win.close();}
  finally{running=false;indicators();}
 }

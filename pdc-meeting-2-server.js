@@ -78,6 +78,16 @@ module.exports=function installPdcMeeting2({app,requireAuth_,getWednesdayMeeting
   // AK (هل تم إدخال 155 للمقاول) holds نعم / لا, not the text "مستلم".
   // Same classification as the existing main-dashboard execution tree:
   // AK=نعم is counted only within rows with execution status تم التنفيذ.
+  const byBusinessType={connections:{total:0,completed:0,inProgress:0,notStarted:0},projects:{total:0,completed:0,inProgress:0,notStarted:0}};
+  for(const item of work){
+   const category=normalize([item.section,item.category].filter(Boolean).join(' '));
+   const key=/توصيل|اتصال/.test(category)?'connections':/مشروع|مشاريع/.test(category)?'projects':null;
+   if(!key)continue;
+   byBusinessType[key].total++;
+   if(item.completed===true||done(item.executionRaw))byBusinessType[key].completed++;
+   else if(inProgress(item.executionRaw))byBusinessType[key].inProgress++;
+   else if(pending(item.executionRaw))byBusinessType[key].notStarted++;
+  }
   const received155=complete.filter(r=>normalize(r.contractor155Status)==='نعم').length;
   const notReceived155=complete.filter(r=>normalize(r.contractor155Status)==='لا').length;
   const permits=permitPage.error?{available:false,reason:permitPage.error}:
@@ -97,7 +107,7 @@ module.exports=function installPdcMeeting2({app,requireAuth_,getWednesdayMeeting
    template:{originalSlideCount:44,aspect:'16:9',version:'2026-10-14'},
    construction:{available:true,total:work.length,uniqueWorkOrders,repeatedRows,countBasis:'rows',
     completed:complete.length,notStarted:notStarted.length,
-    inProgress:progress.length,received155,notReceived155,
+    inProgress:progress.length,received155,notReceived155,byBusinessType,
     unclassified:Math.max(0,work.length-complete.length-notStarted.length-progress.length),
     bySection:countBy(work,'section'),byCategory:countBy(work,'category'),byContractor:countBy(work,'contractor').slice(0,15),
     from:'أوامر العمل — جميع السجلات'},

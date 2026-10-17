@@ -17,6 +17,8 @@ try{
    const json=x=>({ok:true,json:async()=>x});
    if(url.pathname.endsWith('pdc-meeting-2-print.css'))return {ok:true,text:async()=>'.sheet{min-height:100px}'};
    if(url.pathname==='/api/pdc-meeting-2/summary')return json(sheet);
+   if(url.pathname==='/api/pdc-meeting-2/template-six/status')return json({ok:true,available:true});
+   if(url.pathname==='/api/pdc-meeting-2/template-six')return {ok:true,arrayBuffer:async()=>new ArrayBuffer(128)};
    if(url.pathname==='/api/safety-corrective/reports')return json({ok:true,reports:safety});
    if(url.pathname==='/api/quality-corrective/reports')return json({ok:true,reports:quality});
    if(url.pathname.startsWith('/api/safety-corrective/reports/'))return json({ok:true,report:safety[0],findings:[{id:'sf'}]});
@@ -31,7 +33,7 @@ try{
    if(id!=='Q-LATEST')throw Error('wrong quality id');
    return {html:'<section class="sheet quality-slide">Quality cover</section><section class="sheet quality-slide">Quality observation</section><section class="sheet quality-slide">Quality end</section>',css:'.quality-slide{height:100px}',slideCount:3,fitScript:''};
   }};
-  window.VDReportPdfCapture={createWindowPdfWide:async(win,sel)=>{window.__compositeTest.docSlides=win.document.querySelectorAll(sel).length;return new Blob([new Uint8Array(1200)],{type:'application/pdf'});}};
+  window.VDPdcOriginalSix={mergeNative:async(buffer,summary,addon)=>{window.__compositeTest.originalSixMerged=true;return {blob:new Blob([new Uint8Array(2500)]),slideCount:12}}};
   window.VDReportArchive={record:async opts=>{window.__compositeTest.archives.push({format:opts.format,size:opts.blob.size});return {ok:true}}};
   window.pptxgen=class{constructor(){this.slides=0}addSlide(){this.slides++;return {addImage:()=>{}}}async write(){window.__compositeTest.docSlides=this.slides;return new Blob([new Uint8Array(1800)])}};
   window.html2canvas=async()=>{const c=document.createElement('canvas');c.width=1280;c.height=720;return c};
@@ -49,18 +51,15 @@ try{
  const sources=await page.$eval('#pm2AggregateSources',el=>el.textContent);
  assert(sources.includes('مسودة أحدث'),sources);
  assert(sources.includes('المؤقتات'));
- await page.click('#pm2ExportPdf');
- await page.waitForFunction(()=>window.__compositeTest.archives.length===1,{timeout:8000});
- let state=await page.evaluate(()=>window.__compositeTest);
- assert.equal(state.docSlides,12);
- assert.equal(state.archives[0].format,'PDF');
+ assert.equal(await page.$eval('#pm2ExportPdf',el=>el.disabled),true,'PDF cannot be exported without exact native conversion');
  await page.click('#pm2ExportPptx');
- await page.waitForFunction(()=>window.__compositeTest.archives.length===2,{timeout:8000});
- state=await page.evaluate(()=>window.__compositeTest);
- assert.equal(state.docSlides,12);
- assert.equal(state.archives[1].format,'PPTX');
- assert.equal(state.downloads,2);
- console.log('PASS: latest non-empty safety and quality, six live slides + complete sections, both exports, archive registry, generators optional');
+ await page.waitForFunction(()=>window.__compositeTest.archives.length===1,{timeout:8000});
+ const state=await page.evaluate(()=>window.__compositeTest);
+ assert.equal(state.docSlides,6);
+ assert.equal(state.archives[0].format,'PPTX');
+ assert.equal(state.downloads,1);
+ assert.equal(state.originalSixMerged,true);
+ console.log('PASS: original six imported natively, latest safety/quality appended, PPTX output and archive; no inaccurate PDF');
  await page.close();
 }finally{await b.close()}
 })().catch(e=>{console.error(e.stack||e);process.exitCode=1});
