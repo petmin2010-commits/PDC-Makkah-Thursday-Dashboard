@@ -115,3 +115,5 @@ body.scr-open #violationPeriodSlicer {
 .scr-ref-after .scr-phase-actions [data-phase-save]{background:#19557d}
 .scr-ref-card .scr-phase-actions .scr-danger{flex:0 0 auto}
 @media(max-width:600px){.scr-ref-card .scr-phase-actions{flex-wrap:wrap}.scr-ref-card .scr-phase-actions button{flex:1 1 auto}}
+
+.scr-original-highlights textarea[readonly]{cursor:default;white-space:pre-wrap;overflow-wrap:anywhere;background:#e7f0fc;color:#123d66;}

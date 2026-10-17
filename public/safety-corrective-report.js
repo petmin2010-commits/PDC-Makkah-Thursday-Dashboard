@@ -56,7 +56,7 @@ function markup(){return `
 <div class="scr-original-metric scr-original-coverage"><span>نسبة تغطية الزيارات</span><strong id="scrCoverage" aria-live="polite">0%</strong><label>المواقع التي تمت زيارتها<input id="scrVisited" type="number" min="0"></label></div>
 </div>
 <div class="scr-original-lower">
-<section class="scr-original-highlights"><h4>أبرز ملاحظات جودة التنفيذ المرصودة في الموقع</h4><label for="scrHighlights">اكتب كل ملاحظة في سطر مستقل؛ ستظهر بنقطة في التقرير.</label><textarea id="scrHighlights" rows="10" maxlength="3000" placeholder="اكتب الملاحظات الفعلية المرصودة خلال الأسبوع هنا"></textarea></section>
+<section class="scr-original-highlights"><h4>أبرز ملاحظات جودة التنفيذ المرصودة في الموقع</h4><label for="scrHighlights">ملخص تلقائي من حقل «الملاحظات المرصودة» داخل كل ملاحظة محفوظة أدناه؛ لا يحتاج إلى إدخال يدوي.</label><textarea id="scrHighlights" rows="10" readonly aria-readonly="true" placeholder="ستظهر هنا الملاحظات المسجلة بعد حفظها."></textarea></section>
 <section class="scr-original-status">
 <div class="scr-original-metric scr-original-counter"><span>عدد الملاحظات المفتوحة</span><strong id="scrAutoOpen" role="status" aria-live="polite">0</strong></div>
 <div class="scr-original-metric scr-original-counter"><span>عدد الملاحظات المغلقة</span><strong id="scrAutoClosed" role="status" aria-live="polite">0</strong></div>
@@ -120,6 +120,9 @@ function renderContractorRows(values){
  '<td><input data-contractor-count type="number" min="0" aria-label="عدد ملاحظات السلامة" value="'+esc(x.count??'')+'"></td>'+
  '<td><button type="button" class="scr-remove-contractor" aria-label="حذف المقاول" title="حذف الصف">×</button></td></tr>').join('');
 }
+const observationNotes=()=>state.findings.map(f=>clean(f.observation)).filter(Boolean);
+const highlightsText=()=>observationNotes().map((note,i)=>(i+1)+'- '+note).join('\n\n');
+function renderHighlights(){const area=$('scrHighlights');if(area)area.value=highlightsText();}
 const detailCount=()=>({total:state.findings.length,open:state.findings.filter(f=>f.status!=='مغلقة').length,closed:state.findings.filter(f=>f.status==='مغلقة').length});
 function derivedContractors(){
  const groups=new Map();state.findings.forEach(f=>{const name=clean(f.contractor)||'غير محدد';groups.set(name,(groups.get(name)||0)+1)});
@@ -128,14 +131,14 @@ function derivedContractors(){
 function getMeta(){
  return {weekLabel:clean($('scrWeekLabel').value),startDate:$('scrStart').value,endDate:$('scrEnd').value,
  totalSites:Number($('scrSites').value||0),visitedSites:Number($('scrVisited').value||0),totalVisits:Number($('scrVisits').value||0),
- preparedBy:clean($('scrPrepared').value),notes:clean($('scrNotes').value),highlights:$('scrHighlights').value.trim(),
+ preparedBy:clean($('scrPrepared').value),notes:clean($('scrNotes').value),highlights:highlightsText(),
  manualFindings:null,manualOpen:null,manualClosed:null,
  contractorBreakdown:summaryContractors()};
 }
 function fillMeta(r){
  $('scrWeekLabel').value=r.weekLabel||'';$('scrStart').value=r.startDate||'';$('scrEnd').value=r.endDate||'';
  $('scrSites').value=r.totalSites??0;$('scrVisited').value=r.visitedSites??0;$('scrVisits').value=r.totalVisits??0;
- $('scrPrepared').value=r.preparedBy||'';$('scrNotes').value=r.notes||'';$('scrHighlights').value=r.highlights||'';
+ $('scrPrepared').value=r.preparedBy||'';$('scrNotes').value=r.notes||'';renderHighlights();
  renderContractorRows(r.contractorBreakdown?.length?r.contractorBreakdown:derivedContractors());
  $('scrWorkspace').hidden=false;$('scrExport').disabled=false;$('scrMetaSave').classList.remove('scr-unsaved');
 }
@@ -192,6 +195,7 @@ async function load(id){
 }
 async function saveMeta(){const data=getMeta();try{validateMeta(data);buttonBusy('scrMetaSave',true);const j=await request('/reports/'+state.report.id,'PUT',data);state.report=j.report;fillMeta(state.report);await refresh();renderKpis();notice('تم حفظ بيانات التقرير.')}catch(e){notice(e.message,true)}finally{buttonBusy('scrMetaSave',false)}}
 function renderKpis(){
+ renderHighlights();
  const r=state.report||{},detail=detailCount(),sites=Number($('scrSites')?.value??r.totalSites??0),visited=Number($('scrVisited')?.value??r.visitedSites??0);
  const coverage=sites>0?Math.round(visited/sites*100):0;
  $('scrCoverage').textContent=coverage.toLocaleString('en-US')+'%';
@@ -358,7 +362,7 @@ function originalSummaryCss(){return '@media print{.scr-p-summary{page-break-ins
 '.scr-p-lower{display:grid;grid-template-columns:1.5fr .83fr .9fr;gap:8mm;direction:rtl;align-items:start}'+
 '.scr-p-highlights{background:#cfdef2;color:#0e396b;border-radius:14mm;padding:5mm 7mm;min-height:91mm;box-shadow:1px 2px 3px #aaa}'+
 '.scr-p-highlights h3{font-size:13pt;text-align:center;line-height:1.5}'+
-'.scr-p-highlights li{font-size:11pt;font-weight:bold;line-height:1.6;margin:1mm 0}'+
+'.scr-p-highlights li{font-size:11pt;font-weight:bold;line-height:1.6;margin:1mm 0;white-space:pre-wrap;overflow-wrap:anywhere}'+
 '.scr-p-status{display:grid;gap:7mm;padding-top:3mm}'+
 '.scr-p-contractors table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:9pt}'+
 '.scr-p-contractors th{background:#4c82bd;color:#fff;font-size:9pt;padding:2mm;text-align:center}'+
@@ -395,7 +399,7 @@ async function printReport(){
  ['عدد الملاحظات',fmt(s.total)],['نسبة تغطية الزيارات',s.coverage.toFixed(1)+'%']
  ].map(x=>'<div class="scr-p-metric"><span>'+x[0]+'</span><b>'+x[1]+'</b></div>').join('')+'</div>'+
  '<div class="scr-p-lower"><div class="scr-p-highlights"><h3>أبرز ملاحظات جودة التنفيذ المرصودة في الموقع</h3>'+
- '<ul>'+String(r.highlights||'').split(/\r?\n/).map(x=>clean(x)).filter(Boolean).map(x=>'<li>'+esc(x.replace(/^[•\-]\s*/,''))+'</li>').join('')+'</ul></div>'+
+ '<ul>'+observationNotes().map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>'+
  '<div class="scr-p-status"><div class="scr-p-metric"><span>عدد الملاحظات المفتوحة</span><b>'+fmt(s.open)+'</b></div><div class="scr-p-metric"><span>عدد الملاحظات المغلقة</span><b>'+fmt(s.closed)+'</b></div></div>'+
  '<div class="scr-p-contractors"><table><thead><tr><th>المقاول</th><th>عدد ملاحظات السلامة</th></tr></thead><tbody>'+
  entries.map(x=>'<tr><td>'+esc(x[0])+'</td><td>'+fmt(x[1])+'</td></tr>').join('')+'</tbody></table></div></div>'+
