@@ -126,6 +126,11 @@ function installUi(){
  if(reportArchiveBtn)nav.insertBefore(reportArchiveBtn,anchor);
  if(excelExportBtn)nav.insertBefore(excelExportBtn,anchor);
  if(projectsReportEngineBtn)nav.insertBefore(projectsReportEngineBtn,anchor);
+ // Keep existing report and violation tabs in the smart analytics/reports section.
+ for(const pageKey of ['safety','safetyCorrective','qualityCorrective','contractorSafety','executionViolations','minutes']){
+  const tab=nav.querySelector(`.nav-item[data-page="${pageKey}"]`);
+  if(tab)nav.insertBefore(tab,anchor);
+ }
  if(reportsLabel)reportsLabel.remove();
  const page=document.createElement('section');page.id='smartCenterPage';page.className='page smart-center-page';page.innerHTML=smartCenterMarkup();
  const memoryPage=document.createElement('section');memoryPage.id='temporalMemoryPage';memoryPage.className='page smart-center-page temporal-memory-page';memoryPage.innerHTML=temporalMemoryMarkup();
