@@ -75,7 +75,11 @@ module.exports=function installPdcMeeting2({app,requireAuth_,getWednesdayMeeting
   const repeatedRows=work.length-uniqueWorkOrders;
   const complete=work.filter(r=>r.completed===true||done(r.executionRaw));
   const notStarted=work.filter(r=>pending(r.executionRaw)),progress=work.filter(r=>inProgress(r.executionRaw));
-  const received155=work.filter(r=>{const s=normalize(r.contractor155Status);return /مستلم/.test(s)&&!/غير مستلم|لم يستلم|لم يتم استلام/.test(s)}).length;
+  // AK (هل تم إدخال 155 للمقاول) holds نعم / لا, not the text "مستلم".
+  // Same classification as the existing main-dashboard execution tree:
+  // AK=نعم is counted only within rows with execution status تم التنفيذ.
+  const received155=complete.filter(r=>normalize(r.contractor155Status)==='نعم').length;
+  const notReceived155=complete.filter(r=>normalize(r.contractor155Status)==='لا').length;
   const permits=permitPage.error?{available:false,reason:permitPage.error}:
    {available:true,total:permitPage.rows.length,byStatus:countBy(permitPage.rows,'permitStatus'),from:'ورقة التصاريح — جميع السجلات'};
   const emergency=emergencyPage.error?{available:false,reason:emergencyPage.error}:(()=>{
@@ -93,7 +97,7 @@ module.exports=function installPdcMeeting2({app,requireAuth_,getWednesdayMeeting
    template:{originalSlideCount:44,aspect:'16:9',version:'2026-10-14'},
    construction:{available:true,total:work.length,uniqueWorkOrders,repeatedRows,countBasis:'rows',
     completed:complete.length,notStarted:notStarted.length,
-    inProgress:progress.length,received155,
+    inProgress:progress.length,received155,notReceived155,
     unclassified:Math.max(0,work.length-complete.length-notStarted.length-progress.length),
     bySection:countBy(work,'section'),byCategory:countBy(work,'category'),byContractor:countBy(work,'contractor').slice(0,15),
     from:'أوامر العمل — جميع السجلات'},
