@@ -13,7 +13,7 @@ function open(ctx){
  '<button type="button" class="cs-download-close" id="csDownloadClose" aria-label="إغلاق">×</button></header>'+
  '<div class="cs-download-body"><p class="cs-download-intro">اختر صيغة التقرير. يقدم التنسيقان نفس التحليلات التنفيذية بهوية العرض التقديمي، مع المحافظة على بيانات مكة وجدة منفصلة.</p>'+
  '<div class="cs-download-types">'+
- '<button type="button" data-csd-format="pdf"><span class="cs-download-icon cs-icon-pdf">PDF</span><b>ملف PDF</b><small>شرائح أفقية ملونة 16:9 جاهزة للطباعة أو الحفظ كـ PDF</small></button>'+
+ '<button type="button" data-csd-format="pdf"><span class="cs-download-icon cs-icon-pdf">PDF</span><b>ملف PDF</b><small>مطابق لشرائح PowerPoint المعتمدة بالغلاف والشعارات والمقاس نفسه</small></button>'+
  '<button type="button" data-csd-format="pptx"><span class="cs-download-icon cs-icon-ppt">PPTX</span><b>عرض PowerPoint</b><small>شرائح قابلة للتحرير مع النصوص والكروت ومخططات الأعمدة</small></button></div>'+
  '<label class="cs-download-option"><input type="checkbox" id="csDownloadDetails"><span><b>إضافة ملحق الفحوص التفصيلي</b><small>اختياري · حتى آخر 300 فحص؛ جميع المؤشرات تُحسب دائمًا من كامل الفترة المختارة</small></span></label>'+
  '<p class="cs-download-status" id="csDownloadStatus" aria-live="polite"></p></div>'+
@@ -35,48 +35,31 @@ function options(ctx){
 }
 async function choose(format){
  if(!current||busy)return;
+ if(format!=='pdf'&&format!=='pptx')return;
  const ctx=current,meta=options(ctx);
- const popup=format==='pdf'?window.open('','_blank'):null;
- if(format==='pdf'&&!popup){setStatus('يرجى السماح بفتح نافذة الحفظ كـ PDF.',true);return}
  busy=true;
  document.querySelectorAll('[data-csd-format]').forEach(x=>x.disabled=true);
- setStatus(format==='pptx'?'جاري إنشاء شرائح PowerPoint...':'جاري إعداد شرائح PDF...');
+ setStatus(format==='pptx'?'جاري إنشاء شرائح PowerPoint...':'جاري تحويل شرائح PowerPoint نفسها إلى PDF...');
  try{
   if(!ctx.loaded())await ctx.load();
   if(!ctx.loaded())throw Error(ctx.error()||'تعذر قراءة ورقة Intellect');
-  if(format==='pdf'){
-   const content=window.VDSafetyDeck?.render(ctx.rows(),meta);
-   if(!content)throw Error('تعذر تحميل قالب التقرير.');
-   popup.document.open();popup.document.write(content);popup.document.close();
-   let triggered=false;
-   const print=async()=>{
-     if(triggered||popup.closed)return;
-     triggered=true;
-     try{
-       popup.focus();
-       const outcome=await window.VDReportArchive?.archiveGeneratedPdf({win:popup,selector:'.csd-slide',reportName:'تقييم السلامة للمقاولين',filename:'VD_Contractor_Safety.pdf'});
-       if(outcome?.ok===false)console.warn('Safety PDF pCloud archive unavailable',outcome.error);
-     }catch(error){console.warn('Safety PDF pCloud archive failed',error?.message)}
-     finally{if(!popup.closed)popup.print()}
-   };
-   popup.addEventListener('load',()=>setTimeout(print,600),{once:true});
-   setTimeout(()=>{if(!triggered&&popup.document.readyState==='complete')print()},1600);
-  }else{
-   const req={general:meta.general,detailed:meta.detailed,period:meta.period,filters:ctx.filters()};
-   const res=await fetch('/api/safety/contractor-evaluation/presentation',{
-    method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify(req)
-   });
-   if(!res.ok){const e=await res.json().catch(()=>({}));throw Error(e.error||'تعذر إنشاء ملف PowerPoint')}
-   const blob=await res.blob();
-   if(blob.size<1000)throw Error('ملف PowerPoint فارغ');
-   const url=URL.createObjectURL(blob),a=document.createElement('a');
-   a.href=url;a.download='VD_Contractor_Safety_'+(meta.city==='جدة'?'Jeddah':'Makkah')+'_'+(meta.general?'General':'Filtered')+'_'+new Date().toISOString().slice(0,10)+'.pptx';
-   document.body.appendChild(a);a.click();a.remove();window.VDReportArchive?.record({reportName:'تقييم السلامة للمقاولين',format:'PPTX',filename:a.download,blob});
-   setTimeout(()=>URL.revokeObjectURL(url),60000);
-  }
+  const req={format,general:meta.general,detailed:meta.detailed,period:meta.period,filters:ctx.filters()};
+  const res=await fetch('/api/safety/contractor-evaluation/presentation',{
+   method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify(req)
+  });
+  if(!res.ok){const e=await res.json().catch(()=>({}));throw Error(e.error||'تعذر إصدار التقرير')}
+  const blob=await res.blob();
+  if(blob.size<1000)throw Error('ملف التقرير فارغ');
+  if(format==='pdf'&&!(await blob.slice(0,5).text()).startsWith('%PDF-'))throw Error('ملف PDF غير صالح');
+  const name='VD_Contractor_Safety_'+(meta.city==='جدة'?'Jeddah':'Makkah')+'_'+(meta.general?'General':'Filtered')+'_'+new Date().toISOString().slice(0,10)+'.'+format;
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+  // The exact downloaded bytes are logged and archived, without re-rendering HTML.
+  Promise.resolve(window.VDReportArchive?.record({reportName:'تقييم السلامة للمقاولين',format:format.toUpperCase(),filename:name,blob}))
+   .catch(e=>console.warn('Safety report archive failed',e?.message||e));
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
   busy=false;close();
  }catch(error){
-  if(popup&&!popup.closed)popup.close();
   busy=false;
   document.querySelectorAll('[data-csd-format]').forEach(x=>x.disabled=false);
   setStatus(String(error.message||error),true);

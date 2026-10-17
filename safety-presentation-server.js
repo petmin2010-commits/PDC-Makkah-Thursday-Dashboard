@@ -210,17 +210,27 @@ module.exports=({app,requireAuth_,getSheets,spreadsheetId,city})=>{
  app.post('/api/safety/contractor-evaluation/presentation',requireAuth_,async(req,res)=>{
   try{
    const request=req.body||{},details=!!request.detailed,all=!!request.general;
+   const format=String(request.format||'pptx').toLowerCase();
+   if(format!=='pdf'&&format!=='pptx')return res.status(400).json({ok:false,error:'صيغة التقرير غير مدعومة'});
    const data=await require('./contractor-safety-server').getData({getSheets,spreadsheetId,city});
    const filtered=all?data.rows:filter(data.rows,request.filters);
    if(!Array.isArray(filtered))throw Error('Invalid safety filter');
    const period=all?'كامل الفترة':String(request.period||'كامل المدة').slice(0,140);
-   const buffer=await require('./safety-reference-presentation').create(filtered,{city:city==='Jeddah'?'جدة':'مكة',period,general:all,detailed:details});
-   const name='VD_Contractor_Safety_'+city+'_'+(all?'General':'Filtered')+'_'+new Date().toISOString().slice(0,10)+'.pptx';
+   // Both formats originate from the same approved, branded presentation.
+   const pptxBuffer=await require('./safety-reference-presentation').create(filtered,{city:city==='Jeddah'?'جدة':'مكة',period,general:all,detailed:details});
+   let buffer=pptxBuffer;
+   if(format==='pdf'){
+    const {pptxToPdf}=await import('officetopdf-js');
+    const converted=await pptxToPdf(pptxBuffer);
+    buffer=Buffer.isBuffer(converted)?converted:Buffer.from(converted);
+    if(buffer.length<1000||buffer.subarray(0,5).toString('ascii')!=='%PDF-')throw Error('INVALID_CONVERTED_PDF');
+   }
+   const name='VD_Contractor_Safety_'+city+'_'+(all?'General':'Filtered')+'_'+new Date().toISOString().slice(0,10)+'.'+format;
    res.set('Cache-Control','no-store');
-   res.set('Content-Type','application/vnd.openxmlformats-officedocument.presentationml.presentation');
+   res.set('Content-Type',format==='pdf'?'application/pdf':'application/vnd.openxmlformats-officedocument.presentationml.presentation');
    res.set('Content-Disposition','attachment; filename="'+name+'"');
    res.end(buffer);
-  }catch(error){console.error('Contractor Safety PPTX:',error);res.status(500).json({ok:false,error:'تعذر تجهيز ملف PowerPoint: '+String(error.message||error)})}
+  }catch(error){console.error('Contractor Safety report export:',error);res.status(500).json({ok:false,error:'تعذر تجهيز ملف التقرير: '+String(error.message||error)})}
  });
 };
 module.exports._test={filter,metrics,create};
