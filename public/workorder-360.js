@@ -10,7 +10,14 @@ function install(){
  const nav=el('nav');if(!nav)return;
  const anchor=el('explainableDecisionNav')||el('smartCenterNav');
  const btn=document.createElement('button');btn.type='button';btn.id='workOrder360Nav';btn.className='nav-item';btn.innerHTML='🔎 <span>Work Order 360°</span>';
- if(anchor){nav.insertBefore(btn,anchor.nextSibling)}else{nav.appendChild(btn)}
+ // The sidebar may already have wrapped the anchor inside an accordion/report cluster.
+ // Insert next to the anchor in its actual parent to avoid a NotFoundError.
+ if(anchor&&nav.contains(anchor)){
+  anchor.parentElement.insertBefore(btn,anchor.nextSibling);
+ }else{
+  const analysisGroup=nav.querySelector('.vd-nav-group[data-group-key="analytics"] .vd-nav-group-items');
+  (analysisGroup||nav).appendChild(btn);
+ }
  const main=document.querySelector('main');if(!main)return;
  const page=document.createElement('section');page.id='workOrder360Page';page.className='page wo360-page';page.innerHTML=markup();
  main.insertBefore(page,main.firstChild);
