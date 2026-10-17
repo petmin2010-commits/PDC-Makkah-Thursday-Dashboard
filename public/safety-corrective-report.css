@@ -106,3 +106,12 @@ body.scr-open #violationPeriodSlicer {
 @media(max-width:1300px){.scr-original-lower{gap:14px;grid-template-columns:minmax(0,1.5fr) minmax(160px,.8fr) minmax(195px,1fr)}.scr-original-metrics{gap:10px}.scr-original-metric>span:first-child{font-size:14px}}
 @media(max-width:920px){.scr-original-lower{grid-template-columns:repeat(2,minmax(0,1fr))}.scr-original-highlights{grid-column:1/-1}.scr-original-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.scr-original-heading h3{font-size:20px}.scr-original-brand img{height:38px}}
 @media(max-width:580px){.scr-original-lower{grid-template-columns:1fr}.scr-original-metrics{grid-template-columns:1fr 1fr;gap:7px}.scr-original-metric>span:first-child{min-height:55px;font-size:12px}.scr-original-heading{flex-wrap:wrap}.scr-original-brand img{height:34px}.scr-original-highlights{border-radius:25px}}
+
+/* Exactly one uploaded image, followed by its caption and save action. */
+.scr-ref-card .scr-phase-actions{display:flex;align-items:stretch;gap:7px;margin-top:10px}
+.scr-ref-card .scr-phase-actions button{min-height:42px;font-size:12px;padding:8px 12px}
+.scr-ref-card .scr-phase-actions [data-phase-save]{flex:1}
+.scr-ref-before .scr-phase-actions [data-phase-save]{background:#f48b24}
+.scr-ref-after .scr-phase-actions [data-phase-save]{background:#19557d}
+.scr-ref-card .scr-phase-actions .scr-danger{flex:0 0 auto}
+@media(max-width:600px){.scr-ref-card .scr-phase-actions{flex-wrap:wrap}.scr-ref-card .scr-phase-actions button{flex:1 1 auto}}

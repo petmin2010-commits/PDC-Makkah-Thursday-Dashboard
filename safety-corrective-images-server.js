@@ -102,6 +102,7 @@ module.exports=function installProjectImages(ctx){
     if(!(n>=1&&n<=8))throw new Error('رقم خانة الصورة غير صالح.');
     const caption=safeCaption(payload?.caption);
     if(payload?.remove){await clearSlot_(wo,n);return {slot:n,removed:true}}
+    if(n!==1&&n!==5)throw new Error('يسمح بصورة واحدة فقط قبل المعالجة وصورة واحدة بعدها.');
 
     const dataUrl=clean(payload?.dataUrl);
     if(!dataUrl)throw new Error('اختر صورة قبل الحفظ.');

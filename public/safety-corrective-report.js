@@ -1,6 +1,6 @@
 (()=>{'use strict';
 const PAGE='safetyCorrectivePage',NAV='safetyCorrectiveNav',API='/api/safety-corrective';
-const state={report:null,findings:[],reports:[],contractors:[],current:null,photos:[],pending:{},photoDraft:{},loading:false,dirty:false};
+const state={report:null,findings:[],reports:[],contractors:[],workTypes:[],current:null,photos:[],pending:{},photoDraft:{},loading:false,dirty:false};
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clean=v=>String(v??'').trim();
@@ -33,12 +33,13 @@ function mount(){
  $('scrFindingList').addEventListener('click',e=>{const b=e.target.closest('[data-finding]');if(b)selectFinding(b.dataset.finding)});
  $('scrPhotoGrid').addEventListener('change',photoChange);
  $('scrPhotoGrid').addEventListener('click',photoClick);
- $('scrPhotoGrid').addEventListener('input',e=>{if(e.target.matches('[data-caption]')){state.photoDraft[e.target.dataset.caption]=e.target.value;state.dirty=true}});
+ $('scrPhotoGrid').addEventListener('input',e=>{if(e.target.matches('textarea,input:not([type=file]),select'))state.dirty=true;});
  $('scrMetaFields').addEventListener('input',()=>{$('scrMetaSave').classList.add('scr-unsaved');renderKpis()});
  $('scrAddContractor').addEventListener('click',()=>{const t=$('scrContractorRows');t.insertAdjacentHTML('beforeend','<tr><td><input data-contractor-name maxlength="120" aria-label="اسم المقاول" placeholder="اسم المقاول"></td><td><input data-contractor-count type="number" min="0" aria-label="عدد ملاحظات السلامة"></td><td><button type="button" class="scr-remove-contractor" aria-label="حذف المقاول" title="حذف الصف">×</button></td></tr>');$('scrMetaSave').classList.add('scr-unsaved');renderKpis()});
  $('scrContractorRows').addEventListener('click',e=>{if(!e.target.matches('.scr-remove-contractor'))return;e.target.closest('tr')?.remove();if(!$('scrContractorRows').children.length)renderContractorRows([]);$('scrMetaSave').classList.add('scr-unsaved');renderKpis()});
  refresh();
  refreshContractors();
+ refreshWorkTypes();
 }
 function markup(){return `
 <div class="scr-hero"><div><small>SAFETY • CORRECTIVE ACTIONS</small><h2>تقرير السلامة والإجراءات التصحيحية</h2><p>تقرير أسبوعي موحد مع صور قبل المعالجة وبعد المعالجة، وتوثيق كل ملاحظة بصور قبل وبعد المعالجة، ووصف الحالة والإجراء التصحيحي.</p></div><div class="scr-toolbar"><button id="scrExport" type="button" disabled>تصدير PDF</button></div></div>
@@ -84,7 +85,7 @@ function markup(){return `
 <label>رقم أمر العمل<input id="scrWO" inputmode="numeric" maxlength="40" placeholder="رقم أمر العمل"></label>
 <label>المقاول<select id="scrContractor" aria-label="المقاول"><option value="">جاري تحميل المقاولين...</option></select></label>
 <label>الاستشاري<input id="scrConsultant" maxlength="180" value="أبعاد الرؤية"></label>
-<label>نوع أمر العمل<select id="scrType"><option value="">اختر نوع أمر العمل</option><option value="350">350</option><option value="360">360</option><option value="402">402</option><option value="801">801</option><option value="802">802</option><option value="طارئ">طارئ</option></select></label>
+<label>نوع أمر العمل<select id="scrType"><option value="">جاري تحميل أنواع أوامر العمل من info...</option></select></label>
 <label class="scr-ref-observation">الملاحظات المرصودة<textarea id="scrObservation" rows="5" maxlength="1700" placeholder="اكتب الملاحظة كما ستظهر في التقرير"></textarea></label>
 <label>حالة الملاحظة<select id="scrStatus"><option>مفتوحة</option><option>جاري التصحيح</option><option>مغلقة</option></select></label>
 </div></section>
@@ -92,11 +93,13 @@ function markup(){return `
 <h5>قبل المعالجة</h5>
 <div id="scrPhotoBefore" class="scr-phase-photos"></div>
 <label class="scr-ref-description scr-description-reference">وصف الحالة<textarea id="scrBeforeDesc" rows="3" maxlength="1000" placeholder="وصف الحالة قبل المعالجة"></textarea></label>
+<div class="scr-phase-actions"><button type="button" data-phase-save="1">حفظ الصورة والتعليق</button><button type="button" class="scr-danger" data-photo-delete="1" disabled>حذف الصورة</button></div>
 </section>
 <section class="scr-ref-card scr-ref-after" aria-label="بعد المعالجة">
 <h5>بعد المعالجة</h5>
 <div id="scrPhotoAfter" class="scr-phase-photos"></div>
 <label class="scr-ref-description scr-description-reference">وصف الإجراء التصحيحي<textarea id="scrAction" rows="3" maxlength="1700" placeholder="الإجراء التصحيحي أو في انتظار التصحيح"></textarea></label>
+<div class="scr-phase-actions"><button type="button" data-phase-save="5">حفظ الصورة والتعليق</button><button type="button" class="scr-danger" data-photo-delete="5" disabled>حذف الصورة</button></div>
 <input id="scrAfterDesc" type="hidden" value="">
 </section>
 </div>
@@ -148,6 +151,24 @@ function renderContractorOptions(selected){
    options.map(name=>'<option value="'+esc(name)+'">'+esc(name)+'</option>').join('');
  el.value=value;
 }
+function renderWorkTypeOptions(selected){
+ const el=$('scrType');if(!el)return;
+ const value=clean(selected===undefined?el.value:selected);
+ const types=new Map();
+ for(const entry of state.workTypes){const code=clean(entry?.code);if(code&&!types.has(code))types.set(code,clean(entry.description));}
+ for(const code of [...state.findings.map(f=>f.workType),'طارئ',value].map(clean).filter(Boolean))if(!types.has(code))types.set(code,'');
+ el.innerHTML='<option value="">'+(state.workTypes.length?'اختر نوع أمر العمل':'اختر نوع أمر العمل (بانتظار info)')+'</option>'+
+  [...types].map(([code,description])=>'<option value="'+esc(code)+'">'+esc(code+(description?' — '+description:''))+'</option>').join('');
+ el.value=value;
+}
+async function refreshWorkTypes(){
+ try{
+  const data=await request('/work-types');
+  if(!Array.isArray(data.workTypes))throw Error('استجابة غير صحيحة من المصدر info');
+  state.workTypes=data.workTypes;
+  renderWorkTypeOptions();
+ }catch(e){renderWorkTypeOptions();notice('تعذر تحميل أنواع أمر العمل من ورقة info: '+e.message,true);}
+}
 async function refreshContractors(){
  try{
   const data=await request('/contractors');
@@ -169,7 +190,7 @@ async function create(){
 async function load(id){
  if(!id){state.report=null;state.findings=[];state.current=null;$('scrWorkspace').hidden=true;$('scrExport').disabled=true;return}
  notice('جارٍ تحميل التقرير...');
- try{const j=await request('/reports/'+encodeURIComponent(id));state.report=j.report;$('scrSelect').value=j.report.id;state.findings=j.findings||[];state.current=null;state.photos=[];state.pending={};state.photoDraft={};state.dirty=false;fillMeta(j.report);renderContractorOptions();renderKpis();renderFindings();$('scrEditor').hidden=true;notice('تم تحميل التقرير • '+state.findings.length+' ملاحظة.')}catch(e){notice(e.message,true)}
+ try{const j=await request('/reports/'+encodeURIComponent(id));state.report=j.report;$('scrSelect').value=j.report.id;state.findings=j.findings||[];state.current=null;state.photos=[];state.pending={};state.photoDraft={};state.dirty=false;fillMeta(j.report);renderContractorOptions();renderWorkTypeOptions();renderKpis();renderFindings();$('scrEditor').hidden=true;notice('تم تحميل التقرير • '+state.findings.length+' ملاحظة.')}catch(e){notice(e.message,true)}
 }
 async function saveMeta(){const data=getMeta();try{validateMeta(data);buttonBusy('scrMetaSave',true);const j=await request('/reports/'+state.report.id,'PUT',data);state.report=j.report;fillMeta(state.report);await refresh();renderKpis();notice('تم حفظ بيانات التقرير.')}catch(e){notice(e.message,true)}finally{buttonBusy('scrMetaSave',false)}}
 function renderKpis(){
@@ -192,9 +213,7 @@ function selectFinding(id){
  const f=state.findings.find(x=>x.id===id)||{id:'',workOrder:'',contractor:'',consultant:'أبعاد الرؤية',workType:'',observation:'',correctiveAction:'',status:'مفتوحة',beforeDescription:'',afterDescription:''};
  if(state.dirty&&!confirm('توجد صور أو تعليقات لم تحفظ. هل تريد الانتقال دون حفظها؟'))return;state.current=f.id||null;state.photos=[];state.pending={};state.photoDraft={};state.dirty=false;
  for(const [field,key] of [['scrWO','workOrder'],['scrType','workType'],['scrContractor','contractor'],['scrConsultant','consultant'],['scrStatus','status'],['scrObservation','observation'],['scrAction','correctiveAction'],['scrBeforeDesc','beforeDescription'],['scrAfterDesc','afterDescription']])$(field).value=f[key]||'';
- const priorType=clean(f.workType);const typeSelect=$('scrType');typeSelect.querySelectorAll('option[data-legacy]').forEach(o=>o.remove());
- if(priorType&&!Array.from(typeSelect.options).some(o=>o.value===priorType)){const opt=new Option(priorType,priorType);opt.dataset.legacy='true';typeSelect.add(opt)}
- typeSelect.value=priorType;
+ renderWorkTypeOptions(f.workType);
  renderContractorOptions(f.contractor);
  $('scrEditor').hidden=false;$('scrEditorTitle').textContent=f.id?'تعديل ملاحظة السلامة':'إضافة ملاحظة جديدة';
  $('scrRemoveFinding').hidden=!f.id;$('scrPhotoSection').hidden=!f.id;renderFindings();renderPhotos();
@@ -216,7 +235,7 @@ async function saveFinding(){
   if(wasNew)state.photos=[];
   $('scrRemoveFinding').hidden=false;$('scrPhotoSection').hidden=false;
   renderKpis();renderFindings();
-  const slots=Object.keys(state.pending).map(Number).sort((a,b)=>a-b);
+  const slots=[1,5].filter(slot=>state.pending[slot]);
   let failures=0;
   for(const slot of slots){
    try{
@@ -253,15 +272,14 @@ async function loadPhotos(){
 const stored=slot=>state.photos.find(p=>Number(p.slot)===slot);
 function renderPhotos(){
  const card=slot=>{
-  const photo=stored(slot),pending=state.pending[slot],src=pending||photo?.dataUrl||'',before=slot<=4,label=before?'قبل المعالجة':'بعد المعالجة',primary=(slot===1||slot===5);
-  return '<article class="scr-photo'+(primary?' scr-photo-primary':'')+'" data-slot="'+slot+'"><header><b>'+(primary?'الصورة الأساسية':'صورة إضافية '+(before?slot:slot-4))+'</b><small>'+(pending?'جاهزة للحفظ':photo?.dataUrl?'محفوظة':'غير مرفقة')+'</small></header>'+
-  '<div class="scr-photo-preview">'+(src?'<img src="'+esc(src)+'" alt="'+label+'">':'<span>أضف صورة '+label+'</span>')+'</div>'+
-  '<label class="scr-upload">رفع صورة '+label+'<input type="file" accept="image/*" data-photo-file="'+slot+'" aria-label="رفع صورة '+label+'"></label>'+
-  '<div class="scr-photo-buttons"><button type="button" data-photo-save="'+slot+'" '+(src?'':'disabled')+'>حفظ الصورة</button><button class="scr-danger" type="button" data-photo-delete="'+slot+'" '+(src?'':'disabled')+'>حذف</button></div></article>';
+  const photo=stored(slot),pending=state.pending[slot],src=pending||photo?.dataUrl||'',label=slot===1?'قبل المعالجة':'بعد المعالجة';
+  return '<article class="scr-photo scr-photo-primary" data-slot="'+slot+'"><header><b>الصورة الأساسية</b><small>'+(pending?'جاهزة للحفظ':photo?.dataUrl?'محفوظة':'غير مرفقة')+'</small></header>'+
+   '<div class="scr-photo-preview">'+(src?'<img src="'+esc(src)+'" alt="'+label+'">':'<span>أضف صورة '+label+'</span>')+'</div>'+
+   '<label class="scr-upload">رفع صورة '+label+'<input type="file" accept="image/*" data-photo-file="'+slot+'" aria-label="رفع صورة '+label+'"></label></article>';
  };
- const stage=start=>card(start)+'<details class="scr-extra-photos"><summary>+ صور إضافية لهذه المرحلة (حتى 3)</summary><div class="scr-extra-photo-grid">'+[start+1,start+2,start+3].map(card).join('')+'</div></details>';
- $('scrPhotoBefore').innerHTML=stage(1);
- $('scrPhotoAfter').innerHTML=stage(5);
+ $('scrPhotoBefore').innerHTML=card(1);
+ $('scrPhotoAfter').innerHTML=card(5);
+ for(const slot of [1,5]){const del=$('scrPhotoGrid').querySelector('[data-photo-delete="'+slot+'"]');if(del)del.disabled=!(state.pending[slot]||stored(slot)?.dataUrl);}
 }
 async function compress(file){
  if(!file.type.startsWith('image/'))throw Error('اختر ملف صورة.');
@@ -300,46 +318,34 @@ async function photoChange(e){
    target.replaceChildren();
    const img=document.createElement('img');img.src=result;img.alt='معاينة الصورة';target.append(img);
    current.querySelector('header small').textContent='جاهزة للحفظ';
-   const save=current.querySelector('[data-photo-save]'),del=current.querySelector('[data-photo-delete]');
-   if(save)save.disabled=false;if(del)del.disabled=false;
+   const del=$('scrPhotoGrid')?.querySelector('[data-photo-delete="'+slot+'"]');
+   if(del)del.disabled=false;
   }
   notice('ظهرت الصورة بالمعاينة. اضغط حفظ بيانات الملاحظة لحفظها مع الصور.');
  }catch(err){notice('تعذر معاينة الصورة: '+err.message,true)}
  finally{URL.revokeObjectURL(previewUrl);if(state.processing[slot]===work)delete state.processing[slot]}
 }
 async function photoClick(e){
- const save=e.target.closest('[data-photo-save]'),del=e.target.closest('[data-photo-delete]');
- if(!save&&!del)return;
- const slot=Number((save||del).dataset.photoSave||(save||del).dataset.photoDelete);
+ const phase=e.target.closest('[data-phase-save]');
+ if(phase){await saveFinding();return;}
+ const del=e.target.closest('[data-photo-delete]');
+ if(!del)return;
+ const slot=Number(del.dataset.photoDelete);
+ if(![1,5].includes(slot))return;
  if(!state.current){
-  if(del){
-   delete state.pending[slot];
-   state.dirty=Object.keys(state.pending).length>0;
-   renderPhotos();notice('تم حذف معاينة الصورة قبل الحفظ.');
-  }else await saveFinding();
-  return;
+  delete state.pending[slot];state.dirty=Object.keys(state.pending).length>0;
+  renderPhotos();notice('تم حذف معاينة الصورة قبل الحفظ.');return;
  }
  const ref=photoRef(state.report.id,state.current),prior=stored(slot);
- if(del&&!state.pending[slot]&&!confirm('حذف هذه الصورة المحفوظة؟'))return;
- const btn=save||del;btn.disabled=true;
+ if(!state.pending[slot]&&!prior?.dataUrl)return;
+ if(prior?.dataUrl&&!confirm('حذف هذه الصورة المحفوظة؟'))return;
+ del.disabled=true;
  try{
-  let saved;
-  if(del){
-   if(prior?.dataUrl)await request('/photos/'+ref+'/'+slot,'DELETE');
-  }else{
-   await Promise.all(Object.values(state.processing||{}).map(p=>p.catch(()=>null)));
-   const dataUrl=state.pending[slot]||prior?.dataUrl||'';
-   if(!dataUrl)throw Error('اختر صورة أولاً.');
-   const caption=clean(slot<=4?$('scrBeforeDesc').value:$('scrAction').value).slice(0,800);
-   saved=await request('/photos/'+ref+'/'+slot,'POST',{dataUrl,caption});
-  }
+  if(prior?.dataUrl)await request('/photos/'+ref+'/'+slot,'DELETE');
   state.photos=state.photos.filter(p=>Number(p.slot)!==slot);
-  if(saved?.image)state.photos.push(saved.image);
-  delete state.pending[slot];
-  state.dirty=Object.keys(state.pending).length>0;
-  renderPhotos();
-  notice(del?'تم حذف الصورة.':'تم حفظ الصورة بنجاح.');
- }catch(err){notice(err.message,true);btn.disabled=false}
+  delete state.pending[slot];state.dirty=Object.keys(state.pending).length>0;
+  renderPhotos();notice('تم حذف الصورة.');
+ }catch(err){notice(err.message,true);del.disabled=false}
 }
 function printCss(){return `@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}body{direction:rtl;font-family:Tahoma,Arial,sans-serif;color:#16395c;margin:0}h1,h2,h3,p{margin-top:0}.print-actions{padding:12px;background:#dae8f7;text-align:center;position:sticky;top:0;z-index:10}.print-actions button{padding:10px 24px;background:#183f67;color:white;border:0;border-radius:8px;font-weight:bold;cursor:pointer}.sheet{min-height:180mm;page-break-after:always;position:relative;padding:15mm;border-top:8px solid #f18c2d;overflow:hidden}.sheet:before{content:'VISION DIMENSIONS';position:absolute;opacity:.035;left:25%;top:42%;font-size:50pt;transform:rotate(-15deg);pointer-events:none}.brand{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #dbe8f1;padding-bottom:8mm;margin-bottom:10mm}.brand img{height:22mm;max-width:35mm;object-fit:contain}.brand h2{font-size:16pt;margin:0}.cover{background:linear-gradient(120deg,#143b62 35%,#1c5885 80%);color:#fff;text-align:center;padding:25mm}.cover .brand{border-color:#ffffff48}.cover .brand h2{color:#fff}.cover h1{font-size:32pt;margin-top:24mm}.cover p{font-size:17pt;color:#f9c490}.cover span{font-size:13pt}.end{background:#173e66;color:white;text-align:center}.end h1{font-size:31pt;margin-top:42mm}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:7mm;margin-bottom:12mm}.metric{padding:8mm;border:1px solid #bcd1e5;border-radius:8px;background:#eef5fb}.metric b{display:block;font-size:23pt;margin-top:4mm}.summary-table{width:100%;border-collapse:collapse;font-size:11pt}.summary-table th,.summary-table td{padding:4mm;border:1px solid #d1dfec;text-align:right}.summary-table th{background:#17446e;color:#fff}.summary-table tr:nth-child(even){background:#f0f5fb}.finding-title{background:#17446e;color:#fff;padding:3mm 6mm;border-radius:5px;font-size:14pt}.finding-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;font-size:10pt}.finding-meta span{padding:3mm;border:1px solid #d7e3ee;border-radius:5px}.finding-text{padding:3mm 6mm;background:#f2f7fb;border-inline-start:4px solid #f18c2d;margin:3mm 0;white-space:pre-wrap;font-size:11pt}.photos{display:grid;grid-template-columns:1fr 1fr;gap:8mm}.photos-col h3{text-align:center;background:#f18c2d;color:white;border-radius:5px;padding:2mm}.photos-col.after h3{background:#17446e}.photo-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4mm}.photo-list figure{margin:0;border:1px solid #d9e4ef;padding:2mm;break-inside:avoid;border-radius:6px}.photo-list img{display:block;width:100%;height:40mm;object-fit:contain;background:#f7f9fb}.photo-list figcaption{text-align:center;font-size:9pt;color:#173d64;min-height:12mm;overflow-wrap:anywhere;padding-top:2mm}.empty{padding:20mm 2mm;text-align:center;color:#6b8197;border:1px dashed #b3c3d4;border-radius:5px}.foot{position:absolute;bottom:6mm;right:16mm;left:16mm;text-align:center;border-top:1px solid #c9dbe8;padding-top:2mm;font-size:9pt;color:#688096}@media print{.print-actions{display:none}.sheet{border-top-width:6px}body{background:white}}`}
 
@@ -406,7 +412,7 @@ async function printReport(){
  '<div class="foot">تقرير السلامة | '+esc(city)+'</div></section>';
 
  for(let i=0;i<rows.length;i++){
- const {f,photos}=rows[i],phase=(before)=>{const list=photos.filter(p=>p.dataUrl&&(before?Number(p.slot)<=4:Number(p.slot)>4)),label=before?'وصف الحالة':'وصف الإجراء التصحيحي',description=before?(f.beforeDescription||f.observation):(f.correctiveAction||'في انتظار التصحيح');return '<section class="photos-col '+(before?'before':'after')+'"><h3>'+(before?'قبل المعالجة':'بعد المعالجة')+'</h3><div class="photo-list">'+(list.length?list.map(p=>'<figure><img src="'+esc(p.dataUrl)+'"></figure>').join(''):'<div class="empty">لم تُرفق صور لهذه المرحلة</div>')+'</div><div style="white-space:pre-wrap;text-align:center;border:1px solid #c6d4df;border-radius:10px;background:#f6f9fb;padding:12px 8px;margin-top:10px;color:'+(before?'#e67916':'#17446e')+';font-weight:bold"><b>'+label+': </b>'+esc(description)+'</div></section>'};
+ const {f,photos}=rows[i],phase=(before)=>{const available=photos.filter(p=>p.dataUrl&&(before?Number(p.slot)<=4:Number(p.slot)>4)),primary=available.find(p=>Number(p.slot)===(before?1:5)),list=primary?[primary]:available.slice(0,1),label=before?'وصف الحالة':'وصف الإجراء التصحيحي',description=before?(f.beforeDescription||f.observation):(f.correctiveAction||'في انتظار التصحيح');return '<section class="photos-col '+(before?'before':'after')+'"><h3>'+(before?'قبل المعالجة':'بعد المعالجة')+'</h3><div class="photo-list">'+(list.length?list.map(p=>'<figure><img src="'+esc(p.dataUrl)+'"></figure>').join(''):'<div class="empty">لم تُرفق صور لهذه المرحلة</div>')+'</div><div style="white-space:pre-wrap;text-align:center;border:1px solid #c6d4df;border-radius:10px;background:#f6f9fb;padding:12px 8px;margin-top:10px;color:'+(before?'#e67916':'#17446e')+';font-weight:bold"><b>'+label+': </b>'+esc(description)+'</div></section>'};
  pages+='<section class="sheet">'+brand('بيانات المعالجة والتوثيق')+'<div class="finding-title">الملاحظة '+(i+1)+' من '+rows.length+'</div><div class="finding-meta">'+[['أمر العمل',f.workOrder],['نوع أمر العمل',f.workType],['المقاول',f.contractor],['الاستشاري',f.consultant],['الحالة',f.status]].map(x=>'<span><b>'+x[0]+': </b>'+esc(x[1]||'—')+'</span>').join('')+'</div><div class="finding-text"><b>الملاحظات المرصودة:</b> '+esc(f.observation)+'</div><div class="photos">'+phase(true)+phase(false)+'</div><div class="foot">تقرير الإجراءات التصحيحية لكل أسبوع | '+esc(city)+'</div></section>';
  }
  pages+='<section class="sheet end">'+brand('أبعاد الرؤية للاستشارات الهندسية')+'<h1>شكرًا لتعاونكم</h1><h2>معًا لرفع جودة التنفيذ والسلامة</h2><p>دائرة مشاريع التوزيع – '+esc(city)+'</p></section>';

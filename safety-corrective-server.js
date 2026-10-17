@@ -83,6 +83,18 @@ module.exports=function installSafetyCorrective({app,requireAuth_,getSheets,SPRE
     return {reportId:a[0],id:a[1],workOrder:a[2]||'',contractor:a[3]||'',consultant:a[4]||'',workType:a[5]||'',observation:a[6]||'',correctiveAction:a[7]||'',status:a[8]||'مفتوحة',beforeDescription:a[9]||'',afterDescription:a[10]||'',updatedAt:a[11]||'',updatedBy:a[12]||''};
   }
   const run=fn=>async(req,res)=>{try{res.set('Cache-Control','no-store');res.json({ok:true,...await fn(req)})}catch(e){console.error('safety corrective',e.message);res.status(400).json({ok:false,error:e.message||'تعذر تنفيذ العملية'})}};
+  app.get('/api/safety-corrective/work-types',requireAuth_,run(async()=>{
+    const sheets=await getSheets();
+    const response=await sheets.spreadsheets.values.get({spreadsheetId:SPREADSHEET_ID,range:qSheet('info')+'!E2:F',valueRenderOption:'FORMATTED_VALUE'});
+    const seen=new Set(),workTypes=[];
+    for(const row of response.data.values||[]){
+      const code=val(row[0],80),description=val(row[1],300);
+      if(!code||seen.has(code))continue;
+      seen.add(code);workTypes.push({code,description});
+    }
+    if(!seen.has('طارئ'))workTypes.push({code:'طارئ',description:'أعمال طارئة'});
+    return {workTypes,source:'info!E2:F'};
+  }));
   app.get('/api/safety-corrective/contractors',requireAuth_,run(async()=>({contractors:typeof getContractors==='function'?await getContractors():[]})));
   app.get('/api/safety-corrective/reports',requireAuth_,run(async()=>{
     const rows=await all(REPORTS,'P');
