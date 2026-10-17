@@ -1,0 +1,22 @@
+/* Signed-in online users — shared styling for Makkah and Jeddah. */
+.vd-online-users{direction:rtl;display:flex;align-items:center;gap:9px;min-height:44px;margin:7px 10px 6px;padding:7px 9px;border-radius:11px;border:1px solid rgba(113,200,183,.26);background:rgba(255,255,255,.07);color:#f2fff8;font:700 11px/1.5 Cairo,sans-serif}
+.vd-online-users .vd-online-dot,.vd-online-item-dot{width:9px;height:9px;flex:none;border-radius:50%;background:#72857f;box-shadow:0 0 0 3px rgba(255,255,255,.08)}
+.vd-online-users.is-live .vd-online-dot,.vd-online-item-dot{background:#2bda91;box-shadow:0 0 0 3px rgba(43,218,145,.11),0 0 10px rgba(43,218,145,.5)}
+.vd-online-users.is-error .vd-online-dot{background:#f2bd55}
+.vd-online-users .vd-online-label{flex:1;min-width:0}
+.vd-online-users strong{font-size:13px;min-width:29px;padding:2px 7px;border-radius:18px;background:rgba(43,218,145,.16);color:#d8fff0;text-align:center;font-variant-numeric:tabular-nums}
+.vd-online-users button{cursor:pointer;display:grid;place-items:center;flex:none;width:25px;height:25px;padding:0;border-radius:7px;border:1px solid rgba(255,255,255,.24);background:rgba(255,255,255,.12);color:#fff;font:700 15px Arial,sans-serif}
+.vd-online-users button:hover,.vd-online-users button:focus-visible{background:rgba(43,218,145,.25);outline-color:#a6e6c6}
+.vd-online-panel{direction:rtl;position:fixed;z-index:30000;max-height:min(350px,75vh);overflow:auto;box-sizing:border-box;padding:13px;border:1px solid #bbd4ca;border-radius:13px;background:#fff;color:#123b31;box-shadow:0 12px 36px rgba(0,0,0,.27);font:12px/1.5 Cairo,sans-serif}
+.vd-online-panel[hidden]{display:none!important}
+.vd-online-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:9px;border-bottom:1px solid #e5eee8}
+.vd-online-panel-head b{font-size:13px}
+.vd-online-panel-head button{cursor:pointer;border:0;background:#edf4f1;border-radius:8px;width:27px;height:27px;color:#1b4e3b;font-size:18px}
+.vd-online-panel ul{list-style:none;margin:0;padding:3px 0;max-height:235px;overflow:auto}
+.vd-online-panel li{display:flex;gap:10px;align-items:center;padding:8px 2px;border-bottom:1px solid #f1f3f1}
+.vd-online-item-info{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}
+.vd-online-item-info b{font-size:12px;font-weight:800}
+.vd-online-item-info small{font-size:10px;color:#63796f}
+.vd-online-panel .vd-online-empty{color:#63796f}
+.vd-online-panel-foot{display:block;font-size:10px;color:#788d84;margin-top:8px}
+@media print{.vd-online-users,.vd-online-panel{display:none!important}}

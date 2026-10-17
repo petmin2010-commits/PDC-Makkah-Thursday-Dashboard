@@ -53,6 +53,7 @@
   <link rel="stylesheet" href="/safety-nav-unified.css?v=20261015-1">
   <link rel="stylesheet" href="/nav-report-clusters.css?v=20261017-red-safety-1">
   <link rel="stylesheet" href="/report-archive.css?v=20261017-white-row-button-text-1">
+  <link rel="stylesheet" href="/online-presence.css?v=20261017-1">
 </head>
 <body>
 <div id="boot" class="boot boot-soft"><div class="boot-card"><div class="spinner"></div><b>جاري جلب البيانات</b><span>ستظهر الواجهة فورًا بينما تكتمل البيانات</span></div></div>
@@ -99,6 +100,17 @@
 
 
     </nav>
+    <div class="vd-online-users" id="vdOnlinePresence" role="status" aria-label="المستخدمون المتصلون الآن">
+      <span class="vd-online-dot" aria-hidden="true"></span>
+      <span class="vd-online-label">المستخدمون الآن</span>
+      <strong id="vdOnlineCount" aria-live="polite">—</strong>
+      <button id="vdOnlineToggle" type="button" title="عرض أسماء المستخدمين المتصلين" aria-label="عرض أسماء المستخدمين المتصلين" aria-expanded="false" aria-controls="vdOnlinePanel">👥</button>
+    </div>
+    <div class="vd-online-panel" id="vdOnlinePanel" hidden aria-label="أسماء المستخدمين المتصلين">
+      <div class="vd-online-panel-head"><b>المستخدمون المتصلون الآن</b><button id="vdOnlineClose" type="button" aria-label="إغلاق">×</button></div>
+      <ul id="vdOnlineList"></ul>
+      <small class="vd-online-panel-foot">تحديث تلقائي كل 25 ثانية · الأسماء من حسابات الدخول</small>
+    </div>
     <div class="side-foot"><i></i><div><b>LIVE SHEETS</b><span id="lastUpdate">—</span></div></div>
   </aside>
 
@@ -658,5 +670,6 @@
   <script src="/report-archive-filters.js?v=20261016-stale-1"></script>
   <script src="/report-archive.js?v=20261017-durable-upload-1"></script>
   <script src="/report-archive-notifier.js?v=20261017-queue-notifier-1"></script>
+  <script src="/online-presence.js?v=20261017-1"></script>
 </body>
 </html>
