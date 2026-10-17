@@ -290,6 +290,7 @@
     });
   }
 
+  window.VDLegacyReportsCenter={exportGeneral,exportProjectCompletionAnalysis,renderReportsCenter};
   window.renderReportsCenter = renderReportsCenter;
   renderReportsCenter();
 })();

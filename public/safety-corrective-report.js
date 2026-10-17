@@ -31,7 +31,7 @@ function mount(){
  $('scrAddFinding').addEventListener('click',()=>selectFinding(null));
  $('scrSaveFinding').addEventListener('click',saveFinding);
  $('scrRemoveFinding').addEventListener('click',removeFinding);
- $('scrExport').addEventListener('click',printReport);
+ $('scrExport').addEventListener('click',()=>printReport());
  $('scrFindingList').addEventListener('click',e=>{const b=e.target.closest('[data-finding]');if(b)selectFinding(b.dataset.finding)});
  $('scrPhotoGrid').addEventListener('change',photoChange);
  $('scrPhotoGrid').addEventListener('click',photoClick);
@@ -477,11 +477,11 @@ const summaryCounts=()=>{
  return {total:detail.total,closed:detail.closed,open:detail.open,coverage:visitCoverage(r.totalVisits,r.totalSites),grouped};
 };
 const brand=title=>'<header class="brand"><img src="/company-logo.png" alt="أبعاد الرؤية"><h2>'+esc(title)+'</h2><img src="/pdc-logo.jpg" alt="PDC"></header>';
-async function printReport(){
+async function printReport(externalWindow=null){
  if(!state.report)return;const r=state.report;
  if($('scrMetaSave').classList.contains('scr-unsaved')){notice('احفظ تعديلات بيانات التقرير قبل التصدير.',true);return}
  if(state.dirty){notice('احفظ الصور والتعليقات غير المحفوظة قبل التصدير.',true);return}
- const win=window.open('','_blank','width=1440,height=920');if(!win){notice('يرجى السماح بالنوافذ المنبثقة.',true);return}win.document.write('<!doctype html><html dir="rtl" lang="ar"><meta charset="utf-8"><body style="font-family:Tahoma;text-align:center;padding:90px">جاري تجهيز تقرير السلامة والصور...</body></html>');
+ const win=externalWindow || window.open('','_blank','width=1440,height=920');if(!win){notice('يرجى السماح بالنوافذ المنبثقة.',true);return}win.document.write('<!doctype html><html dir="rtl" lang="ar"><meta charset="utf-8"><body style="font-family:Tahoma;text-align:center;padding:90px">جاري تجهيز تقرير السلامة والصور...</body></html>');
  const rows=[];buttonBusy('scrExport',true,'جاري تجهيز الصور...');
  try{
  for(const f of state.findings){const j=await request('/photos/'+photoRef(r.id,f.id));rows.push({f,photos:j.images||[]})}
@@ -514,5 +514,10 @@ if(win.closed)throw Error('أُغلقت نافذة التقرير أثناء ا�
  win.document.open();win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+esc('VD-Safety-'+city+'-'+r.startDate)+'</title><style>'+printCss()+originalSummaryCss()+approvedEndcapsCss()+originalFindingCss()+'</style></head><body><div class="print-actions"><button onclick="window.print()">طباعة أو حفظ التقرير PDF</button> – تأكد من تحميل الصور قبل الطباعة</div>'+pages+originalFindingFitScript()+'</body></html>');win.document.close();window.VDReportArchive?.record({reportName:'تقرير السلامة والإجراءات التصحيحية',format:'PDF',filename:'VD_Safety_Corrective.pdf'});notice('تقرير PDF جاهز في نافذة جديدة. استخدم زر الطباعة للحفظ.');
  }catch(e){if(!win.closed)win.close();notice('تعذر تجهيز التقرير: '+e.message,true)}finally{buttonBusy('scrExport',false)}
 }
+window.VDSafetyCorrectiveCenter={
+ prepare:async id=>{if(!document.getElementById(PAGE))mount();await load(id);if(!state.report||String(state.report.id)!==String(id))throw Error("تعذر تحميل التقرير المطلوب");},
+ exportPDF:win=>printReport(win),
+ currentReport:()=>state.report?.id||""
+};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
 })();

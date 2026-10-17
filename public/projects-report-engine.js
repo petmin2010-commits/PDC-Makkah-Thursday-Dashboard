@@ -815,10 +815,10 @@ function methodologyAppendix(){
  ];
  return '<section class="pre-guide-appendix"><header class="pre-guide-title"><span>APPENDIX · REPORT METHODOLOGY</span><h2>دليل قراءة التقرير ومنهجية الاحتساب</h2><p>ملحق تفسيري ثابت، يُرفق تلقائياً بتقرير PDF ولا يُغيّر البيانات الأساسية.</p></header><div class="pre-guide-grid">'+sections.slice(0,8).map(s=>'<article class="pre-guide-item"><b>'+s[0]+'</b><div><h3>'+s[1]+'</h3><p>'+s[2]+'</p></div></article>').join('')+'</div><div class="pre-guide-page-break"></div><div class="pre-guide-grid">'+sections.slice(8).map(s=>'<article class="pre-guide-item"><b>'+s[0]+'</b><div><h3>'+s[1]+'</h3><p>'+s[2]+'</p></div></article>').join('')+'</div><section class="pre-formula-appendix"><h2>معادلات الاحتساب وأمثلة تطبيقية</h2><p>توضيحات حسابية مرجعية للبطاقات والمؤشرات.</p><div class="pre-formula-grid">'+calculationExamples.map((f,i)=>'<article class="pre-formula-card"><b>'+String(i+1).padStart(2,'0')+'</b><div><h3>'+f[0]+'</h3><p>'+f[1]+'</p><small>'+f[2]+'</small></div></article>').join('')+'</div></section><div class="pre-guide-foot"><strong>ملاحظة اعتماد:</strong> في حال اختلاف قيمة داخل البطاقة عن الرسم البياني أو السجل التاريخي، يجب مراجعة المصدر وتاريخ التقرير قبل الاعتماد النهائي.</div></section>';
 }
-async function printReport(){
+async function printReport(externalWindow=null){
  if(!state.report||!document.querySelector('#preBody.pre-report')){alert('أنشئ التقرير أولاً ثم اضغط تصدير التقرير PDF.');return}
  const brand=getBrand(),r=state.report,title='VD-PDC-'+brand.code+'-WO-'+r.workOrder+'-'+compactDate(r.rdate)+'-R01';
- const win=window.open('','_blank','width=1400,height=900');
+ const win=externalWindow || window.open('','_blank','width=1400,height=900');
  if(!win){alert('يرجى السماح بالنوافذ المنبثقة لتصدير PDF.');return}
  win.document.open();
  win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+esc(title)+'</title></head><body style="font-family:Arial,Tahoma,sans-serif;padding:40px;text-align:center;color:#36516f">جاري تجهيز التقرير والخريطة...</body></html>');
@@ -1078,4 +1078,9 @@ html,body{color:#1d334a;font-family:Tahoma,Arial,sans-serif;font-size:9pt}
 `}
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(install,260));else setTimeout(install,260);
+window.VDProjectsReportCenter={
+ loadWO:async wo=>{if(!$(PAGE_ID))install();state.report=null;const el=$("preInput");if(!el)throw Error("أداة تقارير المشاريع غير جاهزة");el.value=String(wo||"");await search();if(!state.report||String(state.report.workOrder)!==String(wo))throw Error("تعذر تحميل بيانات أمر العمل");},
+ exportPDF:win=>printReport(win),
+ exportExcel:()=>exportProjectExcel()
+};
 })();

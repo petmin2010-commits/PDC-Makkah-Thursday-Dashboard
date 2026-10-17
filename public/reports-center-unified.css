@@ -1,0 +1,47 @@
+
+/* Central export directory for Makkah/Jeddah — no changes to report body styles. */
+#reportsCenterRoot .rc-unified-hero{background:linear-gradient(114deg,#123858,#1d577c);border-radius:18px;padding:24px 28px;box-shadow:0 6px 24px #142f5020;color:#fff}
+#reportsCenterRoot .rc-unified-hero h2,#reportsCenterRoot .rc-unified-hero p{color:#fff}
+#reportsCenterRoot .rc-unified-hero p{line-height:1.9;max-width:880px;opacity:.96}
+#reportsCenterRoot .rc-control-strip{display:flex;align-items:end;justify-content:space-between;gap:18px;padding:16px 18px;border:1px solid #cddde6;border-radius:12px;background:#fff;flex-wrap:wrap}
+#reportsCenterRoot .rc-quick-search{flex:1;min-width:280px;font-weight:800;color:#1b4864;font-size:13px}
+#reportsCenterRoot .rc-quick-search span{display:block;margin-bottom:6px}
+#reportsCenterRoot .rc-quick-search input{width:100%;min-height:44px;font:inherit;font-size:15px;padding:10px 15px;border-radius:9px;border:1px solid #b2c9d8;background:#f9fcff;color:#153951;outline:none}
+#reportsCenterRoot .rc-quick-search input:focus{border-color:#297c9d;box-shadow:0 0 0 3px #297c9d25}
+#reportsCenterRoot #rcSearchCount{font-size:12px;font-weight:bold;color:#456780;padding-bottom:9px}
+#reportsCenterRoot .rc-tab-strip{display:flex;align-items:center;flex-wrap:wrap;gap:7px;padding:0 1px}
+#reportsCenterRoot .rc-tab-strip button{font-family:inherit;padding:9px 13px;color:#234965;background:#ecf4f8;border:1px solid #ccdfea;border-radius:10px;cursor:pointer;font-size:12.5px;font-weight:800;transition:all .15s ease}
+#reportsCenterRoot .rc-tab-strip button:hover{background:#dceaf5}
+#reportsCenterRoot .rc-tab-strip button.active{color:white;background:#1b5978;border-color:#1b5978}
+#reportsCenterRoot .rc-tab-strip button small{opacity:.75;font-size:11px;margin-inline-start:5px}
+#reportsCenterRoot .rc-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+#reportsCenterRoot .rc-unified-card{display:flex;flex-direction:column;align-items:stretch;justify-content:space-between;gap:14px;padding:16px 17px;border:1px solid #d2e0e9;background:#fff;box-shadow:0 3px 9px #2b526012;min-height:153px;border-radius:12px}
+#reportsCenterRoot .rc-unified-card .rc-card-copy{display:flex;align-items:flex-start;flex-direction:column;gap:7px;flex:1;text-align:right;min-width:0}
+#reportsCenterRoot .rc-unified-card .rc-card-copy strong{font-weight:900;color:#153f61;font-size:15px;line-height:1.6}
+#reportsCenterRoot .rc-unified-card .rc-card-copy small{font-size:11px;color:#627c8c;line-height:1.5;overflow-wrap:anywhere}
+#reportsCenterRoot .rc-unified-card .rc-format{font-family:Arial,sans-serif;direction:ltr;border:1px solid #d4e2ea;padding:3px 8px;background:#eef5fa;color:#195d76;font-size:11px;font-weight:900;border-radius:6px}
+#reportsCenterRoot .rc-unified-card .rc-export-btn{align-self:stretch;min-height:37px;border-radius:8px;background:#185a44;color:#fff;font-weight:850;font-size:12.5px}
+#reportsCenterRoot .rc-unified-card .rc-export-btn:hover{background:#0e4937}
+#reportsCenterRoot .rc-unified-card .rc-export-btn:disabled{opacity:.55;cursor:wait}
+#reportsCenterRoot .rc-group{border-radius:14px;overflow:hidden}
+#reportsCenterRoot .rc-group-head{background:#e4eff5;border-bottom:1px solid #cedde7}
+#reportsCenterRoot .rc-group-head h3{font-size:17px;color:#153e60}
+#reportsCenterRoot .rc-no-result{text-align:center;padding:28px 10px;color:#486c81;background:#fff;border-radius:12px}
+.rc-modal-overlay{position:fixed;inset:0;z-index:300000;display:flex;align-items:center;justify-content:center;background:#092d47ac;padding:22px;backdrop-filter:blur(3px)}
+.rc-dialog{width:min(100%,560px);max-height:92vh;overflow:auto;border:1px solid #c9dce8;background:#fff;color:#1d4563;border-radius:16px;box-shadow:0 16px 65px #041b38a8;font-family:Tahoma,Arial,sans-serif}
+.rc-dialog-title{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;border-bottom:1px solid #deebf2;padding:22px 24px 14px}
+.rc-dialog-title h3{font-size:21px;line-height:1.45;color:#103e61;margin:0 0 8px}
+.rc-dialog-title p{font-size:13px;line-height:1.8;color:#4b7089;margin:0}
+.rc-dialog-title .rc-modal-x{border:0;background:#eef4f8;border-radius:8px;padding:2px 12px;color:#284b67;cursor:pointer;font-size:26px}
+.rc-dialog-body{padding:22px 24px 14px}
+.rc-dialog-label{display:block;font-size:13px;font-weight:850;color:#174c6b}
+.rc-dialog-label input,.rc-dialog-label select{display:block;width:100%;margin-top:9px;padding:12px;border:1px solid #b8cedc;border-radius:9px;color:#123e60;background:#fff;font:inherit;outline:none}
+.rc-dialog-label input:focus,.rc-dialog-label select:focus{border-color:#1b7299;box-shadow:0 0 0 3px #1b729927}
+.rc-modal-error{font-size:12px;line-height:1.7;margin:12px 0 0;color:#ad3040;font-weight:bold}
+.rc-modal-error[hidden]{display:none!important}
+.rc-dialog-actions{display:flex;justify-content:flex-end;gap:10px;padding:15px 24px 24px}
+.rc-dialog-actions button{font-family:inherit;border:1px solid #d5e0e6;background:#ecf2f6;color:#1d4b67;border-radius:9px;padding:11px 20px;font-weight:800;cursor:pointer}
+.rc-dialog-actions .rc-export-btn{color:#fff;background:#14573f;border-color:#14573f}
+.rc-dialog-actions button:disabled{opacity:.5;cursor:wait}
+@media(max-width:1100px){#reportsCenterRoot .rc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){#reportsCenterRoot .rc-grid{grid-template-columns:1fr}#reportsCenterRoot .rc-unified-hero{padding:18px}#reportsCenterRoot .rc-unified-card{min-height:auto}#reportsCenterRoot .rc-tab-strip{flex-wrap:nowrap;overflow:auto;padding-bottom:5px}#reportsCenterRoot .rc-tab-strip button{white-space:nowrap}.rc-dialog-title,.rc-dialog-body,.rc-dialog-actions{padding-inline:15px}}
