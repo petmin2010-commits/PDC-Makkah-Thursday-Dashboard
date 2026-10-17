@@ -555,6 +555,28 @@ async function exportPptx(){
   notice('تم تصدير ملف PowerPoint من الشرائح الأصلية.');
  }catch(e){notice('خطأ تصدير PowerPoint: '+e.message,true)}finally{buttonBusy('tgrExportPptx',false)}
 }
+async function assembleLatestGenerator(){
+ const api=async(url)=>{const response=await fetch(API+url,{credentials:"same-origin",cache:"no-store"});const j=await response.json().catch(()=>({}));if(!response.ok||!j.ok)throw Error(j.error||"تعذر تحميل تقرير المؤقتات");return j};
+ const all=(await api("/reports")).reports||[];
+ const ordered=[...all].sort((a,b)=>String(b.updatedAt||"").localeCompare(String(a.updatedAt||"")));
+ let r=null,findings=[];
+ for(const candidate of ordered){const data=await api("/reports/"+encodeURIComponent(candidate.id));if((data.findings||[]).length){r=data.report;findings=data.findings;break}}
+ if(!r)return null;
+ const rows=[];
+ for(const f of findings){const j=await api("/photos/"+photoRef(r.id,f.id));rows.push({f,photos:j.images||[]})}
+ const metrics=[["عدد المواقع الحالية",r.currentSites],["عدد المواقع المغلقة",r.closedSites],["الكابلات المؤقتة",r.temporaryCables],["المولدات الإجمالي",r.generatorsTotal]];
+ let html=tempPage("<h1>تقرير أعمال المؤقتات والمولدات</h1><h2>إدارة مشاريع التوزيع "+esc(city)+"</h2><h2>"+esc(r.weekLabel||"")+"</h2>","cover");
+ html+=tempFrame("تقرير ملاحظات المؤقتات والمولدات","<h3>الملاحظات المرصودة والإجراء التصحيحي</h3><div class=\"tg-metrics\">"+metrics.map(x=>"<div class=\"tg-metric\"><b>"+fmt(x[1])+"</b><span>"+esc(x[0])+"</span></div>").join("")+"</div><h2>أبرز ملاحظات المؤقتات والمولدات المرصودة في الموقع</h2>"+findings.map(x=>"<div class=\"tg-note\">"+esc(x.observation)+"</div>").join(""));
+ html+=tempFrame("مراعاة ملاحظات السلامة والجودة لأعمال المؤقتات","<table class=\"tg-table\"><thead><tr><th>رقم</th><th>ملاحظات السلامة</th></tr></thead><tbody>"+tempGuidance.map((n,i)=>"<tr><td>"+(i+1)+"</td><td>"+esc(n)+"</td></tr>").join("")+"</tbody></table>");
+ html+=tempFrame("ملاحظات السلامة والجودة لأعمال المؤقتات","<table class=\"tg-table\"><thead><tr><th>رقم</th><th>ملاحظات السلامة</th></tr></thead><tbody><tr><td>1</td><td>تأمين الموقع ووضع الأشرطة التحذيرية وإغلاق منطقة العمل للمولدات</td></tr></tbody></table>");
+ for(const {f,photos} of rows){
+ const image=slot=>{const photo=photos.find(x=>Number(x.slot)===slot);return photo?.dataUrl?"<img src=\""+esc(photo.dataUrl)+"\" alt=\"توثيق الملاحظة\">":"<div class=\"missing\">لا توجد صورة مرفقة</div>"};
+ html+=tempFrame("الملاحظات المرصودة والإجراء التصحيحي","<div class=\"tg-detail-head\"><div><b>رقم أمر العمل:</b> "+esc(f.workOrder)+"<br><b>المقاول:</b> "+esc(f.contractor)+"<br><b>نوع أمر العمل:</b> "+esc(f.workType)+"</div><div><b>وصف العمل:</b> "+esc(f.workDescription||"—")+"<br><b>الموقع:</b> "+esc(f.location||"—")+"<br><b>الملاحظة:</b> "+esc(f.observation)+"</div></div><div class=\"tg-images\"><div class=\"tg-figure\"><header>قبل المعالجة</header>"+image(1)+"<p>"+esc(f.beforeDescription||f.observation)+"</p></div><div class=\"tg-figure\"><header>بعد المعالجة</header>"+image(5)+"<p>"+esc(f.correctiveAction||"في انتظار التصحيح")+"</p></div></div>");
+ }
+ html+=tempPage("<h1>وشكرًا</h1>","tg-end");
+ return {html:html.replace(/class="tg-slide /g,"class=\"sheet tg-slide "),css:tempPrintStyle(),slideCount:5+rows.length,fitScript:""};
+}
+window.VDGeneratorReportCenter={assembleLatest:assembleLatestGenerator};
 window.VDTemporaryGeneratorsCenter={
  prepare:async id=>{if(!document.getElementById(PAGE))mount();await load(id);if(!state.report||String(state.report.id)!==String(id))throw Error("تعذر تحميل التقرير المطلوب");},
  exportPDF:win=>printReport(win),

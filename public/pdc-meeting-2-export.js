@@ -4,9 +4,9 @@ const ksaDate=()=>{const v={};new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Ri
 let summary=null,sources=null,running=false,originalTemplateReady=false,originalTemplateReason='التحقق من القالب الأصلي جارٍ';
 async function get(url){const r=await fetch(url,{credentials:'same-origin',cache:'no-store'}),j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)throw Error(j.error||'SOURCE_READ_FAILED');return j;}
 async function latest(kind){
- const base=kind==='safety'?'/api/safety-corrective':'/api/quality-corrective';
+ const base=kind==='safety'?'/api/safety-corrective':kind==='quality'?'/api/quality-corrective':'/api/temporary-generators';
  const all=(await get(base+'/reports')).reports||[];
- const ordered=all.filter(r=>Number(r.totalSites||0)>0||Number(r.totalVisits||0)>0).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));
+ const ordered=(kind==='generators'?all:all.filter(r=>Number(r.totalSites||0)>0||Number(r.totalVisits||0)>0)).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));
  for(const item of ordered){
   const data=await get(base+'/reports/'+encodeURIComponent(item.id));
   if((data.findings||[]).length)return {report:data.report,count:data.findings.length,skipped:all.filter(x=>String(x.updatedAt||'')>String(item.updatedAt||'')).length};
@@ -20,7 +20,7 @@ function indicators(){
   ['الشرائح 1–6: الدرافت الأصلي',originalTemplateReady?'مطابقة أصلية لمواقع العناصر والتنسيقات والشارتات في PowerPoint':'غير متاح للتصدير: '+originalTemplateReason,originalTemplateReady],
   ['آخر تقرير سلامة مكتمل',sources?.safety?.report?String(sources.safety.report.weekLabel||'')+' | '+sources.safety.count+' ملاحظات'+(sources.safety.skipped?' | تم استبعاد '+sources.safety.skipped+' مسودة أحدث':''):(sources?.safety?.reason||'جار تحديد المصدر'),!!sources?.safety?.report],
   ['آخر تقرير جودة مكتمل',sources?.quality?.report?String(sources.quality.report.weekLabel||'')+' | '+sources.quality.count+' ملاحظات'+(sources.quality.skipped?' | تم استبعاد '+sources.quality.skipped+' مسودة أحدث':''):(sources?.quality?.reason||'جار تحديد المصدر'),!!sources?.quality?.report],
-  ['تقرير المؤقتات والمولدات','قيد الإنشاء — يضاف تلقائيًا إلى التجميع عند اكتمال مصدره',null]
+  ['تقرير المؤقتات والمولدات',sources?.generator?.report?String(sources.generator.report.weekLabel||'')+' | '+sources.generator.count+' ملاحظات':sources?.generator?.reason||'لا يوجد تقرير مؤقتات مكتمل محفوظ',!!sources?.generator?.report]
  ];
  host.innerHTML=arr.map(([name,label,ok])=>'<div class="pm2-agg-line '+(ok===true?'ready':ok===false?'unready':'pending')+'"><b>'+esc(name)+'</b><span>'+esc(label)+'</span></div>').join('');
  $('pm2ExportPptx').disabled=!ready();
@@ -28,8 +28,8 @@ function indicators(){
  $('pm2ExportsNote').textContent=ready()?'PowerPoint يَستخدم الشرائح الست الأصلية بعناصرها وشارتاتها، ويُلحق تقارير السلامة والجودة كصفحات مرئية. تصدير PDF معطّل مؤقتًا حتى تتوفر عملية تحويل مطابقة للشرائح الأصلية.':'التصدير مُعلّق حفاظًا على مطابقة الشرائح الست الأصلية: '+originalTemplateReason+'. لا يُسمح باستخدام تصميم HTML البديل، أو إعادة نشر بيانات قديمة.';
 }
 async function discover(){
- const [a,b,c]=await Promise.allSettled([latest('safety'),latest('quality'),get('/api/pdc-meeting-2/template-six/status')]);
- sources={safety:a.status==='fulfilled'?a.value:{reason:String(a.reason?.message||a.reason)},quality:b.status==='fulfilled'?b.value:{reason:String(b.reason?.message||b.reason)}};
+ const [a,b,c,d]=await Promise.allSettled([latest('safety'),latest('quality'),get('/api/pdc-meeting-2/template-six/status'),latest('generators')]);
+ sources={safety:a.status==='fulfilled'?a.value:{reason:String(a.reason?.message||a.reason)},quality:b.status==='fulfilled'?b.value:{reason:String(b.reason?.message||b.reason)},generator:d.status==='fulfilled'?d.value:{reason:String(d.reason?.message||d.reason)}};
  originalTemplateReady=c.status==='fulfilled'&&c.value.available===true;
  originalTemplateReason=originalTemplateReady?'القالب الأصلي متاح':'القالب الأصلي غير مفعل على خدمة التصدير';
  indicators();
@@ -68,7 +68,7 @@ async function compose(format){
   const live=await get('/api/pdc-meeting-2/summary');
   const safety=await window.VDSafetyCorrectiveCenter.assemble(sources.safety.report.id);
   const quality=await window.VDQualityCorrectiveCenter.assemble(sources.quality.report.id);
-  const generator=typeof window.VDGeneratorReportCenter?.assembleLatest==='function'?
+  const generator=sources?.generator?.report&&typeof window.VDGeneratorReportCenter?.assembleLatest==='function'?
    await window.VDGeneratorReportCenter.assembleLatest():null;
   const styles=await fetch('/pdc-meeting-2-print.css',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('PRINT_STYLE_MISSING');return r.text()});
   const body=safety.html+quality.html+(generator?.html||''); // Native original first six are merged into PowerPoint; never render the HTML approximation.
@@ -101,7 +101,7 @@ async function compose(format){
   download(blob,filename);
   notify('تم تنزيل '+format+' من '+pages.length+' شريحة. جار رفع النسخة إلى pCloud...');
   const stored=await archive(blob,format,filename);
-  notify('اكتمل التقرير التجميعي ('+(pages.length+6)+' شريحة): '+(stored?.ok?'تمت أرشفته على pCloud.':'تم تنزيل الملف؛ لم تكتمل الأرشفة: '+String(stored?.archiveError||stored?.error||'يرجى المراجعة'))+' المؤقتات قيد الإنشاء.');
+  notify('اكتمل التقرير التجميعي ('+(pages.length+6)+' شريحة): '+(stored?.ok?'تمت أرشفته على pCloud.':'تم تنزيل الملف؛ لم تكتمل الأرشفة: '+String(stored?.archiveError||stored?.error||'يرجى المراجعة'))+(generator?' تم ضم تقرير المؤقتات.':' تقرير المؤقتات غير مضمّن لعدم وجود ملاحظات مكتملة محفوظة.'));
  }catch(e){notify('تعذر التجميع: '+String(e.message||e));if(!win.closed)win.close();}
  finally{running=false;indicators();}
 }
