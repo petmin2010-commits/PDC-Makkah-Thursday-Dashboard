@@ -1,3 +1,13 @@
+/* Hide the main-dashboard header and global report filters ONLY on the
+   User Administration page. The selector follows actual page activity,
+   so other dashboards and tabs restore their own bars automatically. */
+body:has(#userAdminPage.active) #globalPageHeading,
+body:has(#userAdminPage.active) #vdUnifiedControls,
+body:has(#userAdminPage.active) #filterBar,
+body:has(#userAdminPage.active) #violationPeriodSlicer{
+  display:none!important;
+}
+
 /* Administrative users/permissions page, local to this dashboard. */
 #nav #userAdminNav{--nav-ic1:#22d3ee;--nav-ic2:#0f766e;--nav-accent:#22d3ee}
 .vd-user-admin{direction:rtl;color:#eaf3fb}
