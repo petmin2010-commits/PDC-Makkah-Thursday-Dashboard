@@ -81,11 +81,12 @@ function installReportClusters(nav){
  if(nav.dataset.vdReportClusters==="1")return;
  const configs=[
   {key:"safety",title:"مجموعة السلامة",pages:["safety","safetyCorrective","contractorSafety"]},
-  {key:"quality",title:"مجموعة الجودة والمخالفات",pages:["qualityCorrective","executionViolations","minutes"]}
+  {key:"quality",title:"مجموعة الجودة والمخالفات",pages:["qualityCorrective","executionViolations","minutes"]},
+  {key:"intelligence",title:"مجموعة التحليل الذكي",ids:["smartCenterNav","temporalMemoryNav","investigationRoomNav","explainableDecisionNav"],pages:["smartThursday"]}
  ];
  let built=0;
  for(const cfg of configs){
-  const items=cfg.pages.map(page=>nav.querySelector(".nav-item[data-page="+JSON.stringify(page)+"]"));
+  const items=[...(cfg.ids||[]).map(id=>nav.querySelector("#"+id)),...(cfg.pages||[]).map(page=>nav.querySelector(".nav-item[data-page="+JSON.stringify(page)+"]"))];
   if(items.some(item=>!item)||!items.every(item=>item.parentElement===items[0].parentElement))continue;
   const parent=items[0].parentElement;
   const frame=document.createElement("section");

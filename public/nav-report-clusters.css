@@ -78,3 +78,24 @@
 @media print{
  #nav .vd-report-cluster{box-shadow:none!important;}
 }
+
+/* Distinct turquoise smart-analysis cluster; same grouped sidebar design. */
+#nav .vd-report-cluster--intelligence {
+  --vd-cluster-ink:#85f6de;
+  --vd-cluster-border:rgba(39,222,182,.90);
+  --vd-cluster-fill:rgba(11,153,134,.19);
+}
+#nav .vd-report-cluster--intelligence .nav-item{
+  --nav-ic1:#26dcc5;
+  --nav-ic2:#087f83;
+  --nav-accent:#3ae9d1;
+}
+#nav .vd-report-cluster--intelligence .nav-item::before{
+  content:""!important;
+  color:transparent!important;
+  background:url("/nav-intelligence-brain.svg?v=20261017-1") center / 18px 18px no-repeat,linear-gradient(145deg,#26dcc5,#087f83)!important;
+  border-color:rgba(255,255,255,.37);
+}
+#nav .vd-report-cluster--intelligence .nav-item:hover{
+  background:rgba(35,206,183,.10);
+}
