@@ -63,3 +63,15 @@
   .sidebar-bottom-fixed>.vd-online-users strong{padding:2px 4px;min-width:18px;font-size:10px}
   .sidebar-bottom-fixed>.vd-online-users button{width:23px;height:23px;font-size:12px}
 }
+
+/* PDC scroll regression fix: accordion groups must not shrink in the flex scroller.
+   Shrinking caused their hidden overflow to clip menu buttons while nav.scrollHeight
+   stayed equal to nav.clientHeight, so mouse-wheel scrolling could not begin. */
+.sidebar>#nav>.vd-nav-group {
+  flex:0 0 auto!important;
+  flex-shrink:0!important;
+}
+.sidebar>#nav {
+  scroll-behavior:auto;
+  -webkit-overflow-scrolling:touch;
+}
