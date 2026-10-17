@@ -99,3 +99,9 @@
 #nav .vd-report-cluster--intelligence .nav-item:hover{
   background:rgba(35,206,183,.10);
 }
+
+/* Central reports: single coherent sidebar group, same report icon for all three links. */
+#nav .vd-report-cluster--central{--vd-cluster-ink:#c5e7ff;--vd-cluster-border:rgba(78,163,255,.88);--vd-cluster-fill:rgba(30,96,185,.18);}
+#nav .vd-report-cluster--central .nav-item{--nav-ic1:#59bcff;--nav-ic2:#176fe9;--nav-accent:#59bcff;}
+#nav .vd-report-cluster--central .nav-item::before{content:""!important;color:transparent!important;background:url("/nav-central-reports.svg?v=20261017-1") center / 18px 18px no-repeat,linear-gradient(145deg,#59bcff,#176fe9)!important;border-color:rgba(255,255,255,.36);}
+#nav .vd-report-cluster--central .nav-item:hover{background:rgba(73,158,255,.11);}

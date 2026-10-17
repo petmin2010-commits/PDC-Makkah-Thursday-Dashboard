@@ -82,7 +82,8 @@ function installReportClusters(nav){
  const configs=[
   {key:"safety",title:"السلامة ومخالفاتها وتقاريرها",pages:["safety","safetyCorrective","contractorSafety"]},
   {key:"quality",title:"الجودة ومخالفاتها وتقاريرها",pages:["qualityCorrective","executionViolations","minutes"]},
-  {key:"intelligence",title:"مجموعة التحليل الذكي",ids:["smartCenterNav","temporalMemoryNav","investigationRoomNav","explainableDecisionNav"],pages:["smartThursday"]}
+  {key:"intelligence",title:"مجموعة التحليل الذكي",ids:["smartCenterNav","temporalMemoryNav","investigationRoomNav","explainableDecisionNav"],pages:["smartThursday"]},
+  {key:"central",title:"تقارير مركزية",pages:["reportsCenter","excelExport","reportArchive"]}
  ];
  let built=0;
  for(const cfg of configs){
