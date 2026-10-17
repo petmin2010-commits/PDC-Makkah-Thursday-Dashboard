@@ -80,8 +80,8 @@ function buildGroups(nav){
 function installReportClusters(nav){
  if(nav.dataset.vdReportClusters==="1")return;
  const configs=[
-  {key:"safety",title:"مجموعة السلامة",pages:["safety","safetyCorrective","contractorSafety"]},
-  {key:"quality",title:"مجموعة الجودة والمخالفات",pages:["qualityCorrective","executionViolations","minutes"]},
+  {key:"safety",title:"السلامة ومخالفاتها وتقاريرها",pages:["safety","safetyCorrective","contractorSafety"]},
+  {key:"quality",title:"الجودة ومخالفاتها وتقاريرها",pages:["qualityCorrective","executionViolations","minutes"]},
   {key:"intelligence",title:"مجموعة التحليل الذكي",ids:["smartCenterNav","temporalMemoryNav","investigationRoomNav","explainableDecisionNav"],pages:["smartThursday"]}
  ];
  let built=0;
