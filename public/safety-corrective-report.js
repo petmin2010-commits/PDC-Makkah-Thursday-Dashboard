@@ -8,6 +8,8 @@ const photoRef=(r,f)=>r+'--'+f;
 const city=/(جدة|Jeddah)/i.test(document.title)?'جدة':'مكة المكرمة';
 const currentName=()=>state.report?.weekLabel||'تقرير السلامة';
 const fmt=n=>Number(n||0).toLocaleString('en-US');
+// Visits may exceed sites where multiple visits are made to the same location.
+const visitCoverage=(visits,sites)=>{const v=Number(visits),s=Number(sites);return Number.isFinite(v)&&Number.isFinite(s)&&s>0?Math.max(0,v)/s*100:0};
 const validDate=s=>/^\d{4}-\d{2}-\d{2}$/.test(s);
 const today=()=>{const p={};new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).forEach(x=>{if(x.type!=='literal')p[x.type]=x.value});return p.year+'-'+p.month+'-'+p.day;};
 async function request(url,method='GET',body){
@@ -61,7 +63,7 @@ function markup(){return `
 <label class="scr-original-metric"><span>عدد المواقع للأسبوع</span><input id="scrSites" type="number" min="0"></label>
 <label class="scr-original-metric"><span>عدد الزيارات</span><input id="scrVisits" type="number" min="0"></label>
 <div class="scr-original-metric scr-original-counter"><span>عدد الملاحظات</span><strong id="scrAutoFindings" role="status" aria-live="polite">0</strong></div>
-<div class="scr-original-metric scr-original-coverage"><span>نسبة تغطية الزيارات</span><strong id="scrCoverage" aria-live="polite">0%</strong><label>المواقع التي تمت زيارتها<input id="scrVisited" type="number" min="0"></label></div>
+<div class="scr-original-metric scr-original-coverage"><span>نسبة تغطية الزيارات</span><strong id="scrCoverage" aria-live="polite">0%</strong><small class="scr-coverage-formula">عدد الزيارات ÷ عدد المواقع للأسبوع</small></div>
 </div>
 <div class="scr-original-lower">
 <section class="scr-original-highlights"><h4>أبرز ملاحظات جودة التنفيذ المرصودة في الموقع</h4><label for="scrHighlights">ملخص تلقائي من حقل «الملاحظات المرصودة» داخل كل ملاحظة محفوظة أدناه؛ لا يحتاج إلى إدخال يدوي.</label><textarea id="scrHighlights" rows="10" readonly aria-readonly="true" placeholder="ستظهر هنا الملاحظات المسجلة بعد حفظها."></textarea></section>
@@ -172,19 +174,19 @@ function derivedContractors(){
 }
 function getMeta(){
  return {weekLabel:clean($('scrWeekLabel').value),startDate:$('scrStart').value,endDate:$('scrEnd').value,
- totalSites:Number($('scrSites').value||0),visitedSites:Number($('scrVisited').value||0),totalVisits:Number($('scrVisits').value||0),
+ totalSites:Number($('scrSites').value||0),visitedSites:Math.min(Number(state.report?.visitedSites||0),Number($('scrSites').value||0)),totalVisits:Number($('scrVisits').value||0),
  preparedBy:clean($('scrPrepared').value),notes:clean($('scrNotes').value),highlights:highlightsText(),
  manualFindings:null,manualOpen:null,manualClosed:null,
  contractorBreakdown:summaryContractors()};
 }
 function fillMeta(r){
  $('scrWeekLabel').value=r.weekLabel||'';$('scrStart').value=r.startDate||'';$('scrEnd').value=r.endDate||'';
- $('scrSites').value=r.totalSites??0;$('scrVisited').value=r.visitedSites??0;$('scrVisits').value=r.totalVisits??0;
+ $('scrSites').value=r.totalSites??0;$('scrVisits').value=r.totalVisits??0;
  $('scrPrepared').value=r.preparedBy||'';$('scrNotes').value=r.notes||'';renderHighlights();
  renderContractorRows(r.contractorBreakdown?.length?r.contractorBreakdown:derivedContractors());
  $('scrWorkspace').hidden=false;$('scrExport').disabled=false;$('scrMetaSave').classList.remove('scr-unsaved');
 }
-function validateMeta(x){if(!validDate(x.startDate)||!validDate(x.endDate)||x.startDate>x.endDate)throw Error('حدد فترة زمنية صحيحة.');if(x.visitedSites>x.totalSites)throw Error('المواقع التي تمت زيارتها لا يمكن أن تتجاوز إجمالي المواقع.')}
+function validateMeta(x){if(!validDate(x.startDate)||!validDate(x.endDate)||x.startDate>x.endDate)throw Error('حدد فترة زمنية صحيحة.');}
 function renderContractorOptions(selected){
  const el=$('scrContractor');if(!el)return;
  const value=clean(selected===undefined?el.value:selected);
@@ -238,9 +240,8 @@ async function load(id){
 async function saveMeta(){const data=getMeta();try{validateMeta(data);buttonBusy('scrMetaSave',true);const j=await request('/reports/'+state.report.id,'PUT',data);state.report=j.report;fillMeta(state.report);await refresh();renderKpis();notice('تم حفظ بيانات التقرير.')}catch(e){notice(e.message,true)}finally{buttonBusy('scrMetaSave',false)}}
 function renderKpis(){
  renderHighlights();
- const r=state.report||{},detail=detailCount(),sites=Number($('scrSites')?.value??r.totalSites??0),visited=Number($('scrVisited')?.value??r.visitedSites??0);
- const coverage=sites>0?Math.round(visited/sites*100):0;
- $('scrCoverage').textContent=coverage.toLocaleString('en-US')+'%';
+ const r=state.report||{},detail=detailCount(),sites=$('scrSites')?.value??r.totalSites??0,visits=$('scrVisits')?.value??r.totalVisits??0;
+ $('scrCoverage').textContent=visitCoverage(visits,sites).toFixed(1)+'%';
  for(const [id,value] of [['scrAutoFindings',detail.total],['scrAutoOpen',detail.open],['scrAutoClosed',detail.closed]])$(id).textContent=fmt(value);
  $('scrCountsHint').textContent='إجمالي '+detail.total+' ملاحظة محفوظة: '+detail.open+' مفتوحة (تشمل جاري التصحيح) + '+detail.closed+' مغلقة. يُحدث العداد تلقائيًا بعد الحفظ أو الحذف.';
  syncContractorCounts();
@@ -417,7 +418,7 @@ function originalSummaryCss(){return '@media print{.scr-p-summary{page-break-ins
 const summaryCounts=()=>{
  const r=state.report||{},detail=detailCount(),grouped={};
  for(const item of summaryContractors())grouped[item.name]=item.count;
- return {total:detail.total,closed:detail.closed,open:detail.open,coverage:r.totalSites?100*r.visitedSites/r.totalSites:0,grouped};
+ return {total:detail.total,closed:detail.closed,open:detail.open,coverage:visitCoverage(r.totalVisits,r.totalSites),grouped};
 };
 const brand=title=>'<header class="brand"><img src="/company-logo.png" alt="أبعاد الرؤية"><h2>'+esc(title)+'</h2><img src="/pdc-logo.jpg" alt="PDC"></header>';
 async function printReport(){

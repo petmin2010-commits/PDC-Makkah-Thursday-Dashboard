@@ -77,8 +77,7 @@ body.scr-open #violationPeriodSlicer {
 .scr-original-metric>input,.scr-original-metric>strong{display:block;align-self:center;width:100%;max-width:95%;font-size:27px;line-height:1.25;text-align:center;color:#174475;font-weight:900;background:transparent;border:0;outline:0;padding:11px 6px}
 .scr-original-metric>input:focus,.scr-original-metric input:focus{box-shadow:inset 0 0 0 2px #f28a23;background:#fffdf5}
 .scr-original-metric input::placeholder{color:#91a7bf}
-.scr-original-coverage>label{display:flex;align-items:center;justify-content:center;gap:6px;color:#4a6e89;font-size:10px;font-weight:800;margin-top:auto;padding:0 4px 6px}
-.scr-original-coverage>label input{width:65px;text-align:center;color:#23496d;border:1px solid #cbdbe6;background:#fff;padding:3px;font-size:12px;border-radius:5px}
+.scr-original-coverage .scr-coverage-formula{display:block;color:#4a6e89;font-size:11px;font-weight:800;margin-top:auto;padding:0 5px 10px}
 .scr-original-lower{display:grid;direction:rtl;grid-template-columns:minmax(0,1.45fr) minmax(180px,.76fr) minmax(220px,.85fr);gap:32px;align-items:stretch;min-height:330px;padding:0 0 10px}
 .scr-original-highlights{background:#cbdcf2;color:#143d6b;border:2px solid #bfd0e3;border-radius:42px;padding:17px 22px;box-shadow:0 3px 4px #0002;text-align:right;min-width:0}
 .scr-original-highlights h4{font-size:17px;font-weight:900;line-height:1.5;text-align:center;margin:0 0 12px;color:#123d66}
