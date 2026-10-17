@@ -17,6 +17,13 @@
   box-sizing:border-box;
   min-width:0;
 }
+/* Red safety-only theme: frame, heading and the existing helmet icons. */
+#nav .vd-report-cluster--safety{
+  --vd-cluster-ink:#ff9898;
+  --vd-cluster-border:rgba(255,91,96,.92);
+  --vd-cluster-fill:rgba(190,30,45,.19);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.045),0 0 13px rgba(210,38,52,.17),0 5px 14px rgba(0,0,0,.13);
+}
 #nav .vd-report-cluster--quality{
   --vd-cluster-ink:#dfaeff;
   --vd-cluster-border:rgba(188,114,255,.82);
@@ -50,9 +57,16 @@
   margin:1px 0!important;
 }
 #nav .vd-report-cluster--safety .nav-item{
-  --nav-ic1:#5cb6ff;
-  --nav-ic2:#176ff3;
-  --nav-accent:#3ca2ff;
+  --nav-ic1:#ff6a71;
+  --nav-ic2:#be2034;
+  --nav-accent:#ff6a71;
+}
+#nav .vd-report-cluster--safety .nav-item::before{
+  content:""!important;
+  color:transparent!important;
+  background:url("/safety-helmet-nav.svg?v=20261015-1") center / 18px 18px no-repeat,linear-gradient(145deg,#ff6971,#bf2035)!important;
+  border-color:rgba(255,196,196,.62)!important;
+  box-shadow:0 4px 10px rgba(87,6,16,.30),inset 0 1px 0 rgba(255,255,255,.28)!important;
 }
 #nav .vd-report-cluster--quality .nav-item{
   --nav-ic1:#c384ff;
