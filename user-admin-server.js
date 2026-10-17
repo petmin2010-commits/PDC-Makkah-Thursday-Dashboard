@@ -1,7 +1,7 @@
 'use strict';
 const crypto=require('crypto');
 const USERS_SHEET='dp users';
-const ACL_VERSION='__VD_ACL_V2__';
+const ACL_VERSION='v2';
 const ADMIN_ROLES=new Set(['مدير','مدير المشروع','مدير الفرع','المدير العام','مدير عام','مدير النظام','مدير الإدارة','مدير الادارة','مدير الاداره','admin','administrator']);
 const groups=[
  {title:'المتابعة التشغيلية',tabs:['الرئيسية','المشاريع','التوصيلات','التصاريح','الأصول','الإغلاقات','الطوارئ','متابعة أعمال المواقع']},
@@ -43,13 +43,18 @@ function install(app,{getSheets,spreadsheetId,requireAuth}){
  const enqueue=fn=>{const current=lock.then(fn);lock=current.catch(()=>{});return current};
  async function readRows(){
   const sheets=await getSheets();
-  const data=await sheets.spreadsheets.values.get({spreadsheetId,range:qSheet(USERS_SHEET)+'!A:G',valueRenderOption:'FORMULA'});
+  let data;
+  try{data=await sheets.spreadsheets.values.get({spreadsheetId,range:qSheet(USERS_SHEET)+'!A:H',valueRenderOption:'FORMULA'})}
+  catch(error){
+   if(Number(error?.code||error?.response?.status)!==400||!/range|grid|column/i.test(String(error.message)))throw error;
+   data=await sheets.spreadsheets.values.get({spreadsheetId,range:qSheet(USERS_SHEET)+'!A:G',valueRenderOption:'FORMULA'});
+  }
   return {sheets,rows:data.data.values||[]};
  }
  function parseUser(row,index){
   const perms=str(row[6]).split(/\s*[,،;|\n]+\s*/).map(str).filter(Boolean);
   const full=perms.some(x=>['*','all','الكل','جميع الصفحات','كامل الصلاحيات'].includes(normalize(x)));
-  const granular=perms.includes(ACL_VERSION);
+  const granular=str(row[7])===ACL_VERSION;
   const expanded=new Set(perms.filter(x=>allowedTabs.has(x)));
   if(!granular){
    const contains=x=>perms.some(p=>normalize(p)===normalize(x));
@@ -102,15 +107,21 @@ function install(app,{getSheets,spreadsheetId,requireAuth}){
     if(password&&(password.length<10||password.length>128))return res.status(400).json({ok:false,error:'PASSWORD_LENGTH'});
     if(mode==='create'&&!password)return res.status(400).json({ok:false,error:'PASSWORD_REQUIRED'});
     const {sheets,rows}=await readRows();
+    const metadata=await sheets.spreadsheets.get({spreadsheetId,fields:'sheets(properties(sheetId,title,gridProperties(columnCount)))'});
+    const userTab=(metadata.data.sheets||[]).find(x=>x.properties?.title===USERS_SHEET);
+    if(!userTab) return res.status(503).json({ok:false,error:'USERS_SHEET_MISSING'});
+    if(Number(userTab.properties?.gridProperties?.columnCount||0)<8){
+     await sheets.spreadsheets.batchUpdate({spreadsheetId,requestBody:{requests:[{appendDimension:{sheetId:userTab.properties.sheetId,dimension:'COLUMNS',length:8-Number(userTab.properties.gridProperties.columnCount||0)}}]}});
+    }
     const current=sameUser(req,rows);
     if(!current||!isAdmin({email:current.r[2],role:current.r[1],active:current.r[4]}))return res.status(403).json({ok:false,error:'ADMIN_REQUIRED'});
     const matches=rows.slice(1).map((r,i)=>({r,row:i+2})).filter(x=>emailOf(x.r[2])===email);
     if(matches.length>1)return res.status(409).json({ok:false,error:'DUPLICATE_SHEET_EMAIL'});
-    const perms=permissions.concat(ACL_VERSION).join(', ');
+    const perms=permissions.join(', ');
     if(mode==='create'){
      if(matches.length)return res.status(409).json({ok:false,error:'EMAIL_EXISTS'});
-     await sheets.spreadsheets.values.append({spreadsheetId,range:qSheet(USERS_SHEET)+'!A:G',valueInputOption:'RAW',insertDataOption:'INSERT_ROWS',
-       requestBody:{values:[[name,role,email,hashPassword(password),status,'',perms]]}});
+     await sheets.spreadsheets.values.append({spreadsheetId,range:qSheet(USERS_SHEET)+'!A:H',valueInputOption:'RAW',insertDataOption:'INSERT_ROWS',
+       requestBody:{values:[[name,role,email,hashPassword(password),status,'',perms,ACL_VERSION]]}});
     }else{
      const target=matches[0];if(!target)return res.status(404).json({ok:false,error:'USER_NOT_FOUND'});
      if(!str(body.version)||body.version!==versions(target.r))return res.status(409).json({ok:false,error:'USER_CHANGED_RELOAD'});
@@ -120,7 +131,8 @@ function install(app,{getSheets,spreadsheetId,requireAuth}){
      const data=[
       {range:qSheet(USERS_SHEET)+'!A'+n+':B'+n,values:[[name,role]]},
       {range:qSheet(USERS_SHEET)+'!E'+n,values:[[status]]},
-      {range:qSheet(USERS_SHEET)+'!G'+n,values:[[perms]]}
+      {range:qSheet(USERS_SHEET)+'!G'+n,values:[[perms]]},
+      {range:qSheet(USERS_SHEET)+'!H'+n,values:[[ACL_VERSION]]}
      ];
      if(password)data.push({range:qSheet(USERS_SHEET)+'!D'+n,values:[[hashPassword(password)]]});
      await sheets.spreadsheets.values.batchUpdate({spreadsheetId,requestBody:{valueInputOption:'RAW',data}});

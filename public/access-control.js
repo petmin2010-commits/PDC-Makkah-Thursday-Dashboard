@@ -190,7 +190,7 @@ async function start(){
     const permissions=Array.isArray(data?.user?.permissions)?data.user.permissions:[];
     state.allow=new Set(permissions.map(canon).filter(Boolean));
     state.exact=new Set(permissions.map(norm).filter(Boolean));
-    state.precise=permissions.includes('__VD_ACL_V2__');
+    state.precise=data?.user?.precisePermissions===true;
     state.admin=data?.user?.canManageUsers===true;
     state.all=permissions.some(v=>['*','all','الكل','جميع الصفحات','كامل الصلاحيات'].includes(norm(v)));
     state.ready=true;
