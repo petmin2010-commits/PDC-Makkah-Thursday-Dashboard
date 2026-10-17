@@ -52,15 +52,15 @@ function markup(){return `
 <div class="scr-original-metrics">
 <label class="scr-original-metric"><span>عدد المواقع للأسبوع</span><input id="scrSites" type="number" min="0"></label>
 <label class="scr-original-metric"><span>عدد الزيارات</span><input id="scrVisits" type="number" min="0"></label>
-<label class="scr-original-metric"><span>عدد الملاحظات</span><input id="scrManualFindings" type="number" min="0" placeholder="0"></label>
+<div class="scr-original-metric scr-original-counter"><span>عدد الملاحظات</span><strong id="scrAutoFindings" role="status" aria-live="polite">0</strong></div>
 <div class="scr-original-metric scr-original-coverage"><span>نسبة تغطية الزيارات</span><strong id="scrCoverage" aria-live="polite">0%</strong><label>المواقع التي تمت زيارتها<input id="scrVisited" type="number" min="0"></label></div>
 </div>
 <div class="scr-original-lower">
 <section class="scr-original-highlights"><h4>أبرز ملاحظات جودة التنفيذ المرصودة في الموقع</h4><label for="scrHighlights">اكتب كل ملاحظة في سطر مستقل؛ ستظهر بنقطة في التقرير.</label><textarea id="scrHighlights" rows="10" maxlength="3000" placeholder="اكتب الملاحظات الفعلية المرصودة خلال الأسبوع هنا"></textarea></section>
 <section class="scr-original-status">
-<label class="scr-original-metric"><span>عدد الملاحظات المفتوحة</span><input id="scrManualOpen" type="number" min="0" placeholder="0"></label>
-<label class="scr-original-metric"><span>عدد الملاحظات المغلقة</span><input id="scrManualClosed" type="number" min="0" placeholder="0"></label>
-<small id="scrCountsHint">سيظهر هنا الفرق بين أعداد الملخص والسجلات التفصيلية.</small>
+<div class="scr-original-metric scr-original-counter"><span>عدد الملاحظات المفتوحة</span><strong id="scrAutoOpen" role="status" aria-live="polite">0</strong></div>
+<div class="scr-original-metric scr-original-counter"><span>عدد الملاحظات المغلقة</span><strong id="scrAutoClosed" role="status" aria-live="polite">0</strong></div>
+<small id="scrCountsHint">تُحسب الأعداد تلقائيًا من الملاحظات المحفوظة أدناه.</small>
 </section>
 <section class="scr-original-contractors">
 <table aria-label="ملاحظات السلامة حسب المقاول"><thead><tr><th>المقاول</th><th>عدد ملاحظات السلامة</th><th class="scr-row-actions">حذف</th></tr></thead><tbody id="scrContractorRows"></tbody></table>
@@ -120,7 +120,6 @@ function renderContractorRows(values){
  '<td><input data-contractor-count type="number" min="0" aria-label="عدد ملاحظات السلامة" value="'+esc(x.count??'')+'"></td>'+
  '<td><button type="button" class="scr-remove-contractor" aria-label="حذف المقاول" title="حذف الصف">×</button></td></tr>').join('');
 }
-const summaryInput=id=>{const v=$(id).value.trim();return v===''?null:Number(v)};
 const detailCount=()=>({total:state.findings.length,open:state.findings.filter(f=>f.status!=='مغلقة').length,closed:state.findings.filter(f=>f.status==='مغلقة').length});
 function derivedContractors(){
  const groups=new Map();state.findings.forEach(f=>{const name=clean(f.contractor)||'غير محدد';groups.set(name,(groups.get(name)||0)+1)});
@@ -130,14 +129,13 @@ function getMeta(){
  return {weekLabel:clean($('scrWeekLabel').value),startDate:$('scrStart').value,endDate:$('scrEnd').value,
  totalSites:Number($('scrSites').value||0),visitedSites:Number($('scrVisited').value||0),totalVisits:Number($('scrVisits').value||0),
  preparedBy:clean($('scrPrepared').value),notes:clean($('scrNotes').value),highlights:$('scrHighlights').value.trim(),
- manualFindings:summaryInput('scrManualFindings'),manualOpen:summaryInput('scrManualOpen'),manualClosed:summaryInput('scrManualClosed'),
+ manualFindings:null,manualOpen:null,manualClosed:null,
  contractorBreakdown:summaryContractors()};
 }
 function fillMeta(r){
  $('scrWeekLabel').value=r.weekLabel||'';$('scrStart').value=r.startDate||'';$('scrEnd').value=r.endDate||'';
  $('scrSites').value=r.totalSites??0;$('scrVisited').value=r.visitedSites??0;$('scrVisits').value=r.totalVisits??0;
  $('scrPrepared').value=r.preparedBy||'';$('scrNotes').value=r.notes||'';$('scrHighlights').value=r.highlights||'';
- $('scrManualFindings').value=r.manualFindings??'';$('scrManualOpen').value=r.manualOpen??'';$('scrManualClosed').value=r.manualClosed??'';
  renderContractorRows(r.contractorBreakdown?.length?r.contractorBreakdown:derivedContractors());
  $('scrWorkspace').hidden=false;$('scrExport').disabled=false;$('scrMetaSave').classList.remove('scr-unsaved');
 }
@@ -197,11 +195,10 @@ function renderKpis(){
  const r=state.report||{},detail=detailCount(),sites=Number($('scrSites')?.value??r.totalSites??0),visited=Number($('scrVisited')?.value??r.visitedSites??0);
  const coverage=sites>0?Math.round(visited/sites*100):0;
  $('scrCoverage').textContent=coverage.toLocaleString('en-US')+'%';
- for(const [id,value] of [['scrManualFindings',detail.total],['scrManualOpen',detail.open],['scrManualClosed',detail.closed]])$(id).placeholder=String(value);
- const total=summaryInput('scrManualFindings')??detail.total,open=summaryInput('scrManualOpen')??detail.open,closed=summaryInput('scrManualClosed')??detail.closed;
- $('scrCountsHint').textContent='تفصيليًا: '+detail.total+' ملاحظة (مفتوحة '+detail.open+' / مغلقة '+detail.closed+'). '+(total===open+closed?'إجمالي الملخص متوازن.':'تنبيه: المفتوحة + المغلقة لا يساوي الإجمالي.');
+ for(const [id,value] of [['scrAutoFindings',detail.total],['scrAutoOpen',detail.open],['scrAutoClosed',detail.closed]])$(id).textContent=fmt(value);
+ $('scrCountsHint').textContent='إجمالي '+detail.total+' ملاحظة محفوظة: '+detail.open+' مفتوحة (تشمل جاري التصحيح) + '+detail.closed+' مغلقة. يُحدث العداد تلقائيًا بعد الحفظ أو الحذف.';
  const listed=summaryContractors(),sum=listed.reduce((n,x)=>n+x.count,0);
- $('scrContractorHint').textContent=listed.length?'مجموع ملاحظات المقاولين: '+sum+' من أصل '+total+(sum===total?' (متطابق).':' (راجع المقاولين غير المدرجين).'):'أضف أسماء المقاولين وأعداد الملاحظات.';
+ $('scrContractorHint').textContent=listed.length?'مجموع ملاحظات المقاولين: '+sum+' من أصل '+detail.total+(sum===detail.total?' (متطابق).':' (راجع المقاولين غير المدرجين).'):'أضف أسماء المقاولين وأعداد الملاحظات.';
 }
 function renderFindings(){
  const list=$('scrFindingList'),has=state.findings.length>0;
@@ -371,19 +368,13 @@ function originalSummaryCss(){return '@media print{.scr-p-summary{page-break-ins
 }
 
 const summaryCounts=()=>{
- const f=state.findings,r=state.report,detailClosed=f.filter(x=>x.status==='مغلقة').length,grouped={};
+ const f=state.findings,r=state.report||{},detail=detailCount(),grouped={};
  f.forEach(x=>{const name=x.contractor||'غير محدد';grouped[name]=(grouped[name]||0)+1});
  if(Array.isArray(r.contractorBreakdown)&&r.contractorBreakdown.length){
   Object.keys(grouped).forEach(k=>delete grouped[k]);
   for(const x of r.contractorBreakdown)grouped[x.name]=(grouped[x.name]||0)+Number(x.count||0);
  }
- return {
-  total:r.manualFindings??f.length,
-  closed:r.manualClosed??detailClosed,
-  open:r.manualOpen??(f.length-detailClosed),
-  coverage:r.totalSites?100*r.visitedSites/r.totalSites:0,
-  grouped
- };
+ return {total:detail.total,closed:detail.closed,open:detail.open,coverage:r.totalSites?100*r.visitedSites/r.totalSites:0,grouped};
 };
 const brand=title=>'<header class="brand"><img src="/company-logo.png" alt="أبعاد الرؤية"><h2>'+esc(title)+'</h2><img src="/pdc-logo.jpg" alt="PDC"></header>';
 async function printReport(){
