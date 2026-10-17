@@ -52,3 +52,13 @@ body.scr-open #filterBar,
 body.scr-open #violationPeriodSlicer {
   display: none !important;
 }
+
+/* Hide the empty findings panel and expand the editor to the available width. */
+.scr-master-detail:not(.scr-has-list){display:block}
+.scr-findings-list[hidden]{display:none!important}
+.scr-ref-card .scr-description-reference{margin-top:16px;font-size:14px;font-weight:900;text-align:center;color:#163f64}
+.scr-ref-card .scr-description-reference textarea{font-size:15px;font-weight:700;text-align:center;min-height:88px;background:#f4f7fa;border:2px solid #d5e0e9;border-radius:12px;line-height:1.7}
+.scr-ref-before .scr-description-reference textarea{color:#e8791a}
+.scr-ref-after .scr-description-reference textarea{color:#16446e}
+.scr-ref-card input[type="hidden"]{display:none!important}
+.scr-photo-preview img{display:block;max-height:100%;object-fit:contain}

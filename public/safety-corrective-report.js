@@ -38,7 +38,7 @@ function mount(){
  refresh();
 }
 function markup(){return `
-<div class="scr-hero"><div><small>SAFETY • CORRECTIVE ACTIONS</small><h2>تقرير السلامة والإجراءات التصحيحية</h2><p>تقرير أسبوعي موحد مع صور قبل المعالجة وبعد المعالجة، وتعليق أسفل كل صورة وتوثيق مستقل لكل ملاحظة.</p></div><div class="scr-toolbar"><button id="scrExport" type="button" disabled>تصدير PDF</button></div></div>
+<div class="scr-hero"><div><small>SAFETY • CORRECTIVE ACTIONS</small><h2>تقرير السلامة والإجراءات التصحيحية</h2><p>تقرير أسبوعي موحد مع صور قبل المعالجة وبعد المعالجة، وتوثيق كل ملاحظة بصور قبل وبعد المعالجة، ووصف الحالة والإجراء التصحيحي.</p></div><div class="scr-toolbar"><button id="scrExport" type="button" disabled>تصدير PDF</button></div></div>
 <div class="scr-line"><label>التقارير المحفوظة <select id="scrSelect"><option value="">اختر التقرير...</option></select></label><button id="scrCreate" type="button">+ إنشاء تقرير أسبوعي</button><span id="scrNotice" class="scr-notice">جاري تحميل التقارير...</span></div>
 <div id="scrWorkspace" hidden>
 <section class="scr-panel"><div class="scr-section-head"><h3>بيانات التقرير الأسبوعي</h3><button id="scrMetaSave" type="button">حفظ بيانات التقرير</button></div>
@@ -70,16 +70,16 @@ function markup(){return `
 <section class="scr-ref-card scr-ref-before" aria-label="قبل المعالجة">
 <h5>قبل المعالجة</h5>
 <div id="scrPhotoBefore" class="scr-phase-photos"></div>
-<label class="scr-ref-description">وصف الحالة قبل المعالجة<textarea id="scrBeforeDesc" rows="3" maxlength="1000" placeholder="وصف الحالة كما في التقرير"></textarea></label>
+<label class="scr-ref-description scr-description-reference">وصف الحالة<textarea id="scrBeforeDesc" rows="3" maxlength="1000" placeholder="وصف الحالة قبل المعالجة"></textarea></label>
 </section>
 <section class="scr-ref-card scr-ref-after" aria-label="بعد المعالجة">
 <h5>بعد المعالجة</h5>
 <div id="scrPhotoAfter" class="scr-phase-photos"></div>
-<label class="scr-ref-description">وصف الإجراء التصحيحي<textarea id="scrAction" rows="3" maxlength="1700" placeholder="الإجراء الذي اتُّخذ لتصحيح الملاحظة"></textarea></label>
-<label class="scr-ref-description">وصف الحالة بعد المعالجة<textarea id="scrAfterDesc" rows="3" maxlength="1000" placeholder="حالة الموقع بعد التنفيذ"></textarea></label>
+<label class="scr-ref-description scr-description-reference">وصف الإجراء التصحيحي<textarea id="scrAction" rows="3" maxlength="1700" placeholder="الإجراء التصحيحي أو في انتظار التصحيح"></textarea></label>
+<input id="scrAfterDesc" type="hidden" value="">
 </section>
 </div>
-<div id="scrPhotoSection" hidden><p>كل ملاحظة لها صور قبل المعالجة وبعدها وتعليقاتها الخاصة. الصورة الأولى في كل مرحلة أساسية، وتتوفر ثلاث صور إضافية اختياريًا. عند اختيار أول صورة لملاحظة جديدة تُحفظ بيانات الملاحظة أولًا.</p></div>
+<div id="scrPhotoSection" hidden><p>تظهر معاينة الصور فور اختيارها، حتى قبل حفظ الملاحظة. اكتب وصف الحالة تحت صورة «قبل المعالجة»، ووصف الإجراء التصحيحي تحت صورة «بعد المعالجة»، ثم احفظ بيانات الملاحظة وصورها معًا.</p></div>
 <div class="scr-editor-actions"><button id="scrSaveFinding" type="button">حفظ بيانات الملاحظة</button><button id="scrRemoveFinding" class="scr-danger" type="button" hidden>حذف الملاحظة</button></div>
 </div></div></section></div>`}
 function open(){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));$(PAGE).classList.add('active');document.querySelectorAll('#nav .nav-item').forEach(x=>x.classList.toggle('active',x.id===NAV));const bar=$('filterBar');if(bar)bar.style.display='none';const title=$('pageTitle');if(title)title.textContent='تقرير السلامة والإجراءات التصحيحية';document.body.classList.add('scr-open');}
@@ -108,7 +108,10 @@ function renderKpis(){
  $('scrKpis').innerHTML=items.map(a=>'<div class="scr-kpi"><small>'+a[0]+'</small><strong>'+a[1]+'</strong></div>').join('');
 }
 function renderFindings(){
- $('scrFindingList').innerHTML=state.findings.length?state.findings.map((f,i)=>'<button type="button" class="scr-finding'+(state.current===f.id?' active':'')+'" data-finding="'+esc(f.id)+'"><b>ملاحظة '+(i+1)+' • '+esc(f.workOrder||'بدون رقم')+'</b><span>'+esc(f.observation||'لا يوجد وصف بعد')+'</span><small>'+esc(f.contractor||'المقاول غير محدد')+' · '+esc(f.status)+'</small></button>').join(''):'<p class="scr-empty">لا توجد ملاحظات بعد. اضغط «إضافة ملاحظة».</p>';
+ const list=$('scrFindingList'),has=state.findings.length>0;
+ list.innerHTML=has?state.findings.map((f,i)=>'<button type="button" class="scr-finding'+(state.current===f.id?' active':'')+'" data-finding="'+esc(f.id)+'"><b>ملاحظة '+(i+1)+' • '+esc(f.workOrder||'بدون رقم')+'</b><span>'+esc(f.observation||'لا يوجد وصف بعد')+'</span><small>'+esc(f.contractor||'المقاول غير محدد')+' · '+esc(f.status)+'</small></button>').join(''):'';
+ list.hidden=!has;
+ list.parentElement.classList.toggle('scr-has-list',has);
 }
 function selectFinding(id){
  const f=state.findings.find(x=>x.id===id)||{id:'',workOrder:'',contractor:'',consultant:'أبعاد الرؤية',workType:'',observation:'',correctiveAction:'',status:'مفتوحة',beforeDescription:'',afterDescription:''};
@@ -123,23 +126,62 @@ function selectFinding(id){
 }
 function findingForm(){return {id:state.current||'',workOrder:clean($('scrWO').value),workType:clean($('scrType').value),contractor:clean($('scrContractor').value),consultant:clean($('scrConsultant').value),status:$('scrStatus').value,observation:clean($('scrObservation').value),correctiveAction:clean($('scrAction').value),beforeDescription:clean($('scrBeforeDesc').value),afterDescription:clean($('scrAfterDesc').value)}}
 async function saveFinding(){
- const b=findingForm();if(!b.observation){notice('اكتب وصف الملاحظة المرصودة أولاً.',true);return}
- try{buttonBusy('scrSaveFinding',true);const j=await request('/reports/'+state.report.id+'/findings','POST',b);const index=state.findings.findIndex(x=>x.id===j.finding.id);if(index>=0)state.findings[index]=j.finding;else state.findings.push(j.finding);state.current=j.finding.id;$('scrRemoveFinding').hidden=false;$('scrPhotoSection').hidden=false;renderKpis();renderFindings();await loadPhotos();notice('تم حفظ الملاحظة. يمكنك رفع الصور وكتابة التعليقات الآن.')}catch(e){notice(e.message,true)}finally{buttonBusy('scrSaveFinding',false)}
+ await Promise.all(Object.values(state.processing||{}).map(p=>p.catch(()=>null)));
+ const b=findingForm();
+ if(!b.observation){notice('اكتب الملاحظة المرصودة أولاً لحفظ الملاحظة والصور.',true);return}
+ if(!state.report){notice('اختر التقرير الأسبوعي أولاً.',true);return}
+ const wasNew=!state.current;
+ try{
+  buttonBusy('scrSaveFinding',true,'جارٍ حفظ البيانات والصور...');
+  const j=await request('/reports/'+encodeURIComponent(state.report.id)+'/findings','POST',b);
+  const index=state.findings.findIndex(x=>x.id===j.finding.id);
+  if(index>=0)state.findings[index]=j.finding;else state.findings.push(j.finding);
+  state.current=j.finding.id;
+  if(wasNew)state.photos=[];
+  $('scrRemoveFinding').hidden=false;$('scrPhotoSection').hidden=false;
+  renderKpis();renderFindings();
+  const slots=Object.keys(state.pending).map(Number).sort((a,b)=>a-b);
+  let failures=0;
+  for(const slot of slots){
+   try{
+    const caption=(slot<=4?b.beforeDescription:b.correctiveAction).slice(0,800);
+    const response=await request('/photos/'+photoRef(state.report.id,state.current)+'/'+slot,'POST',{dataUrl:state.pending[slot],caption});
+    state.photos=state.photos.filter(x=>Number(x.slot)!==slot);
+    state.photos.push(response.image);
+    delete state.pending[slot];
+   }catch(error){failures++;notice('تعذر حفظ الصورة '+slot+': '+error.message,true)}
+  }
+  state.dirty=Object.keys(state.pending).length>0;
+  renderPhotos();
+  if(!failures)notice('تم حفظ بيانات الملاحظة وصورها بنجاح.');
+  else notice('حُفظت الملاحظة، وتعذر حفظ '+failures+' صورة؛ ما زالت معاينة الصور غير المحفوظة ظاهرة لإعادة المحاولة.',true);
+ }catch(e){notice('تعذر حفظ الملاحظة: '+e.message,true)}
+ finally{buttonBusy('scrSaveFinding',false)}
 }
 async function removeFinding(){
  if(!state.current||!confirm('هل تريد حذف الملاحظة؟ يُنصح بحذف صورها أولاً؛ قد تبقى ملفاتها المؤرشفة في ورقة الصور.'))return;
  try{await request('/reports/'+state.report.id+'/findings/'+state.current,'DELETE');state.findings=state.findings.filter(f=>f.id!==state.current);state.current=null;state.photos=[];$('scrEditor').hidden=true;renderKpis();renderFindings();notice('تم حذف سجل الملاحظة.')}catch(e){notice(e.message,true)}
 }
-async function loadPhotos(){if(!state.report||!state.current)return;const id=state.current;const ref=photoRef(state.report.id,id);try{const j=await request('/photos/'+ref);if(id!==state.current)return;state.photos=j.images||[];state.pending={};state.photoDraft={};state.dirty=false;renderPhotos();}catch(e){notice('تعذر تحميل الصور: '+e.message,true)}}
+async function loadPhotos(){
+ if(!state.report||!state.current)return;
+ const id=state.current,ref=photoRef(state.report.id,id);
+ try{
+  const j=await request('/photos/'+ref);
+  if(id!==state.current)return;
+  state.photos=j.images||[];
+  // Keep previews selected while existing images were loading.
+  state.dirty=Object.keys(state.pending).length>0;
+  renderPhotos();
+ }catch(e){notice('تعذر تحميل الصور: '+e.message,true)}
+}
 const stored=slot=>state.photos.find(p=>Number(p.slot)===slot);
 function renderPhotos(){
  const card=slot=>{
   const photo=stored(slot),pending=state.pending[slot],src=pending||photo?.dataUrl||'',before=slot<=4,label=before?'قبل المعالجة':'بعد المعالجة',primary=(slot===1||slot===5);
-  return '<article class="scr-photo'+(primary?' scr-photo-primary':'')+'" data-slot="'+slot+'"><header><b>'+(primary?'الصورة الأساسية':'صورة توثيقية '+(before?slot:slot-4))+'</b><small>'+((photo?.dataUrl)?'محفوظة':pending?'جاهزة للحفظ':'غير مرفقة')+'</small></header>'+
+  return '<article class="scr-photo'+(primary?' scr-photo-primary':'')+'" data-slot="'+slot+'"><header><b>'+(primary?'الصورة الأساسية':'صورة إضافية '+(before?slot:slot-4))+'</b><small>'+(pending?'جاهزة للحفظ':photo?.dataUrl?'محفوظة':'غير مرفقة')+'</small></header>'+
   '<div class="scr-photo-preview">'+(src?'<img src="'+esc(src)+'" alt="'+label+'">':'<span>أضف صورة '+label+'</span>')+'</div>'+
   '<label class="scr-upload">رفع صورة '+label+'<input type="file" accept="image/*" data-photo-file="'+slot+'" aria-label="رفع صورة '+label+'"></label>'+
-  '<label class="scr-photo-caption">التعليق أسفل الصورة<textarea data-caption="'+slot+'" maxlength="800" placeholder="تعليق الصورة كما سيظهر في التقرير">'+esc(Object.prototype.hasOwnProperty.call(state.photoDraft,slot)?state.photoDraft[slot]:(photo?.caption||''))+'</textarea></label>'+
-  '<div class="scr-photo-buttons"><button type="button" data-photo-save="'+slot+'">حفظ الصورة والتعليق</button><button class="scr-danger" type="button" data-photo-delete="'+slot+'" '+(photo?.dataUrl?'':'disabled')+'>حذف</button></div></article>';
+  '<div class="scr-photo-buttons"><button type="button" data-photo-save="'+slot+'" '+(src?'':'disabled')+'>حفظ الصورة</button><button class="scr-danger" type="button" data-photo-delete="'+slot+'" '+(src?'':'disabled')+'>حذف</button></div></article>';
  };
  const stage=start=>card(start)+'<details class="scr-extra-photos"><summary>+ صور إضافية لهذه المرحلة (حتى 3)</summary><div class="scr-extra-photo-grid">'+[start+1,start+2,start+3].map(card).join('')+'</div></details>';
  $('scrPhotoBefore').innerHTML=stage(1);
@@ -160,37 +202,67 @@ async function compress(file){
  throw Error('حجم الصورة كبير جدًا بعد الضغط.');
 }
 async function photoChange(e){
- const slot=Number(e.target.dataset.photoFile);if(!slot||!e.target.files?.length)return;
- const file=e.target.files[0];
+ const slot=Number(e.target.dataset.photoFile);
+ if(!slot||!e.target.files?.length)return;
+ const file=e.target.files[0],card=e.target.closest('.scr-photo');
+ if(!file.type.startsWith('image/')||file.size>20*1024*1024){notice('اختر صورة صالحة بحجم لا يزيد عن 20 ميجابايت.',true);return}
+ const previewUrl=URL.createObjectURL(file);
+ const preview=card?.querySelector('.scr-photo-preview');
+ if(preview){preview.replaceChildren();const img=document.createElement('img');img.src=previewUrl;img.alt='معاينة فورية للصورة';preview.append(img)}
+ const marker=card?.querySelector('header small');if(marker)marker.textContent='تجهيز الصورة...';
+ state.dirty=true;
+ notice('تظهر الصورة الآن في المعاينة. يجري تجهيزها للحفظ...');
+ const work=compress(file);
+ state.processing??={};state.processing[slot]=work;
  try{
-  if(!state.current){
-   if(!clean($('scrObservation').value))throw Error('اكتب الملاحظة المرصودة أولاً لفتح سجل الصور.');
-   await saveFinding();
-   if(!state.current)return;
+  const result=await work;
+  if(state.processing[slot]!==work)return;
+  state.pending[slot]=result;
+  const current=$('scrPhotoGrid')?.querySelector('[data-slot="'+slot+'"]');
+  if(current){
+   const target=current.querySelector('.scr-photo-preview');
+   target.replaceChildren();
+   const img=document.createElement('img');img.src=result;img.alt='معاينة الصورة';target.append(img);
+   current.querySelector('header small').textContent='جاهزة للحفظ';
+   const save=current.querySelector('[data-photo-save]'),del=current.querySelector('[data-photo-delete]');
+   if(save)save.disabled=false;if(del)del.disabled=false;
   }
-  notice('جارٍ تجهيز صورة '+(slot<=4?'قبل المعالجة':'بعد المعالجة')+'...');
-  const result=await compress(file);state.pending[slot]=result;
-  const card=$('scrPhotoGrid').querySelector('[data-slot="'+slot+'"]');
-  if(card){card.querySelector('.scr-photo-preview').innerHTML='<img src="'+esc(result)+'" alt="معاينة الصورة">';card.querySelector('header small').textContent='جاهزة للحفظ';}
-  state.dirty=true;notice('الصورة جاهزة. اكتب تعليقها ثم اضغط «حفظ الصورة والتعليق».');
- }catch(err){notice(err.message,true)}
+  notice('ظهرت الصورة بالمعاينة. اضغط حفظ بيانات الملاحظة لحفظها مع الصور.');
+ }catch(err){notice('تعذر معاينة الصورة: '+err.message,true)}
+ finally{URL.revokeObjectURL(previewUrl);if(state.processing[slot]===work)delete state.processing[slot]}
 }
 async function photoClick(e){
- const save=e.target.closest('[data-photo-save]'),del=e.target.closest('[data-photo-delete]');if(!save&&!del||!state.current)return;
- const slot=Number((save||del).dataset.photoSave||(save||del).dataset.photoDelete),ref=photoRef(state.report.id,state.current),prior=stored(slot);
- if(del&&!confirm('حذف هذه الصورة وتعليقها؟'))return;
+ const save=e.target.closest('[data-photo-save]'),del=e.target.closest('[data-photo-delete]');
+ if(!save&&!del)return;
+ const slot=Number((save||del).dataset.photoSave||(save||del).dataset.photoDelete);
+ if(!state.current){
+  if(del){
+   delete state.pending[slot];
+   state.dirty=Object.keys(state.pending).length>0;
+   renderPhotos();notice('تم حذف معاينة الصورة قبل الحفظ.');
+  }else await saveFinding();
+  return;
+ }
+ const ref=photoRef(state.report.id,state.current),prior=stored(slot);
+ if(del&&!state.pending[slot]&&!confirm('حذف هذه الصورة المحفوظة؟'))return;
  const btn=save||del;btn.disabled=true;
  try{
- let saved;
- if(del){await request('/photos/'+ref+'/'+slot,'DELETE')}
- else{
- const dataUrl=state.pending[slot]||prior?.dataUrl||'';
- if(!dataUrl)throw Error('اختر صورة أولاً.');
- const caption=clean(btn.closest('.scr-photo').querySelector('[data-caption]').value);
- saved=await request('/photos/'+ref+'/'+slot,'POST',{dataUrl,caption});
- }
- if(del)state.photos=state.photos.filter(p=>Number(p.slot)!==slot);else{state.photos=state.photos.filter(p=>Number(p.slot)!==slot);state.photos.push(saved.image)}
- delete state.pending[slot];delete state.photoDraft[slot];state.dirty=Object.keys(state.pending).length>0||Object.keys(state.photoDraft).some(k=>state.photoDraft[k]!==((stored(Number(k))?.caption)||''));renderPhotos();notice(del?'تم حذف الصورة.':'تم حفظ الصورة والتعليق بنجاح.');
+  let saved;
+  if(del){
+   if(prior?.dataUrl)await request('/photos/'+ref+'/'+slot,'DELETE');
+  }else{
+   await Promise.all(Object.values(state.processing||{}).map(p=>p.catch(()=>null)));
+   const dataUrl=state.pending[slot]||prior?.dataUrl||'';
+   if(!dataUrl)throw Error('اختر صورة أولاً.');
+   const caption=clean(slot<=4?$('scrBeforeDesc').value:$('scrAction').value).slice(0,800);
+   saved=await request('/photos/'+ref+'/'+slot,'POST',{dataUrl,caption});
+  }
+  state.photos=state.photos.filter(p=>Number(p.slot)!==slot);
+  if(saved?.image)state.photos.push(saved.image);
+  delete state.pending[slot];
+  state.dirty=Object.keys(state.pending).length>0;
+  renderPhotos();
+  notice(del?'تم حذف الصورة.':'تم حفظ الصورة بنجاح.');
  }catch(err){notice(err.message,true);btn.disabled=false}
 }
 function printCss(){return `@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}body{direction:rtl;font-family:Tahoma,Arial,sans-serif;color:#16395c;margin:0}h1,h2,h3,p{margin-top:0}.print-actions{padding:12px;background:#dae8f7;text-align:center;position:sticky;top:0;z-index:10}.print-actions button{padding:10px 24px;background:#183f67;color:white;border:0;border-radius:8px;font-weight:bold;cursor:pointer}.sheet{min-height:180mm;page-break-after:always;position:relative;padding:15mm;border-top:8px solid #f18c2d;overflow:hidden}.sheet:before{content:'VISION DIMENSIONS';position:absolute;opacity:.035;left:25%;top:42%;font-size:50pt;transform:rotate(-15deg);pointer-events:none}.brand{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #dbe8f1;padding-bottom:8mm;margin-bottom:10mm}.brand img{height:22mm;max-width:35mm;object-fit:contain}.brand h2{font-size:16pt;margin:0}.cover{background:linear-gradient(120deg,#143b62 35%,#1c5885 80%);color:#fff;text-align:center;padding:25mm}.cover .brand{border-color:#ffffff48}.cover .brand h2{color:#fff}.cover h1{font-size:32pt;margin-top:24mm}.cover p{font-size:17pt;color:#f9c490}.cover span{font-size:13pt}.end{background:#173e66;color:white;text-align:center}.end h1{font-size:31pt;margin-top:42mm}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:7mm;margin-bottom:12mm}.metric{padding:8mm;border:1px solid #bcd1e5;border-radius:8px;background:#eef5fb}.metric b{display:block;font-size:23pt;margin-top:4mm}.summary-table{width:100%;border-collapse:collapse;font-size:11pt}.summary-table th,.summary-table td{padding:4mm;border:1px solid #d1dfec;text-align:right}.summary-table th{background:#17446e;color:#fff}.summary-table tr:nth-child(even){background:#f0f5fb}.finding-title{background:#17446e;color:#fff;padding:3mm 6mm;border-radius:5px;font-size:14pt}.finding-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;font-size:10pt}.finding-meta span{padding:3mm;border:1px solid #d7e3ee;border-radius:5px}.finding-text{padding:3mm 6mm;background:#f2f7fb;border-inline-start:4px solid #f18c2d;margin:3mm 0;white-space:pre-wrap;font-size:11pt}.photos{display:grid;grid-template-columns:1fr 1fr;gap:8mm}.photos-col h3{text-align:center;background:#f18c2d;color:white;border-radius:5px;padding:2mm}.photos-col.after h3{background:#17446e}.photo-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4mm}.photo-list figure{margin:0;border:1px solid #d9e4ef;padding:2mm;break-inside:avoid;border-radius:6px}.photo-list img{display:block;width:100%;height:40mm;object-fit:contain;background:#f7f9fb}.photo-list figcaption{text-align:center;font-size:9pt;color:#173d64;min-height:12mm;overflow-wrap:anywhere;padding-top:2mm}.empty{padding:20mm 2mm;text-align:center;color:#6b8197;border:1px dashed #b3c3d4;border-radius:5px}.foot{position:absolute;bottom:6mm;right:16mm;left:16mm;text-align:center;border-top:1px solid #c9dbe8;padding-top:2mm;font-size:9pt;color:#688096}@media print{.print-actions{display:none}.sheet{border-top-width:6px}body{background:white}}`}
@@ -211,8 +283,8 @@ async function printReport(){
  ['عدد المواقع للأسبوع',fmt(r.totalSites)],['عدد المواقع المزارة',fmt(r.visitedSites)],['عدد الزيارات',fmt(r.totalVisits)],['نسبة تغطية المواقع',s.coverage.toFixed(1)+'%'],
  ['الملاحظات المرصودة',fmt(rows.length)],['الملاحظات المفتوحة',fmt(s.open)],['الملاحظات المغلقة',fmt(s.closed)]].map(x=>'<div class="metric"><span>'+x[0]+'</span><b>'+x[1]+'</b></div>').join('')+'</div><h3>توزيع الملاحظات حسب المقاول</h3><table class="summary-table"><thead><tr><th>المقاول</th><th>عدد الملاحظات</th></tr></thead><tbody>'+entries.map(x=>'<tr><td>'+esc(x[0])+'</td><td>'+fmt(x[1])+'</td></tr>').join('')+'</tbody></table><p>'+esc(r.notes||'')+'</p><div class="foot">تقرير السلامة | '+esc(city)+'</div></section>';
  for(let i=0;i<rows.length;i++){
- const {f,photos}=rows[i],phase=(before)=>{const list=photos.filter(p=>p.dataUrl&&(before?Number(p.slot)<=4:Number(p.slot)>4));return '<section class="photos-col '+(before?'before':'after')+'"><h3>'+(before?'قبل المعالجة':'بعد المعالجة')+'</h3><div class="photo-list">'+(list.length?list.map(p=>'<figure><img src="'+esc(p.dataUrl)+'"><figcaption>'+esc(p.caption||'بدون تعليق')+'</figcaption></figure>').join(''):'<div class="empty">لم تُرفق صور لهذه المرحلة</div>')+'</div></section>'};
- pages+='<section class="sheet">'+brand('بيانات المعالجة والتوثيق')+'<div class="finding-title">الملاحظة '+(i+1)+' من '+rows.length+'</div><div class="finding-meta">'+[['أمر العمل',f.workOrder],['نوع أمر العمل',f.workType],['المقاول',f.contractor],['الاستشاري',f.consultant],['الحالة',f.status]].map(x=>'<span><b>'+x[0]+': </b>'+esc(x[1]||'—')+'</span>').join('')+'</div><div class="finding-text"><b>الملاحظات المرصودة:</b> '+esc(f.observation)+'</div><div class="finding-text"><b>وصف الإجراء التصحيحي:</b> '+esc(f.correctiveAction||'بانتظار التصحيح')+'</div><div class="photos">'+phase(true)+phase(false)+'</div><div class="foot">قبل المعالجة: '+esc(f.beforeDescription||'—')+' | بعد المعالجة: '+esc(f.afterDescription||'—')+'</div></section>';
+ const {f,photos}=rows[i],phase=(before)=>{const list=photos.filter(p=>p.dataUrl&&(before?Number(p.slot)<=4:Number(p.slot)>4)),label=before?'وصف الحالة':'وصف الإجراء التصحيحي',description=before?(f.beforeDescription||f.observation):(f.correctiveAction||'في انتظار التصحيح');return '<section class="photos-col '+(before?'before':'after')+'"><h3>'+(before?'قبل المعالجة':'بعد المعالجة')+'</h3><div class="photo-list">'+(list.length?list.map(p=>'<figure><img src="'+esc(p.dataUrl)+'"></figure>').join(''):'<div class="empty">لم تُرفق صور لهذه المرحلة</div>')+'</div><div style="white-space:pre-wrap;text-align:center;border:1px solid #c6d4df;border-radius:10px;background:#f6f9fb;padding:12px 8px;margin-top:10px;color:'+(before?'#e67916':'#17446e')+';font-weight:bold"><b>'+label+': </b>'+esc(description)+'</div></section>'};
+ pages+='<section class="sheet">'+brand('بيانات المعالجة والتوثيق')+'<div class="finding-title">الملاحظة '+(i+1)+' من '+rows.length+'</div><div class="finding-meta">'+[['أمر العمل',f.workOrder],['نوع أمر العمل',f.workType],['المقاول',f.contractor],['الاستشاري',f.consultant],['الحالة',f.status]].map(x=>'<span><b>'+x[0]+': </b>'+esc(x[1]||'—')+'</span>').join('')+'</div><div class="finding-text"><b>الملاحظات المرصودة:</b> '+esc(f.observation)+'</div><div class="photos">'+phase(true)+phase(false)+'</div><div class="foot">تقرير الإجراءات التصحيحية لكل أسبوع | '+esc(city)+'</div></section>';
  }
  pages+='<section class="sheet end">'+brand('أبعاد الرؤية للاستشارات الهندسية')+'<h1>شكرًا لتعاونكم</h1><h2>معًا لرفع جودة التنفيذ والسلامة</h2><p>دائرة مشاريع التوزيع – '+esc(city)+'</p></section>';
  if(win.closed)throw Error('أُغلقت نافذة التقرير أثناء التجهيز.');
