@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { google } = require('googleapis');
+const userAdminSystem_ = require('./user-admin-server');
 const { DateTime } = require('luxon');
 const { APP } = require('./app-config');
 const { syncAdviceHistory } = require('./advice-ai');
@@ -2263,7 +2264,7 @@ app.get('/api/auth/me',async(req,res)=>{
     return res.json({
       ok:true,
       authenticated:true,
-      user:req.session.user
+      user:{...req.session.user,canManageUsers:userAdminSystem_.isAdmin(user)}
     });
 
   }catch(error){
@@ -2336,7 +2337,7 @@ app.post('/api/auth/login',async(req,res)=>{
 
     const passwordOK =
       !!user &&
-      user.password===password;
+      userAdminSystem_.verifyPassword(password,user.password);
 
     const accountActive =
       !!user &&
@@ -2426,6 +2427,7 @@ app.post('/api/auth/login',async(req,res)=>{
 });
 
 
+userAdminSystem_.install(app,{getSheets,spreadsheetId:SPREADSHEET_ID,requireAuth:requireAuth_});
 const onlinePresence_ = require('./online-presence-server')(app, requireAuth_);
 
 app.post('/api/auth/logout',(req,res)=>{

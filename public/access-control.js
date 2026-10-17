@@ -5,6 +5,9 @@ const state={
   ready:false,
   allow:new Set(),
   all:false,
+  exact:new Set(),
+  precise:false,
+  admin:false,
   observer:null
 };
 
@@ -27,6 +30,8 @@ const ROOM_CANON=norm('غرفة التدقيق الذكية');
 const EXCEL_CANON=norm('تقارير الاكسيل');
 const aliases=new Map([
   [norm('سجل التقارير الصادرة'),norm('مركز التقارير')],
+  [norm('مركز التقارير العام'),norm('مركز التقارير')],
+  [norm('مركز تقارير الاكسيل'),norm('تقارير الاكسيل')],
   [norm('غرفة التحقيق الذكية'),ROOM_CANON],
   [norm('غرفة التدقيق الذكية'),ROOM_CANON],
   [norm('تقارير الاكسيل'),EXCEL_CANON],
@@ -51,7 +56,9 @@ function labelOf(el){
 }
 
 function canLabel(label){
+  if(norm(label)===norm('إدارة المستخدمين والصلاحيات'))return state.admin;
   if(state.all)return true;
+  if(state.precise)return state.exact.has(norm(label));
   return state.allow.has(canon(label));
 }
 
@@ -150,11 +157,11 @@ function wrapOpenPage(){
   const pageLabels={
     master:'الرئيسية',projects:'المشاريع',connections:'التوصيلات',permits:'التصاريح',
     assets:'الأصول',closures:'الإغلاقات',tasks:'متابعة أعمال المواقع',emergency:'الطوارئ',
-    safety:'مخالفات السلامة',qualityCorrective:'تقرير الجودة والإجراءات التصحيحية',safetyCorrective:'مخالفات السلامة',contractorSafety:'تقييم السلامة للمقاولين',executionViolations:'مخالفات التنفيذ',
+    safety:'مخالفات السلامة',qualityCorrective:'تقرير الجودة والإجراءات التصحيحية',safetyCorrective:'تقرير السلامة والإجراءات التصحيحية',contractorSafety:'تقييم السلامة للمقاولين',executionViolations:'مخالفات التنفيذ',
     minutes:'محاضر مخالفة إثبات الحالة',dataQuality:'جودة البيانات',hrStaff:'الموارد البشرية للكادر',
     employeeEvaluation:'تقييم مهندسي المواقع',electricityEngineerEvaluation:'تقييم مهندسي شركة الكهرباء',
     wednesdayMeeting:'اجتماع الـ PDC',smartThursday:'تقرير الخميس الذكي',
-    reportsCenter:'مركز التقارير',importantLinks:'الروابط المهمة',excelExport:'تقارير الاكسيل'
+    reportsCenter:'مركز التقارير العام',importantLinks:'الروابط المهمة',excelExport:'مركز تقارير الاكسيل',projectsReportEngine:'Projects Report Engine'
   };
   const wrapped=function(key){
     const label=pageLabels[key];
@@ -182,6 +189,9 @@ async function start(){
     const data=await response.json();
     const permissions=Array.isArray(data?.user?.permissions)?data.user.permissions:[];
     state.allow=new Set(permissions.map(canon).filter(Boolean));
+    state.exact=new Set(permissions.map(norm).filter(Boolean));
+    state.precise=permissions.includes('__VD_ACL_V2__');
+    state.admin=data?.user?.canManageUsers===true;
     state.all=permissions.some(v=>['*','all','الكل','جميع الصفحات','كامل الصلاحيات'].includes(norm(v)));
     state.ready=true;
     window.vdCanAccessLabel=canLabel;
