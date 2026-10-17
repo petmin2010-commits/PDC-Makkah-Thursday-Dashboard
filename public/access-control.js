@@ -56,11 +56,13 @@ function labelOf(el){
 }
 
 function canLabel(label){
-  // PDC 2 inherits the current PDC meeting permission until explicitly granted.
+  // Explicit PDC 2 permissions from dp users. Older (non-v2) rows may inherit the existing PDC meeting.
   if(norm(label)===norm('اجتماع PDC 2')){
-    return state.admin||state.all||state.exact.has(norm(label))||state.allow.has(canon(label))||
-      (state.precise?(state.exact.has(norm('اجتماع PDC'))||state.exact.has(norm('اجتماع مع PDC'))):
-       (state.allow.has(canon('اجتماع PDC'))||state.allow.has(canon('اجتماع مع PDC'))));
+    if(state.admin||state.all)return true;
+    const names=['اجتماع PDC 2','اجتماع PDC2','اجتماع مع PDC 2'];
+    if(state.precise)return names.some(v=>state.exact.has(norm(v)));
+    return names.some(v=>state.allow.has(canon(v)))||
+      ['اجتماع الـ PDC','اجتماع PDC','اجتماع مع PDC'].some(v=>state.allow.has(canon(v)));
   }
   if(norm(label)===norm('إدارة المستخدمين والصلاحيات'))return state.admin;
   if(state.all)return true;
@@ -166,7 +168,7 @@ function wrapOpenPage(){
     safety:'مخالفات السلامة',qualityCorrective:'تقرير الجودة والإجراءات التصحيحية',safetyCorrective:'تقرير السلامة والإجراءات التصحيحية',contractorSafety:'تقييم السلامة للمقاولين',executionViolations:'مخالفات التنفيذ',
     minutes:'محاضر مخالفة إثبات الحالة',dataQuality:'جودة البيانات',hrStaff:'الموارد البشرية للكادر',
     employeeEvaluation:'تقييم مهندسي المواقع',electricityEngineerEvaluation:'تقييم مهندسي شركة الكهرباء',
-    wednesdayMeeting:'اجتماع الـ PDC',smartThursday:'تقرير الخميس الذكي',
+    wednesdayMeeting:'اجتماع الـ PDC',pdcMeeting2:'اجتماع PDC 2',smartThursday:'تقرير الخميس الذكي',
     reportsCenter:'مركز التقارير العام',importantLinks:'الروابط المهمة',excelExport:'مركز تقارير الاكسيل',projectsReportEngine:'Projects Report Engine'
   };
   const wrapped=function(key){
