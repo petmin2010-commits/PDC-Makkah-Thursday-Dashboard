@@ -63,7 +63,7 @@
       '<p><b>رقم أمر العمل:</b> '+esc(a.generators.workOrder||'—')+' | <b>المقاول:</b> '+esc(a.generators.contractor||'—')+' | <b>الموقع:</b> '+esc(a.generators.location||'—')+'</p>'+
       '<p><b>الملاحظة:</b> '+esc(a.generators.finding||'—')+'</p><p><b>التصحيح:</b> '+esc(a.generators.correctiveAction||'—')+'</p></div>':'')+
     '</section>'+
-   '<section class="pm2-section"><header><h3>5. مطابقة الشرائح الـ 44 ومصادر البيانات</h3></header><div class="pm2-sources">'+
+   '<section class="pm2-section"><header><h3>5. مصادر تقرير اجتماع PDC 2 التجميعي</h3></header><div class="pm2-sources">'+
    message('الشرائح 1–2 | الإنشاءات',a.construction)+message('الشريحة 3 | التصاريح',a.permits)+message('الشريحتان 4–5 | الطوارئ',a.emergency)+
    message('الشريحة 6 | الإنجاز الأسبوعي',a.weekly)+message('الشرائح 7–24 | السلامة',a.safety)+message('الشرائح 25–38 | الجودة',a.quality)+
    message('بيانات المستخلصات وأوامر الشراء',a.financial)+message('الشرائح 39–44 | المؤقتات والمولدات',a.generators)+'</div></section>';
@@ -93,10 +93,10 @@
  function init(){
   const nav=$(NAV),main=document.querySelector('main');if(!nav||!main||$(PAGE))return;
   const section=document.createElement('section');section.id=PAGE;section.className='page pm2-page';
-  section.innerHTML='<div class="pm2-head"><div><small>PDC | WEEKLY CONSOLIDATED REPORT</small><h2>اجتماع PDC 2</h2><p>تجميع مباشر لمؤشرات الإنشاءات والتصاريح والطوارئ وتقارير السلامة والجودة، باستخدام العرض المرجعي المعتمد المكون من 44 شريحة.</p></div><span class="pm2-count">44 شريحة في القالب</span></div>'+
+  section.innerHTML='<div class="pm2-head"><div><small>PDC | WEEKLY CONSOLIDATED REPORT</small><h2>اجتماع PDC 2</h2><p>أول 6 شرائح للمؤشرات التشغيلية المتاحة، ثم آخر تقرير سلامة مكتمل وآخر تقرير جودة مكتمل، مع إلحاق تقرير المؤقتات عند جاهزيته. عدد الشرائح يتغير بحسب الملاحظات الفعلية.</p></div><span class="pm2-count">الشرائح حسب التقارير الحالية</span></div>'+
    '<div class="pm2-panel pm2-tools"><button type="button" id="pm2Refresh">تحديث جميع البيانات</button><span id="pm2Status"></span><span class="pm2-all-indicator">جميع السجلات المتاحة — بدون فلتر تاريخ</span></div>'+
    '<p class="pm2-muted" id="pm2Snapshot"></p><div id="pm2Results"></div>'+
-   '<div class="pm2-panel pm2-exports"><h3>تصدير التقرير بالفورمات الأصلي</h3><p>القالب المعتمد محفوظ كما هو دون تغيير الشعارات أو الغلاف أو الشرائح الداخلية. لا يُسمح بإصدار تقرير كامل يحمل أرقامًا أو صورًا تاريخية غير محدثة.</p><div><button type="button" id="pm2ExportPptx" disabled>تصدير PowerPoint</button><button type="button" id="pm2ExportPdf" disabled>تصدير PDF</button></div><p class="pm2-muted" id="pm2ExportsNote">تجري مطابقة مصادر التقرير.</p></div>';
+   '<div class="pm2-panel pm2-exports"><h3>تصدير تقرير اجتماع PDC 2 التجميعي</h3><p>يبدأ التقرير بست شرائح تشغيلية من البيانات المتاحة، تليها النسخة الأحدث المكتملة من تقرير السلامة ثم تقرير الجودة، ويُضم تقرير المؤقتات بعد اكتماله. تبقى أغلفة التقارير الفرعية ونهاياتها وصورها بتنسيقها المعتمد. عناصر PowerPoint التجميعي صور مرئية غير قابلة للتحرير.</p><div><button type="button" id="pm2ExportPptx" disabled>تصدير PowerPoint</button><button type="button" id="pm2ExportPdf" disabled>تصدير PDF</button></div><p class="pm2-muted" id="pm2ExportsNote">تجري مطابقة مصادر التقرير.</p></div>';
   main.appendChild(section);
   $('pm2Refresh').addEventListener('click',refresh);
   nav.onclick=e=>{e.stopImmediatePropagation();show();};

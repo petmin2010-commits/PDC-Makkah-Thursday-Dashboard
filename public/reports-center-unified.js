@@ -30,6 +30,7 @@ const GROUPS=[
  ]},
  {key:'periodic',title:'التقارير الأسبوعية والفنية',subtitle:'المتابعة الدورية وتقارير أوامر العمل المتخصصة',items:[
   ['wednesdayMeeting','تقرير اجتماع PDC','PDF','calendar-days'],
+  ['pdcMeeting2','تقرير اجتماع PDC 2 التجميعي','PDF / PPTX','presentation'],
   ['smartThursday','تقرير الخميس الذكي','PDF','chart-line'],
   ['importantLinks','تقرير الروابط المهمة وQR','PDF','link'],
   ['projectsReportEnginePdf','Projects Report Engine — تقرير أمر العمل','PDF','file-text'],
@@ -77,7 +78,7 @@ function render(){
  $$('[data-report-page]',root).forEach(b=>b.addEventListener('click',()=>dispatch(b.dataset.reportPage,b)));
 }
 function card([key,label,format]){
- const special=key==='excelExport'||key.startsWith('projectsReportEngine')||key==='safetyCorrective'||key==='qualityCorrective';
+ const special=key==='excelExport'||key.startsWith('projectsReportEngine')||key==='safetyCorrective'||key==='qualityCorrective'||key==='pdcMeeting2';
  const act=key==='excelExport'?'اختيار الأعمدة والتصدير':key==='projectsReportEnginePdf'?'إعداد تقرير PDF':key==='projectsReportEngineExcel'?'إعداد ملف Excel':key==='archiveCsv'?'تصدير CSV':(special?'اختيار التقرير والتصدير':'تصدير التقرير');
  return '<article class="rc-card rc-unified-card"><div class="rc-card-copy"><strong>'+esc(label)+'</strong><small>'+esc(nav(key)?.querySelector('span')?.textContent?.trim()||label)+'</small><span class="rc-format">'+esc(format)+'</span></div><button class="rc-export-btn" type="button" data-report-page="'+esc(key)+'">'+act+'</button></article>';
 }
@@ -90,6 +91,7 @@ async function dispatch(key,btn){
  if(key==='safetyCorrective'||key==='qualityCorrective')return chooseCorrective(key);
  if(key==='projectsReportEnginePdf'||key==='projectsReportEngineExcel')return chooseProjectReport(key);
  if(key==='excelExport'){nav('excelExport')?.click();$('#xeSheet')?.focus();return}
+ if(key==='pdcMeeting2'){nav('pdcMeeting2')?.click();return}
  if(key==='archivePdf'||key==='archiveCsv')return archiveExport(key,btn);
  if(key==='contractorSafety')return window.VDContractorSafety?.exportGeneral?.()??alert('أداة التقييم غير متاحة.');
  if(key==='projectCompletionAnalysis')return window.VDLegacyReportsCenter?.exportProjectCompletionAnalysis(btn)??alert('مولد التقرير غير جاهز.');

@@ -82,3 +82,13 @@ body.pm2-active #filterBar,body.pm2-active #vdUnifiedControls,body.pm2-active .t
 .pm2-page .pm2-manual-dates{display:flex;align-items:end;gap:12px;flex-wrap:wrap;padding:13px 18px 4px}
 .pm2-page .pm2-manual-dates label{min-width:175px;display:flex;flex-direction:column;gap:6px;color:#245575;font-size:11px;font-weight:800}
 .pm2-page .pm2-manual-dates input{width:100%;box-sizing:border-box;border:1px solid #b6d4e8;background:white;color:#133e60;border-radius:8px;padding:9px;font:11px Cairo,Tahoma}
+
+/* PDC2 composite export source registry */
+.pm2-page .pm2-aggregate-sources{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}
+.pm2-page .pm2-agg-line{padding:12px 14px;border:1px solid #d5e2ed;background:#f7fbff;border-radius:10px;min-height:68px;display:flex;flex-direction:column;gap:6px;line-height:1.6}
+.pm2-page .pm2-agg-line b{font-size:12px;color:#12486f}
+.pm2-page .pm2-agg-line span{font-size:11px;color:#476d8a}
+.pm2-page .pm2-agg-line.ready{border-right:4px solid #148260}
+.pm2-page .pm2-agg-line.pending{border-right:4px solid #d8a544}
+.pm2-page .pm2-agg-line.unready{border-right:4px solid #a95555}
+@media(max-width:850px){.pm2-page .pm2-aggregate-sources{grid-template-columns:1fr}}

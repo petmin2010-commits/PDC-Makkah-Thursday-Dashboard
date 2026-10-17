@@ -478,10 +478,11 @@ const summaryCounts=()=>{
 };
 const brand=title=>'<header class="brand"><img src="/company-logo.png" alt="أبعاد الرؤية"><h2>'+esc(title)+'</h2><img src="/pdc-logo.jpg" alt="PDC"></header>';
 async function printReport(externalWindow=null){
+ const aggregate=externalWindow==='AGGREGATE_HTML';
  if(!state.report)return;const r=state.report;
  if($('qcrMetaSave').classList.contains('qcr-unsaved')){notice('احفظ تعديلات بيانات التقرير قبل التصدير.',true);return}
  if(state.dirty){notice('احفظ الصور والتعليقات غير المحفوظة قبل التصدير.',true);return}
- const win=externalWindow || window.open('','_blank','width=1440,height=920');if(!win){notice('يرجى السماح بالنوافذ المنبثقة.',true);return}win.document.write('<!doctype html><html dir="rtl" lang="ar"><meta charset="utf-8"><body style="font-family:Tahoma;text-align:center;padding:90px">جاري تجهيز تقرير الجودة والصور...</body></html>');
+ const win=aggregate?{closed:false,document:{write(){}}}:(externalWindow||window.open('','_blank','width=1440,height=920'));if(!win){notice('يرجى السماح بالنوافذ المنبثقة.',true);return}if(!aggregate)win.document.write('<!doctype html><html dir="rtl" lang="ar"><meta charset="utf-8"><body style="font-family:Tahoma;text-align:center;padding:90px">جاري تجهيز تقرير الجودة والصور...</body></html>');
  const rows=[];buttonBusy('qcrExport',true,'جاري تجهيز الصور...');
  try{
  for(const f of state.findings){const j=await request('/photos/'+photoRef(r.id,f.id));rows.push({f,photos:j.images||[]})}
@@ -510,6 +511,7 @@ async function printReport(externalWindow=null){
    // Only the approved, original 16:9 front and last pages are immutable; content pages are data-driven.
   pages=pages.replace(/^<section class="sheet cover">[\s\S]*?<\/section>/,approvedCoverHtml(r))
              .replace(/<section class="sheet end">[\s\S]*?<\/section>$/,approvedEndingHtml());
+if(aggregate)return {html:pages,css:printCss()+originalSummaryCss()+approvedEndcapsCss()+originalFindingCss(),fitScript:originalFindingFitScript(),slideCount:rows.length+3,reportId:r.id,period:{from:r.startDate,to:r.endDate}};
 if(win.closed)throw Error('أُغلقت نافذة التقرير أثناء التجهيز.');
  win.document.open();win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+esc('VD-Quality-'+city+'-'+r.startDate)+'</title><style>'+printCss()+originalSummaryCss()+approvedEndcapsCss()+originalFindingCss()+'</style></head><body><div class="print-actions"><button onclick="window.print()">طباعة أو حفظ التقرير PDF</button> – تأكد من تحميل الصور قبل الطباعة</div>'+pages+originalFindingFitScript()+'</body></html>');win.document.close();
   const result=await window.VDReportArchive.archiveGeneratedPdf({win,selector:'.sheet',wide:true,
@@ -523,6 +525,7 @@ if(win.closed)throw Error('أُغلقت نافذة التقرير أثناء ا�
 window.VDQualityCorrectiveCenter={
  prepare:async id=>{if(!document.getElementById(PAGE))mount();await load(id);if(!state.report||String(state.report.id)!==String(id))throw Error("تعذر تحميل التقرير المطلوب");},
  exportPDF:win=>printReport(win),
+ assemble:async id=>{await window.VDQualityCorrectiveCenter.prepare(id);const pages=await printReport('AGGREGATE_HTML');if(!pages||!pages.html)throw Error('EMPTY_REPORT_SOURCE');return pages;},
  currentReport:()=>state.report?.id||""
 };
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
