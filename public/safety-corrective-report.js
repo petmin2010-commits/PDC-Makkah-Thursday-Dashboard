@@ -55,20 +55,32 @@ function markup(){return `
 <section class="scr-panel"><div class="scr-section-head"><h3>الملاحظات والإجراءات التصحيحية</h3><button id="scrAddFinding" type="button">+ إضافة ملاحظة</button></div>
 <div class="scr-master-detail"><div id="scrFindingList" class="scr-findings-list"></div>
 <div class="scr-editor" id="scrEditor" hidden>
-<h4 id="scrEditorTitle">بيانات الملاحظة</h4>
-<div class="scr-grid">
+<div class="scr-reference-heading"><div><h4 id="scrEditorTitle">بيانات المعالجة والتوثيق</h4><p>نموذج إدخال مطابق لترتيب صفحة الملاحظة في التقرير: بيانات أمر العمل ← قبل المعالجة ← بعد المعالجة.</p></div><span class="scr-reference-pill">ملاحظة مستقلة لكل حالة</span></div>
+<div id="scrPhotoGrid" class="scr-reference-layout">
+<section class="scr-ref-card scr-ref-order" aria-label="بيانات أمر العمل">
+<h5>بيانات أمر العمل</h5>
+<div class="scr-ref-fields">
 <label>رقم أمر العمل<input id="scrWO" inputmode="numeric" maxlength="40" placeholder="رقم أمر العمل"></label>
-<label>نوع أمر العمل<input id="scrType" maxlength="80" placeholder="360 / 402 / طارئ"></label>
-<label>المقاول<input id="scrContractor" maxlength="180"></label>
+<label>المقاول<input id="scrContractor" maxlength="180" placeholder="اسم المقاول"></label>
 <label>الاستشاري<input id="scrConsultant" maxlength="180" value="أبعاد الرؤية"></label>
+<label>نوع أمر العمل<input id="scrType" maxlength="80" placeholder="360 / 402 / طارئ"></label>
+<label class="scr-ref-observation">الملاحظات المرصودة<textarea id="scrObservation" rows="5" maxlength="1700" placeholder="اكتب الملاحظة كما ستظهر في التقرير"></textarea></label>
 <label>حالة الملاحظة<select id="scrStatus"><option>مفتوحة</option><option>جاري التصحيح</option><option>مغلقة</option></select></label>
-<label class="scr-wide">الملاحظة المرصودة<textarea id="scrObservation" rows="2" maxlength="1700"></textarea></label>
-<label class="scr-wide">الإجراء التصحيحي<textarea id="scrAction" rows="2" maxlength="1700"></textarea></label>
-<label>وصف الحالة قبل المعالجة<textarea id="scrBeforeDesc" rows="2" maxlength="1000"></textarea></label>
-<label>وصف الحالة بعد المعالجة<textarea id="scrAfterDesc" rows="2" maxlength="1000"></textarea></label>
+</div></section>
+<section class="scr-ref-card scr-ref-before" aria-label="قبل المعالجة">
+<h5>قبل المعالجة</h5>
+<div id="scrPhotoBefore" class="scr-phase-photos"></div>
+<label class="scr-ref-description">وصف الحالة قبل المعالجة<textarea id="scrBeforeDesc" rows="3" maxlength="1000" placeholder="وصف الحالة كما في التقرير"></textarea></label>
+</section>
+<section class="scr-ref-card scr-ref-after" aria-label="بعد المعالجة">
+<h5>بعد المعالجة</h5>
+<div id="scrPhotoAfter" class="scr-phase-photos"></div>
+<label class="scr-ref-description">وصف الإجراء التصحيحي<textarea id="scrAction" rows="3" maxlength="1700" placeholder="الإجراء الذي اتُّخذ لتصحيح الملاحظة"></textarea></label>
+<label class="scr-ref-description">وصف الحالة بعد المعالجة<textarea id="scrAfterDesc" rows="3" maxlength="1000" placeholder="حالة الموقع بعد التنفيذ"></textarea></label>
+</section>
 </div>
-<div class="scr-editor-actions"><button id="scrSaveFinding" type="button">حفظ الملاحظة</button><button id="scrRemoveFinding" class="scr-danger" type="button" hidden>حذف الملاحظة</button></div>
-<div id="scrPhotoSection" hidden><h4>التوثيق بالصور – قبل المعالجة وبعد المعالجة</h4><p>يمكن حفظ أربع صور لكل مرحلة، بإجمالي 8 صور للملاحظة، مع تعليق مستقل تحت كل صورة. احفظ الملاحظة أولاً ثم أضف الصور.</p><div id="scrPhotoGrid" class="scr-photo-grid"></div></div>
+<div id="scrPhotoSection" hidden><p>كل ملاحظة لها صور قبل المعالجة وبعدها وتعليقاتها الخاصة. الصورة الأولى في كل مرحلة أساسية، وتتوفر ثلاث صور إضافية اختياريًا. عند اختيار أول صورة لملاحظة جديدة تُحفظ بيانات الملاحظة أولًا.</p></div>
+<div class="scr-editor-actions"><button id="scrSaveFinding" type="button">حفظ بيانات الملاحظة</button><button id="scrRemoveFinding" class="scr-danger" type="button" hidden>حذف الملاحظة</button></div>
 </div></div></section></div>`}
 function open(){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));$(PAGE).classList.add('active');document.querySelectorAll('#nav .nav-item').forEach(x=>x.classList.toggle('active',x.id===NAV));const bar=$('filterBar');if(bar)bar.style.display='none';const title=$('pageTitle');if(title)title.textContent='تقرير السلامة والإجراءات التصحيحية';document.body.classList.add('scr-open');}
 function leave(){document.body.classList.remove('scr-open');$(PAGE)?.classList.remove('active');const bar=$('filterBar');if(bar)bar.style.display='';}
@@ -103,8 +115,8 @@ function selectFinding(id){
  if(state.dirty&&!confirm('توجد صور أو تعليقات لم تحفظ. هل تريد الانتقال دون حفظها؟'))return;state.current=f.id||null;state.photos=[];state.pending={};state.photoDraft={};state.dirty=false;
  for(const [field,key] of [['scrWO','workOrder'],['scrType','workType'],['scrContractor','contractor'],['scrConsultant','consultant'],['scrStatus','status'],['scrObservation','observation'],['scrAction','correctiveAction'],['scrBeforeDesc','beforeDescription'],['scrAfterDesc','afterDescription']])$(field).value=f[key]||'';
  $('scrEditor').hidden=false;$('scrEditorTitle').textContent=f.id?'تعديل ملاحظة السلامة':'إضافة ملاحظة جديدة';
- $('scrRemoveFinding').hidden=!f.id;$('scrPhotoSection').hidden=!f.id;renderFindings();
- if(f.id)loadPhotos();else $('scrPhotoGrid').innerHTML='';
+ $('scrRemoveFinding').hidden=!f.id;$('scrPhotoSection').hidden=!f.id;renderFindings();renderPhotos();
+ if(f.id)loadPhotos();
 }
 function findingForm(){return {id:state.current||'',workOrder:clean($('scrWO').value),workType:clean($('scrType').value),contractor:clean($('scrContractor').value),consultant:clean($('scrConsultant').value),status:$('scrStatus').value,observation:clean($('scrObservation').value),correctiveAction:clean($('scrAction').value),beforeDescription:clean($('scrBeforeDesc').value),afterDescription:clean($('scrAfterDesc').value)}}
 async function saveFinding(){
@@ -118,14 +130,17 @@ async function removeFinding(){
 async function loadPhotos(){if(!state.report||!state.current)return;const id=state.current;const ref=photoRef(state.report.id,id);try{const j=await request('/photos/'+ref);if(id!==state.current)return;state.photos=j.images||[];state.pending={};state.photoDraft={};state.dirty=false;renderPhotos();}catch(e){notice('تعذر تحميل الصور: '+e.message,true)}}
 const stored=slot=>state.photos.find(p=>Number(p.slot)===slot);
 function renderPhotos(){
- let s='';for(let slot=1;slot<=8;slot++){
- const photo=stored(slot),pending=state.pending[slot],src=pending||photo?.dataUrl||'',before=slot<=4,label=before?'قبل المعالجة':'بعد المعالجة';
- s+='<div class="scr-photo" data-slot="'+slot+'"><header><b>'+label+' – '+(before?slot:slot-4)+'</b><small>'+((photo?.dataUrl)?'محفوظة':'فارغة')+'</small></header>'+
- '<div class="scr-photo-preview">'+(src?'<img src="'+esc(src)+'" alt="'+label+'">':'<span>لا توجد صورة</span>')+'</div>'+
- '<label class="scr-upload">اختيار صورة<input type="file" accept="image/*" data-photo-file="'+slot+'"></label>'+
- '<textarea data-caption="'+slot+'" maxlength="800" placeholder="اكتب تعليقًا مستقلًا أسفل الصورة...">'+esc(Object.prototype.hasOwnProperty.call(state.photoDraft,slot)?state.photoDraft[slot]:(photo?.caption||''))+'</textarea>'+
- '<div class="scr-photo-buttons"><button type="button" data-photo-save="'+slot+'">حفظ الصورة والتعليق</button><button class="scr-danger" type="button" data-photo-delete="'+slot+'" '+(photo?.dataUrl?'':'disabled')+'>حذف</button></div></div>';
- }$('scrPhotoGrid').innerHTML=s;
+ const card=slot=>{
+  const photo=stored(slot),pending=state.pending[slot],src=pending||photo?.dataUrl||'',before=slot<=4,label=before?'قبل المعالجة':'بعد المعالجة',primary=(slot===1||slot===5);
+  return '<article class="scr-photo'+(primary?' scr-photo-primary':'')+'" data-slot="'+slot+'"><header><b>'+(primary?'الصورة الأساسية':'صورة توثيقية '+(before?slot:slot-4))+'</b><small>'+((photo?.dataUrl)?'محفوظة':pending?'جاهزة للحفظ':'غير مرفقة')+'</small></header>'+
+  '<div class="scr-photo-preview">'+(src?'<img src="'+esc(src)+'" alt="'+label+'">':'<span>أضف صورة '+label+'</span>')+'</div>'+
+  '<label class="scr-upload">رفع صورة '+label+'<input type="file" accept="image/*" data-photo-file="'+slot+'" aria-label="رفع صورة '+label+'"></label>'+
+  '<label class="scr-photo-caption">التعليق أسفل الصورة<textarea data-caption="'+slot+'" maxlength="800" placeholder="تعليق الصورة كما سيظهر في التقرير">'+esc(Object.prototype.hasOwnProperty.call(state.photoDraft,slot)?state.photoDraft[slot]:(photo?.caption||''))+'</textarea></label>'+
+  '<div class="scr-photo-buttons"><button type="button" data-photo-save="'+slot+'">حفظ الصورة والتعليق</button><button class="scr-danger" type="button" data-photo-delete="'+slot+'" '+(photo?.dataUrl?'':'disabled')+'>حذف</button></div></article>';
+ };
+ const stage=start=>card(start)+'<details class="scr-extra-photos"><summary>+ صور إضافية لهذه المرحلة (حتى 3)</summary><div class="scr-extra-photo-grid">'+[start+1,start+2,start+3].map(card).join('')+'</div></details>';
+ $('scrPhotoBefore').innerHTML=stage(1);
+ $('scrPhotoAfter').innerHTML=stage(5);
 }
 async function compress(file){
  if(!file.type.startsWith('image/'))throw Error('اختر ملف صورة.');
@@ -141,7 +156,22 @@ async function compress(file){
  }
  throw Error('حجم الصورة كبير جدًا بعد الضغط.');
 }
-async function photoChange(e){const slot=Number(e.target.dataset.photoFile);if(!slot||!e.target.files?.length)return;const card=e.target.closest('.scr-photo');try{notice('جاري تجهيز الصورة '+slot+'...');const result=await compress(e.target.files[0]);state.pending[slot]=result;card.querySelector('.scr-photo-preview').innerHTML='<img src="'+result+'" alt="معاينة الصورة">';state.dirty=true;notice('الصورة جاهزة. اضغط «حفظ الصورة والتعليق».')}catch(err){notice(err.message,true)}}
+async function photoChange(e){
+ const slot=Number(e.target.dataset.photoFile);if(!slot||!e.target.files?.length)return;
+ const file=e.target.files[0];
+ try{
+  if(!state.current){
+   if(!clean($('scrObservation').value))throw Error('اكتب الملاحظة المرصودة أولاً لفتح سجل الصور.');
+   await saveFinding();
+   if(!state.current)return;
+  }
+  notice('جارٍ تجهيز صورة '+(slot<=4?'قبل المعالجة':'بعد المعالجة')+'...');
+  const result=await compress(file);state.pending[slot]=result;
+  const card=$('scrPhotoGrid').querySelector('[data-slot="'+slot+'"]');
+  if(card){card.querySelector('.scr-photo-preview').innerHTML='<img src="'+esc(result)+'" alt="معاينة الصورة">';card.querySelector('header small').textContent='جاهزة للحفظ';}
+  state.dirty=true;notice('الصورة جاهزة. اكتب تعليقها ثم اضغط «حفظ الصورة والتعليق».');
+ }catch(err){notice(err.message,true)}
+}
 async function photoClick(e){
  const save=e.target.closest('[data-photo-save]'),del=e.target.closest('[data-photo-delete]');if(!save&&!del||!state.current)return;
  const slot=Number((save||del).dataset.photoSave||(save||del).dataset.photoDelete),ref=photoRef(state.report.id,state.current),prior=stored(slot);
