@@ -102,6 +102,14 @@ function installReportClusters(nav){
   items.forEach(item=>frame.appendChild(item));
   built++;
  }
+ // Keep central reports immediately after the quality cluster, across sidebar sections.
+ const qualityCluster=nav.querySelector('.vd-report-cluster--quality');
+ const centralCluster=nav.querySelector('.vd-report-cluster--central');
+ if(qualityCluster&&centralCluster){
+  qualityCluster.insertAdjacentElement('afterend',centralCluster);
+  const selected=activeGroup(nav);
+  if(selected&&!selected.classList.contains('is-open'))setOneOpen(nav,selected,false);
+ }
  if(built===configs.length)nav.dataset.vdReportClusters="1";
 }
 function boot(){
