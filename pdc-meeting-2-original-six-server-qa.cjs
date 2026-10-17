@@ -23,6 +23,9 @@ function response(){
  assert(z.file('ppt/media/image4.png'));assert(!z.file('ppt/media/image20.jpeg'));
  [o,res]=response();app.routes['/api/pdc-meeting-2/template-six'](denied,res);assert.equal(o.status,403);
  delete process.env.PDC2_ORIGINAL_SIX_AES_KEY;
- [o,res]=response();app.routes['/api/pdc-meeting-2/template-six/status'](permitted,res);assert.equal(o.json.available,false);
+ const missing={routes:{},get(route,...fn){this.routes[route]=fn.at(-1)}};
+ require('./pdc-meeting-2-original-six-server.js')({app:missing,requireAuth_:(req,res,next)=>next()});
+ [o,res]=response();missing.routes['/api/pdc-meeting-2/template-six/status'](permitted,res);assert.equal(o.json.available,false);
+ [o,res]=response();missing.routes['/api/pdc-meeting-2/template-six'](permitted,res);assert.equal(o.status,503);
  console.log('PASS TEMPLATE SECURITY: AES-GCM decrypted only for authorized PDC2 users; exactly six native source slides; no later images, charts or drafts exposed; fail closed without Render secret');
 })().catch(e=>{console.error(e.stack||e);process.exit(1)});
