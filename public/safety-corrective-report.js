@@ -63,7 +63,7 @@ function markup(){return `
 <label>رقم أمر العمل<input id="scrWO" inputmode="numeric" maxlength="40" placeholder="رقم أمر العمل"></label>
 <label>المقاول<input id="scrContractor" maxlength="180" placeholder="اسم المقاول"></label>
 <label>الاستشاري<input id="scrConsultant" maxlength="180" value="أبعاد الرؤية"></label>
-<label>نوع أمر العمل<input id="scrType" maxlength="80" placeholder="360 / 402 / طارئ"></label>
+<label>نوع أمر العمل<select id="scrType"><option value="">اختر نوع أمر العمل</option><option value="350">350</option><option value="360">360</option><option value="402">402</option><option value="801">801</option><option value="802">802</option><option value="طارئ">طارئ</option></select></label>
 <label class="scr-ref-observation">الملاحظات المرصودة<textarea id="scrObservation" rows="5" maxlength="1700" placeholder="اكتب الملاحظة كما ستظهر في التقرير"></textarea></label>
 <label>حالة الملاحظة<select id="scrStatus"><option>مفتوحة</option><option>جاري التصحيح</option><option>مغلقة</option></select></label>
 </div></section>
@@ -114,6 +114,9 @@ function selectFinding(id){
  const f=state.findings.find(x=>x.id===id)||{id:'',workOrder:'',contractor:'',consultant:'أبعاد الرؤية',workType:'',observation:'',correctiveAction:'',status:'مفتوحة',beforeDescription:'',afterDescription:''};
  if(state.dirty&&!confirm('توجد صور أو تعليقات لم تحفظ. هل تريد الانتقال دون حفظها؟'))return;state.current=f.id||null;state.photos=[];state.pending={};state.photoDraft={};state.dirty=false;
  for(const [field,key] of [['scrWO','workOrder'],['scrType','workType'],['scrContractor','contractor'],['scrConsultant','consultant'],['scrStatus','status'],['scrObservation','observation'],['scrAction','correctiveAction'],['scrBeforeDesc','beforeDescription'],['scrAfterDesc','afterDescription']])$(field).value=f[key]||'';
+ const priorType=clean(f.workType);const typeSelect=$('scrType');typeSelect.querySelectorAll('option[data-legacy]').forEach(o=>o.remove());
+ if(priorType&&!Array.from(typeSelect.options).some(o=>o.value===priorType)){const opt=new Option(priorType,priorType);opt.dataset.legacy='true';typeSelect.add(opt)}
+ typeSelect.value=priorType;
  $('scrEditor').hidden=false;$('scrEditorTitle').textContent=f.id?'تعديل ملاحظة السلامة':'إضافة ملاحظة جديدة';
  $('scrRemoveFinding').hidden=!f.id;$('scrPhotoSection').hidden=!f.id;renderFindings();renderPhotos();
  if(f.id)loadPhotos();
