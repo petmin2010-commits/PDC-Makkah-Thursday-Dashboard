@@ -34,7 +34,9 @@ function mount(){
  $('scrPhotoGrid').addEventListener('change',photoChange);
  $('scrPhotoGrid').addEventListener('click',photoClick);
  $('scrPhotoGrid').addEventListener('input',e=>{if(e.target.matches('[data-caption]')){state.photoDraft[e.target.dataset.caption]=e.target.value;state.dirty=true}});
- $('scrMetaFields').addEventListener('input',()=>{$('scrMetaSave').classList.add('scr-unsaved')});
+ $('scrMetaFields').addEventListener('input',()=>{$('scrMetaSave').classList.add('scr-unsaved');renderKpis()});
+ $('scrAddContractor').addEventListener('click',()=>{const t=$('scrContractorRows');t.insertAdjacentHTML('beforeend','<tr><td><input data-contractor-name maxlength="120" aria-label="اسم المقاول" placeholder="اسم المقاول"></td><td><input data-contractor-count type="number" min="0" aria-label="عدد ملاحظات السلامة"></td><td><button type="button" class="scr-remove-contractor" aria-label="حذف المقاول" title="حذف الصف">×</button></td></tr>');$('scrMetaSave').classList.add('scr-unsaved');renderKpis()});
+ $('scrContractorRows').addEventListener('click',e=>{if(!e.target.matches('.scr-remove-contractor'))return;e.target.closest('tr')?.remove();if(!$('scrContractorRows').children.length)renderContractorRows([]);$('scrMetaSave').classList.add('scr-unsaved');renderKpis()});
  refresh();
  refreshContractors();
 }
@@ -42,17 +44,35 @@ function markup(){return `
 <div class="scr-hero"><div><small>SAFETY • CORRECTIVE ACTIONS</small><h2>تقرير السلامة والإجراءات التصحيحية</h2><p>تقرير أسبوعي موحد مع صور قبل المعالجة وبعد المعالجة، وتوثيق كل ملاحظة بصور قبل وبعد المعالجة، ووصف الحالة والإجراء التصحيحي.</p></div><div class="scr-toolbar"><button id="scrExport" type="button" disabled>تصدير PDF</button></div></div>
 <div class="scr-line"><label>التقارير المحفوظة <select id="scrSelect"><option value="">اختر التقرير...</option></select></label><button id="scrCreate" type="button">+ إنشاء تقرير أسبوعي</button><span id="scrNotice" class="scr-notice">جاري تحميل التقارير...</span></div>
 <div id="scrWorkspace" hidden>
-<section class="scr-panel"><div class="scr-section-head"><h3>بيانات التقرير الأسبوعي</h3><button id="scrMetaSave" type="button">حفظ بيانات التقرير</button></div>
-<div id="scrMetaFields" class="scr-grid">
+<section class="scr-panel scr-weekly-template">
+<div class="scr-original-heading"><h3>تقرير زيارات السلامة الميدانية</h3><div class="scr-original-brand"><img src="/assets/pdc-logo.png" alt="PDC"><img src="/assets/saudi-electricity-logo.png" alt="الشركة السعودية للكهرباء"></div></div>
+<div class="scr-original-toolbar"><span>إدخال ملخص الأسبوع وفق ترتيب صفحة التقرير الأصلي.</span><button id="scrMetaSave" type="button">حفظ بيانات التقرير</button></div>
+<div id="scrMetaFields">
+<div class="scr-original-metrics">
+<label class="scr-original-metric"><span>عدد المواقع للأسبوع</span><input id="scrSites" type="number" min="0"></label>
+<label class="scr-original-metric"><span>عدد الزيارات</span><input id="scrVisits" type="number" min="0"></label>
+<label class="scr-original-metric"><span>عدد الملاحظات</span><input id="scrManualFindings" type="number" min="0" placeholder="0"></label>
+<div class="scr-original-metric scr-original-coverage"><span>نسبة تغطية الزيارات</span><strong id="scrCoverage" aria-live="polite">0%</strong><label>المواقع التي تمت زيارتها<input id="scrVisited" type="number" min="0"></label></div>
+</div>
+<div class="scr-original-lower">
+<section class="scr-original-highlights"><h4>أبرز ملاحظات جودة التنفيذ المرصودة في الموقع</h4><label for="scrHighlights">اكتب كل ملاحظة في سطر مستقل؛ ستظهر بنقطة في التقرير.</label><textarea id="scrHighlights" rows="10" maxlength="3000" placeholder="اكتب الملاحظات الفعلية المرصودة خلال الأسبوع هنا"></textarea></section>
+<section class="scr-original-status">
+<label class="scr-original-metric"><span>عدد الملاحظات المفتوحة</span><input id="scrManualOpen" type="number" min="0" placeholder="0"></label>
+<label class="scr-original-metric"><span>عدد الملاحظات المغلقة</span><input id="scrManualClosed" type="number" min="0" placeholder="0"></label>
+<small id="scrCountsHint">سيظهر هنا الفرق بين أعداد الملخص والسجلات التفصيلية.</small>
+</section>
+<section class="scr-original-contractors">
+<table aria-label="ملاحظات السلامة حسب المقاول"><thead><tr><th>المقاول</th><th>عدد ملاحظات السلامة</th><th class="scr-row-actions">حذف</th></tr></thead><tbody id="scrContractorRows"></tbody></table>
+<button id="scrAddContractor" class="scr-add-contractor" type="button">+ إضافة مقاول</button><small id="scrContractorHint">يمكن تعديل أسماء المقاولين وأعداد الملاحظات.</small>
+</section>
+</div>
+<details class="scr-original-extras"><summary>بيانات الفترة والاعتماد وملاحظات التقرير العامة</summary><div class="scr-grid">
 <label>عنوان الأسبوع<input id="scrWeekLabel" maxlength="120" placeholder="الأسبوع الثاني - أكتوبر 2026"></label>
 <label>من تاريخ<input id="scrStart" type="date"></label><label>إلى تاريخ<input id="scrEnd" type="date"></label>
-<label>عدد المواقع الكلي<input id="scrSites" type="number" min="0"></label>
-<label>عدد المواقع التي تمت زيارتها<input id="scrVisited" type="number" min="0"></label>
-<label>عدد الزيارات الميدانية<input id="scrVisits" type="number" min="0"></label>
 <label>معد التقرير<input id="scrPrepared" placeholder="الاسم أو المسمى الوظيفي" maxlength="180"></label>
 <label class="scr-wide">ملاحظات التقرير العامة<textarea id="scrNotes" rows="2" maxlength="2000"></textarea></label>
+</div></details>
 </div></section>
-<div id="scrKpis" class="scr-kpis"></div>
 <section class="scr-panel"><div class="scr-section-head"><h3>الملاحظات والإجراءات التصحيحية</h3><button id="scrAddFinding" type="button">+ إضافة ملاحظة</button></div>
 <div class="scr-master-detail"><div id="scrFindingList" class="scr-findings-list"></div>
 <div class="scr-editor" id="scrEditor" hidden>
@@ -85,8 +105,39 @@ function markup(){return `
 </div></div></section></div>`}
 function open(){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));$(PAGE).classList.add('active');document.querySelectorAll('#nav .nav-item').forEach(x=>x.classList.toggle('active',x.id===NAV));const bar=$('filterBar');if(bar)bar.style.display='none';const title=$('pageTitle');if(title)title.textContent='تقرير السلامة والإجراءات التصحيحية';document.body.classList.add('scr-open');}
 function leave(){document.body.classList.remove('scr-open');$(PAGE)?.classList.remove('active');const bar=$('filterBar');if(bar)bar.style.display='';}
-function getMeta(){return {weekLabel:clean($('scrWeekLabel').value),startDate:$('scrStart').value,endDate:$('scrEnd').value,totalSites:Number($('scrSites').value||0),visitedSites:Number($('scrVisited').value||0),totalVisits:Number($('scrVisits').value||0),preparedBy:clean($('scrPrepared').value),notes:clean($('scrNotes').value)}}
-function fillMeta(r){$('scrWeekLabel').value=r.weekLabel||'';$('scrStart').value=r.startDate||'';$('scrEnd').value=r.endDate||'';$('scrSites').value=r.totalSites||0;$('scrVisited').value=r.visitedSites||0;$('scrVisits').value=r.totalVisits||0;$('scrPrepared').value=r.preparedBy||'';$('scrNotes').value=r.notes||'';$('scrWorkspace').hidden=false;$('scrExport').disabled=false;$('scrMetaSave').classList.remove('scr-unsaved');}
+function summaryContractors(){
+ return [...$('scrContractorRows').querySelectorAll('tr')].map(tr=>({
+  name:clean(tr.querySelector('[data-contractor-name]')?.value),
+  count:Number(tr.querySelector('[data-contractor-count]')?.value||0)
+ })).filter(x=>x.name).slice(0,60)
+}
+function renderContractorRows(values){
+ const list=Array.isArray(values)&&values.length?values:[{name:'',count:''}];
+ $('scrContractorRows').innerHTML=list.map(x=>'<tr><td><input data-contractor-name maxlength="120" aria-label="اسم المقاول" placeholder="اسم المقاول" value="'+esc(x.name||'')+'"></td>'+
+ '<td><input data-contractor-count type="number" min="0" aria-label="عدد ملاحظات السلامة" value="'+esc(x.count??'')+'"></td>'+
+ '<td><button type="button" class="scr-remove-contractor" aria-label="حذف المقاول" title="حذف الصف">×</button></td></tr>').join('');
+}
+const summaryInput=id=>{const v=$(id).value.trim();return v===''?null:Number(v)};
+const detailCount=()=>({total:state.findings.length,open:state.findings.filter(f=>f.status!=='مغلقة').length,closed:state.findings.filter(f=>f.status==='مغلقة').length});
+function derivedContractors(){
+ const groups=new Map();state.findings.forEach(f=>{const name=clean(f.contractor)||'غير محدد';groups.set(name,(groups.get(name)||0)+1)});
+ return [...groups].map(([name,count])=>({name,count}));
+}
+function getMeta(){
+ return {weekLabel:clean($('scrWeekLabel').value),startDate:$('scrStart').value,endDate:$('scrEnd').value,
+ totalSites:Number($('scrSites').value||0),visitedSites:Number($('scrVisited').value||0),totalVisits:Number($('scrVisits').value||0),
+ preparedBy:clean($('scrPrepared').value),notes:clean($('scrNotes').value),highlights:$('scrHighlights').value.trim(),
+ manualFindings:summaryInput('scrManualFindings'),manualOpen:summaryInput('scrManualOpen'),manualClosed:summaryInput('scrManualClosed'),
+ contractorBreakdown:summaryContractors()};
+}
+function fillMeta(r){
+ $('scrWeekLabel').value=r.weekLabel||'';$('scrStart').value=r.startDate||'';$('scrEnd').value=r.endDate||'';
+ $('scrSites').value=r.totalSites??0;$('scrVisited').value=r.visitedSites??0;$('scrVisits').value=r.totalVisits??0;
+ $('scrPrepared').value=r.preparedBy||'';$('scrNotes').value=r.notes||'';$('scrHighlights').value=r.highlights||'';
+ $('scrManualFindings').value=r.manualFindings??'';$('scrManualOpen').value=r.manualOpen??'';$('scrManualClosed').value=r.manualClosed??'';
+ renderContractorRows(r.contractorBreakdown?.length?r.contractorBreakdown:derivedContractors());
+ $('scrWorkspace').hidden=false;$('scrExport').disabled=false;$('scrMetaSave').classList.remove('scr-unsaved');
+}
 function validateMeta(x){if(!validDate(x.startDate)||!validDate(x.endDate)||x.startDate>x.endDate)throw Error('حدد فترة زمنية صحيحة.');if(x.visitedSites>x.totalSites)throw Error('المواقع التي تمت زيارتها لا يمكن أن تتجاوز إجمالي المواقع.')}
 function renderContractorOptions(selected){
  const el=$('scrContractor');if(!el)return;
@@ -122,10 +173,14 @@ async function load(id){
 }
 async function saveMeta(){const data=getMeta();try{validateMeta(data);buttonBusy('scrMetaSave',true);const j=await request('/reports/'+state.report.id,'PUT',data);state.report=j.report;fillMeta(state.report);await refresh();renderKpis();notice('تم حفظ بيانات التقرير.')}catch(e){notice(e.message,true)}finally{buttonBusy('scrMetaSave',false)}}
 function renderKpis(){
- const r=state.report||{},total=state.findings.length,closed=state.findings.filter(f=>f.status==='مغلقة').length,open=state.findings.filter(f=>f.status!=='مغلقة').length;
- const coverage=r.totalSites?Math.round(r.visitedSites/r.totalSites*1000)/10:0;
- const items=[['المواقع المستهدفة',fmt(r.totalSites)],['المواقع التي تمت زيارتها',fmt(r.visitedSites)],['عدد الزيارات',fmt(r.totalVisits)],['تغطية المواقع',coverage.toLocaleString('en-US')+'%'],['ملاحظات السلامة',fmt(total)],['مفتوحة / جاري التصحيح',fmt(open)],['مغلقة',fmt(closed)]];
- $('scrKpis').innerHTML=items.map(a=>'<div class="scr-kpi"><small>'+a[0]+'</small><strong>'+a[1]+'</strong></div>').join('');
+ const r=state.report||{},detail=detailCount(),sites=Number($('scrSites')?.value??r.totalSites??0),visited=Number($('scrVisited')?.value??r.visitedSites??0);
+ const coverage=sites>0?Math.round(visited/sites*100):0;
+ $('scrCoverage').textContent=coverage.toLocaleString('en-US')+'%';
+ for(const [id,value] of [['scrManualFindings',detail.total],['scrManualOpen',detail.open],['scrManualClosed',detail.closed]])$(id).placeholder=String(value);
+ const total=summaryInput('scrManualFindings')??detail.total,open=summaryInput('scrManualOpen')??detail.open,closed=summaryInput('scrManualClosed')??detail.closed;
+ $('scrCountsHint').textContent='تفصيليًا: '+detail.total+' ملاحظة (مفتوحة '+detail.open+' / مغلقة '+detail.closed+'). '+(total===open+closed?'إجمالي الملخص متوازن.':'تنبيه: المفتوحة + المغلقة لا يساوي الإجمالي.');
+ const listed=summaryContractors(),sum=listed.reduce((n,x)=>n+x.count,0);
+ $('scrContractorHint').textContent=listed.length?'مجموع ملاحظات المقاولين: '+sum+' من أصل '+total+(sum===total?' (متطابق).':' (راجع المقاولين غير المدرجين).'):'أضف أسماء المقاولين وأعداد الملاحظات.';
 }
 function renderFindings(){
  const list=$('scrFindingList'),has=state.findings.length>0;
@@ -287,7 +342,43 @@ async function photoClick(e){
  }catch(err){notice(err.message,true);btn.disabled=false}
 }
 function printCss(){return `@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}body{direction:rtl;font-family:Tahoma,Arial,sans-serif;color:#16395c;margin:0}h1,h2,h3,p{margin-top:0}.print-actions{padding:12px;background:#dae8f7;text-align:center;position:sticky;top:0;z-index:10}.print-actions button{padding:10px 24px;background:#183f67;color:white;border:0;border-radius:8px;font-weight:bold;cursor:pointer}.sheet{min-height:180mm;page-break-after:always;position:relative;padding:15mm;border-top:8px solid #f18c2d;overflow:hidden}.sheet:before{content:'VISION DIMENSIONS';position:absolute;opacity:.035;left:25%;top:42%;font-size:50pt;transform:rotate(-15deg);pointer-events:none}.brand{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #dbe8f1;padding-bottom:8mm;margin-bottom:10mm}.brand img{height:22mm;max-width:35mm;object-fit:contain}.brand h2{font-size:16pt;margin:0}.cover{background:linear-gradient(120deg,#143b62 35%,#1c5885 80%);color:#fff;text-align:center;padding:25mm}.cover .brand{border-color:#ffffff48}.cover .brand h2{color:#fff}.cover h1{font-size:32pt;margin-top:24mm}.cover p{font-size:17pt;color:#f9c490}.cover span{font-size:13pt}.end{background:#173e66;color:white;text-align:center}.end h1{font-size:31pt;margin-top:42mm}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:7mm;margin-bottom:12mm}.metric{padding:8mm;border:1px solid #bcd1e5;border-radius:8px;background:#eef5fb}.metric b{display:block;font-size:23pt;margin-top:4mm}.summary-table{width:100%;border-collapse:collapse;font-size:11pt}.summary-table th,.summary-table td{padding:4mm;border:1px solid #d1dfec;text-align:right}.summary-table th{background:#17446e;color:#fff}.summary-table tr:nth-child(even){background:#f0f5fb}.finding-title{background:#17446e;color:#fff;padding:3mm 6mm;border-radius:5px;font-size:14pt}.finding-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;font-size:10pt}.finding-meta span{padding:3mm;border:1px solid #d7e3ee;border-radius:5px}.finding-text{padding:3mm 6mm;background:#f2f7fb;border-inline-start:4px solid #f18c2d;margin:3mm 0;white-space:pre-wrap;font-size:11pt}.photos{display:grid;grid-template-columns:1fr 1fr;gap:8mm}.photos-col h3{text-align:center;background:#f18c2d;color:white;border-radius:5px;padding:2mm}.photos-col.after h3{background:#17446e}.photo-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4mm}.photo-list figure{margin:0;border:1px solid #d9e4ef;padding:2mm;break-inside:avoid;border-radius:6px}.photo-list img{display:block;width:100%;height:40mm;object-fit:contain;background:#f7f9fb}.photo-list figcaption{text-align:center;font-size:9pt;color:#173d64;min-height:12mm;overflow-wrap:anywhere;padding-top:2mm}.empty{padding:20mm 2mm;text-align:center;color:#6b8197;border:1px dashed #b3c3d4;border-radius:5px}.foot{position:absolute;bottom:6mm;right:16mm;left:16mm;text-align:center;border-top:1px solid #c9dbe8;padding-top:2mm;font-size:9pt;color:#688096}@media print{.print-actions{display:none}.sheet{border-top-width:6px}body{background:white}}`}
-const summaryCounts=()=>{const f=state.findings,r=state.report,closed=f.filter(x=>x.status==='مغلقة').length;const grouped={};f.forEach(x=>{const name=x.contractor||'غير محدد';grouped[name]=(grouped[name]||0)+1});return {closed,open:f.length-closed,coverage:r.totalSites?100*r.visitedSites/r.totalSites:0,grouped}};
+
+function originalSummaryCss(){return '@media print{.scr-p-summary{page-break-inside:avoid}}'+
+'.scr-p-summary{font-family:Tahoma,Arial,sans-serif;padding:10mm 9mm;min-height:180mm;border-top:0;direction:rtl}'+
+'.scr-p-head{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #f18c2d;padding-bottom:4mm;margin-bottom:5mm}'+
+'.scr-p-head h2{font-size:18pt;margin:0;color:#123a66}.scr-p-logos{direction:ltr;display:flex;gap:5mm}'+
+'.scr-p-logos img{height:15mm;max-width:32mm;object-fit:contain}'+
+'.scr-p-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:6mm;margin-bottom:5mm}'+
+'.scr-p-metric{background:linear-gradient(#fff,#edf1f5,#fff);border:1px solid #b6c2d2;text-align:center;min-height:27mm;box-shadow:1px 2px 2px #a0a7b0}'+
+'.scr-p-metric>span{display:block;background:linear-gradient(#35689a,#0d2e51);color:#fff;padding:2mm 1mm;font-size:13pt;font-weight:bold;min-height:11mm}'+
+'.scr-p-metric>b{display:block;font-size:22pt;color:#174572;padding:4mm 0 1mm}'+
+'.scr-p-lower{display:grid;grid-template-columns:1.5fr .83fr .9fr;gap:8mm;direction:rtl;align-items:start}'+
+'.scr-p-highlights{background:#cfdef2;color:#0e396b;border-radius:14mm;padding:5mm 7mm;min-height:91mm;box-shadow:1px 2px 3px #aaa}'+
+'.scr-p-highlights h3{font-size:13pt;text-align:center;line-height:1.5}'+
+'.scr-p-highlights li{font-size:11pt;font-weight:bold;line-height:1.6;margin:1mm 0}'+
+'.scr-p-status{display:grid;gap:7mm;padding-top:3mm}'+
+'.scr-p-contractors table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:9pt}'+
+'.scr-p-contractors th{background:#4c82bd;color:#fff;font-size:9pt;padding:2mm;text-align:center}'+
+'.scr-p-contractors td{background:#d0d9e8;text-align:center;padding:1.5mm;border:1px solid #fff}'+
+'.scr-p-contractors tr:nth-child(even) td{background:#e8edf4}'+
+'.scr-p-extra-notes{font-size:9pt;padding-top:4mm;color:#456786}';
+}
+
+const summaryCounts=()=>{
+ const f=state.findings,r=state.report,detailClosed=f.filter(x=>x.status==='مغلقة').length,grouped={};
+ f.forEach(x=>{const name=x.contractor||'غير محدد';grouped[name]=(grouped[name]||0)+1});
+ if(Array.isArray(r.contractorBreakdown)&&r.contractorBreakdown.length){
+  Object.keys(grouped).forEach(k=>delete grouped[k]);
+  for(const x of r.contractorBreakdown)grouped[x.name]=(grouped[x.name]||0)+Number(x.count||0);
+ }
+ return {
+  total:r.manualFindings??f.length,
+  closed:r.manualClosed??detailClosed,
+  open:r.manualOpen??(f.length-detailClosed),
+  coverage:r.totalSites?100*r.visitedSites/r.totalSites:0,
+  grouped
+ };
+};
 const brand=title=>'<header class="brand"><img src="/company-logo.png" alt="أبعاد الرؤية"><h2>'+esc(title)+'</h2><img src="/pdc-logo.jpg" alt="PDC"></header>';
 async function printReport(){
  if(!state.report)return;const r=state.report;
@@ -300,16 +391,27 @@ async function printReport(){
  const s=summaryCounts(),entries=Object.entries(s.grouped).sort((a,b)=>b[1]-a[1]);
  const title='تقرير الإجراءات التصحيحية الأسبوعي',subtitle=esc(r.weekLabel||'تقرير السلامة')+' • '+esc(r.startDate)+' إلى '+esc(r.endDate);
  let pages='<section class="sheet cover">'+brand('دائرة مشاريع التوزيع – '+city)+'<h1>'+title+'</h1><p>'+subtitle+'</p><span>نموذج موحد للمتابعة والتوثيق<br>أبعاد الرؤية للاستشارات الهندسية | PDC</span></section>';
- pages+='<section class="sheet">'+brand('تقرير زيارات السلامة الميدانية')+'<h2>الملخص التنفيذي</h2><div class="metrics">'+[
- ['عدد المواقع للأسبوع',fmt(r.totalSites)],['عدد المواقع المزارة',fmt(r.visitedSites)],['عدد الزيارات',fmt(r.totalVisits)],['نسبة تغطية المواقع',s.coverage.toFixed(1)+'%'],
- ['الملاحظات المرصودة',fmt(rows.length)],['الملاحظات المفتوحة',fmt(s.open)],['الملاحظات المغلقة',fmt(s.closed)]].map(x=>'<div class="metric"><span>'+x[0]+'</span><b>'+x[1]+'</b></div>').join('')+'</div><h3>توزيع الملاحظات حسب المقاول</h3><table class="summary-table"><thead><tr><th>المقاول</th><th>عدد الملاحظات</th></tr></thead><tbody>'+entries.map(x=>'<tr><td>'+esc(x[0])+'</td><td>'+fmt(x[1])+'</td></tr>').join('')+'</tbody></table><p>'+esc(r.notes||'')+'</p><div class="foot">تقرير السلامة | '+esc(city)+'</div></section>';
+
+ pages+='<section class="sheet scr-p-summary"><header class="scr-p-head"><h2>تقرير زيارات السلامة الميدانية</h2><div class="scr-p-logos"><img src="/assets/pdc-logo.png" alt="PDC"><img src="/assets/saudi-electricity-logo.png" alt="الشركة السعودية للكهرباء"></div></header>'+
+ '<div class="scr-p-metrics">'+[
+ ['عدد المواقع للأسبوع',fmt(r.totalSites)],['عدد الزيارات',fmt(r.totalVisits)],
+ ['عدد الملاحظات',fmt(s.total)],['نسبة تغطية الزيارات',s.coverage.toFixed(1)+'%']
+ ].map(x=>'<div class="scr-p-metric"><span>'+x[0]+'</span><b>'+x[1]+'</b></div>').join('')+'</div>'+
+ '<div class="scr-p-lower"><div class="scr-p-highlights"><h3>أبرز ملاحظات جودة التنفيذ المرصودة في الموقع</h3>'+
+ '<ul>'+String(r.highlights||'').split(/\r?\n/).map(x=>clean(x)).filter(Boolean).map(x=>'<li>'+esc(x.replace(/^[•\-]\s*/,''))+'</li>').join('')+'</ul></div>'+
+ '<div class="scr-p-status"><div class="scr-p-metric"><span>عدد الملاحظات المفتوحة</span><b>'+fmt(s.open)+'</b></div><div class="scr-p-metric"><span>عدد الملاحظات المغلقة</span><b>'+fmt(s.closed)+'</b></div></div>'+
+ '<div class="scr-p-contractors"><table><thead><tr><th>المقاول</th><th>عدد ملاحظات السلامة</th></tr></thead><tbody>'+
+ entries.map(x=>'<tr><td>'+esc(x[0])+'</td><td>'+fmt(x[1])+'</td></tr>').join('')+'</tbody></table></div></div>'+
+ (r.notes?'<p class="scr-p-extra-notes">'+esc(r.notes)+'</p>':'')+
+ '<div class="foot">تقرير السلامة | '+esc(city)+'</div></section>';
+
  for(let i=0;i<rows.length;i++){
  const {f,photos}=rows[i],phase=(before)=>{const list=photos.filter(p=>p.dataUrl&&(before?Number(p.slot)<=4:Number(p.slot)>4)),label=before?'وصف الحالة':'وصف الإجراء التصحيحي',description=before?(f.beforeDescription||f.observation):(f.correctiveAction||'في انتظار التصحيح');return '<section class="photos-col '+(before?'before':'after')+'"><h3>'+(before?'قبل المعالجة':'بعد المعالجة')+'</h3><div class="photo-list">'+(list.length?list.map(p=>'<figure><img src="'+esc(p.dataUrl)+'"></figure>').join(''):'<div class="empty">لم تُرفق صور لهذه المرحلة</div>')+'</div><div style="white-space:pre-wrap;text-align:center;border:1px solid #c6d4df;border-radius:10px;background:#f6f9fb;padding:12px 8px;margin-top:10px;color:'+(before?'#e67916':'#17446e')+';font-weight:bold"><b>'+label+': </b>'+esc(description)+'</div></section>'};
  pages+='<section class="sheet">'+brand('بيانات المعالجة والتوثيق')+'<div class="finding-title">الملاحظة '+(i+1)+' من '+rows.length+'</div><div class="finding-meta">'+[['أمر العمل',f.workOrder],['نوع أمر العمل',f.workType],['المقاول',f.contractor],['الاستشاري',f.consultant],['الحالة',f.status]].map(x=>'<span><b>'+x[0]+': </b>'+esc(x[1]||'—')+'</span>').join('')+'</div><div class="finding-text"><b>الملاحظات المرصودة:</b> '+esc(f.observation)+'</div><div class="photos">'+phase(true)+phase(false)+'</div><div class="foot">تقرير الإجراءات التصحيحية لكل أسبوع | '+esc(city)+'</div></section>';
  }
  pages+='<section class="sheet end">'+brand('أبعاد الرؤية للاستشارات الهندسية')+'<h1>شكرًا لتعاونكم</h1><h2>معًا لرفع جودة التنفيذ والسلامة</h2><p>دائرة مشاريع التوزيع – '+esc(city)+'</p></section>';
  if(win.closed)throw Error('أُغلقت نافذة التقرير أثناء التجهيز.');
- win.document.open();win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+esc('VD-Safety-'+city+'-'+r.startDate)+'</title><style>'+printCss()+'</style></head><body><div class="print-actions"><button onclick="window.print()">طباعة أو حفظ التقرير PDF</button> – تأكد من تحميل الصور قبل الطباعة</div>'+pages+'</body></html>');win.document.close();window.VDReportArchive?.record({reportName:'تقرير السلامة والإجراءات التصحيحية',format:'PDF',filename:'VD_Safety_Corrective.pdf'});notice('تقرير PDF جاهز في نافذة جديدة. استخدم زر الطباعة للحفظ.');
+ win.document.open();win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+esc('VD-Safety-'+city+'-'+r.startDate)+'</title><style>'+printCss()+originalSummaryCss()+'</style></head><body><div class="print-actions"><button onclick="window.print()">طباعة أو حفظ التقرير PDF</button> – تأكد من تحميل الصور قبل الطباعة</div>'+pages+'</body></html>');win.document.close();window.VDReportArchive?.record({reportName:'تقرير السلامة والإجراءات التصحيحية',format:'PDF',filename:'VD_Safety_Corrective.pdf'});notice('تقرير PDF جاهز في نافذة جديدة. استخدم زر الطباعة للحفظ.');
  }catch(e){if(!win.closed)win.close();notice('تعذر تجهيز التقرير: '+e.message,true)}finally{buttonBusy('scrExport',false)}
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
