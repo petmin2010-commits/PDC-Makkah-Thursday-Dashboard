@@ -1,8 +1,9 @@
-name: Render source PowerPoint for generator reports
+﻿name: Render source PowerPoint for generator reports
 on:
   push:
     paths:
       - templates/temporary-generators-original.pptx
+      - templates/temporary-generators-layout-fixes.json
       - scripts/generator_original_assets.py
       - .github/workflows/render-generator-source.yml
   workflow_dispatch:

@@ -10,8 +10,28 @@ root=Path(__file__).resolve().parents[1]
 source=root/'templates'/'temporary-generators-original.pptx'
 target=root/'public'/'generator-template'
 target.mkdir(parents=True,exist_ok=True)
+import json
+from pptx.util import Inches, Pt
+from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+layout_fixes=json.loads((root/'templates'/'temporary-generators-layout-fixes.json').read_text(encoding='utf-8'))
 pptx=Presentation(str(source))
 assert len(pptx.slides)==6, 'The original generators template must contain the last six source slides'
+for slide_number,fixes in layout_fixes['slides'].items():
+    slide=pptx.slides[int(slide_number)-39]
+    by_id={s.shape_id:s for s in slide.shapes}
+    for spec in fixes:
+        shape=by_id.get(spec['shapeId'])
+        if shape is None: raise RuntimeError(f'Missing source shape {spec["shapeId"]} on slide {slide_number}')
+        shape.left=Inches(spec['left'])
+        shape.top=Inches(spec['top'])
+        shape.width=Inches(spec['width'])
+        shape.height=Inches(spec['height'])
+        if shape.has_text_frame:
+            shape.text_frame.vertical_anchor=MSO_ANCHOR.MIDDLE
+            for para in shape.text_frame.paragraphs:
+                para.alignment=PP_ALIGN.CENTER
+                for run in para.runs:
+                    run.font.size=Pt(spec.get('fontPt',21))
 
 def clear_field(shape):
     if not shape.has_text_frame: return

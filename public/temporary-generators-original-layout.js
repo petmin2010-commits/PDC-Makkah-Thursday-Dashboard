@@ -7,7 +7,7 @@ const fixed=(x,d=0)=>Math.max(0,Number(x)||0).toLocaleString('en-US',{maximumFra
 const block=(text,cls,x,y,w,h,style='')=>
  '<div class="tg-original-field '+cls+'" style="left:'+x+'in;top:'+y+'in;width:'+w+'in;height:'+h+'in;'+style+'">'+enc(text)+'</div>';
 const backdrop=(src,content='',cls='')=>
- '<section class="sheet tg-slide tg-original-page '+cls+'"><img class="tg-original-background" src="'+root+src+'" alt="" decoding="sync">'+content+'</section>';
+ '<section class="sheet tg-slide tg-original-page '+cls+'"><img class="tg-original-background" src="' +root+src+'?v=20261018-layoutfix-1" alt="" decoding="sync">'+content+'</section>';
 function image(photos,slot,x,y,w,h){
  const photo=(photos||[]).find(x=>Number(x.slot)===slot);
  if(!photo?.dataUrl)return '';

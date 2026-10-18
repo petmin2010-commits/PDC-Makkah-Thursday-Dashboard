@@ -520,6 +520,31 @@ async function printReport(externalWindow=null){
  const win=externalWindow||window.open('','_blank','width=1440,height=920');
  if(!win){notice('اسمح بالنوافذ المنبثقة لتصدير PDF.',true);return}
  buttonBusy('tgrExport',true,'جارٍ إعداد الشرائح الأصلية...');
+ // Source-first: only a PDF actually converted from this report's original PPTX
+ // is offered as the primary download. An Office-free host falls back to the
+ // source-rendered slide images below, preserving the same corrected layout.
+ try{
+  const response=await fetch(API+'/reports/'+encodeURIComponent(state.report.id)+'/pdf',{credentials:'same-origin',cache:'no-store'});
+  if(response.ok){
+   const blob=await response.blob();
+   if(blob.type.includes('pdf')&&blob.size>1500){
+    const name='VD_Temporary_Generators_'+String(state.report.startDate||'Weekly')+'_'+city+'.pdf';
+    const link=document.createElement('a'),url=URL.createObjectURL(blob);
+    link.href=url;link.download=name;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+    try{win.close()}catch(_){}
+    const archived=await window.VDReportArchive.record({reportName:'تقرير أعمال المؤقتات والمولدات',format:'PDF',filename:name,blob});
+    notice(archived.ok?'تم إصدار PDF المحول من PowerPoint الأصلي وأرشفته.':'تم إصدار PDF المحول من PowerPoint، لكن الأرشفة معلقة: '+(archived.archiveError||'راجع سجل التقارير'),!archived.ok);
+    return {...archived,blob,convertedFromPptx:true};
+   }
+  } else if(response.status!==503){
+   const message=await response.json().catch(()=>({}));
+   throw Error(message.error||'فشل تحويل التقرير الأصلي إلى PDF');
+  }
+ }catch(error){
+  if(!String(error.message).includes('Failed to fetch')){
+   notice('تعذر تحويل PowerPoint مباشرة: '+error.message,true);
+  }
+ }
  try{
   if(!window.VDGeneratorOriginalDeck)throw Error('القالب الأصلي لم يحمل؛ حدّث الصفحة.');
   const check=await fetch('/generator-template/shared_5.webp',{cache:'no-store'});

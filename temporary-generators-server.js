@@ -1,6 +1,7 @@
 'use strict';
 const crypto=require('crypto');
 const temporaryPptx=require('./temporary-generators-pptx');
+const {convertPptxBuffer}=require('./temporary-generators-pdf');
 const REPORTS='Temporary Generators Reports',FINDINGS='Temporary Generators Findings';
 const RH=['ReportId','StartDate','EndDate','WeekLabel','TotalSites','VisitedSites','TotalVisits','PreparedBy','Notes','UpdatedAt','UpdatedBy','Highlights','ContractorBreakdown','ManualFindings','ManualOpen','ManualClosed','CurrentSites','ClosedSites','TemporaryCables','GeneratorsTotal'];
 const FH=['ReportId','FindingId','WorkOrder','Contractor','Consultant','WorkType','Observation','CorrectiveAction','Status','BeforeDescription','AfterDescription','UpdatedAt','UpdatedBy','Location','WorkDescription'];
@@ -165,6 +166,26 @@ try{
  return res.send(pptx);
 }catch(e){console.error('temporary generators PPTX',e);return res.status(500).json({ok:false,error:e.message||'تعذر إنشاء PowerPoint'})}
 });
+  app.get('/api/temporary-generators/reports/:id/pdf',requireAuth_,async(req,res)=>{
+    res.set('Cache-Control','no-store');
+    try{
+      const id=idSafe(req.params.id);
+      const found=(await all(REPORTS,'T')).find(x=>x.data[0]===id);
+      if(!found)return res.status(404).json({ok:false,error:'التقرير المطلوب غير موجود'});
+      const findings=(await all(FINDINGS,'O')).filter(x=>x.data[0]===id).map(x=>findingObj(x.data));
+      const report={...metaObj(found.data),city:APP?.TITLE?.includes('Jeddah')?'جدة':'مكة المكرمة'};
+      if(typeof getFindingPhotos!=='function')throw Error('خدمة الصور غير متاحة');
+      const pptx=await temporaryPptx.build({report,findings,getPhotos:getFindingPhotos});
+      const pdf=await convertPptxBuffer(pptx);
+      res.set('Content-Type','application/pdf');
+      res.set('Content-Disposition','attachment; filename="VD_Temporary_Generators_'+city+'_Weekly.pdf"');
+      res.set('X-Report-Source','original-pptx');
+      return res.send(pdf);
+    }catch(e){
+      console.error('temporary generators source PPTX to PDF',e);
+      return res.status(e.status||500).json({ok:false,error:e.message||'تعذر تحويل ملف PowerPoint إلى PDF'});
+    }
+  });
   app.delete('/api/temporary-generators/reports/:id/findings/:findingId',requireAuth_,run(async req=>{
     const reportId=idSafe(req.params.id),id=idSafe(req.params.findingId);
     const row=(await all(FINDINGS,'O')).find(x=>x.data[0]===reportId&&x.data[1]===id);

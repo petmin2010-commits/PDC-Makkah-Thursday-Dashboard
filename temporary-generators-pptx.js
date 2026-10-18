@@ -7,6 +7,25 @@ const blank=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
 const e=x=>String(x??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
 const un=x=>String(x).replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'");
 const slideXml=z=>strFromU8(z);
+const layoutFixes=JSON.parse(fs.readFileSync(path.join(__dirname,'templates','temporary-generators-layout-fixes.json'),'utf8'));
+function applySourceLayoutFixes(xml,slideNo){
+ const list=layoutFixes.slides[String(slideNo)]||[];
+ for(const item of list){
+  let matched=0;
+  xml=xml.replace(/<p:sp\b[\s\S]*?<\/p:sp>/g,shape=>{
+   if(!new RegExp('<p:cNvPr[^>]*id="'+item.shapeId+'"').test(shape))return shape;
+   matched++;
+   const unit=x=>String(Math.round(x*914400));
+   shape=shape.replace(/(<p:spPr>[\s\S]*?<a:xfrm[^>]*>[\s\S]*?<a:off x=")[^"]+(" y=")[^"]+("\s*\/\>\s*<a:ext cx=")[^"]+(" cy=")[^"]+/,('$1'+unit(item.left)+'$2'+unit(item.top)+'$3'+unit(item.width)+'$4'+unit(item.height)));
+   shape=shape.replace(/(<a:bodyPr\b[^>]*)(\/?>)/, (whole,begin,end)=>begin.replace(/\sanchor="[^"]+"/,'')+' anchor="ctr"'+end);
+   shape=shape.replace(/(<a:pPr\b[^>]*)(\/?>)/, (whole,begin,end)=>begin.replace(/\salgn="[^"]+"/,'')+' algn="ctr"'+end);
+   if(item.fontPt)shape=shape.replace(/(<a:(?:rPr|endParaRPr)\b[^>]*\bsz=")[^"]+/g,'$1'+Math.round(item.fontPt*100));
+   return shape;
+  });
+  if(matched!==1)throw Error('Generator source fix failed for slide '+slideNo+' shape '+item.shapeId+' (found '+matched+')');
+ }
+ return xml;
+}
 const write=(zip,key,s)=>{zip[key]=strToU8(s)};
 function setShape(xml,check,value,keepFirst=false,firstUseful=false){
  let found=0;
@@ -74,12 +93,12 @@ async function build({report,findings,getPhotos}){
  const zip=unzipSync(new Uint8Array(fs.readFileSync(template)));
  const notes=Array.isArray(findings)?findings:[];
  const detail=notes.length?notes:[{workOrder:'—',contractor:'—',workType:'—',workDescription:'—',location:'—',observation:'لا توجد ملاحظات',correctiveAction:'—',id:'none'}];
- let cover=slideXml(zip['ppt/slides/slide39.xml']);
+ let cover=applySourceLayoutFixes(slideXml(zip['ppt/slides/slide39.xml']),39);
  const city=(report.city||'').includes('جدة')?'بجدة':'بمكة';
  cover=cover.replace('بمكة ',city+' ');
  write(zip,'ppt/slides/slide39.xml',cover);
  write(zip,'ppt/slides/slide40.xml',summarise(slideXml(zip['ppt/slides/slide40.xml']),report,notes));
- const detailSource=slideXml(zip['ppt/slides/slide43.xml']);
+ const detailSource=applySourceLayoutFixes(slideXml(zip['ppt/slides/slide43.xml']),43);
  const relSource=slideXml(zip['ppt/slides/_rels/slide43.xml.rels']);
  const appended=[];
  for(let i=0;i<detail.length;i++){

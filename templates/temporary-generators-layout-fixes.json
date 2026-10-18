@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "slides": {
+    "43": [
+      {
+        "shapeId": 39,
+        "left": 0.88,
+        "top": 0.24,
+        "width": 11.6,
+        "height": 0.42,
+        "fontPt": 24,
+        "align": "center",
+        "vertical": "middle"
+      },
+      {
+        "shapeId": 133,
+        "left": 10.06,
+        "top": 1.34,
+        "width": 2.6,
+        "height": 0.4,
+        "fontPt": 21,
+        "align": "center",
+        "vertical": "middle"
+      }
+    ]
+  }
+}
