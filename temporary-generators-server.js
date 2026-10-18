@@ -162,7 +162,7 @@ try{
  const pptx=await temporaryPptx.build({report,findings,getPhotos:getFindingPhotos});
  res.set('Cache-Control','no-store');
  res.set('Content-Type','application/vnd.openxmlformats-officedocument.presentationml.presentation');
- res.set('Content-Disposition','attachment; filename="VD_Temporary_Generators_'+city+'_Weekly.pptx"');
+ res.set('Content-Disposition','attachment; filename="VD_Temporary_Generators_'+(APP?.TITLE?.includes('Jeddah')?'Jeddah':'Makkah')+'_Weekly.pptx"');
  return res.send(pptx);
 }catch(e){console.error('temporary generators PPTX',e);return res.status(500).json({ok:false,error:e.message||'تعذر إنشاء PowerPoint'})}
 });
@@ -178,7 +178,7 @@ try{
       const pptx=await temporaryPptx.build({report,findings,getPhotos:getFindingPhotos});
       const pdf=await convertPptxBuffer(pptx);
       res.set('Content-Type','application/pdf');
-      res.set('Content-Disposition','attachment; filename="VD_Temporary_Generators_'+city+'_Weekly.pdf"');
+      res.set('Content-Disposition','attachment; filename="VD_Temporary_Generators_'+(APP?.TITLE?.includes('Jeddah')?'Jeddah':'Makkah')+'_Weekly.pdf"');
       res.set('X-Report-Source','original-pptx');
       return res.send(pdf);
     }catch(e){
