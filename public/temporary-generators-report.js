@@ -518,27 +518,23 @@ async function printReport(externalWindow=null){
  if(!state.report)return;
  if($('tgrMetaSave').classList.contains('tgr-unsaved')||state.dirty){notice('احفظ التغييرات والملاحظات قبل التصدير.',true);return}
  const win=externalWindow||window.open('','_blank','width=1440,height=920');
- if(!win){notice('اسمح بالنوافذ المنبثقة.',true);return}
- win.document.write('<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><body>جارٍ إعداد التقرير...</body></html>');
- buttonBusy('tgrExport',true,'جارٍ إعداد التقرير...');
+ if(!win){notice('اسمح بالنوافذ المنبثقة لتصدير PDF.',true);return}
+ buttonBusy('tgrExport',true,'جارٍ إعداد الشرائح الأصلية...');
  try{
- const r=state.report,rows=[];
- for(const f of state.findings){const reply=await request('/photos/'+photoRef(r.id,f.id));rows.push({f,photos:reply.images||[]})}
- const metr=[['عدد المواقع الحالية',r.currentSites],['عدد المواقع المغلقة',r.closedSites],['الكابلات المؤقتة',r.temporaryCables],['المولدات الإجمالي',r.generatorsTotal]];
- let slides=tempPage('<h1>تقرير أعمال المؤقتات والمولدات</h1><h2>إدارة مشاريع التوزيع '+esc(city)+'</h2><h2>'+esc(r.weekLabel||'')+'</h2>','cover');
- slides+=tempFrame('تقرير ملاحظات المؤقتات والمولدات','<h3>الملاحظات المرصودة والإجراء التصحيحي</h3><div class="tg-metrics">'+metr.map(x=>'<div class="tg-metric"><b>'+fmt(x[1])+'</b><span>'+esc(x[0])+'</span></div>').join('')+'</div><h2>أبرز ملاحظات المؤقتات والمولدات المرصودة في الموقع</h2>'+observationNotes().map(n=>'<div class="tg-note">'+esc(n)+'</div>').join(''));
- slides+=tempFrame('مراعاة ملاحظات السلامة والجودة لأعمال المؤقتات','<table class="tg-table"><thead><tr><th>رقم</th><th>ملاحظات السلامة</th></tr></thead><tbody>'+tempGuidance.map((n,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(n)+'</td></tr>').join('')+'</tbody></table>');
- slides+=tempFrame('ملاحظات السلامة والجودة لأعمال المؤقتات','<table class="tg-table"><thead><tr><th>رقم</th><th>ملاحظات السلامة</th></tr></thead><tbody><tr><td>1</td><td>تأمين الموقع ووضع الأشرطة التحذيرية وإغلاق منطقة العمل للمولدات</td></tr></tbody></table>');
- for(const {f,photos} of rows){
- const image=(slot)=>{const p=photos.find(x=>Number(x.slot)===slot);return p?.dataUrl?'<img src="'+esc(p.dataUrl)+'" alt="صورة الملاحظة">':'<div class="missing">لم ترفق صورة</div>'};
- slides+=tempFrame('الملاحظات المرصودة والإجراء التصحيحي','<div class="tg-detail-head"><div><b>رقم أمر العمل: </b>'+esc(f.workOrder)+'<br><b>المقاول: </b>'+esc(f.contractor)+'<br><b>نوع أمر العمل: </b>'+esc(f.workType)+'</div><div><b>وصف العمل: </b>'+esc(f.workDescription||'—')+'<br><b>الموقع: </b>'+esc(f.location||'—')+'<br><b>الملاحظة: </b>'+esc(f.observation)+'</div></div><div class="tg-images"><div class="tg-figure"><header>الملاحظات — قبل المعالجة</header>'+image(1)+'<p>'+esc(f.beforeDescription||f.observation)+'</p></div><div class="tg-figure"><header>التصحيح — بعد المعالجة</header>'+image(5)+'<p>'+esc(f.correctiveAction||'في انتظار التصحيح')+'</p></div></div>');
- }
- slides+=tempPage('<h1>وشكرًا</h1>','tg-end');
- win.document.open();win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تقرير المؤقتات والمولدات</title><style>'+tempPrintStyle()+'</style></head><body><div class="print-actions"><button onclick="window.print()">طباعة / PDF</button></div>'+slides+'</body></html>');win.document.close();
- const result=await window.VDReportArchive.archiveGeneratedPdf({win,selector:'.tg-slide',wide:true,reportName:'تقرير أعمال المؤقتات والمولدات',filename:'VD_Temporary_Generators_'+String(r.startDate||'Week')+'_'+city+'.pdf'});
- notice(result?.ok?'تم إصدار التقرير وتسجيل نتيجة الأرشفة.':'تعذر تأكيد الأرشفة في pCloud: '+String(result?.error||'يرجى مراجعة سجل التقارير'),!result?.ok);
- return result;
- }catch(e){notice('تعذر إصدار التقرير: '+e.message,true);try{win.close()}catch(_){}}
+  if(!window.VDGeneratorOriginalDeck)throw Error('القالب الأصلي لم يحمل؛ حدّث الصفحة.');
+  const check=await fetch('/generator-template/shared_5.webp',{cache:'no-store'});
+  if(!check.ok||!String(check.headers.get('content-type')||'').includes('image'))throw Error('صور القالب الأصلي ليست متاحة بعد؛ لا يمكن إصدار تقرير غير مطابق.');
+  const r=state.report,rows=[];
+  for(const f of state.findings){const reply=await request('/photos/'+photoRef(r.id,f.id));rows.push({f,photos:reply.images||[]})}
+  const deck=window.VDGeneratorOriginalDeck.build(r,rows,city);
+  win.document.open();
+  win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تقرير أعمال المؤقتات والمولدات</title><style>'+deck.css+'</style></head><body>'+deck.html+'</body></html>');
+  win.document.close();
+  await Promise.all([...win.document.images].map(i=>i.decode?.().catch(()=>{})||Promise.resolve()));
+  const result=await window.VDReportArchive.archiveGeneratedPdf({win,selector:'.tg-slide',wide:true,reportName:'تقرير أعمال المؤقتات والمولدات',filename:'VD_Temporary_Generators_'+String(r.startDate||'Week')+'_'+city+'.pdf'});
+  notice(result?.ok?'تم إصدار PDF من قالب التقرير الأصلي وتسجيل الأرشفة.':'التقرير مطابق في الشكل، لكن الأرشفة لم تؤكد: '+String(result?.error||'يرجى مراجعة سجل التقارير'),!result?.ok);
+  return result;
+ }catch(e){notice('تعذر إصدار PDF المطابق: '+e.message,true);try{win.close()}catch(_){};throw e}
  finally{buttonBusy('tgrExport',false)}
 }
 
@@ -556,25 +552,21 @@ async function exportPptx(){
  }catch(e){notice('خطأ تصدير PowerPoint: '+e.message,true)}finally{buttonBusy('tgrExportPptx',false)}
 }
 async function assembleLatestGenerator(){
- const api=async(url)=>{const response=await fetch(API+url,{credentials:"same-origin",cache:"no-store"});const j=await response.json().catch(()=>({}));if(!response.ok||!j.ok)throw Error(j.error||"تعذر تحميل تقرير المؤقتات");return j};
- const all=(await api("/reports")).reports||[];
- const ordered=[...all].sort((a,b)=>String(b.updatedAt||"").localeCompare(String(a.updatedAt||"")));
+ if(!window.VDGeneratorOriginalDeck)throw Error('القالب الأصلي للمؤقتات غير محمل.');
+ const api=async(url)=>{const res=await fetch(API+url,{credentials:'same-origin',cache:'no-store'});const j=await res.json().catch(()=>({}));if(!res.ok||!j.ok)throw Error(j.error||'تعذر قراءة تقرير المؤقتات');return j};
+ const all=(await api('/reports')).reports||[];
+ const ordered=[...all].sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));
  let r=null,findings=[];
- for(const candidate of ordered){const data=await api("/reports/"+encodeURIComponent(candidate.id));if((data.findings||[]).length){r=data.report;findings=data.findings;break}}
- if(!r)return null;
- const rows=[];
- for(const f of findings){const j=await api("/photos/"+photoRef(r.id,f.id));rows.push({f,photos:j.images||[]})}
- const metrics=[["عدد المواقع الحالية",r.currentSites],["عدد المواقع المغلقة",r.closedSites],["الكابلات المؤقتة",r.temporaryCables],["المولدات الإجمالي",r.generatorsTotal]];
- let html=tempPage("<h1>تقرير أعمال المؤقتات والمولدات</h1><h2>إدارة مشاريع التوزيع "+esc(city)+"</h2><h2>"+esc(r.weekLabel||"")+"</h2>","cover");
- html+=tempFrame("تقرير ملاحظات المؤقتات والمولدات","<h3>الملاحظات المرصودة والإجراء التصحيحي</h3><div class=\"tg-metrics\">"+metrics.map(x=>"<div class=\"tg-metric\"><b>"+fmt(x[1])+"</b><span>"+esc(x[0])+"</span></div>").join("")+"</div><h2>أبرز ملاحظات المؤقتات والمولدات المرصودة في الموقع</h2>"+findings.map(x=>"<div class=\"tg-note\">"+esc(x.observation)+"</div>").join(""));
- html+=tempFrame("مراعاة ملاحظات السلامة والجودة لأعمال المؤقتات","<table class=\"tg-table\"><thead><tr><th>رقم</th><th>ملاحظات السلامة</th></tr></thead><tbody>"+tempGuidance.map((n,i)=>"<tr><td>"+(i+1)+"</td><td>"+esc(n)+"</td></tr>").join("")+"</tbody></table>");
- html+=tempFrame("ملاحظات السلامة والجودة لأعمال المؤقتات","<table class=\"tg-table\"><thead><tr><th>رقم</th><th>ملاحظات السلامة</th></tr></thead><tbody><tr><td>1</td><td>تأمين الموقع ووضع الأشرطة التحذيرية وإغلاق منطقة العمل للمولدات</td></tr></tbody></table>");
- for(const {f,photos} of rows){
- const image=slot=>{const photo=photos.find(x=>Number(x.slot)===slot);return photo?.dataUrl?"<img src=\""+esc(photo.dataUrl)+"\" alt=\"توثيق الملاحظة\">":"<div class=\"missing\">لا توجد صورة مرفقة</div>"};
- html+=tempFrame("الملاحظات المرصودة والإجراء التصحيحي","<div class=\"tg-detail-head\"><div><b>رقم أمر العمل:</b> "+esc(f.workOrder)+"<br><b>المقاول:</b> "+esc(f.contractor)+"<br><b>نوع أمر العمل:</b> "+esc(f.workType)+"</div><div><b>وصف العمل:</b> "+esc(f.workDescription||"—")+"<br><b>الموقع:</b> "+esc(f.location||"—")+"<br><b>الملاحظة:</b> "+esc(f.observation)+"</div></div><div class=\"tg-images\"><div class=\"tg-figure\"><header>قبل المعالجة</header>"+image(1)+"<p>"+esc(f.beforeDescription||f.observation)+"</p></div><div class=\"tg-figure\"><header>بعد المعالجة</header>"+image(5)+"<p>"+esc(f.correctiveAction||"في انتظار التصحيح")+"</p></div></div>");
+ for(const x of ordered){
+  const d=await api('/reports/'+encodeURIComponent(x.id));
+  if((d.findings||[]).length){r=d.report;findings=d.findings;break}
  }
- html+=tempPage("<h1>وشكرًا</h1>","tg-end");
- return {html:html.replace(/class="tg-slide /g,"class=\"sheet tg-slide "),css:tempPrintStyle(),slideCount:5+rows.length,fitScript:""};
+ if(!r)return null;
+ const check=await fetch('/generator-template/shared_5.webp',{cache:'no-store'});
+ if(!check.ok||!String(check.headers.get('content-type')||'').includes('image'))throw Error('قالب المؤقتات الأصلي غير متاح؛ لا نُدخل تقريرًا بتصميم بديل في PDC.');
+ const rows=[];
+ for(const f of findings){const d=await api('/photos/'+photoRef(r.id,f.id));rows.push({f,photos:d.images||[]})}
+ return {...window.VDGeneratorOriginalDeck.build(r,rows,city),fitScript:''};
 }
 window.VDGeneratorReportCenter={assembleLatest:assembleLatestGenerator};
 window.VDTemporaryGeneratorsCenter={
