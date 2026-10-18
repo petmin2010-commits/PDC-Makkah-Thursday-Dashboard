@@ -19,6 +19,7 @@ function applySourceLayoutFixes(xml,slideNo){
    shape=shape.replace(/(<p:spPr>[\s\S]*?<a:xfrm[^>]*>[\s\S]*?<a:off x=")[^"]+(" y=")[^"]+("\s*\/\>\s*<a:ext cx=")[^"]+(" cy=")[^"]+/,('$1'+unit(item.left)+'$2'+unit(item.top)+'$3'+unit(item.width)+'$4'+unit(item.height)));
    shape=shape.replace(/(<a:bodyPr\b[^>]*)(\/?>)/, (whole,begin,end)=>begin.replace(/\sanchor="[^"]+"/,'')+' anchor="ctr"'+end);
    shape=shape.replace(/(<a:pPr\b[^>]*)(\/?>)/, (whole,begin,end)=>begin.replace(/\salgn="[^"]+"/,'')+' algn="ctr"'+end);
+   if(item.lineSpacing)shape=shape.replace(/<a:lnSpc>[\s\S]*?<\/a:lnSpc>/g,'<a:lnSpc><a:spcPct val="'+Math.round(item.lineSpacing*100000)+'"/></a:lnSpc>');
    if(item.fontPt)shape=shape.replace(/(<a:(?:rPr|endParaRPr)\b[^>]*\bsz=")[^"]+/g,'$1'+Math.round(item.fontPt*100));
    return shape;
   });

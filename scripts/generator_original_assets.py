@@ -30,6 +30,7 @@ for slide_number,fixes in layout_fixes['slides'].items():
             shape.text_frame.vertical_anchor=MSO_ANCHOR.MIDDLE
             for para in shape.text_frame.paragraphs:
                 para.alignment=PP_ALIGN.CENTER
+                para.line_spacing=spec.get('lineSpacing',1.0)
                 for run in para.runs:
                     run.font.size=Pt(spec.get('fontPt',21))
 

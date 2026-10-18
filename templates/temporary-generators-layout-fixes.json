@@ -10,7 +10,8 @@
         "height": 0.42,
         "fontPt": 24,
         "align": "center",
-        "vertical": "middle"
+        "vertical": "middle",
+        "lineSpacing": 1
       },
       {
         "shapeId": 133,
@@ -20,7 +21,8 @@
         "height": 0.4,
         "fontPt": 21,
         "align": "center",
-        "vertical": "middle"
+        "vertical": "middle",
+        "lineSpacing": 1
       }
     ]
   }
