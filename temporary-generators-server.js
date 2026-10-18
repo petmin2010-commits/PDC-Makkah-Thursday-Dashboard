@@ -155,7 +155,8 @@ try{
  const id=idSafe(req.params.id),found=(await all(REPORTS,'T')).find(x=>x.data[0]===id);
  if(!found)return res.status(404).json({ok:false,error:'التقرير المطلوب غير موجود.'});
  const findings=(await all(FINDINGS,'O')).filter(x=>x.data[0]===id).map(x=>findingObj(x.data));
- const report={...metaObj(found.data),city:APP?.TITLE?.includes('Jeddah')?'جدة':'مكة المكرمة'};
+ const city=/Jeddah|جدة/i.test(String(APP?.TITLE||''))?'Jeddah':'Makkah';
+ const report={...metaObj(found.data),city:city==='Jeddah'?'جدة':'مكة المكرمة'};
  if(typeof getFindingPhotos!=='function')throw Error('خدمة الصور غير متاحة.');
  const pptx=await temporaryPptx.build({report,findings,getPhotos:getFindingPhotos});
  res.set('Cache-Control','no-store');
