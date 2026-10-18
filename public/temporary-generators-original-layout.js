@@ -1,4 +1,4 @@
-/* Source-accurate generator slides: never rebuild the PDC background, logo, cards or safety grids in HTML. */
+﻿/* Source-accurate generator slides: never rebuild the PDC background, logo, cards or safety grids in HTML. */
 (function(){
 'use strict';
 const root='/generator-template/';
@@ -61,10 +61,10 @@ body{margin:0;background:#fff;font-family:Arial,Tahoma,sans-serif;direction:rtl}
 .tg-original-background{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none}
 .tg-original-field{position:absolute;display:flex;justify-content:center;align-items:center;white-space:pre-wrap;overflow:hidden;text-align:center;direction:rtl;color:#082f62;line-height:1.12}
 .tg-kpi{font-size:21pt;font-family:Arial,Tahoma,sans-serif;color:#174a8c}
-.tg-detail-value{font-size:14.5pt;line-height:1.1;font-weight:650;color:#001d5d;font-family:Almarai,Arial,Tahoma,sans-serif}
-.tg-description{font-size:17pt;line-height:1.22;color:#080808;font-family:Arial,Tahoma,sans-serif;align-items:center}
+.tg-detail-value{font-size:17pt;line-height:1.1;font-weight:700;color:#001d5d;font-family:"Segoe UI",Tahoma,Arial,sans-serif}
+.tg-description{font-size:20pt;line-height:1.18;color:#080808;font-family:"Segoe UI",Tahoma,Arial,sans-serif;align-items:center}
 .tg-original-photo{position:absolute;object-fit:cover;display:block}
-.tg-summary-notes{position:absolute;top:3.65in;right:.98in;width:11.4in;height:3.13in;margin:0;padding:0 .25in 0 0;direction:rtl;overflow:hidden;line-height:1.5;font-size:24pt;text-align:right;color:#000;font-family:Arial,Tahoma,sans-serif}
+.tg-summary-notes{position:absolute;top:3.65in;right:.98in;width:11.4in;height:3.13in;margin:0;padding:0 .25in 0 0;direction:rtl;overflow:hidden;line-height:1.5;font-size:28pt;text-align:right;color:#000;font-family:Arial,Tahoma,sans-serif}
 .tg-summary-notes li{padding-bottom:.07in}
 @media screen{
  body.tgr-print-preview{background:#e9edf2}
