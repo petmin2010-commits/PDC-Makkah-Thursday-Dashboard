@@ -1,4 +1,4 @@
-(()=>{'use strict';
+﻿(()=>{'use strict';
 const $=id=>document.getElementById(id),esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),num=x=>x==null||x===''?'—':Number(x).toLocaleString('en-US');
 const ksaDate=()=>{const v={};new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).forEach(x=>{if(x.type!=='literal')v[x.type]=x.value});return v.year+'-'+v.month+'-'+v.day};
 let summary=null,sources=null,running=false,originalTemplateReady=false,originalTemplateReason='التحقق من القالب الأصلي جارٍ';
@@ -76,6 +76,7 @@ async function compose(format){
   const scripts=(safety.fitScript||'')+(quality.fitScript||'')+(generator?.fitScript||'');
   win.document.open();win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تقرير اجتماع PDC 2 التجميعي</title><style>'+css+'</style></head><body>'+body+scripts+'</body></html>');win.document.close();
   await win.document.fonts?.ready;
+  await Promise.all([...win.document.images].map(img=>img.decode?.().catch(()=>{})||Promise.resolve()));
   const pages=[...win.document.querySelectorAll('.sheet')],expected=safety.slideCount+quality.slideCount+(generator?.slideCount||0);
   if(pages.length!==expected)throw Error('SLIDE_COUNT_MISMATCH');
   const filename='VD_PDC2_Makkah_'+ksaDate()+'.'+(format==='PDF'?'pdf':'pptx');
