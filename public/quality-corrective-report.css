@@ -126,3 +126,6 @@ body.qcr-open #violationPeriodSlicer {
 
 .qcr-original-contractors tfoot th,.qcr-original-contractors tfoot td{font-weight:900;background:#bdd4ea;color:#13395c;border-top:2px solid #8daecf;text-align:center;padding:9px 6px;}
 .qcr-original-contractors .qcr-contractors-empty td{font-weight:500;color:#55708b;text-align:center;padding:22px 8px;}
+
+/* quality-pptx-toolbar-20261020 */
+.qcr-hero .qcr-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:flex-start}
