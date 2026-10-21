@@ -65,6 +65,7 @@ function canLabel(label){
       ['اجتماع الـ PDC','اجتماع PDC','اجتماع مع PDC'].some(v=>state.allow.has(canon(v)));
   }
   if(norm(label)===norm('تقرير المؤقتات والمولدات') && state.admin)return true;
+   if(norm(label)===norm('وكيل الفحص الهندسي الذكي') && state.admin)return true;
   if(norm(label)===norm('إدارة المستخدمين والصلاحيات'))return state.admin;
   if(state.all)return true;
   if(state.precise)return state.exact.has(norm(label));
@@ -166,7 +167,7 @@ function wrapOpenPage(){
   const pageLabels={
     master:'الرئيسية',projects:'المشاريع',connections:'التوصيلات',permits:'التصاريح',
     assets:'الأصول',closures:'الإغلاقات',tasks:'متابعة أعمال المواقع',emergency:'الطوارئ',
-    safety:'مخالفات السلامة',qualityCorrective:'تقرير الجودة والإجراءات التصحيحية',safetyCorrective:'تقرير السلامة والإجراءات التصحيحية',temporaryGenerators:'تقرير المؤقتات والمولدات',contractorSafety:'تقييم السلامة للمقاولين',executionViolations:'مخالفات التنفيذ',
+    safety:'مخالفات السلامة',engineeringInspection:'وكيل الفحص الهندسي الذكي',qualityCorrective:'تقرير الجودة والإجراءات التصحيحية',safetyCorrective:'تقرير السلامة والإجراءات التصحيحية',temporaryGenerators:'تقرير المؤقتات والمولدات',contractorSafety:'تقييم السلامة للمقاولين',executionViolations:'مخالفات التنفيذ',
     minutes:'محاضر مخالفة إثبات الحالة',dataQuality:'جودة البيانات',hrStaff:'الموارد البشرية للكادر',
     employeeEvaluation:'تقييم مهندسي المواقع',electricityEngineerEvaluation:'تقييم مهندسي شركة الكهرباء',
     wednesdayMeeting:'اجتماع الـ PDC',pdcMeeting2:'اجتماع PDC 2',smartThursday:'تقرير الخميس الذكي',

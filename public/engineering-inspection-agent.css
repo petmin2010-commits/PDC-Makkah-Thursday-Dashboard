@@ -1,0 +1,49 @@
+/* Isolated, RTL responsive UI — never changes the approved reporting templates */
+.ei-page{direction:rtl;font-family:Cairo,Arial,sans-serif;color:#15283d}
+.ei-layout{max-width:1450px;margin:0 auto;padding:18px 20px 35px;display:grid;gap:17px}
+.ei-header{display:flex;justify-content:space-between;gap:16px;align-items:center;border-radius:18px;background:linear-gradient(110deg,#143d63,#226b87);padding:20px 24px;color:#fff}
+.ei-header h2{font-size:24px;font-weight:800;margin:5px 0;color:#fff}
+.ei-header p{margin:5px 0;font-size:13px;color:#e3f2fa}
+.ei-header small{color:#bcecf5;letter-spacing:1px;font-size:10px}
+.ei-pill{white-space:nowrap;border-radius:100px;padding:8px 13px;background:#d8f6e7;color:#165d39;font-weight:700;font-size:11px}
+.ei-pill.ei-disabled{background:#fff3d9;color:#7b5519}
+.ei-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.ei-stats>div{background:#fff;border:1px solid #dce5ec;border-radius:13px;padding:15px 18px;box-shadow:0 3px 12px #1b46630a}
+.ei-stats small{display:block;color:#5c7081;font-size:12px}
+.ei-stats strong{display:block;font-size:25px;color:#155f91;margin-top:4px}
+.ei-columns{display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);gap:15px;align-items:start}
+.ei-panel{border-radius:16px;background:#fff;border:1px solid #dde5ed;padding:20px;min-width:0;box-shadow:0 4px 15px #153a5b0a}
+.ei-panel h3{margin:0 0 16px;font-size:17px;color:#173e5d;font-weight:800}
+.ei-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.ei-fields label,.ei-photo-toolbar label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#344a5e}
+.ei-fields label span{color:#c03e35}.ei-fields .ei-wide{grid-column:1/-1}
+.ei-page input,.ei-page select,.ei-page textarea{width:100%;font:inherit;box-sizing:border-box;padding:11px 12px;border:1px solid #cad7e2;border-radius:9px;color:#192e40;background:#fff}
+.ei-page textarea{resize:vertical}.ei-page input:focus,.ei-page select:focus,.ei-page textarea:focus{outline:2px solid #6bb9d5;outline-offset:1px}
+.ei-photo-toolbar{margin-top:15px;max-width:260px}
+.ei-upload{margin-top:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed #86b3ce;border-radius:13px;background:#f5fbff;padding:22px 12px;cursor:pointer;gap:4px;text-align:center;color:#285f7c}
+.ei-upload span{font-size:30px}.ei-upload small{font-size:11px;color:#657c8e}.ei-upload input{display:none}
+.ei-photos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:11px}
+.ei-photo{overflow:hidden;border:1px solid #d8e1e9;border-radius:10px}.ei-photo img{height:110px;width:100%;object-fit:cover}
+.ei-photo>div{display:flex;align-items:center;gap:4px;padding:3px 7px}.ei-photo small{font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.ei-photo button{padding:0 6px;border:0;background:#f6e6e4;color:#a22d23;border-radius:5px;cursor:pointer}
+.ei-hint,.ei-disclaimer{font-size:11px;color:#6a7988;line-height:1.9;margin:12px 0}
+.ei-page button{cursor:pointer;font-family:inherit;font-weight:700}
+.ei-primary{margin-top:10px;display:block;width:100%;border:0;border-radius:10px;background:#16678b;color:#fff;font-size:14px;padding:13px}
+.ei-page button:disabled{opacity:.55;cursor:not-allowed}
+.ei-result-actions{display:flex;gap:8px;margin-top:15px;flex-wrap:wrap}.ei-result-actions button{border:0;border-radius:10px;background:#1b7597;color:#fff;padding:11px 14px;flex:1}.ei-result-actions button+button{background:#ecf5f8;color:#17638b}
+.ei-placeholder{min-height:185px;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;background:#f8fbfd;color:#6c7c8e;border:1px dashed #d5e1ea;border-radius:13px;padding:20px;line-height:1.9}
+.ei-placeholder span{font-size:27px}.ei-result-intro{background:#edf7fd;border-radius:12px;padding:13px 16px;color:#1d4762;line-height:1.9}
+.ei-finding-list{display:grid;gap:12px;margin-top:14px;max-height:620px;overflow:auto}.ei-finding{border:1px solid #dae3eb;border-right:4px solid #e4a95a;border-radius:10px;padding:12px 14px;page-break-inside:avoid}
+.ei-finding-head{display:flex;flex-direction:column;gap:7px}.ei-finding-head>div{display:flex;flex-wrap:wrap;gap:5px}.ei-tag{display:inline-block;background:#eaf2f6;border:1px solid #d9e7ed;border-radius:100px;font-size:10px;padding:3px 8px;color:#275872}
+.ei-finding p{font-size:12px;line-height:1.8;margin:8px 0;color:#344e64}.ei-no-findings{padding:13px;background:#f0faf2;color:#27613e;border-radius:10px}
+.ei-limit{background:#fff8eb;padding:13px;border-radius:10px;margin-top:14px;font-size:12px;line-height:1.9}
+.ei-notice{background:#ebf8f0;color:#136744;border:1px solid #bde2cb;border-radius:10px;padding:12px 15px;font-size:12px}.ei-notice.error{color:#a02e28;background:#fff0ef;border-color:#f0cac6}
+.ei-history-head{display:flex;align-items:center;justify-content:space-between;gap:15px}.ei-history-head h3{margin-bottom:3px}.ei-history-head small{color:#677d90}
+.ei-history-head button,.ei-record-actions button{background:#eff6fa;color:#195e82;border:1px solid #d4e4ec;padding:8px 11px;border-radius:9px}
+.ei-history-tools{display:flex;gap:10px;margin:12px 0}.ei-history-tools input{flex:2}.ei-history-tools select{flex:1}
+.ei-records{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.ei-record{border:1px solid #dce5eb;border-radius:12px;padding:14px;font-size:12px;line-height:1.7;overflow-wrap:anywhere}
+.ei-record-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.ei-record-top strong{font-size:14px;color:#193e5b}.ei-record-top small{margin-right:auto;color:#788996}
+.ei-record p{margin:8px 0;color:#4f6375}.ei-record-actions{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.ei-record-actions button{font-size:11px}
+@media(max-width:900px){.ei-columns{grid-template-columns:1fr}.ei-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.ei-records{grid-template-columns:1fr}.ei-header{flex-direction:column;align-items:start}}
+@media(max-width:530px){.ei-layout{padding:10px}.ei-panel{padding:13px}.ei-fields{grid-template-columns:1fr}.ei-fields .ei-wide{grid-column:auto}.ei-history-tools{flex-direction:column}.ei-header h2{font-size:19px}}
+@media print{.ei-page .ei-history,.ei-page .ei-upload,.ei-page .ei-primary,.ei-page .ei-result-actions{display:none}}

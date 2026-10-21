@@ -2441,6 +2441,7 @@ app.post('/api/auth/login',async(req,res)=>{
 
 
 userAdminSystem_.install(app,{getSheets,spreadsheetId:SPREADSHEET_ID,requireAuth:requireAuth_});
+require('./engineering-inspection-server')({app,requireAuth_,getSheets,SPREADSHEET_ID,qSheet});
 const onlinePresence_ = require('./online-presence-server')(app, requireAuth_);
 
 app.post('/api/auth/logout',(req,res)=>{
