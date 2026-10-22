@@ -3396,3 +3396,18 @@ body.vd-sidebar-collapsed .vd-sidebar-toggle{
 /* Give the document-first branch readable width without changing unexecuted branches. */
 .target-tree .kpi-story-level1{grid-template-columns:minmax(430px,1.9fr) minmax(310px,1.35fr) minmax(130px,.55fr);gap:34px}
 .target-tree .docs-first-level > .kpi-story-child-node > .kpi-story-child{height:auto!important}
+
+/* Contract 155 cards branch exclusively from BG: تم الرفع (UDS). */
+.target-tree .docs-first-level .bg-level{grid-template-columns:minmax(0,1fr)!important;gap:11px!important;}
+.target-tree .docs-first-level .bg-state-node{position:relative;min-width:0;}
+.target-tree .docs-first-level .bg-state-node:before{content:"";position:absolute;top:-11px;left:50%;height:11px;width:2px;background:var(--story-color);}
+.target-tree .docs-first-level .bg-state-node>.kpi-story-greatgrandchild{min-width:0;overflow-wrap:anywhere;}
+.target-tree .docs-first-level .bg-state-node>.kpi-story-greatgrandchild:before{display:none!important;}
+.target-tree .docs-first-level .ak-uds-children{position:relative;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:26px;}
+.target-tree .docs-first-level .ak-uds-children:before{content:"";position:absolute;top:-13px;left:25%;right:25%;height:2px;background:var(--story-color);}
+.target-tree .docs-first-level .ak-uds-children:after{content:"";position:absolute;top:-26px;left:50%;height:13px;width:2px;background:var(--story-color);}
+.target-tree .docs-first-level .ak-uds-card{min-width:0;min-height:52px!important;padding:6px 3px!important;overflow-wrap:anywhere;border-right:3px solid var(--story-color);}
+.target-tree .docs-first-level .ak-uds-card:before{content:"";position:absolute;top:-13px;left:50%;height:13px;width:2px;background:var(--story-color);}
+.target-tree .docs-first-level .ak-uds-card span{font-size:7px!important;}
+.target-tree .docs-first-level .ak-uds-card strong{font-size:15px!important;color:var(--story-color);}
+.target-tree .docs-first-level .ak-uds-unknown{text-align:center;font-size:9px;margin:4px 0;color:#9b4d14;}

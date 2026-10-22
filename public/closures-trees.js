@@ -3,32 +3,42 @@ let emergencyLoading=false,meetingLoading=false;
 const el=id=>document.getElementById(id),norm=v=>String(v||'').trim().replace(/\s*\/\s*/g,'/'),pct=(n,t)=>(t?Math.round(n/t*1000)/10:0)+'% من الإجمالي';
 
 function meetingDocumentsFirstHtml(rows,total,pct,fmt,esc){
- const norm=v=>String(v==null?'':v).trim().replace(/\s*\/\s*/g,'/');
+ const norm=v=>String(v==null?'':v).trim().replace(/\s*\/\s*/g,'/').replace(/\s+/g,' ');
  const yesNo=v=>norm(v).replace(/[أإآ]/g,'ا');
- const documentReceived=rows.filter(r=>norm(r.docsStatus)==='تم الاستلام من المقاول');
- const documentNotReceived=rows.filter(r=>norm(r.docsStatus)==='لم يتم الاستلام من المقاول');
- const unmatched=rows.filter(r=>!['تم الاستلام من المقاول','لم يتم الاستلام من المقاول'].includes(norm(r.docsStatus)));
+ const docReceived=rows.filter(r=>norm(r.docsStatus)==='تم الاستلام من المقاول');
+ const docMissing=rows.filter(r=>norm(r.docsStatus)==='لم يتم الاستلام من المقاول');
+ const docOther=rows.filter(r=>!['تم الاستلام من المقاول','لم يتم الاستلام من المقاول'].includes(norm(r.docsStatus)));
  const documentGroups=[
-  {label:'تم الاستلام من المقاول',rows:documentReceived,css:'bf-received'},
-  {label:'لم يتم الاستلام من المقاول',rows:documentNotReceived,css:'bf-not-received'}
+  {label:'تم الاستلام من المقاول',rows:docReceived,css:'bf-received'},
+  {label:'لم يتم الاستلام من المقاول',rows:docMissing,css:'bf-not-received'}
  ];
- if(unmatched.length)documentGroups.push({label:'حالة مستندات غير محددة',rows:unmatched,css:'bf-unspecified'});
+ if(docOther.length)documentGroups.push({label:'حالة مستندات غير محددة',rows:docOther,css:'bf-unspecified'});
  const card=(css,label,n)=>'<article class="kpi-story-card '+css+'"><span>'+esc(label)+'</span><strong>'+fmt(n)+'</strong><small>'+pct(n,total)+'</small></article>';
+ const contractor155=items=>{
+  const received=items.filter(r=>yesNo(r.contractor155Status)==='نعم').length;
+  const notReceived=items.filter(r=>yesNo(r.contractor155Status)==='لا').length;
+  const unknown=items.length-received-notReceived;
+  const cards=card('ak-uds-card','مستلم 155 للمقاول',received)+card('ak-uds-card','غير مستلم 155 للمقاول',notReceived);
+  const note=unknown?'<p class="ak-uds-unknown">حالات 155 غير محددة: '+fmt(unknown)+'</p>':'';
+  return '<div class="ak-uds-children">'+cards+'</div>'+note;
+ };
  const bgHtml=items=>{
-  const counts=new Map();
-  items.forEach(r=>{const label=String(r.docsSubStatus||'').trim()||'غير محدد';counts.set(label,(counts.get(label)||0)+1)});
-  if(!counts.size)return '';
-  return '<div class="kpi-story-greatgrandchildren bg-level">'+Array.from(counts.entries()).sort((a,b)=>b[1]-a[1]).map(([label,n])=>card('kpi-story-greatgrandchild',label,n)).join('')+'</div>';
+  const groups=new Map();
+  items.forEach(r=>{
+   const label=norm(r.docsSubStatus)||'غير محدد';
+   if(!groups.has(label))groups.set(label,[]);
+   groups.get(label).push(r);
+  });
+  if(!groups.size)return '';
+  return '<div class="kpi-story-greatgrandchildren bg-level">'+
+   Array.from(groups.entries()).sort((a,b)=>b[1].length-a[1].length).map(([label,group])=>
+    '<div class="bg-state-node">'+card('kpi-story-greatgrandchild',label,group.length)+
+    (norm(label)==='تم الرفع (UDS)'?contractor155(group):'')+'</div>'
+   ).join('')+'</div>';
  };
- const akHtml=items=>{
-  const received=items.filter(r=>yesNo(r.contractor155Status)==='نعم');
-  const notReceived=items.filter(r=>yesNo(r.contractor155Status)==='لا');
-  const unspecified=items.filter(r=>!['نعم','لا'].includes(yesNo(r.contractor155Status)));
-  const groups=[{label:'مستلم 155 للمقاول',rows:received,css:'ak-received'},{label:'غير مستلم 155 للمقاول',rows:notReceived,css:'ak-not-received'}];
-  if(unspecified.length)groups.push({label:'حالة 155 غير محددة',rows:unspecified,css:'ak-unspecified'});
-  return '<div class="kpi-story-grandchildren ak-level">'+groups.map(g=>'<div class="kpi-story-grandchild-node '+g.css+'">'+card('kpi-story-grandchild',g.label,g.rows.length)+bgHtml(g.rows)+'</div>').join('')+'</div>';
- };
- return '<div class="kpi-story-children bf-level docs-first-level">'+documentGroups.map(g=>'<div class="kpi-story-child-node '+g.css+'">'+card('kpi-story-child',g.label,g.rows.length)+akHtml(g.rows)+'</div>').join('')+'</div>';
+ return '<div class="kpi-story-children bf-level docs-first-level">'+
+  documentGroups.map(group=>'<div class="kpi-story-child-node '+group.css+'">'+
+   card('kpi-story-child',group.label,group.rows.length)+bgHtml(group.rows)+'</div>').join('')+'</div>';
 }
 
 function meetingTreeHtml(rows){
