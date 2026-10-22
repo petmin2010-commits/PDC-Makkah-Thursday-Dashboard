@@ -3411,3 +3411,18 @@ body.vd-sidebar-collapsed .vd-sidebar-toggle{
 .target-tree .docs-first-level .ak-uds-card span{font-size:7px!important;}
 .target-tree .docs-first-level .ak-uds-card strong{font-size:15px!important;color:var(--story-color);}
 .target-tree .docs-first-level .ak-uds-unknown{text-align:center;font-size:9px;margin:4px 0;color:#9b4d14;}
+
+
+/* The UDS/155 child tree uses a distinct purple accent; parent BG cards stay green. */
+.target-tree .docs-first-level .ak-uds-card{
+ background:#f3edff!important;
+ border:1px solid #c9b6fa!important;
+ border-right:4px solid #7c3aed!important;
+ box-shadow:0 4px 15px rgba(91,33,182,.12)!important;
+}
+.target-tree .docs-first-level .ak-uds-card span{color:#5825a4!important}
+.target-tree .docs-first-level .ak-uds-card strong{color:#6d28d9!important}
+.target-tree .docs-first-level .ak-uds-card small{color:#7953a7!important}
+.target-tree .docs-first-level .ak-uds-children:before,
+.target-tree .docs-first-level .ak-uds-children:after,
+.target-tree .docs-first-level .ak-uds-card:before{background:#7c3aed!important}

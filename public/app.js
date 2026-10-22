@@ -389,8 +389,18 @@ function meetingDocumentsFirstHtml(rows,total,pct,fmt,esc){
    groups.get(label).push(r);
   });
   if(!groups.size)return '';
+  // Keep PDC review immediately before UDS upload. No data or count changes.
+  const sortedStates=Array.from(groups.entries()).sort((a,b)=>b[1].length-a[1].length);
+  const isPdc=label=>/قيد\s+مراجعة\s*(?:ال\s*)?(?:ـ\s*)?pdc/i.test(norm(label));
+  const pdcIndex=sortedStates.findIndex(([label])=>isPdc(label));
+  const udsIndex=sortedStates.findIndex(([label])=>norm(label)==='تم الرفع (UDS)');
+  if(pdcIndex!==-1&&udsIndex!==-1){
+   const [pdc]=sortedStates.splice(pdcIndex,1);
+   const newUdsIndex=sortedStates.findIndex(([label])=>norm(label)==='تم الرفع (UDS)');
+   sortedStates.splice(newUdsIndex,0,pdc);
+  }
   return '<div class="kpi-story-greatgrandchildren bg-level">'+
-   Array.from(groups.entries()).sort((a,b)=>b[1].length-a[1].length).map(([label,group])=>
+   sortedStates.map(([label,group])=>
     '<div class="bg-state-node">'+card('kpi-story-greatgrandchild',label,group.length)+
     (norm(label)==='تم الرفع (UDS)'?contractor155(group):'')+'</div>'
    ).join('')+'</div>';
