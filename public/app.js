@@ -360,6 +360,36 @@ function meetingCountBy(rows,key,predicate){
  return Object.entries(m).sort((a,b)=>b[1]-a[1]);
 }
 
+
+function meetingDocumentsFirstHtml(rows,total,pct,fmt,esc){
+ const norm=v=>String(v==null?'':v).trim().replace(/\s*\/\s*/g,'/');
+ const yesNo=v=>norm(v).replace(/[أإآ]/g,'ا');
+ const documentReceived=rows.filter(r=>norm(r.docsStatus)==='تم الاستلام من المقاول');
+ const documentNotReceived=rows.filter(r=>norm(r.docsStatus)==='لم يتم الاستلام من المقاول');
+ const unmatched=rows.filter(r=>!['تم الاستلام من المقاول','لم يتم الاستلام من المقاول'].includes(norm(r.docsStatus)));
+ const documentGroups=[
+  {label:'تم الاستلام من المقاول',rows:documentReceived,css:'bf-received'},
+  {label:'لم يتم الاستلام من المقاول',rows:documentNotReceived,css:'bf-not-received'}
+ ];
+ if(unmatched.length)documentGroups.push({label:'حالة مستندات غير محددة',rows:unmatched,css:'bf-unspecified'});
+ const card=(css,label,n)=>'<article class="kpi-story-card '+css+'"><span>'+esc(label)+'</span><strong>'+fmt(n)+'</strong><small>'+pct(n,total)+'</small></article>';
+ const bgHtml=items=>{
+  const counts=new Map();
+  items.forEach(r=>{const label=String(r.docsSubStatus||'').trim()||'غير محدد';counts.set(label,(counts.get(label)||0)+1)});
+  if(!counts.size)return '';
+  return '<div class="kpi-story-greatgrandchildren bg-level">'+Array.from(counts.entries()).sort((a,b)=>b[1]-a[1]).map(([label,n])=>card('kpi-story-greatgrandchild',label,n)).join('')+'</div>';
+ };
+ const akHtml=items=>{
+  const received=items.filter(r=>yesNo(r.contractor155Status)==='نعم');
+  const notReceived=items.filter(r=>yesNo(r.contractor155Status)==='لا');
+  const unspecified=items.filter(r=>!['نعم','لا'].includes(yesNo(r.contractor155Status)));
+  const groups=[{label:'مستلم 155 للمقاول',rows:received,css:'ak-received'},{label:'غير مستلم 155 للمقاول',rows:notReceived,css:'ak-not-received'}];
+  if(unspecified.length)groups.push({label:'حالة 155 غير محددة',rows:unspecified,css:'ak-unspecified'});
+  return '<div class="kpi-story-grandchildren ak-level">'+groups.map(g=>'<div class="kpi-story-grandchild-node '+g.css+'">'+card('kpi-story-grandchild',g.label,g.rows.length)+bgHtml(g.rows)+'</div>').join('')+'</div>';
+ };
+ return '<div class="kpi-story-children bf-level docs-first-level">'+documentGroups.map(g=>'<div class="kpi-story-child-node '+g.css+'">'+card('kpi-story-child',g.label,g.rows.length)+akHtml(g.rows)+'</div>').join('')+'</div>';
+}
+
 function renderWednesdayMeeting(){
  const rows=filteredWednesdayRows();
  const total=rows.length;
@@ -389,23 +419,8 @@ function renderWednesdayMeeting(){
  });
  const pct=n=>meetingPct(n,total)+'% من الإجمالي';
 
- // AK: نعم = مستلم 155، لا = غير مستلم 155.
- const akNorm=v=>statusNorm(v).replace(/[أإآ]/g,'ا');
- const received155Rows=completedRows.filter(r=>akNorm(r.contractor155Status)==='نعم');
- const notReceived155Rows=completedRows.filter(r=>akNorm(r.contractor155Status)==='لا');
-
- // BF ثم BG يطبقان بنفس المنطق على فرعي AK: مستلم 155 وغير مستلم 155.
- const buildDocsBranch=sourceRows=>{
-   const bfReceivedRows=sourceRows.filter(r=>statusNorm(r.docsStatus)==='تم الاستلام من المقاول');
-   const bfNotReceivedRows=sourceRows.filter(r=>statusNorm(r.docsStatus)==='لم يتم الاستلام من المقاول');
-   const bgEntries=meetingCountBy(bfReceivedRows,'docsSubStatus');
-   const bgHtml=bgEntries.length
-     ? bgEntries.map(([label,count])=>`<article class="kpi-story-card kpi-story-greatgrandchild"><span>${esc(label)}</span><strong>${fmt(count)}</strong><small>${pct(count)}</small></article>`).join('')
-     : '<article class="kpi-story-card kpi-story-greatgrandchild"><span>غير محدد</span><strong>0</strong><small>0.0%</small></article>';
-   return {bfReceivedRows,bfNotReceivedRows,bgHtml};
- };
- const received155Docs=buildDocsBranch(received155Rows);
- const notReceived155Docs=buildDocsBranch(notReceived155Rows);
+ // شجرة التنفيذ: حالة المستندات BF، ثم حالة 155 AK، ثم التفاصيل BG.
+ const docsFirstCompletedHtml=meetingDocumentsFirstHtml(completedRows,total,pct,fmt,esc);
 
  // BC: حالات أوامر العمل غير المنفذة.
  const bcEntries=meetingCountBy(incompleteRows,'nonExecutionStatus');
@@ -420,28 +435,7 @@ function renderWednesdayMeeting(){
    <div class="kpi-story-level1">
     <section class="kpi-story-node completed">
      <article class="kpi-story-card"><span>تم التنفيذ</span><strong>${fmt(completedRows.length)}</strong><small>${pct(completedRows.length)}</small></article>
-     <div class="kpi-story-children ak-level">
-      <div class="kpi-story-child-node ak-received">
-       <article class="kpi-story-card kpi-story-child"><span>مستلم 155 المقاول</span><strong>${fmt(received155Rows.length)}</strong><small>${pct(received155Rows.length)}</small></article>
-       <div class="kpi-story-grandchildren bf-level">
-        <div class="kpi-story-grandchild-node bf-received">
-         <article class="kpi-story-card kpi-story-grandchild"><span>تم الاستلام من المقاول</span><strong>${fmt(received155Docs.bfReceivedRows.length)}</strong><small>${pct(received155Docs.bfReceivedRows.length)}</small></article>
-         <div class="kpi-story-greatgrandchildren bg-level">${received155Docs.bgHtml}</div>
-        </div>
-        <article class="kpi-story-card kpi-story-grandchild"><span>لم يتم الاستلام من المقاول</span><strong>${fmt(received155Docs.bfNotReceivedRows.length)}</strong><small>${pct(received155Docs.bfNotReceivedRows.length)}</small></article>
-       </div>
-      </div>
-      <div class="kpi-story-child-node ak-not-received">
-       <article class="kpi-story-card kpi-story-child"><span>غير مستلم 155 المقاول</span><strong>${fmt(notReceived155Rows.length)}</strong><small>${pct(notReceived155Rows.length)}</small></article>
-       <div class="kpi-story-grandchildren bf-level">
-        <div class="kpi-story-grandchild-node bf-received">
-         <article class="kpi-story-card kpi-story-grandchild"><span>تم الاستلام من المقاول</span><strong>${fmt(notReceived155Docs.bfReceivedRows.length)}</strong><small>${pct(notReceived155Docs.bfReceivedRows.length)}</small></article>
-         <div class="kpi-story-greatgrandchildren bg-level">${notReceived155Docs.bgHtml}</div>
-        </div>
-        <article class="kpi-story-card kpi-story-grandchild"><span>لم يتم الاستلام من المقاول</span><strong>${fmt(notReceived155Docs.bfNotReceivedRows.length)}</strong><small>${pct(notReceived155Docs.bfNotReceivedRows.length)}</small></article>
-       </div>
-      </div>
-     </div>
+     ${docsFirstCompletedHtml}
     </section>
     <section class="kpi-story-node incomplete">
      <article class="kpi-story-card"><span>لم يتم التنفيذ</span><strong>${fmt(incompleteRows.length)}</strong><small>${pct(incompleteRows.length)}</small></article>

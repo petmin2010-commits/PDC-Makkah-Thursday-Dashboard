@@ -1,23 +1,45 @@
 (()=>{
 let emergencyLoading=false,meetingLoading=false;
 const el=id=>document.getElementById(id),norm=v=>String(v||'').trim().replace(/\s*\/\s*/g,'/'),pct=(n,t)=>(t?Math.round(n/t*1000)/10:0)+'% من الإجمالي';
+
+function meetingDocumentsFirstHtml(rows,total,pct,fmt,esc){
+ const norm=v=>String(v==null?'':v).trim().replace(/\s*\/\s*/g,'/');
+ const yesNo=v=>norm(v).replace(/[أإآ]/g,'ا');
+ const documentReceived=rows.filter(r=>norm(r.docsStatus)==='تم الاستلام من المقاول');
+ const documentNotReceived=rows.filter(r=>norm(r.docsStatus)==='لم يتم الاستلام من المقاول');
+ const unmatched=rows.filter(r=>!['تم الاستلام من المقاول','لم يتم الاستلام من المقاول'].includes(norm(r.docsStatus)));
+ const documentGroups=[
+  {label:'تم الاستلام من المقاول',rows:documentReceived,css:'bf-received'},
+  {label:'لم يتم الاستلام من المقاول',rows:documentNotReceived,css:'bf-not-received'}
+ ];
+ if(unmatched.length)documentGroups.push({label:'حالة مستندات غير محددة',rows:unmatched,css:'bf-unspecified'});
+ const card=(css,label,n)=>'<article class="kpi-story-card '+css+'"><span>'+esc(label)+'</span><strong>'+fmt(n)+'</strong><small>'+pct(n,total)+'</small></article>';
+ const bgHtml=items=>{
+  const counts=new Map();
+  items.forEach(r=>{const label=String(r.docsSubStatus||'').trim()||'غير محدد';counts.set(label,(counts.get(label)||0)+1)});
+  if(!counts.size)return '';
+  return '<div class="kpi-story-greatgrandchildren bg-level">'+Array.from(counts.entries()).sort((a,b)=>b[1]-a[1]).map(([label,n])=>card('kpi-story-greatgrandchild',label,n)).join('')+'</div>';
+ };
+ const akHtml=items=>{
+  const received=items.filter(r=>yesNo(r.contractor155Status)==='نعم');
+  const notReceived=items.filter(r=>yesNo(r.contractor155Status)==='لا');
+  const unspecified=items.filter(r=>!['نعم','لا'].includes(yesNo(r.contractor155Status)));
+  const groups=[{label:'مستلم 155 للمقاول',rows:received,css:'ak-received'},{label:'غير مستلم 155 للمقاول',rows:notReceived,css:'ak-not-received'}];
+  if(unspecified.length)groups.push({label:'حالة 155 غير محددة',rows:unspecified,css:'ak-unspecified'});
+  return '<div class="kpi-story-grandchildren ak-level">'+groups.map(g=>'<div class="kpi-story-grandchild-node '+g.css+'">'+card('kpi-story-grandchild',g.label,g.rows.length)+bgHtml(g.rows)+'</div>').join('')+'</div>';
+ };
+ return '<div class="kpi-story-children bf-level docs-first-level">'+documentGroups.map(g=>'<div class="kpi-story-child-node '+g.css+'">'+card('kpi-story-child',g.label,g.rows.length)+akHtml(g.rows)+'</div>').join('')+'</div>';
+}
+
 function meetingTreeHtml(rows){
  const total=rows.length,done=rows.filter(r=>norm(r.executionRaw)==='تم التنفيذ'),not=rows.filter(r=>norm(r.executionRaw)==='لم يتم التنفيذ');
  const stopped=rows.filter(r=>['موقوف/محول','متوقف/محول','موقوف','محول','متوقف'].includes(norm(r.executionRaw)));
- const yes=v=>norm(v).replace(/[أإآ]/g,'ا')==='نعم',rec=done.filter(r=>yes(r.contractor155Status)),nrec=done.filter(r=>norm(r.contractor155Status).replace(/[أإآ]/g,'ا')==='لا');
+ const docsFirstCompletedHtml=meetingDocumentsFirstHtml(done,total,pct,fmt,esc);
  const count=(arr,key)=>{const m={};arr.forEach(r=>{const x=String(r[key]||'غير محدد').trim()||'غير محدد';m[x]=(m[x]||0)+1});return Object.entries(m).sort((a,b)=>b[1]-a[1])};
- const docsBranch=arr=>{
-   const bfRec=arr.filter(r=>norm(r.docsStatus)==='تم الاستلام من المقاول'),bfNot=arr.filter(r=>norm(r.docsStatus)==='لم يتم الاستلام من المقاول');
-   const bg=count(bfRec,'docsSubStatus');
-   const bgHtml=(bg.length?bg:[['غير محدد',0]]).map(([x,n])=>'<article class="kpi-story-card kpi-story-greatgrandchild"><span>'+esc(x)+'</span><strong>'+fmt(n)+'</strong><small>'+pct(n,total)+'</small></article>').join('');
-   return {bfRec,bfNot,bgHtml};
- };
- const recDocs=docsBranch(rec),nrecDocs=docsBranch(nrec);
  const bc=count(not,'nonExecutionStatus');
  const bcHtml=(bc.length?bc:[['غير محدد',0]]).map(([x,n])=>'<article class="kpi-story-card kpi-story-child"><span>'+esc(x)+'</span><strong>'+fmt(n)+'</strong><small>'+pct(n,total)+'</small></article>').join('');
- const branchHtml=(label,arr,docs,cls)=>'<div class="kpi-story-child-node '+cls+'"><article class="kpi-story-card kpi-story-child"><span>'+label+'</span><strong>'+fmt(arr.length)+'</strong><small>'+pct(arr.length,total)+'</small></article><div class="kpi-story-grandchildren bf-level"><div class="kpi-story-grandchild-node bf-received"><article class="kpi-story-card kpi-story-grandchild"><span>تم الاستلام من المقاول</span><strong>'+fmt(docs.bfRec.length)+'</strong><small>'+pct(docs.bfRec.length,total)+'</small></article><div class="kpi-story-greatgrandchildren bg-level">'+docs.bgHtml+'</div></div><article class="kpi-story-card kpi-story-grandchild"><span>لم يتم الاستلام من المقاول</span><strong>'+fmt(docs.bfNot.length)+'</strong><small>'+pct(docs.bfNot.length,total)+'</small></article></div></div>';
  const jeddah=String(document.querySelector('.brand-copy strong')?.textContent||'').includes('جدة'),toContractor=jeddah?' للمقاول':' المقاول',stoppedLabel=jeddah?'موقوف/محول':'موقوف / محول';
- return '<div class="kpi-story target-tree"><article class="kpi-story-card kpi-story-root"><span>إجمالي أوامر العمل</span><strong>'+fmt(total)+'</strong><small>100% من إجمالي الأوامر</small></article><div class="kpi-story-level1"><section class="kpi-story-node completed"><article class="kpi-story-card"><span>تم التنفيذ</span><strong>'+fmt(done.length)+'</strong><small>'+pct(done.length,total)+'</small></article><div class="kpi-story-children ak-level">'+branchHtml('مستلم 155'+toContractor,rec,recDocs,'ak-received')+branchHtml('غير مستلم 155'+toContractor,nrec,nrecDocs,'ak-not-received')+'</div></section><section class="kpi-story-node incomplete"><article class="kpi-story-card"><span>لم يتم التنفيذ</span><strong>'+fmt(not.length)+'</strong><small>'+pct(not.length,total)+'</small></article><div class="kpi-story-children bc-level">'+bcHtml+'</div></section><section class="kpi-story-node stopped"><article class="kpi-story-card"><span>'+stoppedLabel+'</span><strong>'+fmt(stopped.length)+'</strong><small>'+pct(stopped.length,total)+'</small></article></section></div></div>';
+ return '<div class="kpi-story target-tree"><article class="kpi-story-card kpi-story-root"><span>إجمالي أوامر العمل</span><strong>'+fmt(total)+'</strong><small>100% من إجمالي الأوامر</small></article><div class="kpi-story-level1"><section class="kpi-story-node completed"><article class="kpi-story-card"><span>تم التنفيذ</span><strong>'+fmt(done.length)+'</strong><small>'+pct(done.length,total)+'</small></article>'+docsFirstCompletedHtml+'</section><section class="kpi-story-node incomplete"><article class="kpi-story-card"><span>لم يتم التنفيذ</span><strong>'+fmt(not.length)+'</strong><small>'+pct(not.length,total)+'</small></article><div class="kpi-story-children bc-level">'+bcHtml+'</div></section><section class="kpi-story-node stopped"><article class="kpi-story-card"><span>'+stoppedLabel+'</span><strong>'+fmt(stopped.length)+'</strong><small>'+pct(stopped.length,total)+'</small></article></section></div></div>';
 }
 function renderEmergencyCopy(rows){const x=el('closuresEmergencyTree');if(x&&typeof renderEmergencyStatusTree==='function'){x.innerHTML='';renderEmergencyStatusTree(Array.isArray(rows)?rows:[],x,false)}}
 function renderMeetingCopy(){const x=el('closuresMeetingTree');if(x)x.innerHTML=meetingTreeHtml(Array.isArray(S?.meetingRows)?S.meetingRows:[])}

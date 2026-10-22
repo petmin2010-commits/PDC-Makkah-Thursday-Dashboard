@@ -1334,7 +1334,7 @@ nav{gap:3px!important;padding-top:12px!important}.nav-item{padding:7px 8px!impor
 .kpi-story{min-width:760px!important}.kpi-story-card{min-height:46px!important;padding:4px 6px!important;border-radius:8px!important}.kpi-story-card span{font-size:7px!important}.kpi-story-card strong{font-size:15px!important;margin:1px 0!important}.kpi-story-card small{font-size:6px!important}.kpi-story-root{width:185px!important;margin-bottom:28px!important}.kpi-story-root strong{font-size:19px!important}.kpi-story-level1{gap:22px!important;padding:0 18px!important}.kpi-story-children{gap:7px!important;margin-top:21px!important}.kpi-story-grandchildren{grid-template-columns:repeat(auto-fit,minmax(78px,1fr))!important;gap:5px!important;margin-top:18px!important}.kpi-story-grandchild{min-height:40px!important;padding:4px!important}.kpi-story-grandchild span{font-size:6px!important}.kpi-story-grandchild strong{font-size:13px!important}.bf-level{grid-template-columns:repeat(auto-fit,minmax(100px,1fr))!important}.bc-level{grid-template-columns:repeat(auto-fit,minmax(95px,1fr))!important}
 @media(max-width:850px){.sidebar{width:70px!important}main{margin-right:70px!important}}
 
-/* Thursday meeting tree — target hierarchy AK > BF > BG / BC */
+/* Thursday meeting tree — target hierarchy BF > AK > BG / BC */
 .target-tree{min-width:1180px}
 .target-tree .kpi-story-level1{grid-template-columns:1.25fr 1.65fr .9fr;gap:54px;padding:0 34px;align-items:start}
 .target-tree .kpi-story-card{min-height:52px!important;padding:5px 7px!important}
@@ -3384,3 +3384,15 @@ body.vd-sidebar-collapsed .vd-sidebar-toggle{
 .brand-logo-wrap:hover .brand-logo{transform:scale(1.09) rotate(-.8deg);filter:drop-shadow(0 0 9px rgba(67,179,229,.34))}
 @keyframes vdSidebarLogoFloat{0%,100%{transform:translateY(-1px) scale(1.02)}50%{transform:translateY(-5px) scale(1.065)}}
 @media(prefers-reduced-motion:reduce){.brand-logo-wrap:hover{animation:none!important;transform:translateY(-2px) scale(1.02)}}
+
+/* BF (documents) > AK (contractor 155) > BG (document processing state). */
+.target-tree .docs-first-level > .kpi-story-child-node{min-width:0}
+.target-tree .docs-first-level .kpi-story-grandchildren{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.target-tree .docs-first-level .kpi-story-grandchild-node{min-width:0}
+.target-tree .docs-first-level .kpi-story-greatgrandchildren{grid-template-columns:repeat(auto-fit,minmax(78px,1fr));gap:7px}
+.target-tree .docs-first-level .kpi-story-greatgrandchild{min-width:0;overflow-wrap:anywhere}
+@media(max-width:900px){.target-tree .docs-first-level .kpi-story-grandchildren{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+
+/* Give the document-first branch readable width without changing unexecuted branches. */
+.target-tree .kpi-story-level1{grid-template-columns:minmax(430px,1.9fr) minmax(310px,1.35fr) minmax(130px,.55fr);gap:34px}
+.target-tree .docs-first-level > .kpi-story-child-node > .kpi-story-child{height:auto!important}
