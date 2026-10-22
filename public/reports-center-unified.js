@@ -16,8 +16,8 @@ const GROUPS=[
  ]},
  {key:'quality',title:'السلامة والجودة والامتثال',subtitle:'ملاحظات المواقع والإجراءات التصحيحية والتدقيق',items:[
   ['safety','تقرير مخالفات السلامة','PDF','shield-alert'],
-  ['safetyCorrective','تقرير السلامة والإجراءات التصحيحية الأسبوعي','PDF','shield-check'],
-  ['qualityCorrective','تقرير الجودة والإجراءات التصحيحية الأسبوعي','PDF','badge-check'],
+  ['safetyCorrective','تقرير السلامة والإجراءات التصحيحية الأسبوعي','PDF / PPTX','shield-check'],
+  ['qualityCorrective','تقرير الجودة والإجراءات التصحيحية الأسبوعي','PDF / PPTX','badge-check'],
   ['temporaryGenerators','تقرير أعمال المؤقتات والمولدات','PDF','zap'],
   ['contractorSafety','تقييم السلامة للمقاولين','PDF / PPTX','users'],
   ['executionViolations','تقرير مخالفات التنفيذ','PDF','alert-triangle'],
@@ -117,9 +117,9 @@ function showError(layer,msg){const el=$('.rc-modal-error',layer);if(el){el.hidd
 async function chooseCorrective(key){
  const safety=key==='safetyCorrective',temporary=key==='temporaryGenerators',endpoint=safety?'/api/safety-corrective':temporary?'/api/temporary-generators':'/api/quality-corrective';
  const title=safety?'تقرير السلامة والإجراءات التصحيحية':temporary?'تقرير المؤقتات والمولدات':'تقرير الجودة والإجراءات التصحيحية';
- const layer=overlay(title,'اختر التقرير الأسبوعي المحفوظ. سيتم تصدير PDF بنفس القالب المعتمد للغلاف والنهاية.',
- '<label class="rc-dialog-label">التقرير الأسبوعي<select id="rcCorrectiveSelect"><option value="">جارٍ تحميل التقارير...</option></select></label>', 'تصدير PDF',async modal=>{
-  const select=$('#rcCorrectiveSelect',modal),id=select?.value;if(!id){showError(modal,'اختر تقريرًا محفوظًا أولًا.');return}
+ const layer=overlay(title,'اختر التقرير الأسبوعي المحفوظ وصيغة التصدير المطلوبة.',
+  '<label class="rc-dialog-label">التقرير الأسبوعي<select id="rcCorrectiveSelect"><option value="">جارٍ تحميل التقارير...</option></select></label>'+(!temporary?'<label class="rc-dialog-label">صيغة التصدير<select id="rcCorrectiveFormat"><option value="PDF">PDF</option><option value="PPTX">PowerPoint</option></select></label>':''), 'تصدير PDF',async modal=>{
+  const select=$('#rcCorrectiveSelect',modal),id=select?.value;const selectedFormat=$('#rcCorrectiveFormat',modal)?.value==='PPTX'?'PPTX':'PDF';if(!id){showError(modal,'اختر تقريرًا محفوظًا أولًا.');return}
   // Open synchronously with the user click, avoiding popup blockers.
   const win=window.open('','_blank','width=1440,height=920');if(!win){showError(modal,'اسمح بالنوافذ المنبثقة لتصدير التقرير.');return}
   lock($('#rcModalSubmit',modal),true);
@@ -128,10 +128,11 @@ async function chooseCorrective(key){
    if(!exporter)throw Error('مولّد التقرير غير متاح.');
    closeDialog();nav(key)?.click();
    await exporter.prepare(id);
-   await exporter.exportPDF(win);
+   if(selectedFormat==='PPTX')await exporter.exportPPTX(win);else await exporter.exportPDF(win);
    setTimeout(back,400);
   }catch(e){try{if(!win.closed)win.close()}catch(_){};back();errorMessage(e)}finally{busy=false}
  });
+ if(!temporary)$('#rcCorrectiveFormat',layer)?.addEventListener('change',e=>{$('#rcModalSubmit',layer).textContent=e.target.value==='PPTX'?'تصدير PowerPoint':'تصدير PDF'});
  try{
   const res=await fetch(endpoint+'/reports',{credentials:'same-origin',cache:'no-store'}),json=await res.json();
   if(!res.ok||json.ok===false)throw Error(json.error||'تعذر تحميل التقارير');

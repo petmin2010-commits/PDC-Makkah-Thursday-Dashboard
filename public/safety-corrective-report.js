@@ -32,6 +32,7 @@ function mount(){
  $('scrSaveFinding').addEventListener('click',saveFinding);
  $('scrRemoveFinding').addEventListener('click',removeFinding);
  $('scrExport').addEventListener('click',()=>printReport());
+ $('scrExportPptx').addEventListener('click',()=>printReport(null,'PPTX'));
  $('scrFindingList').addEventListener('click',e=>{const b=e.target.closest('[data-finding]');if(b)selectFinding(b.dataset.finding)});
  $('scrPhotoGrid').addEventListener('change',photoChange);
  $('scrPhotoGrid').addEventListener('click',photoClick);
@@ -42,7 +43,7 @@ function mount(){
  refreshWorkTypes();
 }
 function markup(){return `
-<div class="scr-hero"><div><small>SAFETY • CORRECTIVE ACTIONS</small><h2>تقرير السلامة والإجراءات التصحيحية</h2><p>تقرير أسبوعي موحد مع صور قبل المعالجة وبعد المعالجة، وتوثيق كل ملاحظة بصور قبل وبعد المعالجة، ووصف الحالة والإجراء التصحيحي.</p></div><div class="scr-toolbar"><button id="scrExport" type="button" disabled>تصدير PDF</button></div></div>
+<div class="scr-hero"><div><small>SAFETY • CORRECTIVE ACTIONS</small><h2>تقرير السلامة والإجراءات التصحيحية</h2><p>تقرير أسبوعي موحد مع صور قبل المعالجة وبعد المعالجة، وتوثيق كل ملاحظة بصور قبل وبعد المعالجة، ووصف الحالة والإجراء التصحيحي.</p></div><div class="scr-toolbar"><button id="scrExport" type="button" disabled>تصدير PDF</button><button id="scrExportPptx" type="button" disabled>تصدير PowerPoint</button></div></div>
 <div class="scr-line"><label>التقارير المحفوظة <select id="scrSelect"><option value="">اختر التقرير...</option></select></label><button id="scrCreate" type="button">+ إنشاء تقرير أسبوعي</button><span id="scrNotice" class="scr-notice">جاري تحميل التقارير...</span></div>
 <div id="scrWorkspace" hidden>
 <section class="scr-panel scr-weekly-template">
@@ -146,7 +147,7 @@ function fillMeta(r){
  $('scrSites').value=r.totalSites??0;$('scrVisits').value=r.totalVisits??0;
  $('scrPrepared').value=r.preparedBy||'';$('scrNotes').value=r.notes||'';renderHighlights();
  renderContractorRows();
- $('scrWorkspace').hidden=false;$('scrExport').disabled=false;$('scrMetaSave').classList.remove('scr-unsaved');
+ $('scrWorkspace').hidden=false;$('scrExport').disabled=false;$('scrExportPptx').disabled=false;$('scrMetaSave').classList.remove('scr-unsaved');
 }
 function validateMeta(x){if(!validDate(x.startDate)||!validDate(x.endDate)||x.startDate>x.endDate)throw Error('حدد فترة زمنية صحيحة.');}
 function renderContractorOptions(selected){
@@ -195,7 +196,7 @@ async function create(){
  try{const j=await request('/reports','POST',{startDate:from,endDate:d,weekLabel:'تقرير أسبوعي – '+d,totalSites:0,visitedSites:0,totalVisits:0});await refresh();await load(j.report.id);notice('تم إنشاء التقرير، ويمكنك الآن إضافة الملاحظات والصور.')}catch(e){notice(e.message,true)}finally{buttonBusy('scrCreate',false)}
 }
 async function load(id){
- if(!id){state.report=null;state.findings=[];state.current=null;$('scrWorkspace').hidden=true;$('scrExport').disabled=true;return}
+ if(!id){state.report=null;state.findings=[];state.current=null;$('scrWorkspace').hidden=true;$('scrExport').disabled=true;$('scrExportPptx').disabled=true;return}
  notice('جارٍ تحميل التقرير...');
  try{const j=await request('/reports/'+encodeURIComponent(id));state.report=j.report;$('scrSelect').value=j.report.id;state.findings=j.findings||[];state.current=null;state.photos=[];state.pending={};state.photoDraft={};state.dirty=false;fillMeta(j.report);renderContractorOptions();renderWorkTypeOptions();renderKpis();renderFindings();$('scrEditor').hidden=true;notice('تم تحميل التقرير • '+state.findings.length+' ملاحظة.')}catch(e){notice(e.message,true)}
 }
@@ -477,13 +478,13 @@ const summaryCounts=()=>{
  return {total:detail.total,closed:detail.closed,open:detail.open,coverage:visitCoverage(r.totalVisits,r.totalSites),grouped};
 };
 const brand=title=>'<header class="brand"><img src="/company-logo.png" alt="أبعاد الرؤية"><h2>'+esc(title)+'</h2><img src="/pdc-logo.jpg" alt="PDC"></header>';
-async function printReport(externalWindow=null){
+async function printReport(externalWindow=null,format='PDF'){
  const aggregate=externalWindow==='AGGREGATE_HTML';
  if(!state.report)return;const r=state.report;
  if($('scrMetaSave').classList.contains('scr-unsaved')){notice('احفظ تعديلات بيانات التقرير قبل التصدير.',true);return}
  if(state.dirty){notice('احفظ الصور والتعليقات غير المحفوظة قبل التصدير.',true);return}
  const win=aggregate?{closed:false,document:{write(){}}}:(externalWindow||window.open('','_blank','width=1440,height=920'));if(!win){notice('يرجى السماح بالنوافذ المنبثقة.',true);return}if(!aggregate)win.document.write('<!doctype html><html dir="rtl" lang="ar"><meta charset="utf-8"><body style="font-family:Tahoma;text-align:center;padding:90px">جاري تجهيز تقرير السلامة والصور...</body></html>');
- const rows=[];buttonBusy('scrExport',true,'جاري تجهيز الصور...');
+ const rows=[];const exportButton=format==='PPTX'?'scrExportPptx':'scrExport';buttonBusy(exportButton,true,'جاري تجهيز الصور...');
  try{
  for(const f of state.findings){const j=await request('/photos/'+photoRef(r.id,f.id));rows.push({f,photos:j.images||[]})}
  const s=summaryCounts(),entries=Object.entries(s.grouped).sort((a,b)=>b[1]-a[1]);
@@ -514,17 +515,30 @@ async function printReport(externalWindow=null){
 if(aggregate)return {html:pages,css:printCss()+originalSummaryCss()+approvedEndcapsCss()+originalFindingCss(),fitScript:originalFindingFitScript(),slideCount:rows.length+3,reportId:r.id,period:{from:r.startDate,to:r.endDate}};
 if(win.closed)throw Error('أُغلقت نافذة التقرير أثناء التجهيز.');
  win.document.open();win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+esc('VD-Safety-'+city+'-'+r.startDate)+'</title><style>'+printCss()+originalSummaryCss()+approvedEndcapsCss()+originalFindingCss()+'</style></head><body><div class="print-actions"><button onclick="window.print()">طباعة أو حفظ التقرير PDF</button> – تأكد من تحميل الصور قبل الطباعة</div>'+pages+originalFindingFitScript()+'</body></html>');win.document.close();
+  if(format==='PPTX'){
+   if(!window.VDReportPptxCapture?.createWindowPptxWide)throw Error('PPTX_EXPORT_UNAVAILABLE');
+   const filename='VD_Safety_Corrective_'+String(r.startDate||'Week')+'_'+city+'.pptx';
+   const ppt=await window.VDReportPptxCapture.createWindowPptxWide(win,'.sheet',(num,total)=>buttonBusy('scrExportPptx',true,'تحويل الشريحة '+num+' من '+total));
+   window.VDReportPptxCapture.download(ppt.blob,filename);
+   if(!win.closed)win.close();
+   notice('تم تنزيل PowerPoint من '+ppt.slideCount+' شرائح. جار حفظ النسخة في pCloud...');
+   const saved=await window.VDReportArchive.record({reportName:'تقرير السلامة والإجراءات التصحيحية',format:'PPTX',filename,blob:ppt.blob});
+   notice(saved?.ok?'تم تنزيل PowerPoint وأرشفته على pCloud بنجاح.':
+     'تم تنزيل PowerPoint، لكن الأرشفة لم تكتمل: '+String(saved?.archiveError||saved?.error||'سيعاد المحاولة لاحقًا'),!saved?.ok);
+   return saved;
+  }
   const result=await window.VDReportArchive.archiveGeneratedPdf({win,selector:'.sheet',wide:true,
     reportName:'تقرير السلامة والإجراءات التصحيحية',
     filename:'VD_Safety_Corrective_'+String(r.startDate||'Week')+'_'+city+'.pdf'});
   if(result?.ok){notice('تم حفظ تقرير السلامة على pCloud وتسجيل رابط الأرشفة بنجاح.');}
   else{notice('الملف جاهز للطباعة، لكن الأرشفة لم تكتمل: '+String(result?.error||'تعذر الرفع')+'. إذا تم إنشاء الملف فسيعاد رفعه تلقائيًا.',true);}
   return result;
- }catch(e){if(!win.closed)win.close();notice('تعذر تجهيز التقرير: '+e.message,true)}finally{buttonBusy('scrExport',false)}
+ }catch(e){if(!win.closed)win.close();notice('تعذر تجهيز التقرير: '+e.message,true)}finally{buttonBusy('scrExport',false);buttonBusy('scrExportPptx',false)}
 }
 window.VDSafetyCorrectiveCenter={
  prepare:async id=>{if(!document.getElementById(PAGE))mount();await load(id);if(!state.report||String(state.report.id)!==String(id))throw Error("تعذر تحميل التقرير المطلوب");},
  exportPDF:win=>printReport(win),
+  exportPPTX:win=>printReport(win,'PPTX'),
  assemble:async id=>{await window.VDSafetyCorrectiveCenter.prepare(id);const pages=await printReport('AGGREGATE_HTML');if(!pages||!pages.html)throw Error('EMPTY_REPORT_SOURCE');return pages;},
  currentReport:()=>state.report?.id||""
 };
