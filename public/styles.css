@@ -3426,3 +3426,9 @@ body.vd-sidebar-collapsed .vd-sidebar-toggle{
 .target-tree .docs-first-level .ak-uds-children:before,
 .target-tree .docs-first-level .ak-uds-children:after,
 .target-tree .docs-first-level .ak-uds-card:before{background:#7c3aed!important}
+
+/* Makkah PDC tree visual parity with Jeddah; scoped to this tree only. */
+.target-tree{min-width:1180px!important}
+.target-tree .kpi-story-card{border-radius:15px!important}
+.target-tree .kpi-story-root{margin-bottom:52px!important}
+.target-tree .kpi-story-level1{gap:54px!important;padding:0 34px!important}

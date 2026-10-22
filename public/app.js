@@ -462,7 +462,7 @@ function renderWednesdayMeeting(){
      <div class="kpi-story-children bc-level">${bcHtml}</div>
     </section>
     <section class="kpi-story-node stopped">
-     <article class="kpi-story-card"><span>موقوف / محول</span><strong>${fmt(stoppedRows.length)}</strong><small>${pct(stoppedRows.length)}</small></article>
+     <article class="kpi-story-card"><span>موقوف/محول</span><strong>${fmt(stoppedRows.length)}</strong><small>${pct(stoppedRows.length)}</small></article>
     </section>
    </div>
   </div>`;
