@@ -22,6 +22,13 @@ function meetingDocumentsFirstHtml(rows,total,pct,fmt,esc){
   const note=unknown?'<p class="ak-uds-unknown">حالات 155 غير محددة: '+fmt(unknown)+'</p>':'';
   return '<div class="ak-uds-children">'+cards+'</div>'+note;
  };
+ const anomaly155Html=items=>{
+  // Count only AK=yes among BF=not received; parent filters execution=completed.
+  const yesCount=items.filter(r=>yesNo(r.contractor155Status)==='نعم').length;
+  const label='فحص إدخال 155 بدون مستندات على UDS';
+  return '<div class="kpi-story-greatgrandchildren bg-level anomaly-155-level">'+
+   '<div class="bg-state-node anomaly-155-node">'+card('kpi-story-greatgrandchild anomaly-155-card',label,yesCount)+'</div></div>';
+ };
  const bgHtml=items=>{
   const groups=new Map();
   items.forEach(r=>{
@@ -49,7 +56,7 @@ function meetingDocumentsFirstHtml(rows,total,pct,fmt,esc){
  };
  return '<div class="kpi-story-children bf-level docs-first-level">'+
   documentGroups.map(group=>'<div class="kpi-story-child-node '+group.css+'">'+
-   card('kpi-story-child',group.label,group.rows.length)+bgHtml(group.rows)+'</div>').join('')+'</div>';
+   card('kpi-story-child',group.label,group.rows.length)+(group.css==='bf-not-received'?anomaly155Html(group.rows):bgHtml(group.rows))+'</div>').join('')+'</div>';
 }
 
 function meetingTreeHtml(rows){
