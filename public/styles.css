@@ -3590,3 +3590,30 @@ body.vd-sidebar-collapsed .vd-sidebar-toggle{
 .sequence-155-table-wrap th{background:#fff1f2;color:#991b1b;white-space:nowrap}
 .sequence-155-table-wrap tbody tr:nth-child(even){background:#f8fafc}
 @media(max-width:800px){.sequence-155-dialog{padding:14px}}
+/* Side-branch directly below AK=no. Same right-side trunk as AF cards below AK=yes. */
+.target-tree .docs-first-level .ak-uds-not-received-node {
+ position:relative!important;min-width:0!important;align-self:start!important;
+}
+.target-tree .docs-first-level .ak-uds-not-received-node > .ak-uds-sequence {
+ --story-color:#dc2626!important;
+ display:block!important;position:relative!important;
+ grid-column:auto!important;min-width:0!important;max-width:100%!important;
+ width:100%!important;margin:22px 0 0!important;padding:0 13px 0 0!important;
+ left:auto!important;right:auto!important;transform:none!important;
+}
+.target-tree .docs-first-level .ak-uds-not-received-node > .ak-uds-sequence:before {
+ content:""!important;position:absolute!important;
+ left:auto!important;right:4px!important;top:-22px!important;bottom:50%!important;
+ height:auto!important;width:2px!important;background:#dc2626!important;
+}
+.target-tree .docs-first-level .ak-uds-not-received-node > .ak-uds-sequence:after {
+ content:"";position:absolute;right:4px;top:50%;
+ width:10px;height:2px;background:#dc2626;pointer-events:none;
+}
+.target-tree .docs-first-level .ak-uds-not-received-node .sequence-155-card {
+ min-height:64px!important;padding:8px 5px!important;
+ width:100%!important;margin:0!important;
+}
+.target-tree .docs-first-level .ak-uds-not-received-node .sequence-155-card span {
+ line-height:1.5!important;white-space:normal!important;
+}
