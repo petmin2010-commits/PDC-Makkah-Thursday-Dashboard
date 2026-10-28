@@ -392,7 +392,8 @@ function meetingDocumentsFirstHtml(rows,total,pct,fmt,esc){
    '<div class="ak-uds-node ak-uds-not-received-node">'+
    card('ak-uds-card','غير مستلم 155 للمقاول',notReceived)+'</div>';
   const note=unknown?'<p class="ak-uds-unknown">حالات 155 غير محددة: '+fmt(unknown)+'</p>':'';
-  return '<div class="ak-uds-children">'+cards+'</div>'+note;
+  const sequenceCard=window.PDC155Sequence?.branch(items,total,pct,fmt,esc)||'';
+  return '<div class="ak-uds-children">'+cards+sequenceCard+'</div>'+note;
  };
  const anomaly155Html=items=>{
   // Count only AK=yes among BF=not received; parent filters execution=completed.

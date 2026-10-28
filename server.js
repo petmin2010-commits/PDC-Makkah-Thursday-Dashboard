@@ -1280,7 +1280,9 @@ async function getWednesdayMeetingData(){
       delayedClosure,
       delayStatus,
       contractor155Status:clean_(r[ix.contractor155Status])||'غير محدد',
+      contractor155Date:clean_(r[37]), // AL: date/time of contractor 155
       consultant155Status:clean_(r[ix.consultant155Status])||'غير محدد',
+      consultant155Date:clean_(r[32]), // AG: date/time of consultant 155
       nonExecutionStatus:clean_(r[ix.nonExecutionStatus])||'غير محدد',
       delayDays,
       delayBucket:clean_(r[ix.delayBucket])||'غير محدد',
