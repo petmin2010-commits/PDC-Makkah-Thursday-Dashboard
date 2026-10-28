@@ -3488,3 +3488,57 @@ body.vd-sidebar-collapsed .vd-sidebar-toggle{
 }
 .target-tree .docs-first-level .af-consultant-not-received span,
 .target-tree .docs-first-level .af-consultant-not-received strong{color:#be123c!important}
+/* AF hierarchy for PDC meeting + closures: consultant 155 children belong to AK=yes ONLY. */
+.target-tree .docs-first-level .ak-uds-children > .ak-uds-node {
+  position:relative;min-width:0;align-self:start;
+}
+.target-tree .docs-first-level .ak-uds-children > .ak-uds-node > .ak-uds-card {
+  width:100%;
+}
+.target-tree .docs-first-level .ak-uds-received-node > .af-consultant-children {
+  position:relative!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  width:100%!important;max-width:100%!important;
+  left:auto!important;right:auto!important;transform:none!important;
+  gap:11px!important;padding:0 12px 0 0!important;
+  margin-top:22px!important;
+}
+.target-tree .docs-first-level .ak-uds-received-node > .af-consultant-children:before {
+  content:"";position:absolute;right:5px!important;left:auto!important;
+  top:-15px!important;bottom:28px!important;
+  width:2px!important;height:auto!important;background:#8b5cf6!important;
+}
+.target-tree .docs-first-level .ak-uds-received-node > .af-consultant-children:after {
+  display:none!important;
+}
+.target-tree .docs-first-level .af-consultant-card {
+  position:relative!important;min-height:62px!important;min-width:0!important;
+  padding:7px 5px!important;border-radius:10px!important;
+  border:1px solid #cbd5e1!important;border-right:4px solid #64748b!important;
+  box-shadow:0 4px 12px rgba(20,34,62,.08)!important;
+  overflow-wrap:anywhere!important;
+}
+.target-tree .docs-first-level .af-consultant-card:before {
+  content:"";position:absolute;right:-11px!important;left:auto!important;
+  top:50%!important;height:2px!important;width:10px!important;background:#8b5cf6!important;
+}
+.target-tree .docs-first-level .af-consultant-card span {
+  font-size:8px!important;line-height:1.5!important;
+}
+.target-tree .docs-first-level .af-consultant-card strong {
+  font-size:17px!important;
+}
+.target-tree .docs-first-level .af-consultant-card small {
+  font-size:7px!important;
+}
+.target-tree .docs-first-level .af-consultant-received {
+  background:#ecfdf5!important;border-color:#86efac!important;border-right-color:#16a34a!important;
+}
+.target-tree .docs-first-level .af-consultant-received span,
+.target-tree .docs-first-level .af-consultant-received strong {color:#15803d!important;}
+.target-tree .docs-first-level .af-consultant-not-received {
+  background:#fff1f2!important;border-color:#fda4af!important;border-right-color:#e11d48!important;
+}
+.target-tree .docs-first-level .af-consultant-not-received span,
+.target-tree .docs-first-level .af-consultant-not-received strong {color:#be123c!important;}
