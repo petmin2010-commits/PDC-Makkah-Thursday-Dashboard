@@ -374,10 +374,23 @@ function meetingDocumentsFirstHtml(rows,total,pct,fmt,esc){
  if(docOther.length)documentGroups.push({label:'حالة مستندات غير محددة',rows:docOther,css:'bf-unspecified'});
  const card=(css,label,n)=>'<article class="kpi-story-card '+css+'"><span>'+esc(label)+'</span><strong>'+fmt(n)+'</strong><small>'+pct(n,total)+'</small></article>';
  const contractor155=items=>{
-  const received=items.filter(r=>yesNo(r.contractor155Status)==='نعم').length;
+  const receivedRows=items.filter(r=>yesNo(r.contractor155Status)==='نعم');
   const notReceived=items.filter(r=>yesNo(r.contractor155Status)==='لا').length;
-  const unknown=items.length-received-notReceived;
-  const cards=card('ak-uds-card','مستلم 155 للمقاول',received)+card('ak-uds-card','غير مستلم 155 للمقاول',notReceived);
+  const unknown=items.length-receivedRows.length-notReceived;
+  // AF is the consultant's 155 status; split only orders with contractor 155 = yes.
+  const consultantReceived=receivedRows.filter(r=>yesNo(r.consultant155Status)==='نعم').length;
+  const consultantNotReceived=receivedRows.filter(r=>yesNo(r.consultant155Status)==='لا').length;
+  const consultantUnknown=receivedRows.length-consultantReceived-consultantNotReceived;
+  const consultantCards='<div class="af-consultant-children">'+
+   card('af-consultant-card af-consultant-received','مستلم 155 استشاري',consultantReceived)+
+   card('af-consultant-card af-consultant-not-received','غير مستلم 155 استشاري',consultantNotReceived)+
+   '</div>';
+  const consultantNote=consultantUnknown?'<p class="ak-uds-unknown">حالة 155 للاستشاري غير محددة: '+fmt(consultantUnknown)+'</p>':'';
+  const cards='<div class="ak-uds-node ak-uds-received-node">'+
+   card('ak-uds-card','مستلم 155 للمقاول',receivedRows.length)+
+   consultantCards+consultantNote+'</div>'+
+   '<div class="ak-uds-node ak-uds-not-received-node">'+
+   card('ak-uds-card','غير مستلم 155 للمقاول',notReceived)+'</div>';
   const note=unknown?'<p class="ak-uds-unknown">حالات 155 غير محددة: '+fmt(unknown)+'</p>':'';
   return '<div class="ak-uds-children">'+cards+'</div>'+note;
  };

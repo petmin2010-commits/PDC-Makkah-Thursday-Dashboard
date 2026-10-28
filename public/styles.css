@@ -3452,3 +3452,39 @@ body.vd-sidebar-collapsed .vd-sidebar-toggle{
 .target-tree .docs-first-level .bf-not-received .anomaly-155-card span{color:#991b1b!important;font-weight:800!important;font-size:8px!important}
 .target-tree .docs-first-level .bf-not-received .anomaly-155-card strong{color:#dc2626!important;font-size:18px!important}
 .target-tree .docs-first-level .bf-not-received .anomaly-155-card small{color:#b91c1c!important}
+
+/* AF branch: consultant 155 status is nested ONLY under received contractor 155. */
+.target-tree .docs-first-level .ak-uds-node{position:relative;min-width:0;align-self:start}
+.target-tree .docs-first-level .ak-uds-node>.ak-uds-card{width:100%}
+.target-tree .docs-first-level .af-consultant-children{
+ position:relative;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:9px;width:238px;max-width:none;margin-top:26px;
+ left:50%;transform:translateX(-50%);
+}
+.target-tree .docs-first-level .af-consultant-children:before{
+ content:"";position:absolute;top:-13px;left:25%;right:25%;height:2px;background:#9273d5;
+}
+.target-tree .docs-first-level .af-consultant-children:after{
+ content:"";position:absolute;top:-26px;left:50%;height:13px;width:2px;background:#9273d5;
+}
+.target-tree .docs-first-level .af-consultant-card{
+ min-width:0;min-height:60px!important;padding:7px 5px!important;
+ border:1px solid #cbd5e1!important;border-right:4px solid #64748b!important;
+ box-shadow:0 4px 12px rgba(20,34,62,.08)!important;overflow-wrap:anywhere;
+}
+.target-tree .docs-first-level .af-consultant-card:before{
+ content:"";position:absolute;top:-13px;left:50%;height:13px;width:2px;background:#9273d5;
+}
+.target-tree .docs-first-level .af-consultant-card span{font-size:8px!important;line-height:1.4!important}
+.target-tree .docs-first-level .af-consultant-card strong{font-size:17px!important}
+.target-tree .docs-first-level .af-consultant-card small{font-size:7px!important}
+.target-tree .docs-first-level .af-consultant-received{
+ background:#ecfdf5!important;border-color:#86efac!important;border-right-color:#16a34a!important;
+}
+.target-tree .docs-first-level .af-consultant-received span,
+.target-tree .docs-first-level .af-consultant-received strong{color:#15803d!important}
+.target-tree .docs-first-level .af-consultant-not-received{
+ background:#fff1f2!important;border-color:#fda4af!important;border-right-color:#e11d48!important;
+}
+.target-tree .docs-first-level .af-consultant-not-received span,
+.target-tree .docs-first-level .af-consultant-not-received strong{color:#be123c!important}

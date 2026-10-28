@@ -102,6 +102,8 @@
     ['غير مستلم 155 للمقاول','Contractor 155 Not Received'],
     ['مستلم 155 المقاول','Contractor 155 Received'],
     ['غير مستلم 155 المقاول','Contractor 155 Not Received'],
+    ['مستلم 155 استشاري','Consultant 155 Received'],
+    ['غير مستلم 155 استشاري','Consultant 155 Not Received'],
     ['تم الاستلام من المقاول','Received from Contractor'],
     ['لم يتم الاستلام من المقاول','Not Received from Contractor'],
     ['لم يستلم من المقاول','Not Received from Contractor'],
