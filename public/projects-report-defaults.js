@@ -508,10 +508,10 @@ window.__VDReportInputIndicators=function(workOrder){
  variance:k.variance==null?null:k.variance*100,status:k.status,
  period:k.period==null?null:k.period*100,daily:k.daily==null?null:k.daily*100};
 };
-window.__VDReportEnsureInputIndicators=async function(workOrder){
+window.__VDReportEnsureInputIndicators=async function(workOrder,forceRefresh=false){
  const wo=String(workOrder||'').trim();
  if(!wo)return null;
- if(String(currentWo||'')!==wo||!details.length){
+ if(forceRefresh||String(currentWo||'')!==wo||!details.length){
   currentWo=wo;
   await loadDefaults(wo);
  }

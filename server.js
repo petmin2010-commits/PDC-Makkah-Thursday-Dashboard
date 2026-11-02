@@ -716,13 +716,13 @@ async function getWorkOrder360Uncached_(workOrder){
 
 const wo360RequestCache_=new Map();
 const wo360RequestInFlight_=new Map();
-async function getWorkOrder360(workOrder){
+async function getWorkOrder360(workOrder,forceRefresh=false){
   const key=wo360Key_(workOrder);
   if(!key) return getWorkOrder360Uncached_(workOrder);
   const now=Date.now();
   const saved=wo360RequestCache_.get(key);
-  if(saved && now-saved.at<60000)return saved.data;
-  if(wo360RequestInFlight_.has(key))return wo360RequestInFlight_.get(key);
+  if(!forceRefresh && saved && now-saved.at<60000)return saved.data;
+  if(!forceRefresh && wo360RequestInFlight_.has(key))return wo360RequestInFlight_.get(key);
   const pending=(async()=>{
     for(let attempt=0;attempt<3;attempt++){
       try{
@@ -2549,6 +2549,7 @@ require('./projects-report-defaults-server')({
   APP,
   DateTime,
   invalidateProjectReportDataCache:()=>{
+    wo360RequestCache_.clear();
     for(const key of valuesCache.keys()){
       if(String(key).toLowerCase().includes('projects report engine data'))valuesCache.delete(key);
     }

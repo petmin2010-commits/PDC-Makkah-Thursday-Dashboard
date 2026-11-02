@@ -326,8 +326,10 @@ function buildProjectWorkbook(report){
   const todayKey=parseDate(report.rdate)?.toISOString().slice(0,10);
   const prior=hist.filter(h=>h.date<todayKey&&h.actual!=null).at(-1);
   const currentActual=actualRatio;
-  // Daily progress is the delta against the most recent earlier cumulative snapshot.
-  s1=setCell(s1,'F10',prior&&currentActual!=null?Math.max(0,currentActual-prior.actual):null,'number');
+  // Keep the report's displayed period KPI instead of overwriting it with an older snapshot.
+  const displayedPeriod=report.periodProgress==null?null:Number(report.periodProgress)/100;
+  const periodForExcel=displayedPeriod!=null&&Number.isFinite(displayedPeriod)?Math.max(0,displayedPeriod):(prior&&currentActual!=null?Math.max(0,currentActual-prior.actual):null);
+  s1=setCell(s1,'F10',periodForExcel,'number');
   for(let r=3;r<=37;r++)s2=ensureRow(s2,r,3);
   s2=clearRange(s2,['A','B','C','D','E','F'],3,37);
   for(let i=0;i<35;i++){

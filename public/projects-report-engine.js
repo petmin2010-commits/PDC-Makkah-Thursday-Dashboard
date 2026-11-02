@@ -92,6 +92,14 @@ async function exportProjectExcel(){
  const btn=$('preExportExcel'),old=btn?.innerHTML;
  try{
   if(btn){btn.disabled=true;btn.innerHTML='<b>...</b><strong>جاري إنشاء Excel</strong><small>يتم تجهيز القالب والمعادلات والشارتات.</small>'}
+  // Refresh persisted records and re-compute the full report before exporting Excel.
+  const exportWo=String(state.report.workOrder);
+  const fresh=await rpc('getWorkOrder360',[exportWo,true]);
+  if(!fresh||!fresh.totalRecords)throw new Error('تعذر تحديث بيانات أمر العمل قبل تصدير Excel.');
+  if(window.__VDReportEnsureInputIndicators)await window.__VDReportEnsureInputIndicators(exportWo,true);
+  state.data=fresh;
+  render(fresh);
+  if(!state.report||String(state.report.workOrder)!==exportWo)throw new Error('تعذر إعادة احتساب التقرير قبل تصدير Excel.');
   const response=await fetch('/api/projects-report-engine/excel',{
    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({report:state.report})
   });
