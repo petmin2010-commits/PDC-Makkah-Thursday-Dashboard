@@ -1,4 +1,5 @@
 const crypto=require('crypto');
+const openAi=require('./openai-connection');
 
 const HISTORY_SHEET='🔒 سجل الإفادات التاريخي';
 const HEADERS=[
@@ -97,9 +98,9 @@ function extractResponseText(data){
 }
 
 async function analyzeWithAI(change){
- const apiKey=process.env.OPENAI_API_KEY||'';
- const model=process.env.ADVICE_AI_MODEL||'gpt-5.6-luna';
- if(!apiKey)return {enabled:false,classification:'بانتظار وكيل الذكاء الاصطناعي',score:null,reason:'لم يتم تفعيل مفتاح OpenAI API بعد.',newInformation:[],substantive:null,model:''};
+ const apiKey=openAi.status().active?String(process.env.OPENAI_API_KEY||'').trim():'';
+ const model=process.env.ADVICE_AI_MODEL||'gpt-5-mini';
+ if(!apiKey)return {enabled:false,classification:'بانتظار وكيل الذكاء الاصطناعي',score:null,reason:openAi.reason()||'لم يتم تفعيل مفتاح OpenAI API بعد.',newInformation:[],substantive:null,model:''};
  const system='أنت وكيل رقابة جودة إفادات أوامر العمل في مشروع هندسي. حلل قيمة المتابعة لا أسلوب الكتابة. لا تعتبر إضافة مسافة أو شرطة أو / أو إعادة صياغة بلا معلومة جديدة متابعة حقيقية. التحديث الجوهري يجب أن يضيف واقعة أو إجراء أو نتيجة أو عائق أو موعد أو خطوة تالية أو تغير حالة يمكن التحقق منه. إذا كانت الإفادة تنص على توقف أو انتظار حتى تاريخ مستقبلي لم يحن بعد، فلا تعتبر تكرارها بلا معلومة جديدة مشكلة قبل حلول ذلك التاريخ. لا تعاقب الاختصار: إفادة قصيرة قد تكون عالية القيمة. أعد JSON فقط.';
  const user={
   task:'قارن الإفادة السابقة بالجديدة وصنف التحديث.',
@@ -110,7 +111,7 @@ async function analyzeWithAI(change){
   output:{classification:'جوهري|ضعيف|شكلي|مشتبه بلا معلومة جديدة',score:'0-100',substantive:'boolean',reason:'سبب عربي موجز',new_information:'array of strings'}
  };
  const resp=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{'Authorization':'Bearer '+apiKey,'Content-Type':'application/json'},body:JSON.stringify({model,input:[{role:'system',content:[{type:'input_text',text:system}]},{role:'user',content:[{type:'input_text',text:JSON.stringify(user)}]}],reasoning:{effort:'low'},max_output_tokens:500})});
- if(!resp.ok)throw new Error('OpenAI '+resp.status+': '+(await resp.text()).slice(0,500));
+ if(!resp.ok){openAi.recordHttpError(resp.status);throw new Error('OPENAI_HTTP_'+resp.status);}
  const data=await resp.json(),raw=extractResponseText(data).trim();
  const parsed=JSON.parse(raw.replace(/^```json\s*/i,'').replace(/```$/,'').trim());
  return {enabled:true,classification:clean(parsed.classification)||'ضعيف',score:Number.isFinite(Number(parsed.score))?Math.max(0,Math.min(100,Number(parsed.score))):null,reason:clean(parsed.reason),newInformation:Array.isArray(parsed.new_information)?parsed.new_information.map(clean).filter(Boolean).slice(0,8):[],substantive:parsed.substantive===true,model};
@@ -175,18 +176,18 @@ async function syncAdviceHistory(opts){
    if(isClosingStage(item.stage))analysis={enabled:false,classification:'مستبعد - مرحلة الإغلاق',score:null,reason:'أمر العمل في مرحلة الإغلاق؛ يُحفظ التغيير تاريخيًا ولا يُرسل لوكيل الذكاء الاصطناعي ولا يدخل في مؤشرات جودة الإفادات.',newInformation:[],substantive:null,model:''};
    else if(futureWaitAnalysis(item))analysis=futureWaitAnalysis(item);
    else if(!prev)analysis=baselineAnalysis(item);
-   else if(process.env.OPENAI_API_KEY&&aiCalls<maxAi){try{analysis=await analyzeWithAI({...item,previousAdvice:prev.advice,previousTimestamp:prev.adviceTimestamp});aiCalls++;}catch(e){analysis={enabled:false,classification:'بانتظار وكيل الذكاء الاصطناعي',score:null,reason:clean(e.message),newInformation:[],substantive:null,model:''};}}
+   else if(openAi.status().active&&aiCalls<maxAi){try{aiCalls++;analysis=await analyzeWithAI({...item,previousAdvice:prev.advice,previousTimestamp:prev.adviceTimestamp});}catch(e){analysis={enabled:false,classification:'بانتظار وكيل الذكاء الاصطناعي',score:null,reason:openAi.reason()||'تعذر تحليل الإفادة مؤقتًا. تحقق من اتصال النموذج وإعداداته.',newInformation:[],substantive:null,model:''};}}
    else analysis={enabled:false,classification:'بانتظار وكيل الذكاء الاصطناعي',score:null,reason:norm(prev.advice)===norm(item.advice)?'التحقق الأولي يشير إلى تعديل شكلي، لكن الحكم النهائي متروك لوكيل الذكاء الاصطناعي.':'بانتظار وكيل الذكاء الاصطناعي لتحليل القيمة التشغيلية للتغيير.',newInformation:[],substantive:null,model:''};
    const row=eventRow(item,prev,analysis,capturedAt);rows.push(row);
    const obj=historyObj(row,history.length+rows.length+1);created.push(obj);latest.set(keyOf(item.source,item.workOrder,item.row),obj);
   }
   if(rows.length)await sheets.spreadsheets.values.append({spreadsheetId,range:`${qSheet(HISTORY_SHEET)}!A:X`,valueInputOption:'RAW',insertDataOption:'INSERT_ROWS',requestBody:{values:rows}});
   let finalHistory=[...history,...created];
-  if(process.env.OPENAI_API_KEY){
+  if(openAi.status().active){
    const remaining=Math.max(1,maxAi-aiCalls),reanalyzed=await reanalyzePending({sheets,spreadsheetId,limit:remaining,activeKeys});
    if(reanalyzed)finalHistory=await readHistory({sheets,spreadsheetId});
   }
-  return buildSummary(finalHistory,{created:created.length,agentEnabled:!!process.env.OPENAI_API_KEY,activeKeys,excludedClosed:currentAll.length-current.length});
+  return buildSummary(finalHistory,{created:created.length,agentEnabled:openAi.status().active,agentStatus:openAi.status().code,activeKeys,excludedClosed:currentAll.length-current.length});
  })();
  try{return await syncPromise}finally{syncPromise=null}
 }
@@ -211,11 +212,11 @@ function buildSummary(history,meta={}){
  const suspiciousByEngineer=[...engineerMap.entries()].sort((a,b)=>b[1]-a[1]).slice(0,15).map(([engineer,count])=>({engineer,count}));
  const recent=events.slice(-120).reverse().map(h=>({eventId:h.eventId,capturedAt:h.capturedAt,source:h.source,row:h.sourceRow,workOrder:h.workOrder,engineer:h.engineer,contractor:h.contractor,stage:h.stage,previousAdvice:h.previousAdvice,currentAdvice:h.advice,previousTimestamp:h.previousTimestamp,currentTimestamp:h.adviceTimestamp,similarity:h.similarity,classification:h.classification,score:h.score,reason:h.reason,newInformation:h.newInformation,lastSubstantiveAt:h.lastSubstantiveAt,model:h.model}));
  const currentOrders=current.map(h=>({source:h.source,row:h.sourceRow,workOrder:h.workOrder,engineer:h.engineer,contractor:h.contractor,stage:h.stage,previousAdvice:h.previousAdvice,currentAdvice:h.advice,previousTimestamp:h.previousTimestamp,currentTimestamp:h.adviceTimestamp,lastSubstantiveAt:h.lastSubstantiveAt,daysSinceSubstantive:daysSince(h.lastSubstantiveAt),classification:h.classification,score:h.score,reason:h.reason,newInformation:h.newInformation,model:h.model}));
- return {sheet:HISTORY_SHEET,agentEnabled:!!meta.agentEnabled,created:meta.created||0,totalEvents:events.length,trackedOrders:current.length,excludedClosed:Number(meta.excludedClosed||0),counts,age,suspiciousByEngineer,recent,currentOrders};
+ return {sheet:HISTORY_SHEET,agentEnabled:!!meta.agentEnabled,agentStatus:meta.agentStatus||'not_configured',created:meta.created||0,totalEvents:events.length,trackedOrders:current.length,excludedClosed:Number(meta.excludedClosed||0),counts,age,suspiciousByEngineer,recent,currentOrders};
 }
 
 async function reanalyzePending({sheets,spreadsheetId,limit=20,activeKeys=null}){
- if(!process.env.OPENAI_API_KEY)return 0;
+ if(!openAi.status().active)return 0;
  const history=await readHistory({sheets,spreadsheetId});
  const pending=history.filter(h=>h.classification.includes('بانتظار وكيل')&&(!activeKeys||activeKeys.has(keyOf(h.source,h.workOrder,h.sourceRow)))).slice(-Math.max(1,limit));
  let done=0;
@@ -226,7 +227,7 @@ async function reanalyzePending({sheets,spreadsheetId,limit=20,activeKeys=null})
    const values=[[analysis.classification,analysis.score==null?'':analysis.score,analysis.reason,JSON.stringify(analysis.newInformation||[]),analysis.substantive?'TRUE':'FALSE',lastSub,analysis.model||'',nowKsa()]];
    await sheets.spreadsheets.values.update({spreadsheetId,range:`${qSheet(HISTORY_SHEET)}!O${h.rowNumber}:V${h.rowNumber}`,valueInputOption:'RAW',requestBody:{values}});
    done++;
-  }catch(e){console.warn('Advice AI pending analysis failed:',e.message||e)}
+  }catch(e){if(!openAi.status().active)break;console.warn('Advice AI pending analysis failed:',/^OPENAI_HTTP_\d+$/.test(String(e.message))?e.message:'AI_ANALYSIS_FAILED')}
  }
  return done;
 }

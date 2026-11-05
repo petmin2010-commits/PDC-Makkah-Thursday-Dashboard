@@ -10,7 +10,7 @@
  async function api(path='',data,method){
    const r=await fetch(apiRoot+path,{credentials:'same-origin',cache:'no-store',method:method||(data?'POST':'GET'),headers:{...(data?{'Content-Type':'application/json'}:{})},...(data?{body:JSON.stringify(data)}:{})});
    const j=await r.json().catch(()=>({}));
-   if(!r.ok||!j.ok)throw Error(j.error==='AI_NOT_CONFIGURED'?'التحليل الآلي غير مُفعّل. أضف OPENAI_API_KEY إلى بيئة Render الخاصة بالمشروع.':j.error==='NO_INSPECTION_PERMISSION'?'ليس لديك صلاحية استخدام وكيل الفحص.':j.error||'تعذر اتصال الخادم');
+   if(!r.ok||!j.ok)throw Error(j.error==='AI_NOT_CONFIGURED'?'التحليل الآلي غير مُفعّل. أضف OPENAI_API_KEY إلى بيئة Render الخاصة بالمشروع.':j.error==='AI_AUTH_INVALID'?'مفتاح OpenAI الحالي مرفوض (401). حدّث OPENAI_API_KEY في Render ثم أعد تشغيل الخدمة.':j.error==='NO_INSPECTION_PERMISSION'?'ليس لديك صلاحية استخدام وكيل الفحص.':j.error||'تعذر اتصال الخادم');
    return j;
  }
  function notice(msg,error=false){const n=$('eiNotice');if(!n)return;n.textContent=msg;n.classList.toggle('error',error);n.hidden=!msg;}
@@ -94,7 +94,7 @@
    $('eiAnalyze').onclick=analyze;$('eiSave').onclick=save;$('eiPrint').onclick=()=>printReport();$('eiRefresh').onclick=loadRecords;
    $('eiSearch').oninput=renderRecords;$('eiStatusFilter').onchange=renderRecords;
    $('eiHistory').onclick=e=>{const b=e.target.closest('button');if(!b)return;const id=b.dataset.review||b.dataset.print;const rec=state.records.find(x=>x.id===id);if(!rec)return;if(b.dataset.print)printReport(rec);else review(id,b.dataset.status)};
-   api('/status').then(r=>{$('eiApiStatus').textContent=r.configured?'الوكيل متصل · '+r.model:'يتطلب إعداد AI API';$('eiApiStatus').classList.toggle('ei-disabled',!r.configured);state.configured=r.configured;}).catch(()=>{$('eiApiStatus').textContent='تعذر فحص اتصال الوكيل'});
+   api('/status').then(r=>{$('eiApiStatus').textContent=r.configured?'الوكيل جاهز · '+r.model:r.connectionStatus==='invalid_key'?'مفتاح OpenAI مرفوض (401)':'يتطلب إعداد AI API';$('eiApiStatus').classList.toggle('ei-disabled',!r.configured);state.configured=r.configured;}).catch(()=>{$('eiApiStatus').textContent='تعذر فحص اتصال الوكيل'});
    loadRecords();
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();

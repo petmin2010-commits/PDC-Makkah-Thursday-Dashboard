@@ -1,5 +1,6 @@
 'use strict';
 const crypto = require('crypto');
+const openAi=require('./openai-connection');
 const TAB = 'وكيل الفحص الهندسي الذكي';
 const SHEET = 'AI Engineering Inspections';
 const HEAD = ['ID','CreatedAt','UpdatedAt','WorkOrder','Contractor','Engineer','WorkType','Location','Summary','FindingsJson','Status','Reviewer','ImageCount','Actor','ReferenceNotes'];
@@ -40,10 +41,10 @@ module.exports = function installEngineeringInspection({app, requireAuth_, getSh
     return (result.data.values||[]).map((r,i)=>({row:i+2,data:r})).filter(x=>x.data[0]);
   }
   const toRecord=a=>({id:a[0],createdAt:a[1],updatedAt:a[2],workOrder:a[3],contractor:a[4],engineer:a[5],workType:a[6],location:a[7],summary:a[8],findings:(()=>{try{return JSON.parse(a[9]||'[]')}catch{return []}})(),status:a[10],reviewer:a[11],imageCount:Number(a[12]||0),actor:a[13],referenceNotes:a[14]||''});
-  app.get('/api/engineering-inspections/status',requireAuth_,gate,send(async()=>({configured:!!process.env.OPENAI_API_KEY,model:process.env.OPENAI_IMAGE_MODEL||'gpt-4.1-mini'})));
+  app.get('/api/engineering-inspections/status',requireAuth_,gate,send(async()=>({configured:openAi.status().active,connectionStatus:openAi.status().code,model:process.env.OPENAI_IMAGE_MODEL||'gpt-4.1-mini'})));
   app.get('/api/engineering-inspections',requireAuth_,gate,send(async()=>({records:(await rows()).slice(-200).reverse().map(x=>toRecord(x.data))})));
   app.post('/api/engineering-inspections/analyze',requireAuth_,gate,send(async req=>{
-    if(!process.env.OPENAI_API_KEY){const e=new Error('AI_NOT_CONFIGURED');e.status=503;e.publicError='AI_NOT_CONFIGURED';throw e;}
+    if(!openAi.status().active){const code=openAi.status().code==='invalid_key'?'AI_AUTH_INVALID':'AI_NOT_CONFIGURED';const e=new Error(code);e.status=503;e.publicError=code;throw e;}
     const b=req.body||{},images=b.images;
     if(!Array.isArray(images)||images.length<1||images.length>3||images.some(x=>typeof x!=='string'||!/^data:image\/(jpeg|png|webp);base64,[a-zA-Z0-9+/=]+$/.test(x)||x.length>260000)){
       const e=new Error('INVALID_IMAGES');e.status=400;e.publicError='ارفع حتى 3 صور JPG/PNG/WebP واضحة، مع ضغط كل صورة إلى 190 كيلوبايت تقريبًا.';throw e;
@@ -54,7 +55,7 @@ module.exports = function installEngineeringInspection({app, requireAuth_, getSh
       body:JSON.stringify({model:process.env.OPENAI_IMAGE_MODEL||'gpt-4.1-mini',temperature:0.1,response_format:{type:'json_object'},messages:[{role:'user',content:[{type:'text',text:prompt},...images.map(url=>({type:'image_url',image_url:{url,detail:'high'}}))]}],max_completion_tokens:1800}),
       signal:AbortSignal.timeout(75000)
     }).catch(e=>{throw new Error('AI_TRANSPORT '+e.message)});
-    if(!response.ok){const detail=await response.text();console.error('[engineering-inspection] model API',response.status,detail.slice(0,300));const e=new Error('AI_API_FAILED');e.status=503;e.publicError='خدمة التحليل غير متاحة حاليًا ('+response.status+'). راجع إعدادات النموذج ومفتاح API.';throw e;}
+    if(!response.ok){openAi.recordHttpError(response.status);console.error('[engineering-inspection] model API HTTP',response.status);const e=new Error('AI_API_FAILED');e.status=503;e.publicError=response.status===401?'AI_AUTH_INVALID':'خدمة التحليل غير متاحة حاليًا ('+response.status+'). راجع إعدادات النموذج ومفتاح API.';throw e;}
     const data=await response.json(),raw=data.choices?.[0]?.message?.content;
     let obj;try{obj=JSON.parse(raw)}catch{const e=new Error('AI_RESPONSE_INVALID');e.status=502;e.publicError='تعذر قراءة نتيجة التحليل، أعد المحاولة.';throw e;}
     const findings=Array.isArray(obj.findings)?obj.findings.slice(0,10).map(x=>({title:cell(x.title,200),category:cell(x.category,40),severity:cell(x.severity,40),confidence:cell(x.confidence,40),evidence:cell(x.evidence,700),recommendation:cell(x.recommendation,900),verification:cell(x.verification,650)})):[];
