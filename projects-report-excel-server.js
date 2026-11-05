@@ -1,5 +1,5 @@
 const fs=require('fs');
-const addOverflowSheets=require('./projects-report-overflow');
+const expandProjectTemplate=require('./projects-report-expand');
 const path=require('path');
 const {unzipSync,zipSync,strToU8,strFromU8}=require('fflate');
 
@@ -221,7 +221,10 @@ function buildProjectWorkbook(report){
   const mats=Array.isArray(report.mats)?report.mats:[];
   const permits=Array.isArray(report.permits)?report.permits:[];
   const risks=Array.isArray(report.risks)?report.risks:[];
-  const overflow=addOverflowSheets(parts,report,{clean,num,ratio,reportNote});
+  const expanded=expandProjectTemplate(parts,report);
+  s1=expanded.xml;
+  const {boq:boqBlock,mats:matBlock,permits:permitBlock,risks:riskBlock}=expanded.ranges;
+  const at=expanded.at,sumRow=at(18),permitTotal=at(70);
 
   const reportType=clean(report.reportType)||'يومي';
   const reportNo=clean(report.reportNo)||'001';
@@ -238,7 +241,7 @@ function buildProjectWorkbook(report){
     ['B6',report.contractor,'string'],['E6',consultant,'string'],['H6',secFollowup,'string'],
     ['B7',sd,'number'],['D7',ed,'number'],['F7',contractDuration,'number'],
     ['H7',report.daysUntilOperation==null?null:Number(report.daysUntilOperation),'number'],
-    ['A10','IF(ABS(SUM($H$13:$H$17)-1)<=0.0001,SUM($K$13:$K$17),'+actualFallback+')','formula'],
+    ['A10','IF(ABS(SUM($H$13:$H$'+boqBlock.end+')-1)<=0.0001,SUM($K$13:$K$'+boqBlock.end+'),'+actualFallback+')','formula'],
     ['B10',report.planned==null?null:Number(report.planned)/100,'number'],
     ['D10','$A$10-$B$10','formula'],
     ['E10','IF($A$10>=0.999,"مكتمل",IF($D$10>=0,"وفق المخطط",IF($D$10>=-0.1,"تحت المتابعة","متأخر")))','formula'],
@@ -247,9 +250,9 @@ function buildProjectWorkbook(report){
   ];
   for(const [ref,v,k] of header)s1=setCell(s1,ref,v,k);
 
-  s1=clearRange(s1,['A','B','C','D','E','F','G','H','I','K'],13,17);
-  for(let i=0;i<5;i++){
-    const row=13+i,r=boq[i]; if(!r)continue;
+  s1=clearRange(s1,['A','B','C','D','E','F','G','H','I','K'],boqBlock.start,boqBlock.end);
+  for(let i=0;i<boq.length;i++){
+    const row=boqBlock.start+i,r=boq[i]; if(!r)continue;
     const planned=num(r['Planned / Required Qty']),done=num(r['Executed / Issued Qty']),period=num(r['Period Qty']),weight=ratio(r['Weight / Planned Progress %']);
     s1=setCell(s1,'A'+row,clean(r['Text Value / Description']||r['Field / Item / Permit No.']),'string');
     s1=setCell(s1,'B'+row,clean(r.Unit),'string');
@@ -262,23 +265,13 @@ function buildProjectWorkbook(report){
     s1=setCell(s1,'I'+row,clean(r.Status)||statusFromProgress(done,planned),'string');
     s1=setCell(s1,'K'+row,'IF($A'+row+'="",0,IFERROR(MIN($D'+row+'/$C'+row+',1),0)*$H'+row+')','formula');
   }
-  for(const [ref,f] of [
-    ['C18','SUM(C13:C17)'],['D18','SUM(D13:D17)'],['E18','SUM(E13:E17)'],['F18','SUM(F13:F17)'],
-    ['G18','$A$10'],['H18','SUM(H13:H17)'],
-    ['I18','IF(COUNTA(H13:H17)=0,"⚠ لم يتم إدخال الأوزان",IF(ABS(H18-1)>0.0001,"⚠ مجموع الأوزان ≠ 100%","✔"))']
-  ])s1=setCell(s1,ref,f,'formula');
+  for(const col of ['C','D','E','F','H'])s1=setCell(s1,col+sumRow,'SUM('+col+boqBlock.start+':'+col+boqBlock.end+')','formula');
+  s1=setCell(s1,'G'+sumRow,'$A$10','formula');
+  s1=setCell(s1,'I'+sumRow,'IF(COUNTA(H'+boqBlock.start+':H'+boqBlock.end+')=0,"⚠ لم يتم إدخال الأوزان",IF(ABS(H'+sumRow+'-1)>0.0001,"⚠ مجموع الأوزان ≠ 100%","✔"))','formula');
 
-  // Keep the original five-row print layout; use the complete annex for accurate totals.
-  if(overflow.boq){
-    const range=col=>"'"+overflow.boq.name+"'!"+col+overflow.boq.start+":"+col+overflow.boq.end;
-    s1=setCell(s1,'A10','IF(ABS(SUM('+range('H')+')-1)<=0.0001,SUM('+range('K')+'),'+actualFallback+')','formula');
-    for(const col of ['C','D','E','F','H'])s1=setCell(s1,col+'18','SUM('+range(col)+')','formula');
-    s1=setCell(s1,'I18','IF(COUNTA('+range('H')+')=0,"⚠ لم يتم إدخال الأوزان",IF(ABS(H18-1)>0.0001,"⚠ مجموع الأوزان ≠ 100%","✔"))','formula');
-  }
-
-  s1=clearRange(s1,['A','B','C','D','E','F','G','H'],21,35);
-  for(let i=0;i<15;i++){
-    const row=21+i,r=mats[i]; if(!r)continue;
+  s1=clearRange(s1,['A','B','C','D','E','F','G','H'],matBlock.start,matBlock.end);
+  for(let i=0;i<mats.length;i++){
+    const row=matBlock.start+i,r=mats[i]; if(!r)continue;
     s1=setCell(s1,'A'+row,clean(r['Text Value / Description']),'string');
     s1=setCell(s1,'B'+row,clean(r.Unit),'string');
     s1=setCell(s1,'C'+row,num(r['Planned / Required Qty']),'number');
@@ -289,9 +282,9 @@ function buildProjectWorkbook(report){
     s1=setCell(s1,'H'+row,reportNote(r.Notes),'string');
   }
 
-  s1=clearRange(s1,['A','B','C','D','E','F','G','H','I'],39,69);
-  for(let i=0;i<31;i++){
-    const row=39+i,r=permits[i]; if(!r)continue;
+  s1=clearRange(s1,['A','B','C','D','E','F','G','H','I'],permitBlock.start,permitBlock.end);
+  for(let i=0;i<permits.length;i++){
+    const row=permitBlock.start+i,r=permits[i]; if(!r)continue;
     s1=setCell(s1,'A'+row,clean(r['Field / Item / Permit No.']),'string');
     s1=setCell(s1,'B'+row,clean(r['Responsible / Issuing Authority']),'string');
     s1=setCell(s1,'C'+row,clean(r['Location / Neighborhood']),'string');
@@ -302,19 +295,13 @@ function buildProjectWorkbook(report){
     s1=setCell(s1,'H'+row,num(r['Executed / Issued Qty']),'number');
     s1=setCell(s1,'I'+row,'IF($A'+row+'="","",IFERROR(MIN($H'+row+'/$G'+row+',1),0))','formula');
   }
-  s1=setCell(s1,'A70','إجمالي التصاريح الصادرة','string');
-  s1=setCell(s1,'G70','SUMIF(D39:D69,"تم الإصدار",G39:G69)','formula');
-  s1=setCell(s1,'H70','SUMIF(D39:D69,"تم الإصدار",H39:H69)','formula');
-  s1=setCell(s1,'I70','IFERROR(H70/G70,0)','formula');
-  if(overflow.permits){
-    const sh="'"+overflow.permits.name+"'!";
-    s1=setCell(s1,'G70','SUMIF('+sh+'D3:D'+overflow.permits.end+',"تم الإصدار",'+sh+'G3:G'+overflow.permits.end+')','formula');
-    s1=setCell(s1,'H70','SUMIF('+sh+'D3:D'+overflow.permits.end+',"تم الإصدار",'+sh+'H3:H'+overflow.permits.end+')','formula');
-  }
-
-  s1=clearRange(s1,['A','B','C','D','E','F','G','H','I'],73,77);
-  for(let i=0;i<5;i++){
-    const row=73+i,r=risks[i]; if(!r)continue;
+  s1=setCell(s1,'A'+permitTotal,'إجمالي التصاريح الصادرة','string');
+  s1=setCell(s1,'G'+permitTotal,'SUMIF(D'+permitBlock.start+':D'+permitBlock.end+',"تم الإصدار",G'+permitBlock.start+':G'+permitBlock.end+')','formula');
+  s1=setCell(s1,'H'+permitTotal,'SUMIF(D'+permitBlock.start+':D'+permitBlock.end+',"تم الإصدار",H'+permitBlock.start+':H'+permitBlock.end+')','formula');
+  s1=setCell(s1,'I'+permitTotal,'IFERROR(H'+permitTotal+'/G'+permitTotal+',0)','formula');
+  s1=clearRange(s1,['A','B','C','D','E','F','G','H','I'],riskBlock.start,riskBlock.end);
+  for(let i=0;i<risks.length;i++){
+    const row=riskBlock.start+i,r=risks[i]; if(!r)continue;
     s1=setCell(s1,'A'+row,clean(r['Text Value / Description']),'string');
     s1=setCell(s1,'B'+row,clean(r['Category / Impact']),'string');
     s1=setCell(s1,'C'+row,clean(r['Impact Level']||r.Notes),'string');
@@ -327,11 +314,11 @@ function buildProjectWorkbook(report){
 
   const period=(Array.isArray(report.periodRows)?report.periodRows:[]).map(r=>clean(r['Text Value / Description']||r.Notes)).filter(Boolean).join(' + ');
   const management=(Array.isArray(report.managementRows)?report.managementRows:[]).map(r=>clean(r['Text Value / Description']||r['Action / Support Required']||r.Notes)).filter(Boolean).join(' + ');
-  s1=setCell(s1,'A79',period,'string');
-  s1=setCell(s1,'A81',management,'string');
-  s1=setCell(s1,'A100',preparedBy,'string');
-  s1=setCell(s1,'D100',null,'string');
-  s1=setCell(s1,'G100',null,'string');
+  s1=setCell(s1,'A'+at(79),period,'string');
+  s1=setCell(s1,'A'+at(81),management,'string');
+  s1=setCell(s1,'A'+at(100),preparedBy,'string');
+  s1=setCell(s1,'D'+at(100),null,'string');
+  s1=setCell(s1,'G'+at(100),null,'string');
 
   const hist=filteredHistory(report);
   const todayKey=parseDate(report.rdate)?.toISOString().slice(0,10);
@@ -386,9 +373,9 @@ function buildProjectWorkbook(report){
   if(parts[CHART1]){
     const end=Math.max(13,12+Math.max(1,boq.length));
     parts[CHART1]=strToU8(patchChart(strFromU8(parts[CHART1]),[
-      ["'تقرير المشروع'!$A$13:$A$14",overflow.boq?"'تفاصيل التنفيذ'!$A$3:$A$"+overflow.boq.end:"'تقرير المشروع'!$A$13:$A$"+end],
-      ["'تقرير المشروع'!$C$13:$C$14",overflow.boq?"'تفاصيل التنفيذ'!$C$3:$C$"+overflow.boq.end:"'تقرير المشروع'!$C$13:$C$"+end],
-      ["'تقرير المشروع'!$D$13:$D$14",overflow.boq?"'تفاصيل التنفيذ'!$D$3:$D$"+overflow.boq.end:"'تقرير المشروع'!$D$13:$D$"+end]
+      ["'تقرير المشروع'!$A$13:$A$14","'تقرير المشروع'!$A$13:$A$"+end],
+      ["'تقرير المشروع'!$C$13:$C$14","'تقرير المشروع'!$C$13:$C$"+end],
+      ["'تقرير المشروع'!$D$13:$D$14","'تقرير المشروع'!$D$13:$D$"+end]
     ]));
   }
   if(parts[CHART2]){
