@@ -1,4 +1,5 @@
 const fs=require('fs');
+const addOverflowSheets=require('./projects-report-overflow');
 const path=require('path');
 const {unzipSync,zipSync,strToU8,strFromU8}=require('fflate');
 
@@ -220,10 +221,7 @@ function buildProjectWorkbook(report){
   const mats=Array.isArray(report.mats)?report.mats:[];
   const permits=Array.isArray(report.permits)?report.permits:[];
   const risks=Array.isArray(report.risks)?report.risks:[];
-  if(boq.length>5)throw new Error('للحفاظ على الشكل الأصلي حرفيًا، قالب Excel يدعم حتى 5 بنود تنفيذ.');
-  if(mats.length>15)throw new Error('للحفاظ على الشكل الأصلي حرفيًا، قالب Excel يدعم حتى 15 صنف مواد.');
-  if(permits.length>31)throw new Error('للحفاظ على الشكل الأصلي حرفيًا، قالب Excel يدعم حتى 31 تصريحًا.');
-  if(risks.length>5)throw new Error('للحفاظ على الشكل الأصلي حرفيًا، قالب Excel يدعم حتى 5 عوائق.');
+  const overflow=addOverflowSheets(parts,report,{clean,num,ratio,reportNote});
 
   const reportType=clean(report.reportType)||'يومي';
   const reportNo=clean(report.reportNo)||'001';
@@ -270,6 +268,14 @@ function buildProjectWorkbook(report){
     ['I18','IF(COUNTA(H13:H17)=0,"⚠ لم يتم إدخال الأوزان",IF(ABS(H18-1)>0.0001,"⚠ مجموع الأوزان ≠ 100%","✔"))']
   ])s1=setCell(s1,ref,f,'formula');
 
+  // Keep the original five-row print layout; use the complete annex for accurate totals.
+  if(overflow.boq){
+    const range=col=>"'"+overflow.boq.name+"'!"+col+overflow.boq.start+":"+col+overflow.boq.end;
+    s1=setCell(s1,'A10','IF(ABS(SUM('+range('H')+')-1)<=0.0001,SUM('+range('K')+'),'+actualFallback+')','formula');
+    for(const col of ['C','D','E','F','H'])s1=setCell(s1,col+'18','SUM('+range(col)+')','formula');
+    s1=setCell(s1,'I18','IF(COUNTA('+range('H')+')=0,"⚠ لم يتم إدخال الأوزان",IF(ABS(H18-1)>0.0001,"⚠ مجموع الأوزان ≠ 100%","✔"))','formula');
+  }
+
   s1=clearRange(s1,['A','B','C','D','E','F','G','H'],21,35);
   for(let i=0;i<15;i++){
     const row=21+i,r=mats[i]; if(!r)continue;
@@ -300,6 +306,11 @@ function buildProjectWorkbook(report){
   s1=setCell(s1,'G70','SUMIF(D39:D69,"تم الإصدار",G39:G69)','formula');
   s1=setCell(s1,'H70','SUMIF(D39:D69,"تم الإصدار",H39:H69)','formula');
   s1=setCell(s1,'I70','IFERROR(H70/G70,0)','formula');
+  if(overflow.permits){
+    const sh="'"+overflow.permits.name+"'!";
+    s1=setCell(s1,'G70','SUMIF('+sh+'D3:D'+overflow.permits.end+',"تم الإصدار",'+sh+'G3:G'+overflow.permits.end+')','formula');
+    s1=setCell(s1,'H70','SUMIF('+sh+'D3:D'+overflow.permits.end+',"تم الإصدار",'+sh+'H3:H'+overflow.permits.end+')','formula');
+  }
 
   s1=clearRange(s1,['A','B','C','D','E','F','G','H','I'],73,77);
   for(let i=0;i<5;i++){
@@ -375,9 +386,9 @@ function buildProjectWorkbook(report){
   if(parts[CHART1]){
     const end=Math.max(13,12+Math.max(1,boq.length));
     parts[CHART1]=strToU8(patchChart(strFromU8(parts[CHART1]),[
-      ["'تقرير المشروع'!$A$13:$A$14","'تقرير المشروع'!$A$13:$A$"+end],
-      ["'تقرير المشروع'!$C$13:$C$14","'تقرير المشروع'!$C$13:$C$"+end],
-      ["'تقرير المشروع'!$D$13:$D$14","'تقرير المشروع'!$D$13:$D$"+end]
+      ["'تقرير المشروع'!$A$13:$A$14",overflow.boq?"'تفاصيل التنفيذ'!$A$3:$A$"+overflow.boq.end:"'تقرير المشروع'!$A$13:$A$"+end],
+      ["'تقرير المشروع'!$C$13:$C$14",overflow.boq?"'تفاصيل التنفيذ'!$C$3:$C$"+overflow.boq.end:"'تقرير المشروع'!$C$13:$C$"+end],
+      ["'تقرير المشروع'!$D$13:$D$14",overflow.boq?"'تفاصيل التنفيذ'!$D$3:$D$"+overflow.boq.end:"'تقرير المشروع'!$D$13:$D$"+end]
     ]));
   }
   if(parts[CHART2]){
