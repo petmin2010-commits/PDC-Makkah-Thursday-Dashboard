@@ -98,7 +98,7 @@ function extractResponseText(data){
 }
 
 async function analyzeWithAI(change){
- const apiKey=openAi.status().active?String(process.env.OPENAI_API_KEY||'').trim():'';
+ let apiKey=openAi.getApiKey();
  const model=process.env.ADVICE_AI_MODEL||'gpt-5-mini';
  if(!apiKey)return {enabled:false,classification:'بانتظار وكيل الذكاء الاصطناعي',score:null,reason:openAi.reason()||'لم يتم تفعيل مفتاح OpenAI API بعد.',newInformation:[],substantive:null,model:''};
  const system='أنت وكيل رقابة جودة إفادات أوامر العمل في مشروع هندسي. حلل قيمة المتابعة لا أسلوب الكتابة. لا تعتبر إضافة مسافة أو شرطة أو / أو إعادة صياغة بلا معلومة جديدة متابعة حقيقية. التحديث الجوهري يجب أن يضيف واقعة أو إجراء أو نتيجة أو عائق أو موعد أو خطوة تالية أو تغير حالة يمكن التحقق منه. إذا كانت الإفادة تنص على توقف أو انتظار حتى تاريخ مستقبلي لم يحن بعد، فلا تعتبر تكرارها بلا معلومة جديدة مشكلة قبل حلول ذلك التاريخ. لا تعاقب الاختصار: إفادة قصيرة قد تكون عالية القيمة. أعد JSON فقط.';
@@ -110,8 +110,15 @@ async function analyzeWithAI(change){
   normalized_equivalent:norm(change.previousAdvice||'')===norm(change.advice||''),word_similarity:Math.round(similarity(change.previousAdvice||'',change.advice||'')*1000)/10,
   output:{classification:'جوهري|ضعيف|شكلي|مشتبه بلا معلومة جديدة',score:'0-100',substantive:'boolean',reason:'سبب عربي موجز',new_information:'array of strings'}
  };
- const resp=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{'Authorization':'Bearer '+apiKey,'Content-Type':'application/json'},body:JSON.stringify({model,input:[{role:'system',content:[{type:'input_text',text:system}]},{role:'user',content:[{type:'input_text',text:JSON.stringify(user)}]}],reasoning:{effort:'low'},max_output_tokens:500})});
- if(!resp.ok){openAi.recordHttpError(resp.status);throw new Error('OPENAI_HTTP_'+resp.status);}
+ const requestBody=JSON.stringify({model,input:[{role:'system',content:[{type:'input_text',text:system}]},{role:'user',content:[{type:'input_text',text:JSON.stringify(user)}]}],reasoning:{effort:'low'},max_output_tokens:500});
+ const request=key=>fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},body:requestBody});
+ let resp=await request(apiKey);
+ if(resp.status===401){
+  openAi.recordHttpError(401,apiKey);
+  const backupKey=openAi.getApiKey();
+  if(backupKey&&backupKey!==apiKey){apiKey=backupKey;resp=await request(apiKey);}
+ }
+ if(!resp.ok){openAi.recordHttpError(resp.status,apiKey);throw new Error('OPENAI_HTTP_'+resp.status);}
  const data=await resp.json(),raw=extractResponseText(data).trim();
  const parsed=JSON.parse(raw.replace(/^```json\s*/i,'').replace(/```$/,'').trim());
  return {enabled:true,classification:clean(parsed.classification)||'ضعيف',score:Number.isFinite(Number(parsed.score))?Math.max(0,Math.min(100,Number(parsed.score))):null,reason:clean(parsed.reason),newInformation:Array.isArray(parsed.new_information)?parsed.new_information.map(clean).filter(Boolean).slice(0,8):[],substantive:parsed.substantive===true,model};
