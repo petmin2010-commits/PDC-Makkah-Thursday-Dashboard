@@ -8,7 +8,24 @@ function init(){if(document.getElementById('vdNaifLauncher'))return;
 const launch=document.createElement('button');launch.id='vdNaifLauncher';launch.type='button';launch.innerHTML='<span class="naif-face" aria-hidden="true">👷🏻‍♂️</span><span>تحدث مع نايف</span>';launch.setAttribute('aria-haspopup','dialog');
 const dialog=document.createElement('section');dialog.className='vd-naif';dialog.hidden=true;dialog.dataset.state='idle';dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-label','نايف، مساعد مشروع '+project);
 dialog.innerHTML=`<div class="vd-naif-window"><div class="vd-naif-portrait">${engineer}<div><h2>المهندس نايف</h2><p>مساعد العمليات الذكي — مشروع ${project}</p><div class="vd-naif-status" role="status">جاهز للمساعدة</div></div></div><div class="vd-naif-content"><div class="vd-naif-header"><b>محادثة نايف</b><button type="button" class="vd-naif-close" aria-label="إغلاق">×</button></div><div class="vd-naif-messages" aria-live="polite"></div><div class="vd-naif-quick"><button data-query="أوامر العمل">أوامر العمل</button><button data-query="المشاريع">المشاريع</button><button data-query="التقارير">التقارير</button><button data-query="السلامة">السلامة</button></div><form class="vd-naif-form"><input aria-label="سؤالك لنايف" placeholder="اسأل نايف عن المشروع أو افتح قسمًا..." required><button type="button" class="vd-naif-mic" aria-label="التحدث بالصوت" title="إملاء صوتي">🎤</button><button type="submit">إرسال</button><button type="button" class="vd-naif-sound" title="تفعيل أو إيقاف الصوت" aria-label="الصوت">🔊</button></form><p class="vd-naif-note">نسخة الشخصية التفاعلية: إرشاد وتنقل داخل التبويبات فقط. لا تدعي الاتصال بمكالمات أو قراءة بيانات غير معروضة.</p></div></div>`;
-document.body.append(launch,dialog);const input=dialog.querySelector('input'),messages=dialog.querySelector('.vd-naif-messages'),status=dialog.querySelector('.vd-naif-status');let voice=false,recognition=null,previousFocus=null;
+// Put Naif in the normal sidebar navigation, never as a floating overlay launcher.
+ const nav=document.getElementById('nav');
+ launch.classList.add('nav-item');
+ launch.innerHTML='👷🏻‍♂️ <span>المهندس نايف</span>';
+ launch.setAttribute('aria-label','تبويب المهندس نايف');
+ launch.removeAttribute('aria-haspopup');
+ if(nav){
+   const qualityNav=document.getElementById('qualityCorrectiveNav');
+   if(qualityNav)qualityNav.insertAdjacentElement('afterend',launch);
+   else nav.append(launch);
+ }else{
+   // Fail safely if the navigation is unavailable: keep Naif accessible in document flow.
+   (document.querySelector('.sidebar')||document.body).append(launch);
+ }
+ const tabStyle=document.createElement('style');
+ tabStyle.textContent='#vdNaifLauncher{position:static!important;inset:auto!important;bottom:auto!important;left:auto!important;right:auto!important;transform:none!important;width:100%!important;min-height:unset!important;max-width:none!important;margin:0!important;box-shadow:none!important;border-radius:inherit!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:9px!important;padding:10px 14px!important;background:transparent!important;color:inherit!important;font:inherit!important;text-align:right!important;z-index:auto!important}#vdNaifLauncher:hover{background:rgba(255,255,255,.12)!important}#vdNaifLauncher .naif-face{font-size:18px}';
+ document.head.append(tabStyle);
+ document.body.append(dialog);const input=dialog.querySelector('input'),messages=dialog.querySelector('.vd-naif-messages'),status=dialog.querySelector('.vd-naif-status');let voice=false,recognition=null,previousFocus=null;
 const state=(s,label)=>{dialog.dataset.state=s;status.textContent=label};
 const say=text=>{if(!voice||!window.speechSynthesis)return;window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='ar-SA';u.rate=.92;u.onstart=()=>state('speaking','يتحدث');u.onend=()=>state('idle','جاهز للمساعدة');u.onerror=()=>state('idle','جاهز للمساعدة');window.speechSynthesis.speak(u)};
 const bubble=(text,isUser)=>{const item=document.createElement('div');item.className='vd-naif-bubble'+(isUser?' user':'');item.textContent=text;messages.append(item);messages.scrollTop=messages.scrollHeight};
