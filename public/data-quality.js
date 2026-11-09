@@ -289,7 +289,7 @@ function renderAdviceAi(ai){
  const status=keyInvalid?'مفتاح الربط مرفوض':ai.agentEnabled?'الوكيل مفعل':'الوكيل غير مفعل';
  const statusText=keyInvalid?'رفض OpenAI المفتاح الحالي (401). يُرجى تحديث OPENAI_API_KEY في Render لاستعادة التحليل.':ai.agentEnabled?'يحلل التغييرات الدلالية في الإفادات ويحدد هل المتابعة جوهرية أم شكلية.':'تم تجهيز النظام والتخزين التاريخي، ويلزم تفعيل OPENAI_API_KEY على السيرفر لبدء التحليل الدلالي.';
  return `<section class="dq-ai-advice">
-  <div class="dq-ai-head"><div><span>AI ADVICE QUALITY AGENT</span><h3>وكيل الذكاء الاصطناعي لتحليل جودة الإفادات</h3><p>يفصل بين آخر تعديل وآخر متابعة حقيقية، ويقارن الإفادة السابقة بالجديدة. أوامر العمل في «مرحلة الإغلاق» مستبعدة من التحليل ومؤشرات جودة الإفادات.</p></div><div class="dq-ai-status ${ai.agentEnabled?'on':'off'}"><b>${esc(status)}</b><small>${esc(statusText)}</small></div></div>
+  <div class="dq-ai-head"><div><span>AI ADVICE QUALITY AGENT</span><h3>المهندس نايف — وكيل جودة الإفادات</h3><p>يفصل بين آخر تعديل وآخر متابعة حقيقية، ويقارن الإفادة السابقة بالجديدة. أوامر العمل في «مرحلة الإغلاق» مستبعدة من التحليل ومؤشرات جودة الإفادات.</p></div><div class="dq-ai-status ${ai.agentEnabled?'on':'off'}"><b>${esc(status)}</b><small>${esc(statusText)}</small></div></div>
   <div class="dq-ai-cards">
    <button data-advice-ai="all"><span>أوامر تحت الرقابة</span><strong>${fmt(ai.trackedOrders||0)}</strong><small>المشاريع + التوصيلات</small></button>
    <button data-advice-ai="substantive"><span>تحديثات جوهرية حالية</span><strong>${fmt(c.substantive||0)}</strong><small>آخر إفادة أضافت معلومة أو إجراءً فعليًا</small></button>
