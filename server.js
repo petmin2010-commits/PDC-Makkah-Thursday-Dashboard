@@ -1317,6 +1317,22 @@ async function getAdviceIntelligence_(){
   });
 }
 
+// Naif reads the existing advice engine through a short-lived shared cache.
+// This avoids loading eight full quality sections for every conversational question.
+let naifAdviceInFlight_=null;
+async function getNaifAdviceQuality(){
+  const hit=cacheGet('NAIF_ADVICE_QUALITY_V1');
+  if(hit)return hit;
+  if(naifAdviceInFlight_)return naifAdviceInFlight_;
+  naifAdviceInFlight_=(async()=>{
+    const adviceIntelligence=await getAdviceIntelligence_();
+    const result={key:'dataQuality',updatedAt:now_(),adviceIntelligence};
+    cachePut('NAIF_ADVICE_QUALITY_V1',result,60);
+    return result;
+  })().finally(()=>{naifAdviceInFlight_=null});
+  return naifAdviceInFlight_;
+}
+
 async function getDataQualityPage_(){
   const pick=(rows,keys)=>rows.map(r=>{
     const o={_row:r._row,_fullRowSignature:r._fullRowSignature||''};
@@ -2159,7 +2175,7 @@ async function getProjectNews(){
 }
 
 
-const METHODS={getBootData,getSecondaryMasterKpis,getWorkOrderMasterEnrichment,getPageData,getWednesdayMeetingData,getMonitorData,getFullMonitorData,getProjectNews,saveSmartHistory,syncThursdayProgressHistory,getWorkOrder360,clearDashboardCache};
+const METHODS={getNaifAdviceQuality,getBootData,getSecondaryMasterKpis,getWorkOrderMasterEnrichment,getPageData,getWednesdayMeetingData,getMonitorData,getFullMonitorData,getProjectNews,saveSmartHistory,syncThursdayProgressHistory,getWorkOrder360,clearDashboardCache};
 
 const app=express();
 const PUBLIC_DIR=path.join(__dirname,'public');
