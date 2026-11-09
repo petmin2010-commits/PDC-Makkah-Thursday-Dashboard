@@ -1,5 +1,5 @@
 /* Naif's visual presence only; existing dashboard authorization and data routes remain unchanged. */
-#vdNaifLauncher{position:fixed;inset-inline-start:22px;bottom:22px;z-index:7800;border:0;border-radius:24px;background:linear-gradient(135deg,#0c503f,#227e64);color:white;padding:10px 17px;display:flex;gap:10px;align-items:center;font:700 15px Cairo,Tahoma,sans-serif;cursor:pointer;box-shadow:0 10px 32px #073d3090}
+#vdNaifLauncher{width:100%;text-align:inherit;cursor:pointer}
 #vdNaifLauncher .naif-face{font-size:29px}#vdNaifLauncher:focus-visible,.vd-naif button:focus-visible{outline:3px solid #d9b763;outline-offset:2px}
 .vd-naif[hidden]{display:none!important}.vd-naif{position:fixed;inset:0;z-index:7900;background:#061912a8;display:flex;align-items:center;justify-content:center;padding:18px;direction:rtl}
 .vd-naif-window{width:min(940px,100%);height:min(710px,92vh);background:#fff;border-radius:22px;overflow:hidden;display:grid;grid-template-columns:minmax(220px,.9fr) minmax(300px,1.3fr);box-shadow:0 30px 70px #001f1680;color:#193b30;font:14px Cairo,Tahoma,sans-serif}
@@ -22,3 +22,7 @@
 .vd-naif-quality-open{font:700 13px Cairo,Tahoma,sans-serif;background:#17684d;color:#fff;border:0;border-radius:11px;padding:10px 20px;cursor:pointer}.vd-naif-quality-open:hover{background:#0b4e3a}.vd-naif-quality-open:focus-visible{outline:3px solid #e3b957;outline-offset:2px}
 @media(max-width:550px){.vd-naif-quality-card{padding:12px;gap:11px}.vd-naif-quality-avatar{width:75px;height:96px;flex-basis:75px}.vd-naif-quality-avatar svg{width:80px;min-width:80px;height:115px}.vd-naif-quality-info h3{font-size:16px}.vd-naif-quality-info p{font-size:11px}}
 @media(prefers-reduced-motion:reduce){.vd-naif-quality-avatar svg{animation:none}}
+
+/* Naif is a native sidebar navigation tab, not a floating launcher. */
+#nav #vdNaifLauncher{position:static;inset:auto;bottom:auto;z-index:auto;box-shadow:none;border-radius:inherit;background:transparent;color:inherit;padding:inherit;display:flex;align-items:center;gap:10px;font:inherit}
+#nav #vdNaifLauncher.active{background:linear-gradient(105deg,#155e4b,#217e65);color:#fff}
