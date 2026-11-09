@@ -15,8 +15,8 @@ dialog.innerHTML=`<div class="vd-naif-window"><div class="vd-naif-portrait">${en
  launch.setAttribute('aria-label','تبويب المهندس نايف');
  launch.removeAttribute('aria-haspopup');
  if(nav){
-   const qualityNav=document.getElementById('qualityCorrectiveNav');
-   if(qualityNav)qualityNav.insertAdjacentElement('afterend',launch);
+   const adminLabel=[...nav.querySelectorAll('.nav-section-label')].find(el=>/المتابعة\s+الإ?دارية/.test(el.textContent.trim()));
+   if(adminLabel)adminLabel.insertAdjacentElement('afterend',launch);
    else nav.append(launch);
  }else{
    // Fail safely if the navigation is unavailable: keep Naif accessible in document flow.
