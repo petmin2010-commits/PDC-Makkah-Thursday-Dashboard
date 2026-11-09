@@ -46,7 +46,7 @@ async function replyQuality(query){
  const nav=qualityNav();
  if(!nav)return 'لا يمكنني الاطلاع على بيانات جودة الإفادات من هذا الحساب، أو أن تبويب جودة البيانات غير متاح في نسخة المشروع الحالية. لن أعرض أرقامًا دون مصدر مصرح به.';
  try{
-   const response=await fetch('/api/rpc',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({method:'getPageData',args:['dataQuality']})});
+   const response=await fetch('/api/rpc',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({method:'getNaifAdviceQuality',args:[]})});
    if(response.status===401||response.status===403)return 'انتهت الجلسة أو ليست لديك صلاحية قراءة جودة البيانات. سجّل الدخول بحساب مخول.';
    if(!response.ok)return 'تعذر الاتصال بمحرك جودة الإفادات (HTTP '+response.status+').';
    const payload=await response.json();const page=payload?.result;
