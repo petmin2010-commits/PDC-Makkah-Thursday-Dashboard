@@ -116,6 +116,11 @@ function installReportClusters(nav){
 function boot(){
  const sidebar=$('.sidebar'),nav=$('#nav');if(!sidebar||!nav)return;
  installToggle(sidebar);
+ if(!document.getElementById('vdNaifDiagnosticsLink')){
+  const link=document.createElement('a');link.id='vdNaifDiagnosticsLink';link.href='/naif-diagnostics.html';link.textContent='🩺 تشخيص نايف';link.title='فحص اتصال نايف وخدمات المشروع';
+  link.style.cssText='display:block;margin:9px 12px;padding:11px 13px;border-radius:9px;text-decoration:none;background:#175b43;color:#fff;font-weight:700;text-align:center';
+  sidebar.insertBefore(link,nav);
+ }
  let tries=0;const wait=()=>{tries++;if($('#smartCenterNav',nav)||tries>=8){buildGroups(nav);installReportClusters(nav);installSearch(sidebar,nav);
   let repairing=false;
   const repair=()=>{if(repairing)return;repairing=true;setTimeout(()=>{repairing=false;installReportClusters(nav)},25)};
