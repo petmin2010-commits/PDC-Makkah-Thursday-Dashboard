@@ -2519,8 +2519,6 @@ app.use(express.static(PUBLIC_DIR,{
   index:false
 }));
 
-require('./naif-diagnostics-server')({app,requireAuth_,getSheets,spreadsheetId:SPREADSHEET_ID,city:'Makkah'});
-
 app.get('/api/health',(req,res)=>res.json({
   ok:true,
   title:APP.TITLE,
