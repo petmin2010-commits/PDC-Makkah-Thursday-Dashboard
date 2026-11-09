@@ -25,6 +25,31 @@ dialog.querySelector('form').addEventListener('submit',e=>{e.preventDefault();co
 dialog.querySelectorAll('[data-query]').forEach(b=>b.onclick=()=>reply(b.dataset.query));
 dialog.querySelector('.vd-naif-sound').onclick=e=>{voice=!voice;e.currentTarget.textContent=voice?'🔈':'🔊';e.currentTarget.title=voice?'إيقاف الصوت':'تفعيل الصوت';if(!voice)window.speechSynthesis?.cancel()};
 dialog.querySelector('.vd-naif-mic').onclick=()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){bubble('التعرف على الصوت غير متاح في هذا المتصفح. يمكنك الكتابة.',false);return}if(recognition)try{recognition.abort()}catch(e){}recognition=new SR();recognition.lang='ar-SA';recognition.interimResults=false;recognition.onresult=e=>{input.value=e.results[0][0].transcript;state('idle','تم التقاط السؤال');input.focus()};recognition.onerror=()=>state('idle','تعذر التقاط الصوت');recognition.onend=()=>{if(dialog.dataset.state==='listening')state('idle','جاهز للمساعدة')};try{recognition.start();state('listening','يستمع الآن')}catch(e){state('idle','تعذر تشغيل الميكروفون')}};
+
+ // Embed the same Naif persona within both quality-related tabs, without replacing quality tools.
+ function installQualityPersona(){
+   ['qualityCorrectivePage','engineeringInspectionPage'].forEach(pageId=>{
+     const page=document.getElementById(pageId);
+     if(!page||page.querySelector('[data-naif-quality-card]'))return;
+     const card=document.createElement('section');
+     card.className='vd-naif-quality-card';
+     card.dataset.naifQualityCard='true';
+     card.setAttribute('aria-label','المهندس نايف — مساعد الجودة');
+     const pic=document.createElement('div');pic.className='vd-naif-quality-avatar';pic.innerHTML=engineer;
+     const info=document.createElement('div');info.className='vd-naif-quality-info';
+     const heading=document.createElement('h3');heading.textContent='المهندس نايف — مساعد الجودة';
+     const description=document.createElement('p');description.textContent='شخصية نايف التفاعلية متاحة هنا للمحادثة الصوتية والنصية والتنقل بين أقسام المشروع. لا تُغيّر نتائج الفحص أو تقارير الجودة.';
+     const button=document.createElement('button');button.type='button';button.className='vd-naif-quality-open';button.textContent='تحدث مع نايف';button.addEventListener('click',open);
+     info.append(heading,description,button);card.append(pic,info);
+     page.prepend(card);
+   });
+ }
+ installQualityPersona();
+ const qualityMain=document.querySelector('main');
+ if(qualityMain){
+   const observer=new MutationObserver(()=>installQualityPersona());
+   observer.observe(qualityMain,{childList:true});
+ }
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
