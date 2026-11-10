@@ -39,3 +39,14 @@
 .vd-naif-dock-caption{display:block;padding:3px 1px 6px}
 .vd-naif-dock-restore{position:fixed;z-index:7800;bottom:15px;right:15px;border:1px solid #d2bb78;background:#155b46;color:#fff;border-radius:24px;padding:9px 14px;font:700 12px Cairo,Tahoma,sans-serif;cursor:pointer}
 .vd-naif-dock-grip:focus-visible,.vd-naif-dock-tools button:focus-visible,.vd-naif-dock-restore:focus-visible{outline:3px solid #e4b853}
+
+
+/* Realistic Naif replaces the former cartoon in all three surfaces. */
+.vd-naif-portrait img{width:min(95%,200px);max-height:355px;object-fit:contain;filter:drop-shadow(0 13px 16px #2b57414c);animation:naif-breathe 5s ease-in-out infinite}
+.vd-naif[data-state=listening] .vd-naif-portrait img{animation:naif-listen 1.3s ease-in-out infinite alternate}
+.vd-naif[data-state=speaking] .vd-naif-portrait img{animation:naif-talk .75s ease-in-out infinite alternate}
+.vd-naif-quality-avatar img{height:163px;width:auto;max-width:none;animation:naif-breathe 5s ease-in-out infinite}
+.vd-naif-dock-grip img{display:block;width:100%;height:auto;max-height:230px;object-fit:contain;filter:drop-shadow(0 4px 5px #143f3029);pointer-events:none}
+@media(max-width:680px){.vd-naif-portrait img{width:76px;height:105px}}
+@media(max-width:550px){.vd-naif-quality-avatar img{height:115px;width:auto}}
+@media(prefers-reduced-motion:reduce){.vd-naif-portrait img,.vd-naif-quality-avatar img{animation:none!important}}
