@@ -31,7 +31,7 @@ function qualityAnswer(query,ai){
  const days=r=>Number(r.daysSinceSubstantive);
  const selected=type==='stale'?orders.filter(r=>Number.isFinite(days(r))&&days(r)>=3):type==='severe'?orders.filter(r=>Number.isFinite(days(r))&&days(r)>=15):type?orders.filter(r=>type==='suspicious'?r.classification==='شكلي'||String(r.classification||'').includes('مشتبه'):String(r.classification||'').includes(classifications[type])):orders;
  const total={suspicious:counts.suspicious,weak:counts.weak,substantive:counts.substantive,pending:counts.pending,severe:age.severe,stale:['old','veryOld','neglect','severe'].reduce((s,k)=>s+Number(age[k]||0),0)};
- let answer='نتائج محرك جودة الإفادات في جدة (المصدر: تبويب جودة البيانات):\n';
+ let answer='نتائج محرك جودة الإفادات في '+project+' (المصدر: تبويب جودة البيانات):\n';
  answer+='أوامر تحت الرقابة: '+numeral(ai.trackedOrders)+'؛ جوهرية: '+numeral(counts.substantive)+'؛ ضعيفة: '+numeral(counts.weak)+'؛ شكلية/مشتبهة: '+numeral(counts.suspicious)+'؛ بانتظار التحليل: '+numeral(counts.pending)+'؛ دون متابعة جوهرية 3+ أيام: '+numeral(total.stale)+'؛ 15+ يوم: '+numeral(age.severe)+'.';
  if(!ai.agentEnabled)answer+='\nتنبيه: محرك التحليل الذكي غير مفعل حاليًا؛ بعض الحالات قد تكون بانتظار تحليل.';
  if(ai.error)answer+='\nتنبيه من المصدر: '+String(ai.error).slice(0,180);
@@ -48,15 +48,25 @@ function qualityAnswer(query,ai){
 }
 async function replyQuality(query){
  const nav=qualityNav();
- if(!nav)return 'لا يمكنني الاطلاع على بيانات جودة الإفادات من هذا الحساب، أو أن تبويب جودة البيانات غير متاح في نسخة المشروع الحالية. لن أعرض أرقامًا دون مصدر مصرح به.';
+ if(!nav)return 'تبويب جودة البيانات غير متاح بصلاحيات الحساب الحالية؛ لن أعرض أرقامًا دون مصدر مصرح به.';
+ const controller=new AbortController();
+ const timeout=setTimeout(()=>controller.abort(),18000);
  try{
-   const response=await fetch('/api/rpc',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({method:'getNaifAdviceQuality',args:[]})});
+   const response=await fetch('/api/rpc',{method:'POST',credentials:'same-origin',cache:'no-store',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({method:'getNaifAdviceQuality',args:[]})});
    if(response.status===401||response.status===403)return 'انتهت الجلسة أو ليست لديك صلاحية قراءة جودة البيانات. سجّل الدخول بحساب مخول.';
-   if(!response.ok)return 'تعذر الاتصال بمحرك جودة الإفادات (HTTP '+response.status+').';
+   if(!response.ok){
+     const body=await response.json().catch(()=>({}));
+     const quota=/quota|429|rate limit/i.test(String(body.error||''));
+     return quota?'تعذّر تحديث نتائج جودة الإفادات مؤقتًا بسبب بلوغ الحد المسموح لقراءات Google Sheets. أعد المحاولة لاحقًا؛ لن أعرض أرقامًا غير مؤكدة.':'تعذر الاتصال بمحرك جودة الإفادات (HTTP '+response.status+'). أعد المحاولة لاحقًا.';
+   }
    const payload=await response.json();const page=payload?.result;
-   if(!payload?.ok||page?.key!=='dataQuality'||!page.adviceIntelligence)return 'لم أجد محرك جودة الإفادات مرتبطًا بهذه النسخة من الداشبورد؛ لن أخمن النتائج.';
-   return qualityAnswer(query,page.adviceIntelligence);
- }catch(e){return 'تعذر الوصول إلى نتائج الجودة الحالية. تحقق من الاتصال بالمشروع، ثم أعد المحاولة. ('+String(e.message||e).slice(0,100)+')'}
+   if(!payload?.ok||page?.key!=='dataQuality'||!page.adviceIntelligence)return 'لم أجد نتائج موثوقة من محرك جودة الإفادات؛ لن أخمن النتائج.';
+   const answer=qualityAnswer(query,page.adviceIntelligence);
+   return page.stale?'هذه آخر نتائج ناجحة محفوظة بتاريخ '+String(page.updatedAt||'غير محدد')+'، وليست قراءة لحظية بسبب تعذر تحديث Google Sheets.\n'+answer:answer;
+ }catch(e){
+   if(e.name==='AbortError')return 'استغرقت قراءة جودة الإفادات وقتًا أطول من المعتاد؛ أوقفت الانتظار لتظل المحادثة متاحة. حاول لاحقًا.';
+   return 'تعذر الوصول إلى نتائج جودة الإفادات الحالية. أعد المحاولة لاحقًا. ('+String(e.message||e).slice(0,100)+')';
+ }finally{clearTimeout(timeout)}
 }
 
 async function reply(question){const query=question.trim();if(!query)return;bubble(query,true);state('thinking','يبحث عن القسم المناسب');let answer='';
