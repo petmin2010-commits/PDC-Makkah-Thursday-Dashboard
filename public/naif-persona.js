@@ -3,7 +3,7 @@
  * No simulated AI answer, no microphone access until user click, no outbound data.
  */
 const project=(document.title.includes('مكة')?'مكة':'جدة'),labels=[['أوامر العمل','workorders'],['الطلبات','workorders'],['الرئيسية','master'],['المشاريع','projects'],['التوصيلات','connections'],['التصاريح','permits'],['الجودة','qualityCorrective'],['السلامة','safety'],['المقاولين','contractorSafety'],['التقارير','reportsCenter'],['المرفقات','siteFollowup'],['الاجتماعات','wednesdayMeeting']];
-const engineer='<img src="/naif-realistic.svg?v=20261110-1" alt="المهندس نايف بصورة واقعية" draggable="false" loading="eager">';
+const engineer='<img src="/naif-realistic.svg?v=20261110-logo-cat2-2" alt="المهندس نايف بصورة واقعية" draggable="false" loading="eager">';
 function init(){if(document.querySelector('.vd-naif[role="dialog"]'))return;
 const nav=document.getElementById('nav');if(!nav)return;
 let launch=document.getElementById('vdNaifLauncher');
