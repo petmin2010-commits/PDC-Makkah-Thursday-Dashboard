@@ -1320,15 +1320,31 @@ async function getAdviceIntelligence_(){
 // Naif reads the existing advice engine through a short-lived shared cache.
 // This avoids loading eight full quality sections for every conversational question.
 let naifAdviceInFlight_=null;
+let naifLastSuccessfulQuality_=null;
+let naifQualityRetryAfter_=0;
 async function getNaifAdviceQuality(){
-  const hit=cacheGet('NAIF_ADVICE_QUALITY_V1');
+  const hit=cacheGet('NAIF_ADVICE_QUALITY_V2');
   if(hit)return hit;
+  // Protect the shared Sheets read quota: serve an explicitly labelled snapshot if recently throttled.
+  if(Date.now()<naifQualityRetryAfter_){
+    if(naifLastSuccessfulQuality_)return {...naifLastSuccessfulQuality_,stale:true};
+    throw new Error('Google Sheets read quota reached; please retry shortly');
+  }
   if(naifAdviceInFlight_)return naifAdviceInFlight_;
   naifAdviceInFlight_=(async()=>{
-    const adviceIntelligence=await getAdviceIntelligence_();
-    const result={key:'dataQuality',updatedAt:now_(),adviceIntelligence};
-    cachePut('NAIF_ADVICE_QUALITY_V1',result,60);
-    return result;
+    try{
+      const adviceIntelligence=await getAdviceIntelligence_();
+      if(adviceIntelligence?.error)throw new Error(String(adviceIntelligence.error));
+      const result={key:'dataQuality',updatedAt:now_(),adviceIntelligence};
+      naifLastSuccessfulQuality_=result;
+      cachePut('NAIF_ADVICE_QUALITY_V2',result,180);
+      return result;
+    }catch(error){
+      naifQualityRetryAfter_=Date.now()+60000;
+      console.warn('Naif quality lookup temporarily unavailable:',String(error.message||error).slice(0,180));
+      if(naifLastSuccessfulQuality_)return {...naifLastSuccessfulQuality_,stale:true};
+      throw error;
+    }
   })().finally(()=>{naifAdviceInFlight_=null});
   return naifAdviceInFlight_;
 }
