@@ -78,6 +78,35 @@ else answer='أنا نايف، مساعدك في مشروع '+project+'. اطل�
 bubble(answer,false);state('idle','جاهز للمساعدة');say(answer)}
 function open(){previousFocus=document.activeElement;dialog.hidden=false;launch.classList.add('active');launch.setAttribute('aria-expanded','true');if(!messages.children.length)bubble('مرحبًا، أنا المهندس نايف، مساعد مشروع كهرباء '+project+'. كيف أساعدك اليوم؟',false);input.focus()}
 function close(){dialog.hidden=true;launch.classList.remove('active');launch.setAttribute('aria-expanded','false');if(recognition)try{recognition.stop()}catch(e){}window.speechSynthesis?.cancel();state('idle','جاهز للمساعدة');(previousFocus||launch).focus()}
+
+/* Movable Naif companion: pointer-drag on desktop and touch, with persistent position. */
+const dock=document.createElement('aside');
+dock.className='vd-naif-dock';
+dock.setAttribute('aria-label','شخصية نايف القابلة للسحب');
+dock.innerHTML='<div class="vd-naif-dock-tools"><button type="button" class="vd-naif-dock-hide" aria-label="إخفاء نايف" title="إخفاء">×</button><button type="button" class="vd-naif-dock-size" aria-label="تغيير حجم نايف" title="تكبير أو تصغير">⤢</button></div><div class="vd-naif-dock-grip" role="button" tabindex="0" aria-label="اسحب نايف إلى أي مكان، أو اضغط لفتح المحادثة" title="اسحب لتحريك نايف، اضغط للمحادثة">'+engineer+'</div><span class="vd-naif-dock-caption">نايف · اسحبني</span>';
+document.body.append(dock);
+const dockGrip=dock.querySelector('.vd-naif-dock-grip');
+const positionKey='vd-naif-dock-v1-'+project;
+const visibilityKey='vd-naif-dock-hidden-v1-'+project;
+let dockSize=120,activeDrag=null;
+function storePosition(){try{localStorage.setItem(positionKey,JSON.stringify({left:dock.offsetLeft,top:dock.offsetTop,size:dockSize}))}catch(e){}}
+function constrainDock(x,y){return {left:Math.max(0,Math.min(Math.round(x),Math.max(0,innerWidth-dock.offsetWidth))),top:Math.max(0,Math.min(Math.round(y),Math.max(0,innerHeight-dock.offsetHeight)))}}
+function moveDock(x,y){const p=constrainDock(x,y);dock.style.left=p.left+'px';dock.style.top=p.top+'px';dock.style.right='auto';dock.style.bottom='auto'}
+try{const saved=JSON.parse(localStorage.getItem(positionKey)||'null');if(saved&&Number.isFinite(saved.size))dockSize=Math.max(80,Math.min(180,saved.size));dock.style.setProperty('--naif-dock-width',dockSize+'px');if(saved&&Number.isFinite(saved.left)&&Number.isFinite(saved.top))moveDock(saved.left,saved.top);else moveDock(Math.max(0,innerWidth-145),Math.max(0,innerHeight-220));if(localStorage.getItem(visibilityKey)==='1')dock.hidden=true}catch(e){moveDock(Math.max(0,innerWidth-145),Math.max(0,innerHeight-220))}
+window.addEventListener('resize',()=>{moveDock(dock.offsetLeft,dock.offsetTop)});
+dockGrip.addEventListener('pointerdown',e=>{if(e.button!==0)return;activeDrag={id:e.pointerId,x:e.clientX,y:e.clientY,left:dock.offsetLeft,top:dock.offsetTop,moved:false};dockGrip.setPointerCapture(e.pointerId);dock.classList.add('dragging');e.preventDefault()});
+dockGrip.addEventListener('pointermove',e=>{if(!activeDrag||activeDrag.id!==e.pointerId)return;const dx=e.clientX-activeDrag.x,dy=e.clientY-activeDrag.y;if(Math.hypot(dx,dy)>5)activeDrag.moved=true;if(activeDrag.moved)moveDock(activeDrag.left+dx,activeDrag.top+dy)});
+function endDockDrag(e){if(!activeDrag||activeDrag.id!==e.pointerId)return;const moved=activeDrag.moved;activeDrag=null;dock.classList.remove('dragging');if(moved)storePosition();else open()}
+dockGrip.addEventListener('pointerup',endDockDrag);
+dockGrip.addEventListener('pointercancel',e=>{if(activeDrag&&activeDrag.id===e.pointerId){activeDrag=null;dock.classList.remove('dragging');storePosition()}});
+dockGrip.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open()}else if(e.key.startsWith('Arrow')){e.preventDefault();const delta= e.shiftKey?30:10;moveDock(dock.offsetLeft+(e.key==='ArrowRight'?delta:e.key==='ArrowLeft'?-delta:0),dock.offsetTop+(e.key==='ArrowDown'?delta:e.key==='ArrowUp'?-delta:0));storePosition()}});
+dock.querySelector('.vd-naif-dock-size').addEventListener('click',()=>{dockSize=dockSize>=180?80:dockSize+20;dock.style.setProperty('--naif-dock-width',dockSize+'px');moveDock(dock.offsetLeft,dock.offsetTop);storePosition()});
+const restore=document.createElement('button');restore.type='button';restore.className='vd-naif-dock-restore';restore.textContent='إظهار نايف';restore.hidden=true;document.body.append(restore);
+function setDockHidden(hidden){dock.hidden=hidden;restore.hidden=!hidden;try{localStorage.setItem(visibilityKey,hidden?'1':'0')}catch(e){}}
+dock.querySelector('.vd-naif-dock-hide').addEventListener('click',()=>setDockHidden(true));
+restore.addEventListener('click',()=>setDockHidden(false));
+setDockHidden(dock.hidden);
+
 launch.onclick=open;nav.addEventListener('click',e=>{if(e.target.closest('.nav-item')&& !e.target.closest('#vdNaifLauncher')&&!dialog.hidden)close()});dialog.querySelector('.vd-naif-close').onclick=close;dialog.addEventListener('click',e=>{if(e.target===dialog)close()});dialog.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
 dialog.querySelector('form').addEventListener('submit',e=>{e.preventDefault();const q=input.value;input.value='';reply(q)});
 dialog.querySelectorAll('[data-query]').forEach(b=>b.onclick=()=>reply(b.dataset.query));
