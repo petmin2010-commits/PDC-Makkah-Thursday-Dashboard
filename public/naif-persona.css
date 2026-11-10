@@ -26,3 +26,16 @@
 /* Naif is a native sidebar navigation tab, not a floating launcher. */
 #nav #vdNaifLauncher{position:static;inset:auto;bottom:auto;z-index:auto;box-shadow:none;border-radius:inherit;background:transparent;color:inherit;padding:inherit;display:flex;align-items:center;gap:10px;font:inherit}
 #nav #vdNaifLauncher.active{background:linear-gradient(105deg,#155e4b,#217e65);color:#fff}
+
+
+/* Movable companion, independent of sidebar launcher and original conversation. */
+.vd-naif-dock[hidden],.vd-naif-dock-restore[hidden]{display:none!important}
+.vd-naif-dock{--naif-dock-width:120px;position:fixed;z-index:7800;width:var(--naif-dock-width);border:1px solid #bbd9c9;border-radius:18px;background:linear-gradient(150deg,#f5fcf7,#d4eadc);box-shadow:0 10px 30px #08372935;direction:rtl;user-select:none;-webkit-user-select:none;overflow:hidden;text-align:center;font:700 11px Cairo,Tahoma,sans-serif;color:#11513d}
+.vd-naif-dock-grip{touch-action:none;cursor:grab;outline-offset:-3px;display:block;padding:22px 6px 0}
+.vd-naif-dock.dragging .vd-naif-dock-grip{cursor:grabbing}
+.vd-naif-dock-grip svg{display:block;width:100%;height:auto;max-height:230px;filter:drop-shadow(0 4px 5px #143f3029);pointer-events:none}
+.vd-naif-dock-tools{position:absolute;inset:3px 3px auto 3px;z-index:1;display:flex;justify-content:space-between;pointer-events:none}
+.vd-naif-dock-tools button{pointer-events:auto;border:0;background:#fffdfaee;color:#13533e;border-radius:8px;min-width:24px;height:24px;font-size:16px;cursor:pointer}
+.vd-naif-dock-caption{display:block;padding:3px 1px 6px}
+.vd-naif-dock-restore{position:fixed;z-index:7800;bottom:15px;right:15px;border:1px solid #d2bb78;background:#155b46;color:#fff;border-radius:24px;padding:9px 14px;font:700 12px Cairo,Tahoma,sans-serif;cursor:pointer}
+.vd-naif-dock-grip:focus-visible,.vd-naif-dock-tools button:focus-visible,.vd-naif-dock-restore:focus-visible{outline:3px solid #e4b853}
