@@ -9,6 +9,7 @@ const { DateTime } = require('luxon');
 const { APP } = require('./app-config');
 const { syncAdviceHistory } = require('./advice-ai');
 const { createNaifKnowledge } = require('./naif-knowledge');
+const { createNaifLearning } = require('./naif-learning');
 
 function loadEnvFile(){
   const p=path.join(__dirname,'.env');
@@ -2192,7 +2193,13 @@ async function getProjectNews(){
 }
 
 
-const askNaifKnowledge_=createNaifKnowledge({APP,readConfiguredSheet:readConfiguredSheet_,getNaifAdviceQuality});
+const canNaifPage_=(user,page)=>{
+ const p=(user?.permissions||[]).map(x=>String(x).trim());
+ if(p.some(x=>['*','all','الكل','جميع الصفحات','كامل الصلاحيات'].includes(x)))return true;
+ const cfg=APP.PAGES[page];return !!cfg&&p.some(x=>x===cfg.title||x===page||(page==='workorders'&&x==='الرئيسية'));
+};
+const naifLearning_=createNaifLearning({getSheets,spreadsheetId:SPREADSHEET_ID,canPage:canNaifPage_,requireAdmin:user=>userAdminSystem_.isAdmin({email:user?.email,role:user?.role,active:'active'})});
+const askNaifKnowledge_=createNaifKnowledge({APP,readConfiguredSheet:readConfiguredSheet_,getNaifAdviceQuality,readLessons:(user,question)=>naifLearning_.relevant({user,question})});
 const METHODS={getNaifAdviceQuality,getBootData,getSecondaryMasterKpis,getWorkOrderMasterEnrichment,getPageData,getWednesdayMeetingData,getMonitorData,getFullMonitorData,getProjectNews,saveSmartHistory,syncThursdayProgressHistory,getWorkOrder360,clearDashboardCache};
 
 const app=express();
@@ -2714,6 +2721,15 @@ app.post('/api/rpc',requireAuth_,async(req,res)=>{
   try{
     const {method,args=[]}=req.body||{};
     // Session identity is passed from the server, never accepted from client arguments.
+    if(method==='submitNaifLesson'){
+      const [page,question,answer]=Array.isArray(args)?args:[];
+      return res.json({ok:true,result:await naifLearning_.submit({user:req.session.user,page,question,answer})});
+    }
+    if(method==='getNaifPendingLessons')return res.json({ok:true,result:await naifLearning_.pending({user:req.session.user})});
+    if(method==='reviewNaifLesson'){
+      const [id,approve]=Array.isArray(args)?args:[];
+      return res.json({ok:true,result:await naifLearning_.review({user:req.session.user,id,approve:approve===true})});
+    }
     if(method==='askNaifKnowledge'){
       const question=String(args?.[0]||'').slice(0,1000);
       const response=await askNaifKnowledge_({question,user:req.session.user,project:APP.TITLE?.toLowerCase().includes('makkah')?'مكة':'جدة'});
