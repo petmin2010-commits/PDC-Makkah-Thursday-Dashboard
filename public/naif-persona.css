@@ -62,3 +62,14 @@
 .vd-naif-quality-avatar{background:transparent!important;border:none!important}
 .vd-naif-portrait{background:transparent!important}
 @media(hover:none){.vd-naif-dock-tools{opacity:1}}
+
+
+/* Voice call controls match the rest of Naif's panel. */
+.vd-naif-form{flex-wrap:wrap;align-items:center}
+.vd-naif-form input{flex:1 1 240px;min-width:180px}
+.vd-naif-form .vd-naif-call{background:#0e624c;color:#fff;border:1px solid #0b5743;font-weight:800;white-space:nowrap;min-width:126px}
+.vd-naif-form .vd-naif-call.is-active{background:#a92e33;border-color:#a92e33}
+.vd-naif-in-call .vd-naif-status{background:#d6f3e1;color:#075b39}
+.vd-naif-in-call .vd-naif-portrait img{animation:naif-breathe 2.5s ease-in-out infinite}
+.vd-naif-form button{white-space:normal;min-height:42px}
+@media(max-width:680px){.vd-naif-form input{flex-basis:100%}.vd-naif-form .vd-naif-call{flex:1 1 auto}}
