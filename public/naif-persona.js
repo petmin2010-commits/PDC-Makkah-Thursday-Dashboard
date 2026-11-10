@@ -69,8 +69,24 @@ async function replyQuality(query){
  }finally{clearTimeout(timeout)}
 }
 
+async function replyKnowledge(query){
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),21000);
+ try{
+  const response=await fetch('/api/rpc',{method:'POST',credentials:'same-origin',cache:'no-store',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({method:'askNaifKnowledge',args:[query]})});
+  if(response.status===401||response.status===403)return 'جلسة الدخول غير صالحة أو لا تتوفر لك صلاحية الوصول إلى البيانات المطلوبة.';
+  const payload=await response.json().catch(()=>({}));
+  if(!response.ok||!payload.ok)return 'تعذر البحث في بيانات المشروع حاليًا ('+(payload.error||response.status)+').';
+  return payload.result?.answer||'لم تصل نتيجة من محرك معرفة المشروع.';
+ }catch(e){return e.name==='AbortError'?'انتهت مهلة قراءة بيانات المشروع. أعد المحاولة وحدد التبويب أو رقم أمر العمل لتسريع البحث.':'تعذر الوصول إلى مصدر المشروع: '+String(e.message||e).slice(0,100)}
+ finally{clearTimeout(timer)}
+}
 async function reply(question){const query=question.trim();if(!query)return;bubble(query,true);state('thinking','يبحث عن القسم المناسب');let answer='';
 if(qualityIntent.test(query)){state('thinking','يقرأ نتائج جودة الإفادات');const result=await replyQuality(query);bubble(result,false);state('idle','جاهز للمساعدة');say(result);return;}
+// Navigation requests remain clickable; other questions use the authorized live-data knowledge engine.
+if(!/^(افتح|انتقل|اذهب|روح|ودني|اعرض التبويب|افتح تبويب)/.test(query)&&!/^(عرف نفسك|من انت|مين انت|اسمك)/.test(query)){
+ state('thinking','يبحث في شيتات وتبويبات '+project);
+ const result=await replyKnowledge(query);bubble(result,false);state('idle','جاهز للمساعدة');say(result);return;
+}
 const found=labels.find(([title])=>query.includes(title));if(found){let target=[...document.querySelectorAll('#nav .nav-item[data-page]')].find(el=>el.dataset.page===found[1]);if(!target)target=[...document.querySelectorAll('#nav .nav-item[data-page]')].find(el=>el.textContent.includes(found[0]));if(target&&!target.hidden&&getComputedStyle(target).display!=='none'){target.click();answer='فتحت لك قسم '+found[0]+' في لوحة مشروع '+project+'. يمكنك مراجعة التفاصيل والفلاتر هناك.'}else{answer='قسم '+found[0]+' غير متاح في القائمة الحالية لصلاحيات حسابك؛ لا يمكنني فتح بيانات غير مصرّح بها.'}}
 else if(/عرف نفسك|من أنت|مين انت|اسمك/.test(query))answer='أنا المهندس نايف، الشخصية الافتراضية لمتابعة عمليات مشروع كهرباء '+project+'. أساعدك في الوصول إلى أقسام الداشبورد، ويمكنك استخدام الكتابة أو الإملاء الصوتي.';
 else if(/كم|عدد|نسبة|حالة|تأخير|ملخص|بيانات|تقرير/.test(query))answer='لإجابة دقيقة عن الأرقام أحتاج ربط محرك المحادثة بمصادر بيانات المشروع. حاليًا يمكنني فتح التبويب المطلوب، لكن لن أخمن أرقامًا أو نتائج.';
