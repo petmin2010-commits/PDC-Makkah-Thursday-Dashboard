@@ -8,6 +8,7 @@ const userAdminSystem_ = require('./user-admin-server');
 const { DateTime } = require('luxon');
 const { APP } = require('./app-config');
 const { syncAdviceHistory } = require('./advice-ai');
+const { createNaifKnowledge } = require('./naif-knowledge');
 
 function loadEnvFile(){
   const p=path.join(__dirname,'.env');
@@ -2191,6 +2192,7 @@ async function getProjectNews(){
 }
 
 
+const askNaifKnowledge_=createNaifKnowledge({APP,readConfiguredSheet:readConfiguredSheet_,getNaifAdviceQuality});
 const METHODS={getNaifAdviceQuality,getBootData,getSecondaryMasterKpis,getWorkOrderMasterEnrichment,getPageData,getWednesdayMeetingData,getMonitorData,getFullMonitorData,getProjectNews,saveSmartHistory,syncThursdayProgressHistory,getWorkOrder360,clearDashboardCache};
 
 const app=express();
@@ -2711,6 +2713,12 @@ require('./report-archive-server')({app,requireAuth_,getSheets,spreadsheetId:SPR
 app.post('/api/rpc',requireAuth_,async(req,res)=>{
   try{
     const {method,args=[]}=req.body||{};
+    // Session identity is passed from the server, never accepted from client arguments.
+    if(method==='askNaifKnowledge'){
+      const question=String(args?.[0]||'').slice(0,1000);
+      const response=await askNaifKnowledge_({question,user:req.session.user,project:APP.TITLE?.toLowerCase().includes('makkah')?'مكة':'جدة'});
+      return res.json({ok:true,result:response});
+    }
     if(!METHODS[method])return res.status(404).json({ok:false,error:'Method not allowed'});
     const result=await METHODS[method](...(Array.isArray(args)?args:[]));
     res.json({ok:true,result});
