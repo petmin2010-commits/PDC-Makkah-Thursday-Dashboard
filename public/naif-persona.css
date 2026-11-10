@@ -73,3 +73,13 @@
 .vd-naif-in-call .vd-naif-portrait img{animation:naif-breathe 2.5s ease-in-out infinite}
 .vd-naif-form button{white-space:normal;min-height:42px}
 @media(max-width:680px){.vd-naif-form input{flex-basis:100%}.vd-naif-form .vd-naif-call{flex:1 1 auto}}
+
+
+/* Naif simplified controls: call handles microphone+speaker+conversation; Enter submits text. */
+.vd-naif-form .vd-naif-mic,
+.vd-naif-form .vd-naif-conversation,
+.vd-naif-form .vd-naif-sound,
+.vd-naif-form button[type="submit"]{display:none!important}
+.vd-naif-form input{flex:1 1 290px;min-width:0}
+.vd-naif-form .vd-naif-call{order:0}
+.vd-naif-form .vd-naif-teach,.vd-naif-form .vd-naif-review{order:1}
