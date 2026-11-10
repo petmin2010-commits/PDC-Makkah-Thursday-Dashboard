@@ -14,8 +14,8 @@ if(!launch){
 }
 launch.setAttribute('aria-haspopup','dialog');launch.setAttribute('aria-expanded','false');
 const dialog=document.createElement('section');dialog.className='vd-naif';dialog.hidden=true;dialog.dataset.state='idle';dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-label','نايف، مساعد مشروع '+project);
-dialog.innerHTML=`<div class="vd-naif-window"><div class="vd-naif-portrait">${engineer}<div><h2>المهندس نايف</h2><p>مساعد العمليات الذكي — مشروع ${project}</p><div class="vd-naif-status" role="status">جاهز للمساعدة</div></div></div><div class="vd-naif-content"><div class="vd-naif-header"><b>محادثة نايف</b><button type="button" class="vd-naif-close" aria-label="إغلاق">×</button></div><div class="vd-naif-messages" aria-live="polite"></div><div class="vd-naif-quick"><button data-query="أوامر العمل">أوامر العمل</button><button data-query="المشاريع">المشاريع</button><button data-query="التقارير">التقارير</button><button data-query="السلامة">السلامة</button><button data-query="كم الإفادات الضعيفة والشكلية؟">جودة الإفادات</button></div><form class="vd-naif-form"><input aria-label="سؤالك لنايف" placeholder="اسأل نايف عن المشروع أو افتح قسمًا..." required><button type="button" class="vd-naif-mic" aria-label="التحدث بالصوت" title="إملاء صوتي">🎤</button><button type="submit">إرسال</button><button type="button" class="vd-naif-sound" title="تفعيل أو إيقاف الصوت" aria-label="الصوت">🔊</button></form><p class="vd-naif-note">نايف مرتبط بنتائج جودة الإفادات المتاحة لحسابك، ويقرأها عند السؤال. لا يُعدّل التصنيفات أو السجل التاريخي، ولا يجري مكالمات هاتفية.</p></div></div>`;
-document.body.append(dialog);const input=dialog.querySelector('input'),messages=dialog.querySelector('.vd-naif-messages'),status=dialog.querySelector('.vd-naif-status');let voice=false,recognition=null,previousFocus=null;
+dialog.innerHTML=`<div class="vd-naif-window"><div class="vd-naif-portrait">${engineer}<div><h2>المهندس نايف</h2><p>مساعد العمليات الذكي — مشروع ${project}</p><div class="vd-naif-status" role="status">جاهز للمساعدة</div></div></div><div class="vd-naif-content"><div class="vd-naif-header"><b>محادثة نايف</b><button type="button" class="vd-naif-close" aria-label="إغلاق">×</button></div><div class="vd-naif-messages" aria-live="polite"></div><div class="vd-naif-quick"><button data-query="أوامر العمل">أوامر العمل</button><button data-query="المشاريع">المشاريع</button><button data-query="التقارير">التقارير</button><button data-query="السلامة">السلامة</button><button data-query="كم الإفادات الضعيفة والشكلية؟">جودة الإفادات</button></div><form class="vd-naif-form"><input aria-label="سؤالك لنايف" placeholder="اسأل نايف عن المشروع أو افتح قسمًا..." required><button type="button" class="vd-naif-mic" aria-label="التحدث بالصوت" title="إملاء صوتي">🎤</button><button type="button" class="vd-naif-conversation" title="وضع المحادثة الصوتية التلقائية" aria-pressed="false">🗣️ محادثة</button><button type="button" class="vd-naif-teach" title="اقترح معرفة جديدة لنايف">📖 علّم نايف</button><button type="button" class="vd-naif-review" title="مراجعة الدروس المعلقة - للمدير">✅ اعتماد الدروس</button><button type="submit">إرسال</button><button type="button" class="vd-naif-sound" title="تفعيل أو إيقاف الصوت" aria-label="الصوت">🔊</button></form><p class="vd-naif-note">نايف مرتبط بنتائج جودة الإفادات المتاحة لحسابك، ويقرأها عند السؤال. لا يُعدّل التصنيفات أو السجل التاريخي، ولا يجري مكالمات هاتفية.</p></div></div>`;
+document.body.append(dialog);const input=dialog.querySelector('input'),messages=dialog.querySelector('.vd-naif-messages'),status=dialog.querySelector('.vd-naif-status');let voice=false,recognition=null,previousFocus=null,conversationMode=false;
 const state=(s,label)=>{dialog.dataset.state=s;status.textContent=label};
 const say=text=>{if(!voice||!window.speechSynthesis)return;window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='ar-SA';u.rate=.92;u.onstart=()=>state('speaking','يتحدث');u.onend=()=>state('idle','جاهز للمساعدة');u.onerror=()=>state('idle','جاهز للمساعدة');window.speechSynthesis.speak(u)};
 const bubble=(text,isUser)=>{const item=document.createElement('div');item.className='vd-naif-bubble'+(isUser?' user':'');item.textContent=text;messages.append(item);messages.scrollTop=messages.scrollHeight};
@@ -127,7 +127,49 @@ launch.onclick=open;nav.addEventListener('click',e=>{if(e.target.closest('.nav-i
 dialog.querySelector('form').addEventListener('submit',e=>{e.preventDefault();const q=input.value;input.value='';reply(q)});
 dialog.querySelectorAll('[data-query]').forEach(b=>b.onclick=()=>reply(b.dataset.query));
 dialog.querySelector('.vd-naif-sound').onclick=e=>{voice=!voice;e.currentTarget.textContent=voice?'🔈':'🔊';e.currentTarget.title=voice?'إيقاف الصوت':'تفعيل الصوت';if(!voice)window.speechSynthesis?.cancel()};
-dialog.querySelector('.vd-naif-mic').onclick=()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){bubble('التعرف على الصوت غير متاح في هذا المتصفح. يمكنك الكتابة.',false);return}if(recognition)try{recognition.abort()}catch(e){}recognition=new SR();recognition.lang='ar-SA';recognition.interimResults=false;recognition.onresult=e=>{input.value=e.results[0][0].transcript;state('idle','تم التقاط السؤال');input.focus()};recognition.onerror=()=>state('idle','تعذر التقاط الصوت');recognition.onend=()=>{if(dialog.dataset.state==='listening')state('idle','جاهز للمساعدة')};try{recognition.start();state('listening','يستمع الآن')}catch(e){state('idle','تعذر تشغيل الميكروفون')}};
+const naifApi=async(method,args=[])=>{
+ const response=await fetch('/api/rpc',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({method,args})});
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok||!data.ok)throw Error(data.error||'تعذر الاتصال بالخادم');
+ return data.result;
+};
+dialog.querySelector('.vd-naif-conversation').onclick=e=>{
+ conversationMode=!conversationMode;
+ if(conversationMode)voice=true;
+ e.currentTarget.setAttribute('aria-pressed',String(conversationMode));
+ e.currentTarget.textContent=conversationMode?'🛑 إيقاف المحادثة':'🗣️ محادثة';
+ state('idle',conversationMode?'المحادثة الصوتية مفعّلة؛ اضغط الميكروفون للتحدث':'جاهز للمساعدة');
+};
+dialog.querySelector('.vd-naif-teach').onclick=async()=>{
+ const question=window.prompt('ما السؤال أو المعلومة التي تريد تعليمها لنايف؟');
+ if(!question)return;
+ const answer=window.prompt('ما الإجابة أو التصحيح الصحيح؟ (سيُراجع قبل اعتماده)');
+ if(!answer)return;
+ const page=([...document.querySelectorAll('#nav .nav-item[data-page]')].find(el=>el.classList.contains('active'))?.dataset.page)||'';
+ try{
+ const result=await naifApi('submitNaifLesson',[page,question,answer]);
+ bubble('تم تسجيل الدرس للمراجعة. لن يستخدمه نايف في إجابات المشروع قبل الاعتماد. ('+result.status+')',false);
+ }catch(e){bubble('تعذر تسجيل الدرس: '+e.message,false)}
+};
+dialog.querySelector('.vd-naif-review').onclick=async()=>{
+ try{
+ const lessons=await naifApi('getNaifPendingLessons');
+ if(!lessons.length){bubble('لا توجد دروس بانتظار الاعتماد.',false);return}
+ const panel=document.createElement('div');panel.className='vd-naif-bubble';
+ const heading=document.createElement('strong');heading.textContent='الدروس بانتظار المراجعة ('+lessons.length+')';panel.append(heading);
+ for(const lesson of lessons){
+ const line=document.createElement('div');line.style.cssText='padding:8px 0;border-top:1px solid #ddd';
+ const detail=document.createElement('p');detail.textContent='سؤال: '+lesson.question+' | تصحيح: '+lesson.answer+' | مقدم: '+lesson.submittedBy;
+ const accept=document.createElement('button'),reject=document.createElement('button');
+ accept.type=reject.type='button';accept.textContent='اعتماد';reject.textContent='رفض';
+ accept.onclick=async()=>{try{await naifApi('reviewNaifLesson',[lesson.id,true]);line.remove();bubble('تم اعتماد الدرس.',false)}catch(e){bubble('تعذر الاعتماد: '+e.message,false)}};
+ reject.onclick=async()=>{try{await naifApi('reviewNaifLesson',[lesson.id,false]);line.remove();bubble('تم رفض الدرس.',false)}catch(e){bubble('تعذر الرفض: '+e.message,false)}};
+ line.append(detail,accept,reject);panel.append(line);
+ }
+ messages.append(panel);messages.scrollTop=messages.scrollHeight;
+ }catch(e){bubble('مراجعة الدروس متاحة لمدير النظام فقط. '+e.message,false)}
+};
+dialog.querySelector('.vd-naif-mic').onclick=()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){bubble('التعرف على الصوت غير متاح في هذا المتصفح. يمكنك الكتابة.',false);return}if(recognition)try{recognition.abort()}catch(e){}recognition=new SR();recognition.lang='ar-SA';recognition.interimResults=false;recognition.onresult=e=>{input.value=e.results[0][0].transcript;state('idle','تم التقاط السؤال');if(conversationMode){const heard=input.value;input.value='';reply(heard)}else input.focus()};recognition.onerror=()=>state('idle','تعذر التقاط الصوت');recognition.onend=()=>{if(dialog.dataset.state==='listening')state('idle','جاهز للمساعدة')};try{recognition.start();state('listening','يستمع الآن')}catch(e){state('idle','تعذر تشغيل الميكروفون')}};
 
  // Embed the same Naif persona within both quality-related tabs, without replacing quality tools.
  function installQualityPersona(){
