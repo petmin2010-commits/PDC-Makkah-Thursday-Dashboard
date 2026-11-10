@@ -11,10 +11,10 @@ const permissionFor=(user,key,title)=>{
  const p=(user?.permissions||[]).map(norm);
  if(!p.length)return false;
  if(p.some(x=>['*','all','الكل','جميع الصفحات','كامل الصلاحيات'].includes(x)))return true;
- return p.includes(norm(title))||p.includes(norm(key));
+ return p.includes(norm(title))||p.includes(norm(key))||(key==='workorders'&&p.includes(norm('الرئيسية')));
 };
 function createNaifKnowledge({APP,readConfiguredSheet,getNaifAdviceQuality}){
- const pages=Object.entries(APP.PAGES).filter(([key,cfg])=>cfg?.sheet&&!forbiddenSheet.test(cfg.sheet||'')).map(([key,cfg])=>({key,title:cfg.title||key,sheet:cfg.sheet,fields:cfg.fields||[]}));
+ const pages=Object.entries(APP.PAGES).filter(([key,cfg])=>(cfg?.sheet&&!forbiddenSheet.test(cfg.sheet||''))||key==='dataQuality').map(([key,cfg])=>({key,title:cfg.title||key,sheet:cfg.sheet||'محرك جودة الإفادات',fields:cfg.fields||[]}));
  const state=new Map();
  return async function answer({question,user,project}){
   const q=clip(question,1000).trim();if(q.length<2)throw Error('QUESTION_REQUIRED');
