@@ -50,3 +50,15 @@
 @media(max-width:680px){.vd-naif-portrait img{width:76px;height:105px}}
 @media(max-width:550px){.vd-naif-quality-avatar img{height:115px;width:auto}}
 @media(prefers-reduced-motion:reduce){.vd-naif-portrait img,.vd-naif-quality-avatar img{animation:none!important}}
+
+
+/* Frameless Naif cutout: preserve mouse drag and close/size affordances. */
+.vd-naif-dock{background:transparent!important;border:none!important;border-radius:0!important;box-shadow:none!important;overflow:visible!important;backdrop-filter:none!important}
+.vd-naif-dock-grip{padding:0!important;background:transparent!important}
+.vd-naif-dock-grip img{width:100%!important;max-height:none!important;object-fit:contain;filter:drop-shadow(0 5px 5px rgba(0,0,0,.25))}
+.vd-naif-dock-caption{display:none!important}
+.vd-naif-dock-tools{opacity:0;transition:opacity .15s;inset:0 0 auto 0}
+.vd-naif-dock:hover .vd-naif-dock-tools,.vd-naif-dock:focus-within .vd-naif-dock-tools{opacity:1}
+.vd-naif-quality-avatar{background:transparent!important;border:none!important}
+.vd-naif-portrait{background:transparent!important}
+@media(hover:none){.vd-naif-dock-tools{opacity:1}}
