@@ -2732,7 +2732,7 @@ app.post('/api/rpc',requireAuth_,async(req,res)=>{
     }
     if(method==='askNaifKnowledge'){
       const question=String(args?.[0]||'').slice(0,1000);
-      const response=await askNaifKnowledge_({question,user:req.session.user,project:APP.TITLE?.toLowerCase().includes('makkah')?'مكة':'جدة'});
+      const response=await askNaifKnowledge_({question,user:req.session.user,project:APP.TITLE?.toLowerCase().includes('makkah')?'مكة':'جدة',currentPage:String(args?.[1]||'').slice(0,60)});
       return res.json({ok:true,result:response});
     }
     if(!METHODS[method])return res.status(404).json({ok:false,error:'Method not allowed'});
