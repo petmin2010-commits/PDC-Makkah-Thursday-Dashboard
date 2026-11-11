@@ -4,7 +4,7 @@
  * Read-only; refuses unknown or unauthorized sources; bounded quota-aware reads.
  */
 const {metricData}=require('./naif-kpis');
-const N=v=>String(v??'').normalize('NFKC').toLowerCase().replace(/[\u064b-\u065f\u0670\u0640]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/[٠-٩۰-۹]/g,c=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(c)>=0?'٠١٢٣٤٥٦٧٨٩'.indexOf(c):'۰۱۲۳۴۵۶۷۸۹'.indexOf(c))).replace(/[^\p{L}\p{N}%]+/gu,' ').trim();
+const N=v=>String(v??'').normalize('NFKC').toLowerCase().replace(/[\u064b-\u065f\u0670\u0640]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/[٠-٩۰-۹]/g,c=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(c)>=0?'٠١٢٣٤٥٦٧٨٩'.indexOf(c):'۰۱۲۳۴۵۶۷۸۹'.indexOf(c))).replace(/[^\p{L}\p{N}%]+/gu,' ').trim();
 const fmt=n=>Number(n).toLocaleString('ar-SA',{maximumFractionDigits:1});
 const clip=(v,n=180)=>String(v??'').trim().slice(0,n);
 const forbidden=/(?:password|passcode|secret|token|api.?key|credential|private.?key|المستخدمين|الرواتب|الاجور|كلمة.?المرور|رقم.?الهويه|رقم.?الجوال|الهاتف|البريد|الرمز.?السري)/i;
@@ -45,6 +45,9 @@ const metricRank=(m,query)=>{
  const label=N(m[0]),q=N(query),tokens=words(query).filter(w=>!['المشاريع','اوامر','العمل','التوصيلات','الطوارئ'].includes(w));
  let score=tokens.reduce((a,w)=>a+(label.includes(w)?4:0),0);
  if(/نسب|انجاز|تقدم/.test(q)&&/نسبه التقدم|نسبه الانجاز|متوسط نسبه الانجاز|اكتمال/.test(label))score+=7;
+ if(/عدد|كم/.test(q)&&/منفذ|منجز|المكتمل/.test(q)&&/تم التنفيذ|منجز|اكتمال التنفيذ/.test(label))score+=16;
+ if(/عدد|كم/.test(q)&&/مقاول/.test(q)&&/مقاول/.test(label))score+=12;
+ if(/عدد|كم/.test(q)&&/مهندس/.test(q)&&/مهندس/.test(label))score+=12;
  if(/اجمالي|عدد|كم/.test(q)&&/اجمالي السجلات|اجمالي/.test(label))score+=2;
  if(/التاخير|متاخر/.test(q)&&/تاخير/.test(label))score+=7;
  if(/المالي|ريال|قيمه|غرام|المبالغ/.test(q)&&/قيمه|غرام|المدفوع|الاجمالي/.test(label))score+=5;
@@ -152,7 +155,7 @@ function createNaifExpert({APP,readConfiguredSheet,getNaifAdviceQuality,canPage,
   const query=clip(question,1500),q=N(query),tokens=words(query);
   if(query.length<2)return {answer:'اكتب سؤالك عن تبويب أو مؤشر أو أمر عمل محدد.',sources:[],connected:false};
   const otherCity=project==='مكة'?'جدة':'مكة';
-  if(q.includes(otherCity)&&/(?:بيانات|نسبه|تقرير|مؤشرات|المشروع|الكادر|اوامر العمل|قارن)/.test(q) && !q.includes(project))
+  if(q.includes(N(otherCity))&&/(?:بيانات|نسبه|تقرير|مؤشرات|المشروع|الكادر|اوامر العمل|قارن)/.test(q) && !q.includes(N(project)))
    return {answer:'أنت الآن داخل لوحة كهرباء '+project+'. لا أملك حق دمج بيانات '+otherCity+' أو الاطلاع عليها عبر هذه الجلسة؛ افتح لوحة '+otherCity+' بحساب مخوّل للاستعلام عنها.',sources:[],connected:false,project};
   const allowed=authorized(user);
   const publicPages=allowed.map(p=>({key:p.key,title:p.title,source:p.sheet||'محرك مستقل',queryable:p.queryable}));
