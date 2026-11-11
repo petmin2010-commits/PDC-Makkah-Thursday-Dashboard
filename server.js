@@ -11,7 +11,8 @@ const { syncAdviceHistory } = require('./advice-ai');
 const { createNaifKnowledge } = require('./naif-knowledge');
 const { createNaifExpert } = require('./naif-expert-engine');
 const { createNaifHrExpert, isHrQuestion } = require('./naif-hr-expert');
-const { createNaifDashboardIndex } = require('./naif-dashboard-index');
+const { createNaifDashboardIndex, canTab:canNaifCatalogTab_ } = require('./naif-dashboard-index');
+const { createNaifBriefings, getTarget: getNaifBriefingTarget } = require('./naif-briefings-expert');
 const { createNaifLearning } = require('./naif-learning');
 const { install: installNaifRealtime } = require('./naif-realtime-server');
 
@@ -2207,6 +2208,7 @@ const askNaifKnowledge_=createNaifKnowledge({APP,readConfiguredSheet:readConfigu
 const askNaifExpert_=createNaifExpert({APP,readConfiguredSheet:readConfiguredSheet_,getNaifAdviceQuality,canPage:canNaifPage_});
 const askNaifHrExpert_=createNaifHrExpert({getHrStaffData_});
 const askNaifDashboardIndex_=createNaifDashboardIndex({APP});
+const askNaifBriefing_=createNaifBriefings({getSmartThursdayPage_,getWednesdayMeetingData,canTab:canNaifCatalogTab_});
 const METHODS={getNaifAdviceQuality,getBootData,getSecondaryMasterKpis,getWorkOrderMasterEnrichment,getPageData,getWednesdayMeetingData,getMonitorData,getFullMonitorData,getProjectNews,saveSmartHistory,syncThursdayProgressHistory,getWorkOrder360,clearDashboardCache};
 
 const app=express();
@@ -2753,7 +2755,8 @@ app.post('/api/rpc',requireAuth_,async(req,res)=>{
       const project=APP.TITLE?.toLowerCase().includes('makkah')?'مكة':'جدة';
       const scope={question,currentPage,user:req.session.user,project};
       const indexed=askNaifDashboardIndex_(scope);
-      const response=indexed||(isHrQuestion(question,currentPage)
+      const briefing=!indexed&&getNaifBriefingTarget(question,currentPage)?await askNaifBriefing_(scope):null;
+      const response=indexed||briefing||(isHrQuestion(question,currentPage)
         ?await askNaifHrExpert_(scope)
         :await askNaifExpert_(scope));
       return res.json({ok:true,result:response});
