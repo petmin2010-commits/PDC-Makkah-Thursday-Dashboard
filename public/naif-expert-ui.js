@@ -14,7 +14,6 @@ const visible=el=>{
   !el.closest('[aria-hidden="true"],[hidden]');
 };
 const activeNav=()=>document.querySelector('#nav .nav-item.active[data-page]');
-const activeKey=()=>activeNav()?.dataset.page||document.querySelector('#masterPage.active')?'master':'';
 function currentKey(){
  const nav=activeNav();if(nav)return nav.dataset.page||'';
  const active=document.querySelector('#masterPage.active');if(active)return 'master';
@@ -166,8 +165,19 @@ function answer(q){
  }
  const mentioned=requestedNav(query,snapshot.nav);
  if(mentioned&&mentioned.key!==snapshot.key){
-  // Never answer from the current page when the requested data belongs elsewhere.
+  // Other specialized UI modules are not configured APP.PAGES sheets; do not
+  // substitute the default work-order sheet as if it were the requested page.
+  const browserOnly=new Set(['hrStaff','employeeEvaluation','electricityEngineerEvaluation','contractorSafety','safetyCorrective','qualityCorrective','engineeringInspection','temporaryGenerators','projectsReportEngine','wednesdayMeeting','pdcMeeting2','importantLinks','reportsCenter','excelExport']);
+  if(browserOnly.has(mentioned.key))
+   return 'تبويب «'+mentioned.label+'» متاح لك، لكن قراءته تتم من الكروت والمؤشرات المعروضة فيه. افتحه ثم اسأل عن المؤشر المطلوب؛ لا أستبدل أرقام هذا التبويب بأرقام ورقة أخرى.';
   return null;
+ }
+ if(/اشرح.*التبويب|محتويات التبويب|اقسام التبويب|اقسام الصفحه|ماذا يوجد|ماذا يعرض|ما يحتوي/.test(norm)&&snapshot.root){
+  const sections=[...snapshot.root.querySelectorAll('h2,h3,h4,.panel-title,.section-title')].filter(visible)
+    .map(el=>clip(el.textContent,115)).filter(x=>x.length>=4);
+  const unique=[...new Set(sections)].slice(0,20);
+  if(unique.length)return 'محتويات التبويب الحالي «'+snapshot.title+'» كما تظهر لحسابك:\n'+unique.map(x=>'• '+x).join('\n')+
+   '\nيمكنني شرح المؤشرات الرقمية الظاهرة والاستعلام من المصادر المتصلة، لكن وجود قسم لا يثبت توفر تفاصيل بياناته في محرك المعرفة.';
  }
  if(!hasMetricIntent(query))return null;
  const source='المصدر: الكروت/الرسوم المعروضة في تبويب «'+snapshot.title+'» باللوحة الحالية'+(snapshot.filterText?'، وفلاتر الرسم الحالية: '+snapshot.filterText:'')+'.';
