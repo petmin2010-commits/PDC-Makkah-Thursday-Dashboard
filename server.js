@@ -10,6 +10,7 @@ const { APP } = require('./app-config');
 const { syncAdviceHistory } = require('./advice-ai');
 const { createNaifKnowledge } = require('./naif-knowledge');
 const { createNaifLearning } = require('./naif-learning');
+const { install: installNaifRealtime } = require('./naif-realtime-server');
 
 function loadEnvFile(){
   const p=path.join(__dirname,'.env');
@@ -2716,6 +2717,14 @@ app.get('/api/monitor',requireAuth_,async(req,res)=>{
 });
 
 require('./report-archive-server')({app,requireAuth_,getSheets,spreadsheetId:SPREADSHEET_ID,city:'Makkah',baseUrl:'https://pdc-makkah-thursday-dashboard.onrender.com'});
+
+// Same protected, Arabic realtime voice as Rashid; authorization remains server-side.
+installNaifRealtime({
+  app,
+  gate:requireAuth_,
+  project:APP.TITLE?.toLowerCase().includes('makkah')?'مكة':'جدة',
+  key:process.env.NAIF_OPENAI_API_KEY||process.env.OPENAI_API_KEY||''
+});
 
 app.post('/api/rpc',requireAuth_,async(req,res)=>{
   try{
