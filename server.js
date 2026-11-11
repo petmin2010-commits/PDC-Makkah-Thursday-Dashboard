@@ -2210,6 +2210,8 @@ const INDEX_FILE=path.join(PUBLIC_DIR,'index.html');
 
 app.set('trust proxy',1);
 
+// Larger audio payloads only for authenticated Naif dictation (global routes stay 1 MB).
+app.use('/api/naif/transcribe',express.json({limit:'6mb'}));
 app.use(express.json({limit:'1mb'}));
 
 app.use(session({
