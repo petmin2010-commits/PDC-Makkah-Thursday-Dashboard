@@ -66,5 +66,5 @@ test('forced realtime tool: no answer may bypass authenticated lookup',()=>{
  assert.match(server,/tool_choice:\s*'required'/);
  assert.match(voice,/tool_choice:'none'/);
  assert.ok(!voice.includes("send({type:'response.create',response:{output_modalities:['audio']}})"));
- assert.match(persona,/isNaifStageQuery\(q\) return replyKnowledge\(q\)|if\(isNaifStageQuery\(q\)\)return replyKnowledge\(q\)/);
+ assert.match(persona,/if\(isNaifStageQuery\(q\)\|\|isNaifInvestigationQuery\(q\)\)return replyKnowledge\(q\)/);
 });
