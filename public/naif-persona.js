@@ -76,10 +76,110 @@ async function replyQuality(query){
  }finally{clearTimeout(timeout)}
 }
 
+
+// Read the actual KPI cards and chart data already rendered for THIS logged-in
+// dashboard and its currently applied filters. Never crawl another city/site.
+const naifMetricNorm=v=>String(v??'').normalize('NFKC').toLowerCase().replace(/[\u064b-\u065f\u0670\u0640]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/[٠-٩]/g,c=>String(c.charCodeAt(0)-1632)).replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+function naifActivePage(){
+ return document.querySelector('#nav .nav-item.active[data-page]')?.dataset.page
+  ||(document.querySelector('#masterPage.active')?'master':'');
+}
+function naifVisible(el){
+ if(!el||!el.getClientRects().length)return false;
+ const s=getComputedStyle(el);
+ return s.display!=='none'&&s.visibility!=='hidden';
+}
+function naifDisplayMetrics(){
+ const root=document.querySelector('#masterPage.active,#dataPage.active,#meetingPage.active,#reportsCenterPage.active,#excelExportPage.active');
+ const pageKey=naifActivePage(),title=(document.getElementById('pageTitle')?.textContent||pageKey).trim();
+ if(!root||!naifVisible(root))return {pageKey,title,cards:[],charts:[]};
+ const cards=[],seen=new Set();
+ const selectors=['.master-card','.mini-kpi','.pa-card','.ca-card','.pe-card','.aa-card',
+   '.permit-delay-card','.permit-delay-kpi','.emergency-kpi','.summary-kpi',
+   '.kpi-card','.metric-card','.stat-card','.kpi-tile','.kpi-item','.kpi-box','.summary-card'];
+ for(const el of root.querySelectorAll(selectors.join(','))){
+  if(!naifVisible(el))continue;
+  const labelEl=el.querySelector('span,.card-label,.kpi-label,.metric-label,.stat-label,label');
+  const valueEl=el.querySelector('strong,.card-value,.kpi-value,.metric-value,.stat-value,b');
+  if(!labelEl||!valueEl)continue;
+  const label=String(labelEl.textContent||'').replace(/\s+/g,' ').trim().slice(0,105);
+  const value=String(valueEl.textContent||'').replace(/\s+/g,' ').trim().slice(0,115);
+  if(!label||!value||label===value||!/\d|%|٪|—|ر\.س/.test(value))continue;
+  const key=naifMetricNorm(label)+'|'+value;
+  if(seen.has(key))continue;
+  seen.add(key);
+  const note=String(el.querySelector('small')?.textContent||'').replace(/\s+/g,' ').trim().slice(0,95);
+  cards.push({label,value,note});
+ }
+ const charts=[];
+ if(window.Chart?.getChart){
+  for(const canvas of root.querySelectorAll('canvas')){
+   if(!naifVisible(canvas))continue;
+   const chart=window.Chart.getChart(canvas);
+   if(!chart?.data?.labels?.length)continue;
+   const heading=canvas.closest('article,.panel,section')?.querySelector('h3,h2,.panel-title')?.textContent?.trim()||canvas.id;
+   if(!heading)continue;
+   const labels=chart.data.labels.slice(0,24),sets=(chart.data.datasets||[]).slice(0,4);
+   const series=sets.map(set=>({name:String(set.label||'المؤشر').slice(0,55),values:labels.map((name,i)=>({
+    name:String(name).slice(0,55),value:typeof set.data?.[i]==='object'?(set.data[i]?.y??null):set.data?.[i]
+   })).filter(v=>v.value!==null&&v.value!==undefined)}));
+   charts.push({title:String(heading).slice(0,125),series});
+  }
+ }
+ return {pageKey,title,cards:cards.slice(0,130),charts:charts.slice(0,45)};
+}
+function naifIndicatorAnswer(question){
+ const q=naifMetricNorm(question),page=naifDisplayMetrics();
+ if(!page.cards.length&&!page.charts.length)return null;
+ const current=page.pageKey;
+ // A question naming another tab must use server-side authorization and its
+ // own Google Sheet, rather than accidentally returning the main dashboard KPI.
+ const scopes={projects:['المشاريع'],connections:['التوصيلات'],permits:['التصاريح','بلدي'],workorders:['اوامر العمل'],
+   emergency:['الطوارئ'],assets:['الاصول'],safety:['السلامه'],executionViolations:['مخالفات التنفيذ'],
+   finance:['الماليه','المستخلصات'],tasks:['الافادات','المهام'],closures:['الاغلاقات']};
+ const named=Object.entries(scopes).find(([key,terms])=>terms.some(term=>q.includes(naifMetricNorm(term))));
+ if(named&&named[0]!==current)return null;
+ const all=/جميع|كل الكروت|كل المؤشرات|الكروت|البطاقات|المؤشرات|العدادات|الاحصائيات/.test(q);
+ const chartIntent=/شارت|رسم|رسوم|مخطط|توزيع|اتجاه/.test(q);
+ if(!all&&!chartIntent&&!/نسب|انجاز|تقدم|كم|عدد|اجمالي|متوسط|معدل|قيمة|تكلفة|حال|تأخير|متاخر|منفذ|مكتمل|مؤشر|spi|غرام|تصريح|تحصيل/.test(q))return null;
+ const source='المصدر: كروت ومؤشرات '+page.title+' في لوحة كهرباء '+project+' وفق الفلاتر المطبّقة حاليًا.';
+ if(all){
+  const cards=page.cards.slice(0,65).map(c=>'• '+c.label+': '+c.value+(c.note?' ('+c.note+')':''));
+  const chartTitles=page.charts.slice(0,18).map(c=>c.title);
+  return (cards.length?'الكروت الظاهرة في التبويب الحالي:\n'+cards.join('\n'):'لا توجد كروت رقمية في التبويب الحالي.')
+   +(chartTitles.length?'\nالشارتات المتاحة: '+chartTitles.join('، ')+'.':'')
+   +(page.cards.length>65?'\nيوجد المزيد من الكروت؛ حدد القسم لعرضه.':'')+'\n'+source;
+ }
+ const stop=new Set(['ما','هي','هو','كم','عدد','في','عن','من','على','الى','الي','الداشبورد','المشروع','مشروع','المشاريع','نسبة','نسبه','اعطني','طلع','المؤشر','الحالي','الحاليه']);
+ const tokens=q.split(' ').filter(w=>w.length>2&&!stop.has(w));
+ const alternate=t=>t==='انجاز'?['تقدم','اكتمال']:t==='تقدم'?['انجاز']:t==='المنفذ'?['تنفيذ']:t==='متاخر'?['تاخير']:t==='غرامات'?['غرامه']:t==='اجمالي'?['مجموع']:t==='تحصيل'?['سداد']: [];
+ const scored=page.cards.map(c=>{
+  const label=naifMetricNorm(c.label);
+  let score=tokens.reduce((s,t)=>s+(label.includes(t)?4:alternate(t).some(a=>label.includes(a))?2:0),0);
+  if(/نسب|انجاز|تقدم/.test(q)&&/نسبه التقدم|نسبه الانجاز|متوسط الانجاز/.test(label))score+=2;
+  if(/نسبه التقدم/.test(label)&&/انجاز|تقدم/.test(q))score+=2;
+  return {c,score};
+ }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score);
+ if(scored.length&&!chartIntent){
+  const top=scored.slice(0,Math.min(scored.length,5));
+  return top.map(x=>'• '+x.c.label+': '+x.c.value+(x.c.note?' ('+x.c.note+')':'')).join('\n')+'\n'+source;
+ }
+ if(chartIntent&&page.charts.length){
+  const ch=page.charts.map(c=>{
+   const name=naifMetricNorm(c.title);
+   return {c,score:tokens.reduce((s,t)=>s+(name.includes(t)?3:alternate(t).some(a=>name.includes(a))?1:0),0)};
+  }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,2);
+  if(ch.length)return ch.map(({c})=>'الشارت: '+c.title+'\n'+c.series.map(set=>set.name+': '+set.values.slice(0,12).map(v=>v.name+' '+v.value).join('، ')).join('\n')).join('\n')+'\n'+source;
+ }
+ return null;
+}
+
 async function replyKnowledge(query){
- const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),21000);
+  const displayed=naifIndicatorAnswer(query);
+  if(displayed)return displayed;
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),32000);
  try{
-  const response=await fetch('/api/rpc',{method:'POST',credentials:'same-origin',cache:'no-store',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({method:'askNaifKnowledge',args:[query]})});
+  const response=await fetch('/api/rpc',{method:'POST',credentials:'same-origin',cache:'no-store',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({method:'askNaifKnowledge',args:[query,naifActivePage()]})});
   if(response.status===401||response.status===403)return 'جلسة الدخول غير صالحة أو لا تتوفر لك صلاحية الوصول إلى البيانات المطلوبة.';
   const payload=await response.json().catch(()=>({}));
   if(!response.ok||!payload.ok)return 'تعذر البحث في بيانات المشروع حاليًا ('+(payload.error||response.status)+').';
