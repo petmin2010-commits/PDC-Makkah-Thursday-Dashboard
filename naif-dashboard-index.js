@@ -78,13 +78,14 @@ function createNaifDashboardIndex({APP}){
   if(focus)return {answer:describe(focus)+'\nالمشروع الحالي: '+project+'. لا تُعرض أرقام أو ملفات من مصدر غير مصرح به.',
    connected:true,project,mode:'catalog',sources:[{page:focus.label,sheet:focus.sources.join('، ')}]};
   const count=allowed.length;
+  const permittedExtra=catalog.extra.filter(x=>canTab(user,x.belongsTo));
   const showAll=/كل|جميع|الفهرس|خارطه|خريطه|الشيتات|المصادر/.test(q);
   const entries=showAll?allowed:allowed.slice(0,12);
   const answer='فهرس نايف لمشروع كهرباء '+project+': يوجد '+catalog.entries.length+' تبويبًا رئيسيًا في النسخة البرمجية.\n'+
    'المتاح لصلاحيات حسابك: '+count+' تبويبًا.\n'+
    'التبويبات ومصادرها:\n'+entries.map(e=>'• '+e.label+' — '+e.sources.join(' / ')).join('\n')+
    (!showAll&&count>entries.length?'\nاطلب «جميع التبويبات» لعرض بقية المصادر.':'')+
-   '\nمصادر البيانات المضمنة داخل صفحات أخرى: '+catalog.extra.map(x=>x.label+' ('+x.source+')').join('؛ ')+'.'+
+   (permittedExtra.length?'\nمصادر البيانات المضمنة داخل صفحات أخرى: '+permittedExtra.map(x=>x.label+' ('+x.source+')').join('؛ ')+'.':'')+
    '\nمؤشر تغطية الفهرس التعريفي: '+audit.indexed+'/'+audit.navigationTotal+' ('+audit.percent+'%). لا يعني هذا أن كل مصدر بيانات أو وظيفة تصدير قد تم اختبارها بحساب حي.';
   return {answer,connected:true,project,mode:'catalog',sources:entries.map(e=>({page:e.label,sheet:e.sources.join(', ')})),coverage:audit};
  };
