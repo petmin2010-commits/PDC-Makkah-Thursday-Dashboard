@@ -1,10 +1,11 @@
 'use strict';
+const {answerNaifKpis,metricQuestion}=require('./naif-kpis');
 // Naif read-only knowledge: operates on the caller's authorized dashboard tabs only.
 const norm=x=>String(x??'').normalize('NFKC').toLowerCase().replace(/[\u064b-\u065f\u0640]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/[٠-٩]/g,c=>String(c.charCodeAt(0)-1632)).replace(/[^\p{L}\p{N}]+/gu,' ').trim();
 const words=x=>norm(x).split(' ').filter(w=>w.length>2&&!/^(كم|عدد|من|في|على|عن|الى|هنا|التي|الذي|بدي|عايز|ابغى|احتاج|نايف|المشروع|الداشبورد|الشيت|شيت|ورقه|الصفحه|التبويب)$/.test(w)).slice(0,24);
 const sensitive=/(?:password|passcode|secret|token|api.?key|private.?key|credential|كلمه.?المرور|كلمة.?المرور|رمز.?الدخول|مفتاح.?سري|راتب|اجور|الاجور|رقم.?الهويه|الجوال|الهاتف|البريد.?الالكتروني)/i;
 const forbiddenSheet=/(?:users|user|dp.?users|credentials|password|secret|db.?users|المستخدمين|الصلاحيات|الرواتب)/i;
-const aliases={workorders:['اوامر العمل','الاوامر','wo','امر العمل'],projects:['المشاريع','المشروع'],connections:['التوصيلات'],permits:['التصاريح','بلدي'],assets:['الاصول','العدادات'],closures:['الاغلاقات','الاغلاق'],emergency:['الطوارئ'],tasks:['المهام','الافادات','افادات'],safety:['السلامه','المخالفات'],qualityCorrective:['الجوده'],dataQuality:['جوده البيانات','جوده الافادات','الافادات'],hrStaff:['الموارد البشريه','الكادر','المهندسين'],reportsCenter:['التقارير']};
+const aliases={workorders:['اوامر العمل','الاوامر','wo','امر العمل'],projects:['المشاريع','المشروع'],connections:['التوصيلات'],permits:['التصاريح','بلدي'],assets:['الاصول','العدادات'],closures:['الاغلاقات','الاغلاق'],emergency:['الطوارئ'],tasks:['المهام','الافادات','افادات'],safety:['السلامه','المخالفات'],qualityCorrective:['الجوده'],dataQuality:['جوده البيانات','جوده الافادات','الافادات'],hrStaff:['الموارد البشريه','الكادر','المهندسين'],reportsCenter:['التقارير'],executionViolations:['مخالفات التنفيذ'],minutes:['محاضر المخالفات','الغرامات']};
 const normFields=r=>Object.entries(r||{}).filter(([k,v])=>!k.startsWith('_')&&!sensitive.test(k)&&v!=null&&typeof v!=='object').map(([k,v])=>[k,String(v).slice(0,230)]);
 const clip=(x,max=450)=>String(x??'').slice(0,max);
 const permissionFor=(user,key,title)=>{
@@ -16,22 +17,37 @@ const permissionFor=(user,key,title)=>{
 function createNaifKnowledge({APP,readConfiguredSheet,getNaifAdviceQuality,readLessons}){
  const pages=Object.entries(APP.PAGES).filter(([key,cfg])=>(cfg?.sheet&&!forbiddenSheet.test(cfg.sheet||''))||key==='dataQuality').map(([key,cfg])=>({key,title:cfg.title||key,sheet:cfg.sheet||'محرك جودة الإفادات',fields:cfg.fields||[]}));
  const state=new Map();
- return async function answer({question,user,project}){
+ return async function answer({question,user,project,currentPage}){
   const q=clip(question,1000).trim();if(q.length<2)throw Error('QUESTION_REQUIRED');
   const permitted=pages.filter(p=>permissionFor(user,p.key,p.title));
   if(!permitted.length)return {answer:'لا توجد أوراق تشغيلية مصرح لي بقراءتها ضمن صلاحيات حسابك الحالي. يمكن لمدير النظام مراجعة صلاحيات التبويبات.',sources:[],connected:false};
   const listRequest=/^(?:ما|ماهي|ايش|اعرض|اذكر|كم|قائمه|قائمة|كل)\s*(?:هي\s*)?(?:الاوراق|الشيتات|التبويبات|الصفحات|مصادر البيانات)/.test(norm(q))||/الشيتات المتاحه|التبويبات المتاحه/.test(norm(q));
   if(listRequest)return {answer:'الأوراق المتاحة لك في مشروع '+project+':\n'+permitted.map(p=>'• '+p.title+' ← '+p.sheet).join('\n')+'\nهذه قائمة الأوراق المرتبطة بالتبويبات المصرح بها، وليست تصريحًا بالوصول إلى أوراق الإدارة أو كلمات المرور.',sources:permitted.map(p=>({page:p.title,sheet:p.sheet})),connected:true};
   const tokens=words(q),nq=norm(q);
+  // Prefer the active authorized tab only when the user did not name another tab.
+  const namedScope=permitted.some(p=>[p.title,...(aliases[p.key]||[])].some(term=>{const t=norm(term);return t.length>=3&&nq.includes(t)}));
+  const activeScope=!namedScope&&permitted.some(p=>p.key===currentPage)?currentPage:null;
   const selected=permitted.map(p=>{
    const terms=[p.title,p.sheet,p.key,...(aliases[p.key]||[])].map(norm);
    const full=terms.some(t=>t&&nq.includes(t));
    const overlap=tokens.reduce((a,w)=>a+(terms.some(t=>t.includes(w))?1:0),0);
    const fieldMatches=(p.fields||[]).reduce((a,f)=>a+(tokens.some(w=>norm(f[1]).includes(w))?1:0),0);
-   return {...p,score:(full?12:0)+overlap*4+Math.min(fieldMatches,3)};
+   return {...p,score:(full?12:0)+overlap*4+Math.min(fieldMatches,3)+(activeScope===p.key?20:0)};
   }).sort((a,b)=>b.score-a.score);
   if(!selected[0]||selected[0].score===0)return {answer:'أستطيع البحث في '+permitted.length+' تبويبًا مصرحًا به في مشروع '+project+'. حدّد مجال السؤال (مثل أوامر العمل أو التصاريح أو الإفادات) أو اطلب قائمة الشيتات المتاحة حتى لا أستنتج مصدرًا غير صحيح.',sources:[],connected:true};
   const chosen=selected.filter(p=>p.score>0).slice(0,2);
+  // KPI requests take a deterministic, cached path. Do not wait for an LLM
+  // or scan thousands of per-row matches to answer an on-screen indicator.
+  const first=chosen[0];
+  if(first&&first.key!=='dataQuality'&&metricQuestion(q)){
+    try{
+      const rows=await readConfiguredSheet(APP.PAGES[first.key],first.key);
+      const quick=answerNaifKpis({question:q,project,page:first,rows});
+      if(quick)return {answer:quick,sources:[{page:first.title,sheet:first.sheet,records:rows.length}],connected:true,project,metricSource:'authorized-sheet'};
+    }catch(error){
+      return {answer:'تعذر تحديث مؤشرات '+first.title+' في مشروع '+project+' من الورقة '+first.sheet+'. لا أعرض أرقامًا غير مؤكدة. السبب: '+(/quota|429/i.test(String(error?.message||error))?'حد قراءات Google Sheets':'تعذر الوصول إلى المصدر')+'.',sources:[{page:first.title,sheet:first.sheet}],connected:false,project};
+    }
+  }
   const output=[];
   for(const p of chosen){
    let rows;
