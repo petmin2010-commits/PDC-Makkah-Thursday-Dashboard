@@ -83,3 +83,19 @@
 .vd-naif-form input{flex:1 1 290px;min-width:0}
 .vd-naif-form .vd-naif-call{order:0}
 .vd-naif-form .vd-naif-teach,.vd-naif-form .vd-naif-review{order:1}
+
+
+/* Arabic live conversation: one primary call button, clear state and animated persona. */
+.vd-naif-form .vd-naif-conversation{display:none!important}
+.vd-naif .vd-naif-call{white-space:normal;min-width:122px;font-weight:800;background:#11614a}
+.vd-naif .vd-naif-call.is-active,.vd-naif.vd-naif-realtime .vd-naif-call{background:#8f302d;color:#fff;box-shadow:0 0 0 3px #e6c6c366}
+.vd-naif .vd-naif-call:disabled{opacity:.68;cursor:wait}
+.vd-naif[data-state=listening] .vd-naif-status{background:#d6f3e5;color:#0a6644}
+.vd-naif[data-state=thinking] .vd-naif-status{background:#fff1d2;color:#86590b}
+.vd-naif[data-state=speaking] .vd-naif-status{background:#dceafa;color:#134e87}
+.vd-naif-portrait img{max-width:100%;max-height:355px;object-fit:contain;filter:drop-shadow(0 13px 16px #2b57414c);animation:naif-breathe 5s ease-in-out infinite}
+.vd-naif[data-state=listening] .vd-naif-portrait img{animation:naif-listen 1.3s ease-in-out infinite alternate}
+.vd-naif[data-state=speaking] .vd-naif-portrait img{animation:naif-talk .75s ease-in-out infinite alternate}
+.vd-naif[data-state=thinking] .vd-naif-portrait img{animation:naif-breathe 1.6s ease-in-out infinite}
+@media(max-width:680px){.vd-naif-portrait img{width:85px;max-height:115px}.vd-naif-form{flex-wrap:wrap}.vd-naif-form input{flex-basis:100%}.vd-naif-form .vd-naif-call{flex:1}}
+@media(prefers-reduced-motion:reduce){.vd-naif-portrait img{animation:none!important}}
