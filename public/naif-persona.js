@@ -104,7 +104,7 @@ function naifDisplayMetrics(){
   if(!labelEl||!valueEl)continue;
   const label=String(labelEl.textContent||'').replace(/\s+/g,' ').trim().slice(0,105);
   const value=String(valueEl.textContent||'').replace(/\s+/g,' ').trim().slice(0,115);
-  if(!label||!value||label===value||!/\d|%|٪|—|ر\.س/.test(value))continue;
+  if(!label||!value||label===value||!/[0-9٠-٩۰-۹%٪—]|ر\.س/.test(value))continue;
   const key=naifMetricNorm(label)+'|'+value;
   if(seen.has(key))continue;
   seen.add(key);
