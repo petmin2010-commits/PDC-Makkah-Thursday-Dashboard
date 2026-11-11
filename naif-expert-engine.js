@@ -18,7 +18,7 @@ const aliases={
  assets:['الاصول','العدات','المعدات','العدادات'],
  emergency:['الطوارئ','الاشعارات','البلاغات'],
  dataQuality:['جودة البيانات','جودة الافادات','الافادات الوهمية'],
- tasks:['متابعة اعمال المواقع','المهام والافادات','افادات الموقع','المهام'],
+ tasks:['متابعة اعمال المواقع','المهام والافادات','الافادات','افادات','افادات الموقع','المهام'],
  attachments:['المرفقات','ملفات المقاول','حالة مرفقات المقاول'],
  safety:['مخالفات السلامة','السلامة','مخالفات السلامه'],
  executionViolations:['مخالفات التنفيذ'],
@@ -128,10 +128,12 @@ function createNaifExpert({APP,readConfiguredSheet,getNaifAdviceQuality,canPage,
     if(field==='executionStatus'&&!all.some(r=>r.executionStatus))field='status';
     if(field&&!all.some(r=>Object.prototype.hasOwnProperty.call(r,field)))field=null;
     if(field){
+     const delayedOnly=/تاخير|متاخر/.test(N(query))&&field!=='delay';
+     const groupedRows=delayedOnly?all.filter(r=>/تاخير|متاخر/.test(N(r.delay||''))&&!/ضمن المده|اوشك/.test(N(r.delay||''))):all;
      const buckets=new Map();
-     for(const row of all){const v=clip(row[field],95)||'غير محدد';buckets.set(v,(buckets.get(v)||0)+1);}
+     for(const row of groupedRows){const v=clip(row[field],95)||'غير محدد';buckets.set(v,(buckets.get(v)||0)+1);}
      const top=[...buckets].sort((a,b)=>b[1]-a[1]).slice(0,10);
-     answer+='\nتوزيع «'+(def.fields.find(f=>f[0]===field)?.[1]||field)+'» — أكبر '+fmt(top.length)+' فئات:\n'+top.map(([k,v])=>'• '+k+': '+fmt(v)).join('\n');
+     answer+='\nتوزيع «'+(def.fields.find(f=>f[0]===field)?.[1]||field)+'»'+(delayedOnly?' للأوامر ذات حالات التأخير فقط («'+fmt(groupedRows.length)+'» أمرًا)':'')+' — أكبر '+fmt(top.length)+' فئات:\n'+top.map(([k,v])=>'• '+k+': '+fmt(v)).join('\n');
      if(buckets.size>10)answer+='\n(توجد '+fmt(buckets.size-10)+' فئات أخرى غير معروضة)';
     }else answer+='\nلم أجد حقل توزيع يطابق السؤال في هذه الورقة؛ لن أخمّن التقسيم.';
    }
@@ -149,6 +151,9 @@ function createNaifExpert({APP,readConfiguredSheet,getNaifAdviceQuality,canPage,
  return async function ask({question,user,project,currentPage}){
   const query=clip(question,1500),q=N(query),tokens=words(query);
   if(query.length<2)return {answer:'اكتب سؤالك عن تبويب أو مؤشر أو أمر عمل محدد.',sources:[],connected:false};
+  const otherCity=project==='مكة'?'جدة':'مكة';
+  if(q.includes(otherCity)&&/(?:بيانات|نسبه|تقرير|مؤشرات|المشروع|الكادر|اوامر العمل|قارن)/.test(q) && !q.includes(project))
+   return {answer:'أنت الآن داخل لوحة كهرباء '+project+'. لا أملك حق دمج بيانات '+otherCity+' أو الاطلاع عليها عبر هذه الجلسة؛ افتح لوحة '+otherCity+' بحساب مخوّل للاستعلام عنها.',sources:[],connected:false,project};
   const allowed=authorized(user);
   const publicPages=allowed.map(p=>({key:p.key,title:p.title,source:p.sheet||'محرك مستقل',queryable:p.queryable}));
   if(!allowed.length)return {answer:'لا تتوفر لك تبويبات بيانات تشغيلية مصرح بها في مشروع '+project+'. راجع مدير النظام.',sources:[],connected:false,project};
@@ -163,8 +168,8 @@ function createNaifExpert({APP,readConfiguredSheet,getNaifAdviceQuality,canPage,
   const broad=isBroad(query);
   let selected;
   if(named.length)selected=named.slice(0,/\bو\b|مقارنه|مقارنة|جميع|كل/.test(q)?3:2);
-  else if(currentPage&&allowed.some(p=>p.key===currentPage&&p.queryable))selected=[allowed.find(p=>p.key===currentPage)];
   else if(broad)selected=['workorders','projects','emergency'].map(k=>allowed.find(p=>p.key===k)).filter(Boolean);
+  else if(currentPage&&allowed.some(p=>p.key===currentPage&&p.queryable))selected=[allowed.find(p=>p.key===currentPage)];
   else if(numberId(query))selected=['workorders','projects','connections'].map(k=>allowed.find(p=>p.key===k)).filter(Boolean);
   else if(/مالي|ريال|مستخلص|تحصيل|دفع|تكلف/.test(q))selected=[allowed.find(p=>p.key==='finance')].filter(Boolean);
   else if(/تأخير|متاخر|انجاز|نسب/.test(q))selected=[allowed.find(p=>p.key==='workorders'),allowed.find(p=>p.key==='projects')].filter(Boolean);
