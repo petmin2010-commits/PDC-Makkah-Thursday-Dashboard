@@ -140,7 +140,7 @@ async function start(){
  try{
   // Avoid echo from the legacy browser-voice fallback.
   window.speechSynthesis?.cancel?.();
-  bridge()?.stopClassic?.();
+  bridge()?.stopClassic?.();render();
   microphone=await navigator.mediaDevices.getUserMedia({
    audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}
   });
@@ -188,7 +188,7 @@ async function start(){
   return true;
  }catch(error){
   if(token===version){const message='تعذّر بدء مكالمة نايف: '+String(error.message||error).slice(0,175);stop(message);bubble(message,false);}
-  return true;
+  return /NotAllowedError|NotFoundError|Permission|device|الميكروفون/i.test(String(error.name||'')+' '+String(error.message||''));
  }
 }
 function toggleMute(){
@@ -198,7 +198,83 @@ function toggleMute(){
  render();report(muted?'idle':'listening',muted?'الميكروفون مكتوم.':'نايف يستمع إليك الآن.');
 }
 function setPlayback(on){playback=!!on;if(speaker)speaker.muted=!playback;}
-function init(){window.addEventListener('pagehide',()=>{if(active||connecting)stop()});}
-window.NaifRealtimeVoice={start,stop,toggleMute,setPlayback,isActive:()=>active,isConnecting:()=>connecting,getStatus:()=>({active,connecting,muted,project:bridge()?.project||''})};
+/* Rashid-style precise Arabic voice-to-text for the single microphone button.
+   Users review the transcript before sending. No recording is kept in this client. */
+let dictation=null;
+function setDictationUI(recording){
+ const mic=document.querySelector('.vd-naif-mic');
+ if(!mic||active)return;
+ mic.textContent=recording?'⏹':'🎤';
+ mic.title=recording?'إنهاء الإملاء العربي':'إملاء السؤال بالعربية';
+ mic.setAttribute('aria-pressed',String(recording));
+}
+function cancelDictation(){
+ const item=dictation;dictation=null;
+ if(!item)return;
+ if(item.timer)clearTimeout(item.timer);
+ try{if(item.recorder?.state==='recording')item.recorder.stop()}catch(e){}
+ try{item.stream?.getTracks?.().forEach(t=>t.stop())}catch(e){}
+ setDictationUI(false);
+}
+async function blobBase64(blob){
+ return new Promise((resolve,reject)=>{
+  const reader=new FileReader();
+  reader.onload=()=>resolve(String(reader.result||'').split(',')[1]||'');
+  reader.onerror=()=>reject(Error('تعذر قراءة التسجيل.'));
+  reader.readAsDataURL(blob);
+ });
+}
+async function dictate(){
+ if(dictation){
+  if(dictation.recorder?.state==='recording')dictation.recorder.stop();
+  return true;
+ }
+ if(active||connecting)return true;
+ if(!window.isSecureContext||!window.MediaRecorder||!navigator.mediaDevices?.getUserMedia)return false;
+ const enabled=await available();
+ if(!enabled.ok)return !!enabled.handled;
+ const session={stream:null,recorder:null,timer:null,chunks:[],cancelled:false};
+ dictation=session;
+ try{
+  session.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+  if(dictation!==session){session.stream.getTracks().forEach(t=>t.stop());return true}
+  const formats=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg;codecs=opus'];
+  const mime=formats.find(type=>window.MediaRecorder.isTypeSupported?.(type))||'';
+  session.recorder=mime?new window.MediaRecorder(session.stream,{mimeType:mime}):new window.MediaRecorder(session.stream);
+  session.recorder.ondataavailable=e=>{if(e.data?.size)session.chunks.push(e.data)};
+  session.recorder.onstop=async()=>{
+   if(session.timer)clearTimeout(session.timer);
+   session.stream?.getTracks?.().forEach(t=>t.stop());
+   if(dictation!==session||session.cancelled)return;
+   dictation=null;setDictationUI(false);
+   report('thinking','نايف يدقق الكلمات والأرقام العربية...');
+   try{
+    const blob=new Blob(session.chunks,{type:session.recorder.mimeType||mime||'audio/webm'});
+    if(blob.size<40)throw Error('التسجيل قصير للغاية.');
+    if(blob.size>3300000)throw Error('التسجيل كبير؛ قلل مدة الإملاء.');
+    const audio=await blobBase64(blob);
+    const res=await fetch('/api/naif/transcribe',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({audio,mime:blob.type})});
+    const result=await res.json().catch(()=>({}));
+    if(!res.ok||!result.ok)throw Error(result.error||'تعذر التفريغ.');
+    const text=String(result.text||'').replace(/[٠-٩۰-۹]/g,c=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(c)>=0?'٠١٢٣٤٥٦٧٨٩'.indexOf(c):'۰۱۲۳۴۵۶۷۸۹'.indexOf(c))).trim();
+    bridge()?.setDictation?.(text);
+    report('idle','تم كتابة السؤال بالعربية؛ راجع الأرقام واضغط Enter للإرسال.');
+   }catch(err){report('idle','تعذر تدقيق التسجيل: '+String(err.message||err).slice(0,130));}
+  };
+  session.recorder.onerror=()=>{if(dictation===session){dictation=null;setDictationUI(false);report('idle','تعذر التقاط الصوت.')}};
+  session.recorder.start();setDictationUI(true);
+  report('listening','تحدث بالعربية ثم اضغط ⏹ لإنهاء الإملاء (حد أقصى 20 ثانية).');
+  session.timer=setTimeout(()=>{if(session.recorder?.state==='recording')session.recorder.stop()},20000);
+  return true;
+ }catch(error){
+  if(dictation===session){dictation=null;setDictationUI(false);}
+  try{session.stream?.getTracks?.().forEach(t=>t.stop())}catch(e){}
+  report('idle','تعذّر بدء الإملاء العربي: '+String(error.message||error).slice(0,125));
+  return true;
+ }
+}
+
+function init(){window.addEventListener('pagehide',()=>{cancelDictation();if(active||connecting)stop()});}
+window.NaifRealtimeVoice={start,stop,toggleMute,setPlayback,dictate,cancelDictation,isActive:()=>active,isConnecting:()=>connecting,getStatus:()=>({active,connecting,muted,project:bridge()?.project||''})};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
