@@ -220,6 +220,7 @@ function naifIndicatorAnswer(question){
  return null;
 }
 
+const isNaifInvestigationQuery=q=>/لماذا|ليه|ليش|سبب|اسباب|جذري|تحليل|حلل|اربط|العلاقه|الارتباط|الاختناق|المعوقات|المتسبب|المسؤول|المسئول|اخطر|المخاطر|توصيه|توصيات|اقترح|التصعيد|تاخرت|متاخر|تاخير|تقييم الاداء|من الاكثر|360|ملف الامر|تتبع الامر/.test(naifMetricNorm(q));
 const isNaifStageQuery=q=>{
  const normalized=naifMetricNorm(q);
  return /مرحله التنفيذ|حاله المرحله|مراحل التنفيذ|حالات المراحل|توزيع المراحل|مرحله الانجاز/.test(normalized)
@@ -227,7 +228,7 @@ const isNaifStageQuery=q=>{
 };
 async function replyKnowledge(query){
  // Stage columns are direct data sources, not metadata or generic KPI cards.
- if(!isNaifStageQuery(query)){
+ if(!isNaifStageQuery(query)&&!isNaifInvestigationQuery(query)){
   const special=await window.NaifSpecializedIndex?.answer?.(query,project);
   if(special)return special;
   const current=window.NaifExpertUI?.answer?.(query);
@@ -253,7 +254,7 @@ async function replyKnowledge(query){
   }finally{clearTimeout(timer)}
 }
 async function reply(question){const query=question.trim();if(!query)return;bubble(query,true);state('thinking','يبحث عن القسم المناسب');let answer='';
-if(isNaifStageQuery(query)){const result=await replyKnowledge(query);bubble(result,false);state('idle','جاهز للمساعدة');say(result);return;}
+if(isNaifStageQuery(query)||isNaifInvestigationQuery(query)){const result=await replyKnowledge(query);bubble(result,false);state('idle','جاهز للمساعدة');say(result);return;}
 const visibleExpert=window.NaifExpertUI?.answer?.(query);
 if(visibleExpert){bubble(visibleExpert,false);state('idle','جاهز للمساعدة');say(visibleExpert);return;}
 if(window.NaifReportArchive?.isArchiveQuestion?.(query)){
@@ -388,7 +389,7 @@ window.NaifVoiceBridge={
  answer:async question=>{
   const q=String(question||'').trim().slice(0,1200);
   if(!q)return 'لم يصل سؤال واضح؛ كرره من فضلك.';
-  if(isNaifStageQuery(q))return replyKnowledge(q);
+  if(isNaifStageQuery(q)||isNaifInvestigationQuery(q))return replyKnowledge(q);
   if(window.NaifReportArchive?.isArchiveQuestion?.(q))return window.NaifReportArchive.answer(q,project);
   const visibleExpert=window.NaifExpertUI?.answer?.(q);
   if(visibleExpert)return visibleExpert;
