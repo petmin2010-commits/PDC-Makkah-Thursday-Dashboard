@@ -90,13 +90,25 @@ function createNaifExpert({APP,readConfiguredSheet,getNaifAdviceQuality,canPage,
   }
   if(!page.sheet)throw Error('SOURCE_HAS_NO_SHEET');
   const key=page.key,hit=cache.get(key),t=Date.now();
-  if(hit&&hit.expires>t)return {...hit.value,cached:true};
+  if(hit&&hit.expires>t)return {...hit.value,cached:true,stale:!!hit.stale};
+  if(hit&&hit.retryAfter>t)return {...hit.value,cached:true,stale:true,readError:'تعذر تحديث المصدر مؤقتًا'};
   if(inflight.has(key))return inflight.get(key);
   const task=(async()=>{
-   const rows=await readConfiguredSheet(page.cfg,key);
-   const value={rows:Array.isArray(rows)?rows:[],readAt:now().toISOString(),cached:false};
-   cache.set(key,{value,expires:Date.now()+(key==='workorders'?90000:180000)});
-   return value;
+   try{
+    const rows=await readConfiguredSheet(page.cfg,key);
+    const value={rows:Array.isArray(rows)?rows:[],readAt:now().toISOString(),cached:false,stale:false};
+    cache.set(key,{value,expires:Date.now()+(key==='workorders'?90000:180000)});
+    return value;
+   }catch(error){
+    // Never pretend that a quota-throttled old snapshot is live.
+    // Keep it briefly only for already authorized tabs, with a visible stale label.
+    const previous=cache.get(key);
+    if(previous?.value){
+     cache.set(key,{...previous,expires:Date.now()+30000,retryAfter:Date.now()+60000,stale:true});
+     return {...previous.value,cached:true,stale:true,readError:'تعذر تحديث Google Sheets'};
+    }
+    throw error;
+   }
   })().finally(()=>inflight.delete(key));
   inflight.set(key,task);
   return task;
@@ -111,10 +123,12 @@ function createNaifExpert({APP,readConfiguredSheet,getNaifAdviceQuality,canPage,
     return {p,count:Number(q.trackedOrders||0),answer:'جودة الإفادات — '+origin(p)+': أوامر تحت الرقابة '+fmt(q.trackedOrders||0)+'؛ إفادات جوهرية '+fmt(c.substantive||0)+'، ضعيفة '+fmt(c.weak||0)+'، شكلية/مشتبهة '+fmt(c.suspicious||0)+'، بانتظار التحليل '+fmt(c.pending||0)+'.'+(data.stale?' (آخر لقطة مخزنة — غير لحظية)':''),readAt:data.readAt,stale:data.stale};
    }
    const all=data.rows,def=p.cfg,id=numberId(query);
+   const staleNotice=data.stale?'\nتنبيه: الأرقام من آخر قراءة ناجحة بتاريخ '+new Date(data.readAt).toLocaleString('ar-SA',{timeZone:'Asia/Riyadh'})+'؛ فشل التحديث الحالي وليست بيانات لحظية.':'';
+   if(!all.length)return {p,count:0,answer:origin(p)+': لا توجد سجلات مقروءة في المصدر حاليًا، لذلك لا أستنتج نسب إنجاز أو متوسطات.',readAt:data.readAt,stale:!!data.stale};
    if(id){
     const matches=all.filter(r=>[r.workOrder,r.noticeNo,r.paymentNo,r.equipmentNo].some(v=>N(v)===id)).slice(0,7);
     if(!matches.length)return {p,count:all.length,answer:'لم أجد أمر عمل/معاملة برقم '+id+' في '+origin(p)+' ضمن السجلات المقروءة.',readAt:data.readAt};
-    return {p,count:all.length,answer:'بحث رقم '+id+' في '+origin(p)+' — '+fmt(matches.length)+' نتائج:\n'+matches.map(r=>'• الصف '+r._row+': '+safeFields(r,def,tokens,12)).join('\n'),readAt:data.readAt};
+    return {p,count:all.length,answer:'بحث رقم '+id+' في '+origin(p)+' — '+fmt(matches.length)+' نتائج:\n'+matches.map(r=>'• الصف '+r._row+': '+safeFields(r,def,tokens,12)).join('\n')+staleNotice,readAt:data.readAt,stale:!!data.stale};
    }
    const m=metricData(p,all);
    if(!richIntent(query)&&!wantsGroup(query)){
@@ -145,7 +159,7 @@ function createNaifExpert({APP,readConfiguredSheet,getNaifAdviceQuality,canPage,
     if(termRows.length)answer+='\nنماذج من البيانات:\n'+termRows.map(x=>'• صف '+x.r._row+': '+safeFields(x.r,def,tokens)).join('\n');
     else answer+='\nلا توجد قيمة محسوبة موثوقة لهذا المؤشر المحدد في المصدر.';
    }
-   return {p,count:all.length,answer,readAt:data.readAt,cached:data.cached};
+   return {p,count:all.length,answer:answer+staleNotice,readAt:data.readAt,cached:data.cached,stale:!!data.stale};
   }catch(error){
    const quota=/429|quota|rate limit|RESOURCE_EXHAUSTED/i.test(String(error?.message||error));
    return {p,error:quota?'تم بلوغ حد قراءة Google Sheets':'المصدر غير متاح حاليًا',answer:origin(p)+': '+(quota?'تعذر التحديث بسبب حد طلبات Google Sheets.':'تعذر قراءة البيانات الآن.')+' لا أقدّم رقمًا تقديريًا.'};
@@ -182,7 +196,7 @@ function createNaifExpert({APP,readConfiguredSheet,getNaifAdviceQuality,canPage,
   const results=await Promise.all(selected.map(p=>inspect(p,query,tokens)));
   const good=results.filter(x=>!x.error),bad=results.filter(x=>x.error);
   const parts=results.map(x=>x.answer);
-  const scopes=good.map(x=>({page:x.p.title,sheet:x.p.sheet,records:x.count,readAt:x.readAt}));
+  const scopes=good.map(x=>({page:x.p.title,sheet:x.p.sheet,records:x.count,readAt:x.readAt,stale:!!x.stale}));
   const localTime=now().toLocaleString('ar-SA',{timeZone:'Asia/Riyadh'});
   return {answer:'نتيجة '+project+' من مصادر الداشبورد المصرح بها:\n'+parts.join('\n\n')+
    '\n\nوقت الاستعلام (السعودية): '+localTime+'.'+(bad.length?' بعض المصادر غير متاحة؛ النتائج المعروضة تخص المصادر الناجحة فقط.':'')+
