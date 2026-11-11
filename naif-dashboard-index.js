@@ -28,7 +28,8 @@ const keyLabels={
 };
 function canTab(user,key){
  const entry=catalog.byKey(key);if(!entry)return false;
- const p=perms(user),role=N(user?.role),all=p.some(x=>['*','all','الكل','جميع الصفحات','كامل الصلاحيات'].includes(x));
+ const raw=Array.isArray(user?.permissions)?user.permissions:[];
+ const p=perms(user),role=N(user?.role),all=raw.some(x=>String(x).trim()==='*')||p.some(x=>['all','الكل','جميع الصفحات','كامل الصلاحيات'].includes(x));
  if(all||['admin','administrator','مدير النظام'].includes(role))return true;
  const exact=[entry.label,...(keyLabels[key]||[])].map(N);
  if(user?.precisePermissions===true)return exact.some(label=>p.includes(label));
