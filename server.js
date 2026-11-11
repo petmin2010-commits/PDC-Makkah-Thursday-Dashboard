@@ -10,6 +10,7 @@ const { APP } = require('./app-config');
 const { syncAdviceHistory } = require('./advice-ai');
 const { createNaifKnowledge } = require('./naif-knowledge');
 const { createNaifExpert } = require('./naif-expert-engine');
+const { createNaifHrExpert, isHrQuestion } = require('./naif-hr-expert');
 const { createNaifLearning } = require('./naif-learning');
 const { install: installNaifRealtime } = require('./naif-realtime-server');
 
@@ -2203,6 +2204,7 @@ const canNaifPage_=(user,page)=>{
 const naifLearning_=createNaifLearning({getSheets,spreadsheetId:SPREADSHEET_ID,canPage:canNaifPage_,requireAdmin:user=>userAdminSystem_.isAdmin({email:user?.email,role:user?.role,active:'active'})});
 const askNaifKnowledge_=createNaifKnowledge({APP,readConfiguredSheet:readConfiguredSheet_,getNaifAdviceQuality,readLessons:(user,question)=>naifLearning_.relevant({user,question})});
 const askNaifExpert_=createNaifExpert({APP,readConfiguredSheet:readConfiguredSheet_,getNaifAdviceQuality,canPage:canNaifPage_});
+const askNaifHrExpert_=createNaifHrExpert({getHrStaffData_});
 const METHODS={getNaifAdviceQuality,getBootData,getSecondaryMasterKpis,getWorkOrderMasterEnrichment,getPageData,getWednesdayMeetingData,getMonitorData,getFullMonitorData,getProjectNews,saveSmartHistory,syncThursdayProgressHistory,getWorkOrder360,clearDashboardCache};
 
 const app=express();
@@ -2746,7 +2748,10 @@ app.post('/api/rpc',requireAuth_,async(req,res)=>{
     if(method==='askNaifExpert'){
       const question=String(args?.[0]||'').slice(0,1500);
       const currentPage=String(args?.[1]||'').slice(0,60);
-      const response=await askNaifExpert_({question,currentPage,user:req.session.user,project:APP.TITLE?.toLowerCase().includes('makkah')?'مكة':'جدة'});
+      const project=APP.TITLE?.toLowerCase().includes('makkah')?'مكة':'جدة';
+      const response=isHrQuestion(question,currentPage)
+        ?await askNaifHrExpert_({question,currentPage,user:req.session.user,project})
+        :await askNaifExpert_({question,currentPage,user:req.session.user,project});
       return res.json({ok:true,result:response});
     }
     if(method==='askNaifKnowledge'){
