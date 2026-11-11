@@ -246,7 +246,7 @@ else if(/كم|عدد|نسبة|حالة|تأخير|ملخص|بيانات|تقري
 else answer='أنا نايف، مساعدك في مشروع '+project+'. اطلب مني فتح أوامر العمل، المشاريع، التوصيلات، التصاريح، السلامة أو التقارير. لم يتم بعد ربط محرك الإجابة الذكي أو المكالمات بهذه الواجهة.';
 bubble(answer,false);state('idle','جاهز للمساعدة');say(answer)}
 function open(){previousFocus=document.activeElement;dialog.hidden=false;launch.classList.add('active');launch.setAttribute('aria-expanded','true');if(!messages.children.length)bubble('مرحبًا، أنا المهندس نايف، مساعد مشروع كهرباء '+project+'. كيف أساعدك اليوم؟',false);input.focus()}
-function close(){window.NaifRealtimeVoice?.stop?.('أُغلقت محادثة نايف.');endCall();dialog.hidden=true;launch.classList.remove('active');launch.setAttribute('aria-expanded','false');if(recognition)try{recognition.stop()}catch(e){}window.speechSynthesis?.cancel();state('idle','جاهز للمساعدة');(previousFocus||launch).focus()}
+function close(){window.NaifRealtimeVoice?.cancelDictation?.();window.NaifRealtimeVoice?.stop?.('أُغلقت محادثة نايف.');endCall();dialog.hidden=true;launch.classList.remove('active');launch.setAttribute('aria-expanded','false');if(recognition)try{recognition.stop()}catch(e){}window.speechSynthesis?.cancel();state('idle','جاهز للمساعدة');(previousFocus||launch).focus()}
 
 /* Movable Naif companion: pointer-drag on desktop and touch, with persistent position. */
 const dock=document.createElement('aside');
@@ -279,7 +279,19 @@ setDockHidden(dock.hidden);
 launch.onclick=open;nav.addEventListener('click',e=>{if(e.target.closest('.nav-item')&&!e.target.closest('#vdNaifLauncher')&&!dialog.hidden&&!window.NaifRealtimeVoice?.isActive?.()&&!window.NaifRealtimeVoice?.isConnecting?.())close()});dialog.querySelector('.vd-naif-close').onclick=close;dialog.addEventListener('click',e=>{if(e.target===dialog)close()});dialog.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
 dialog.querySelector('form').addEventListener('submit',e=>{e.preventDefault();const q=input.value;input.value='';reply(q)});
 dialog.querySelectorAll('[data-query]').forEach(b=>b.onclick=()=>reply(b.dataset.query));
-dialog.querySelector('.vd-naif-sound').onclick=e=>{voice=!voice;e.currentTarget.textContent=voice?'🔈':'🔊';e.currentTarget.title=voice?'إيقاف الصوت':'تفعيل الصوت';window.NaifRealtimeVoice?.setPlayback?.(voice);if(!voice){stopSpeech();awaitingVoiceAnswer=false;if(callActive)listen()}};
+let realtimePlaybackEnabled=true;
+dialog.querySelector('.vd-naif-sound').onclick=e=>{
+ const live=window.NaifRealtimeVoice;
+ if(live?.isActive?.()||live?.isConnecting?.()){
+  realtimePlaybackEnabled=!realtimePlaybackEnabled;live.setPlayback?.(realtimePlaybackEnabled);
+  e.currentTarget.textContent=realtimePlaybackEnabled?'🔊':'🔈';
+  e.currentTarget.title=realtimePlaybackEnabled?'كتم صوت نايف':'تشغيل صوت نايف';
+  return;
+ }
+ voice=!voice;e.currentTarget.textContent=voice?'🔊':'🔈';
+ e.currentTarget.title=voice?'إيقاف قراءة الردود':'تشغيل قراءة الردود';
+ if(!voice){stopSpeech();awaitingVoiceAnswer=false;if(callActive)listen()}
+};
 const naifApi=async(method,args=[])=>{
  const response=await fetch('/api/rpc',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({method,args})});
  const data=await response.json().catch(()=>({}));
@@ -363,7 +375,8 @@ window.NaifVoiceBridge={
   if(qualityIntent.test(q))return replyQuality(q);
   return replyKnowledge(q);
  },
- transcript:t=>{if(!input.matches(':focus'))input.value='';state('thinking','فهم نايف سؤالك بالعربية.')}
+ transcript:t=>{state('thinking','فهم نايف سؤالك بالعربية.')},
+ setDictation:t=>{input.value=String(t||'').slice(0,3000);input.focus();}
 };
 conversationButton.hidden=true;conversationButton.setAttribute('aria-hidden','true');
 callButton.addEventListener('click',async()=>{
@@ -407,9 +420,11 @@ dialog.querySelector('.vd-naif-review').onclick=async()=>{
  messages.append(panel);messages.scrollTop=messages.scrollHeight;
  }catch(e){bubble('مراجعة الدروس متاحة لمدير النظام فقط. '+e.message,false)}
 };
-micButton.onclick=()=>{
+micButton.onclick=async()=>{
  if(window.NaifRealtimeVoice?.isActive?.()){window.NaifRealtimeVoice.toggleMute();return}
+ if(window.NaifRealtimeVoice?.isConnecting?.())return;
  if(callActive){micMuted=!micMuted;if(micMuted){stopRecognition();state('idle','الميكروفون مكتوم')}else listen();renderCall();return}
+ if(window.NaifRealtimeVoice?.dictate){const handled=await window.NaifRealtimeVoice.dictate();if(handled)return;}
  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
  if(!SR){bubble('التعرف على الصوت غير متاح في هذا المتصفح. يمكنك الكتابة.',false);return}
  stopRecognition();const rec=new SR();recognition=rec;rec.lang='ar-SA';rec.interimResults=false;
