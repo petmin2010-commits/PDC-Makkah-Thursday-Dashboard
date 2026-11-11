@@ -14,7 +14,7 @@ if(!launch){
 }
 launch.setAttribute('aria-haspopup','dialog');launch.setAttribute('aria-expanded','false');
 const dialog=document.createElement('section');dialog.className='vd-naif';dialog.hidden=true;dialog.dataset.state='idle';dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-label','نايف، مساعد مشروع '+project);
-dialog.innerHTML=`<div class="vd-naif-window"><div class="vd-naif-portrait">${engineer}<div><h2>المهندس نايف</h2><p>مساعد العمليات الذكي — مشروع ${project}</p><div class="vd-naif-status" role="status">جاهز للمساعدة</div></div></div><div class="vd-naif-content"><div class="vd-naif-header"><b>محادثة نايف</b><button type="button" class="vd-naif-close" aria-label="إغلاق">×</button></div><div class="vd-naif-messages" aria-live="polite"></div><div class="vd-naif-quick"><button data-query="أوامر العمل">أوامر العمل</button><button data-query="المشاريع">المشاريع</button><button data-query="التقارير">التقارير</button><button data-query="السلامة">السلامة</button><button data-query="كم الإفادات الضعيفة والشكلية؟">جودة الإفادات</button></div><form class="vd-naif-form"><input aria-label="سؤالك لنايف" placeholder="اسأل نايف عن المشروع أو افتح قسمًا..." required><button type="button" class="vd-naif-mic" aria-label="التحدث بالصوت" title="إملاء صوتي">🎤</button><button type="button" class="vd-naif-call" title="مكالمة صوتية داخل المنصة" aria-pressed="false">📞 مكالمة نايف</button><button type="button" class="vd-naif-conversation" title="وضع المحادثة الصوتية التلقائية" aria-pressed="false">🗣️ محادثة</button><button type="button" class="vd-naif-teach" title="اقترح معرفة جديدة لنايف">📖 علّم نايف</button><button type="button" class="vd-naif-review" title="مراجعة الدروس المعلقة - للمدير">✅ اعتماد الدروس</button><button type="submit">إرسال</button><button type="button" class="vd-naif-sound" title="تفعيل أو إيقاف الصوت" aria-label="الصوت">🔊</button></form><p class="vd-naif-note">نايف مرتبط بنتائج جودة الإفادات المتاحة لحسابك، ويقرأها عند السؤال. لا يُعدّل التصنيفات أو السجل التاريخي، ولا يجري مكالمات هاتفية.</p></div></div>`;
+dialog.innerHTML=`<div class="vd-naif-window"><div class="vd-naif-portrait">${engineer}<div><h2>المهندس نايف</h2><p>مساعد العمليات الذكي — مشروع ${project}</p><div class="vd-naif-status" role="status">جاهز للمساعدة</div></div></div><div class="vd-naif-content"><div class="vd-naif-header"><b>محادثة نايف</b><button type="button" class="vd-naif-close" aria-label="إغلاق">×</button></div><div class="vd-naif-messages" aria-live="polite"></div><div class="vd-naif-quick"><button data-query="أوامر العمل">أوامر العمل</button><button data-query="المشاريع">المشاريع</button><button data-query="التقارير">التقارير</button><button data-query="السلامة">السلامة</button><button data-query="كم الإفادات الضعيفة والشكلية؟">جودة الإفادات</button></div><form class="vd-naif-form"><input aria-label="سؤالك لنايف" placeholder="اسأل نايف عن المشروع أو افتح قسمًا..." required><button type="button" class="vd-naif-mic" aria-label="التحدث بالصوت" title="إملاء صوتي">🎤</button><button type="button" class="vd-naif-call" title="مكالمة صوتية داخل المنصة" aria-pressed="false">📞 مكالمة نايف</button><button type="button" class="vd-naif-conversation" title="وضع المحادثة الصوتية التلقائية" aria-pressed="false">🗣️ محادثة</button><button type="button" class="vd-naif-teach" title="اقترح معرفة جديدة لنايف">📖 علّم نايف</button><button type="button" class="vd-naif-review" title="مراجعة الدروس المعلقة - للمدير">✅ اعتماد الدروس</button><button type="submit">إرسال</button><button type="button" class="vd-naif-sound" title="تفعيل أو إيقاف الصوت" aria-label="الصوت">🔊</button></form><p class="vd-naif-note">نايف خبير قراءة بيانات وكروت وشارتات الداشبورد حسب صلاحياتك. يذكر مصدر كل إجابة ولا يغيّر البيانات أو الصلاحيات.</p></div></div>`;
 document.body.append(dialog);const input=dialog.querySelector('input'),messages=dialog.querySelector('.vd-naif-messages'),status=dialog.querySelector('.vd-naif-status');let voice=false,recognition=null,previousFocus=null,conversationMode=false;
 const state=(s,label)=>{dialog.dataset.state=s;status.textContent=label};
 /* Browser-speech fallback: Arabic voice selection, chunking and accurate technical codes. */
@@ -221,19 +221,32 @@ function naifIndicatorAnswer(question){
 }
 
 async function replyKnowledge(query){
-  const displayed=naifIndicatorAnswer(query);
-  if(displayed)return displayed;
- const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),32000);
- try{
-  const response=await fetch('/api/rpc',{method:'POST',credentials:'same-origin',cache:'no-store',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({method:'askNaifKnowledge',args:[query,naifActivePage()]})});
-  if(response.status===401||response.status===403)return 'جلسة الدخول غير صالحة أو لا تتوفر لك صلاحية الوصول إلى البيانات المطلوبة.';
-  const payload=await response.json().catch(()=>({}));
-  if(!response.ok||!payload.ok)return 'تعذر البحث في بيانات المشروع حاليًا ('+(payload.error||response.status)+').';
-  return payload.result?.answer||'لم تصل نتيجة من محرك معرفة المشروع.';
- }catch(e){return e.name==='AbortError'?'انتهت مهلة قراءة بيانات المشروع. أعد المحاولة وحدد التبويب أو رقم أمر العمل لتسريع البحث.':'تعذر الوصول إلى مصدر المشروع: '+String(e.message||e).slice(0,100)}
- finally{clearTimeout(timer)}
+  // All authenticated text and WebRTC voice questions share one expert path.
+  // The UI reader is exact for currently rendered, filter-scoped data.
+  const current=window.NaifExpertUI?.answer?.(query);
+  if(current)return current;
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),33000);
+  try{
+   const response=await fetch('/api/rpc',{
+    method:'POST',credentials:'same-origin',cache:'no-store',signal:controller.signal,
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({method:'askNaifExpert',args:[query,naifActivePage()]})
+   });
+   if(response.status===401||response.status===403)
+    return 'انتهت جلسة الدخول أو لا تتوفر لك صلاحية استعلام بيانات هذا التبويب.';
+   const payload=await response.json().catch(()=>({}));
+   if(!response.ok||!payload.ok)
+    return 'تعذر الوصول لمحرك معرفة نايف حاليًا ('+String(payload.error||response.status).slice(0,85)+').';
+   if(payload.result?.answer)return payload.result.answer;
+   return 'لم يرجع محرك المعرفة إجابة مؤكدة لهذا السؤال. اطلب التبويب أو المؤشر المقصود.';
+  }catch(e){
+   if(e.name==='AbortError')return 'تجاوزت قراءة بعض مصادر البيانات المهلة المحددة. لم أستنتج أي أرقام؛ حاول السؤال عن تبويب محدد أو أعد المحاولة.';
+   return 'تعذر استعلام مصادر المشروع الآن: '+String(e.message||e).slice(0,90);
+  }finally{clearTimeout(timer)}
 }
 async function reply(question){const query=question.trim();if(!query)return;bubble(query,true);state('thinking','يبحث عن القسم المناسب');let answer='';
+const visibleExpert=window.NaifExpertUI?.answer?.(query);
+if(visibleExpert){bubble(visibleExpert,false);state('idle','جاهز للمساعدة');say(visibleExpert);return;}
 if(window.NaifReportArchive?.isArchiveQuestion?.(query)){
  const report=await window.NaifReportArchive.answer(query,project);
  bubble(report||'تعذر قراءة أرشيف التقارير.',false);state('idle','جاهز للمساعدة');say(report||'تعذر قراءة أرشيف التقارير.');return;
@@ -245,9 +258,9 @@ if(!/^(افتح|انتقل|اذهب|روح|ودني|اعرض التبويب|اف
  const result=await replyKnowledge(query);bubble(result,false);state('idle','جاهز للمساعدة');say(result);return;
 }
 const found=labels.find(([title])=>query.includes(title));if(found){let target=[...document.querySelectorAll('#nav .nav-item[data-page]')].find(el=>el.dataset.page===found[1]);if(!target)target=[...document.querySelectorAll('#nav .nav-item[data-page]')].find(el=>el.textContent.includes(found[0]));if(target&&!target.hidden&&getComputedStyle(target).display!=='none'){target.click();answer='فتحت لك قسم '+found[0]+' في لوحة مشروع '+project+'. يمكنك مراجعة التفاصيل والفلاتر هناك.'}else{answer='قسم '+found[0]+' غير متاح في القائمة الحالية لصلاحيات حسابك؛ لا يمكنني فتح بيانات غير مصرّح بها.'}}
-else if(/عرف نفسك|من أنت|مين انت|اسمك/.test(query))answer='أنا المهندس نايف، الشخصية الافتراضية لمتابعة عمليات مشروع كهرباء '+project+'. أساعدك في الوصول إلى أقسام الداشبورد، ويمكنك استخدام الكتابة أو الإملاء الصوتي.';
-else if(/كم|عدد|نسبة|حالة|تأخير|ملخص|بيانات|تقرير/.test(query))answer='لإجابة دقيقة عن الأرقام أحتاج ربط محرك المحادثة بمصادر بيانات المشروع. حاليًا يمكنني فتح التبويب المطلوب، لكن لن أخمن أرقامًا أو نتائج.';
-else answer='أنا نايف، مساعدك في مشروع '+project+'. اطلب مني فتح أوامر العمل، المشاريع، التوصيلات، التصاريح، السلامة أو التقارير. لم يتم بعد ربط محرك الإجابة الذكي أو المكالمات بهذه الواجهة.';
+else if(/عرف نفسك|من أنت|مين انت|اسمك/.test(query))answer='أنا المهندس نايف، مساعد معرفة مشروع كهرباء '+project+'. أقرأ الكروت والشارتات الظاهرة والفلاتر الحالية، وأستعلم من الشيتات المصرح بها عن أوامر العمل والتقدم والتأخيرات والمقاولين والمهندسين، مع ذكر مصدر الأرقام وعدم تخمين القيم.';
+else if(/كم|عدد|نسبة|حالة|تأخير|ملخص|بيانات|تقرير/.test(query))answer='اسألني عن اسم المؤشر أو أمر العمل وسأرجع إلى المصدر المصرح به. لا أعرض أرقامًا دون دليل.';
+else answer='أنا نايف، خبير الداشبورد لمشروع '+project+'. اسألني عن الكروت والشارتات أو أوامر العمل أو قل «ما هي قدراتك؟» لأعرض مصادر المعرفة المتاحة.';
 bubble(answer,false);state('idle','جاهز للمساعدة');say(answer)}
 function open(){previousFocus=document.activeElement;dialog.hidden=false;launch.classList.add('active');launch.setAttribute('aria-expanded','true');if(!messages.children.length)bubble('مرحبًا، أنا المهندس نايف، مساعد مشروع كهرباء '+project+'. كيف أساعدك اليوم؟',false);input.focus()}
 function close(){window.NaifRealtimeVoice?.cancelDictation?.();window.NaifRealtimeVoice?.stop?.('أُغلقت محادثة نايف.');endCall();dialog.hidden=true;launch.classList.remove('active');launch.setAttribute('aria-expanded','false');if(recognition)try{recognition.stop()}catch(e){}window.speechSynthesis?.cancel();state('idle','جاهز للمساعدة');(previousFocus||launch).focus()}
@@ -367,6 +380,8 @@ window.NaifVoiceBridge={
   const q=String(question||'').trim().slice(0,1200);
   if(!q)return 'لم يصل سؤال واضح؛ كرره من فضلك.';
   if(window.NaifReportArchive?.isArchiveQuestion?.(q))return window.NaifReportArchive.answer(q,project);
+  const visibleExpert=window.NaifExpertUI?.answer?.(q);
+  if(visibleExpert)return visibleExpert;
   if(/^(افتح|انتقل|اذهب|روح|ودني|اعرض التبويب|افتح تبويب)/.test(q)){
    const found=labels.find(([title])=>q.includes(title));
    if(!found)return 'حدد القسم المطلوب من القائمة المصرح بها.';
@@ -376,7 +391,7 @@ window.NaifVoiceBridge={
    target.click();
    return 'تم فتح تبويب '+found[0]+' في لوحة مشروع كهرباء '+project+'.';
   }
-  if(/^(عرف نفسك|من انت|مين انت|اسمك)/.test(q))return 'أنا المهندس نايف، مساعد مشروع كهرباء '+project+'، أجيب عن كروت الداشبورد وشيتات المشروع المتاحة لحسابك باللغة العربية.';
+  if(/^(عرف نفسك|من انت|مين انت|اسمك)/.test(q))return 'أنا المهندس نايف، خبير معلومات داشبورد كهرباء '+project+'. أفهم الأسئلة بالعربية وأجيب من الكروت والشارتات والشيتات المصرح بها، مع توضيح المصدر ومراعاة الفلاتر. لا أختلق أرقامًا ولا أعدل البيانات.';
   if(qualityIntent.test(q))return replyQuality(q);
   return replyKnowledge(q);
  },
