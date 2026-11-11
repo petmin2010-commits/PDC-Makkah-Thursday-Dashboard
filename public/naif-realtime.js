@@ -57,7 +57,8 @@ async function consult(item,token){
  if(version!==token||!active)return;
  const output={answer:String(answer).slice(0,10000)};
  if(send({type:'conversation.item.create',item:{type:'function_call_output',call_id:item.call_id,output:JSON.stringify(output)}})){
-  send({type:'response.create',response:{output_modalities:['audio']}});
+  // Force a grounded spoken answer after the single authorized tool result, not another tool loop.
+  send({type:'response.create',response:{output_modalities:['audio'],tool_choice:'none',instructions:'تحدث بالعربية، وانقل فقط المعلومات المؤكدة من آخر نتيجة أداة consult_naif_dashboard. لا تخترع أرقامًا، ولا تدّعِ غياب البيانات إذا أعطتك الأداة نتائج فعلية. اقرأ المصدر والحالات والأعداد بوضوح.'}});
  }
 }
 function receive(raw,token){
@@ -170,7 +171,7 @@ async function start(){
    active=true;connecting=false;render();
    if(connectTimer)clearTimeout(connectTimer);connectTimer=null;
    report('listening','نايف متصل ويستمع بالعربية.');
-   send({type:'response.create',response:{output_modalities:['audio']}});
+   // Do not start a model response without a question: session requires the data tool.
    idleTimer=setTimeout(()=>stop('انتهت المكالمة بعد 15 دقيقة حفاظًا على الموارد.'),MAX_CALL_MS);
   };
   channel.onmessage=e=>receive(e.data,token);
