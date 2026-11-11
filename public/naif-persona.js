@@ -220,14 +220,19 @@ function naifIndicatorAnswer(question){
  return null;
 }
 
+const isNaifStageQuery=q=>{
+ const normalized=naifMetricNorm(q);
+ return /مرحله التنفيذ|حاله المرحله|مراحل التنفيذ|حالات المراحل|توزيع المراحل|مرحله الانجاز/.test(normalized)
+  && !/^(اشرح|كيف تحسب|كيف يتم حساب|تعريف|ما معني|ما المقصود)/.test(normalized);
+};
 async function replyKnowledge(query){
-  // Use the exact source adapter for authorized specialized reports/evaluations.
-  // Typed, Arabic voice and WebRTC calls share this same evidence-first path.
+ // Stage columns are direct data sources, not metadata or generic KPI cards.
+ if(!isNaifStageQuery(query)){
   const special=await window.NaifSpecializedIndex?.answer?.(query,project);
   if(special)return special;
-  // On-screen cards/charts reflect the current user's applied filters.
   const current=window.NaifExpertUI?.answer?.(query);
   if(current)return current;
+ }
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),33000);
   try{
    const response=await fetch('/api/rpc',{
@@ -248,6 +253,7 @@ async function replyKnowledge(query){
   }finally{clearTimeout(timer)}
 }
 async function reply(question){const query=question.trim();if(!query)return;bubble(query,true);state('thinking','يبحث عن القسم المناسب');let answer='';
+if(isNaifStageQuery(query)){const result=await replyKnowledge(query);bubble(result,false);state('idle','جاهز للمساعدة');say(result);return;}
 const visibleExpert=window.NaifExpertUI?.answer?.(query);
 if(visibleExpert){bubble(visibleExpert,false);state('idle','جاهز للمساعدة');say(visibleExpert);return;}
 if(window.NaifReportArchive?.isArchiveQuestion?.(query)){
@@ -382,6 +388,7 @@ window.NaifVoiceBridge={
  answer:async question=>{
   const q=String(question||'').trim().slice(0,1200);
   if(!q)return 'لم يصل سؤال واضح؛ كرره من فضلك.';
+  if(isNaifStageQuery(q))return replyKnowledge(q);
   if(window.NaifReportArchive?.isArchiveQuestion?.(q))return window.NaifReportArchive.answer(q,project);
   const visibleExpert=window.NaifExpertUI?.answer?.(q);
   if(visibleExpert)return visibleExpert;
