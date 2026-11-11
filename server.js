@@ -11,6 +11,7 @@ const { syncAdviceHistory } = require('./advice-ai');
 const { createNaifKnowledge } = require('./naif-knowledge');
 const { createNaifExpert } = require('./naif-expert-engine');
 const { createNaifHrExpert, isHrQuestion } = require('./naif-hr-expert');
+const { createNaifDashboardIndex } = require('./naif-dashboard-index');
 const { createNaifLearning } = require('./naif-learning');
 const { install: installNaifRealtime } = require('./naif-realtime-server');
 
@@ -2205,6 +2206,7 @@ const naifLearning_=createNaifLearning({getSheets,spreadsheetId:SPREADSHEET_ID,c
 const askNaifKnowledge_=createNaifKnowledge({APP,readConfiguredSheet:readConfiguredSheet_,getNaifAdviceQuality,readLessons:(user,question)=>naifLearning_.relevant({user,question})});
 const askNaifExpert_=createNaifExpert({APP,readConfiguredSheet:readConfiguredSheet_,getNaifAdviceQuality,canPage:canNaifPage_});
 const askNaifHrExpert_=createNaifHrExpert({getHrStaffData_});
+const askNaifDashboardIndex_=createNaifDashboardIndex({APP});
 const METHODS={getNaifAdviceQuality,getBootData,getSecondaryMasterKpis,getWorkOrderMasterEnrichment,getPageData,getWednesdayMeetingData,getMonitorData,getFullMonitorData,getProjectNews,saveSmartHistory,syncThursdayProgressHistory,getWorkOrder360,clearDashboardCache};
 
 const app=express();
@@ -2749,9 +2751,11 @@ app.post('/api/rpc',requireAuth_,async(req,res)=>{
       const question=String(args?.[0]||'').slice(0,1500);
       const currentPage=String(args?.[1]||'').slice(0,60);
       const project=APP.TITLE?.toLowerCase().includes('makkah')?'مكة':'جدة';
-      const response=isHrQuestion(question,currentPage)
-        ?await askNaifHrExpert_({question,currentPage,user:req.session.user,project})
-        :await askNaifExpert_({question,currentPage,user:req.session.user,project});
+      const scope={question,currentPage,user:req.session.user,project};
+      const indexed=askNaifDashboardIndex_(scope);
+      const response=indexed||(isHrQuestion(question,currentPage)
+        ?await askNaifHrExpert_(scope)
+        :await askNaifExpert_(scope));
       return res.json({ok:true,result:response});
     }
     if(method==='askNaifKnowledge'){
