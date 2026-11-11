@@ -234,6 +234,10 @@ async function replyKnowledge(query){
  finally{clearTimeout(timer)}
 }
 async function reply(question){const query=question.trim();if(!query)return;bubble(query,true);state('thinking','يبحث عن القسم المناسب');let answer='';
+if(window.NaifReportArchive?.isArchiveQuestion?.(query)){
+ const report=await window.NaifReportArchive.answer(query,project);
+ bubble(report||'تعذر قراءة أرشيف التقارير.',false);state('idle','جاهز للمساعدة');say(report||'تعذر قراءة أرشيف التقارير.');return;
+}
 if(qualityIntent.test(query)){state('thinking','يقرأ نتائج جودة الإفادات');const result=await replyQuality(query);bubble(result,false);state('idle','جاهز للمساعدة');say(result);return;}
 // Navigation requests remain clickable; other questions use the authorized live-data knowledge engine.
 if(!/^(افتح|انتقل|اذهب|روح|ودني|اعرض التبويب|افتح تبويب)/.test(query)&&!/^(عرف نفسك|من انت|مين انت|اسمك)/.test(query)){
@@ -362,6 +366,7 @@ window.NaifVoiceBridge={
  answer:async question=>{
   const q=String(question||'').trim().slice(0,1200);
   if(!q)return 'لم يصل سؤال واضح؛ كرره من فضلك.';
+  if(window.NaifReportArchive?.isArchiveQuestion?.(q))return window.NaifReportArchive.answer(q,project);
   if(/^(افتح|انتقل|اذهب|روح|ودني|اعرض التبويب|افتح تبويب)/.test(q)){
    const found=labels.find(([title])=>q.includes(title));
    if(!found)return 'حدد القسم المطلوب من القائمة المصرح بها.';
