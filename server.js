@@ -11,7 +11,7 @@ const { syncAdviceHistory } = require('./advice-ai');
 const { createNaifKnowledge } = require('./naif-knowledge');
 const { createNaifExpert } = require('./naif-expert-engine');
 const { createNaifHrExpert, isHrQuestion } = require('./naif-hr-expert');
-const { createNaifDashboardIndex, canTab:canNaifCatalogTab_ } = require('./naif-dashboard-index');
+const { createNaifDashboardIndex, canTab:canNaifCatalogTab_, catalog:naifCatalog_ } = require('./naif-dashboard-index');
 const { createNaifBriefings, getTarget: getNaifBriefingTarget } = require('./naif-briefings-expert');
 const { createNaifLearning } = require('./naif-learning');
 const { install: installNaifRealtime } = require('./naif-realtime-server');
@@ -2734,6 +2734,26 @@ installNaifRealtime({
   gate:requireAuth_,
   project:APP.TITLE?.toLowerCase().includes('makkah')?'مكة':'جدة',
   key:process.env.NAIF_OPENAI_API_KEY||process.env.OPENAI_API_KEY||''
+});
+
+// Live coverage audit. Measures metadata indexing only, never live data correctness.
+app.get('/api/naif/index/status',requireAuth_,(req,res)=>{
+  try{
+    const source=fs.readFileSync(INDEX_FILE,'utf8');
+    const menu=source.split('id="nav">')[1]?.split('</nav>')[0]||'';
+    const tabs=[...menu.matchAll(/data-page="([^"]+)"/g)].map(m=>m[1]);
+    const audit=naifCatalog_.audit(tabs);
+    res.set('Cache-Control','no-store');
+    res.json({ok:audit.complete,project:APP.TITLE,catalogVersion:naifCatalog_.version,
+      navigation:{total:audit.navigationTotal,indexed:audit.indexed,percent:audit.percent,missing:audit.missing,
+        orphan:audit.orphan,missingDocumentation:audit.blank},
+      additionalSources:naifCatalog_.extra.length,
+      definitionCoverageComplete:audit.complete,
+      caveat:'100% navigation definition coverage does not certify live connectivity, data values, or export correctness'});
+  }catch(error){
+    console.error('Naif index status failed',error.message);
+    res.status(500).json({ok:false,error:'INDEX_AUDIT_FAILED'});
+  }
 });
 
 app.post('/api/rpc',requireAuth_,async(req,res)=>{
