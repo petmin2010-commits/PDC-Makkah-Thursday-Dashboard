@@ -13,6 +13,7 @@ const { createNaifExpert } = require('./naif-expert-engine');
 const { createNaifHrExpert, isHrQuestion } = require('./naif-hr-expert');
 const { createNaifDashboardIndex, canTab:canNaifCatalogTab_, catalog:naifCatalog_ } = require('./naif-dashboard-index');
 const { createNaifBriefings, getTarget: getNaifBriefingTarget } = require('./naif-briefings-expert');
+const { createNaifStageExpert, isStageQuestion } = require('./naif-stage-expert');
 const { createNaifLearning } = require('./naif-learning');
 const { install: installNaifRealtime } = require('./naif-realtime-server');
 
@@ -2209,6 +2210,7 @@ const askNaifExpert_=createNaifExpert({APP,readConfiguredSheet:readConfiguredShe
 const askNaifHrExpert_=createNaifHrExpert({getHrStaffData_});
 const askNaifDashboardIndex_=createNaifDashboardIndex({APP});
 const askNaifBriefing_=createNaifBriefings({getSmartThursdayPage_,getWednesdayMeetingData,canTab:canNaifCatalogTab_});
+const askNaifStage_=createNaifStageExpert({APP,readConfiguredSheet:readConfiguredSheet_,canPage:canNaifPage_});
 const METHODS={getNaifAdviceQuality,getBootData,getSecondaryMasterKpis,getWorkOrderMasterEnrichment,getPageData,getWednesdayMeetingData,getMonitorData,getFullMonitorData,getProjectNews,saveSmartHistory,syncThursdayProgressHistory,getWorkOrder360,clearDashboardCache};
 
 const app=express();
@@ -2774,9 +2776,10 @@ app.post('/api/rpc',requireAuth_,async(req,res)=>{
       const currentPage=String(args?.[1]||'').slice(0,60);
       const project=APP.TITLE?.toLowerCase().includes('makkah')?'مكة':'جدة';
       const scope={question,currentPage,user:req.session.user,project};
-      const indexed=askNaifDashboardIndex_(scope);
-      const briefing=!indexed&&getNaifBriefingTarget(question,currentPage)?await askNaifBriefing_(scope):null;
-      const response=indexed||briefing||(isHrQuestion(question,currentPage)
+      const stage=isStageQuestion(question)?await askNaifStage_(scope):null;
+      const indexed=stage?null:askNaifDashboardIndex_(scope);
+      const briefing=!stage&&!indexed&&getNaifBriefingTarget(question,currentPage)?await askNaifBriefing_(scope):null;
+      const response=stage||indexed||briefing||(isHrQuestion(question,currentPage)
         ?await askNaifHrExpert_(scope)
         :await askNaifExpert_(scope));
       return res.json({ok:true,result:response});
