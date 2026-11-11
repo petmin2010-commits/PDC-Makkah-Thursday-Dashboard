@@ -6,13 +6,15 @@ const fmt=x=>Number(x||0).toLocaleString('ar-SA',{maximumFractionDigits:1});
 const num=v=>{const n=Number(String(v??'').replace(/,/g,''));return Number.isFinite(n)?n:0};
 const text=v=>String(v??'').trim().slice(0,120);
 function canReadHr(user){
- const p=(user?.permissions||[]).map(norm),role=norm(user?.role);
+ const original=Array.isArray(user?.permissions)?user.permissions:[];
+ const p=original.map(norm),role=norm(user?.role);
+ if(original.some(x=>String(x).trim()==='*'))return true;
  return ['admin','administrator','مدير النظام'].includes(role)||
  p.some(x=>['*','all','الكل','جميع الصفحات','كامل الصلاحيات','hrstaff','الموارد البشريه للكادر','الموارد البشريه','الكادر'].includes(x));
 }
 function isHrQuestion(question,currentPage){
  if(currentPage==='hrStaff')return true;
- return /الكادر|القوى العامله|الموارد البشريه|الموظفين|الموظفون|الدورات التدريبيه|التدريب|البطاقات|بطاقات الموظفين|الشواغر|الشاغره|سيارات الكادر|كفاله الشركه|ساعات دوام الكادر/.test(norm(question));
+ return /الكادر|القوى العامله|عدد العاملين|الموارد البشريه|الموظفين|الموظفون|موظف|الدورات التدريبيه|الدورات|التدريب|البطاقات|بطاقات الموظفين|الشواغر|الشاغره|سيارات الكادر|كفاله الشركه|ساعات دوام الكادر/.test(norm(question));
 }
 const sum=(rows,k)=>rows.reduce((a,b)=>a+num(b[k]),0);
 const avg=(rows,k)=>rows.length?Math.round(sum(rows,k)/rows.length*10)/10:0;
