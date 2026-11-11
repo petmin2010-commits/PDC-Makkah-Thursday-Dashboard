@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test:naif-index": "node --test naif-index-coverage.test.cjs",
+    "test:naif": "node --test naif-index-coverage.test.cjs naif-expert.test.cjs"
   },
   "dependencies": {
     "express": "^5.1.0",
