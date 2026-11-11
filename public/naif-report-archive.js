@@ -15,7 +15,7 @@ function isArchiveQuestion(q){
 }
 function isNavigation(q){
  const s=norm(q);
- return /^(?:افتح|انتقل|اذهب|روح|ودني|اذهب الى|افتح لي|اعرض التبويب|افتح تبويب)\b/.test(s);
+ return /^(?:افتح|انتقل|اذهب|روح|ودني|اذهب الى|افتح لي|اعرض التبويب|افتح تبويب)(?:\s|$)/.test(s);
 }
 const safe=(x,n=110)=>String(x??'').replace(/[\u0000-\u001f]+/g,' ').trim().slice(0,n);
 const fmt=n=>Number(n||0).toLocaleString('ar-SA');
@@ -29,7 +29,7 @@ function ksaDate(){
 function formatResponse(q, data, city){
  const all=Array.isArray(data?.items)?data.items:[];
  const text=norm(q),today=ksaDate();
- const scopeToday=/\bاليوم\b|بتاريخ اليوم|النهارده/.test(text);
+ const scopeToday=/(?:^|\s)اليوم(?:\s|$)|بتاريخ اليوم|النهارده/.test(text);
  const scopeMonth=/هذا الشهر|الشهر الحالي|الشهر ده/.test(text);
  const scopeWeek=/هذا الاسبوع|الاسبوع الحالي|اخر اسبوع|آخر اسبوع/.test(text);
  const requestedFormat=/\bpdf\b|بي دي اف/.test(text)?'PDF':
@@ -46,10 +46,10 @@ function formatResponse(q, data, city){
  }
  if(requestedFormat){items=items.filter(x=>safe(x.format,20).toUpperCase()===requestedFormat);period+=' – صيغة '+requestedFormat;}
  const saved=items.filter(statusSaved).length;
- const failed=items.filter(statusFailed).length;
+ const failed=items.filter(x=>!statusSaved(x)&&statusFailed(x)).length;
  const other=Math.max(0,items.length-saved-failed);
  const place='مشروع كهرباء '+city;
- const countOnly=/^(?:كم|عدد|اجمالي|إجمالي)\b/.test(text)&&!/اخر|آخر|اسم|اذكر|اعرض|ماهي/.test(text);
+ const countOnly=/^(?:كم|عدد|اجمالي|إجمالي)(?:\s|$)/.test(text)&&!/اخر|آخر|اسم|اذكر|اعرض|ماهي/.test(text);
  let answer='سجل التقارير الصادرة — '+place+' ('+period+').\n'+
   'إجمالي التقارير المسجلة: '+fmt(items.length)+'، المحفوظة أو المرتبطة بملف: '+fmt(saved)+
   '، المتعثرة: '+fmt(failed)+'، الجاري استكمالها أو غير المحفوظة: '+fmt(other)+'.';
