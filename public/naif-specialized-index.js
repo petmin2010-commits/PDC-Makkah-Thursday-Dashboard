@@ -23,7 +23,9 @@
   if(!item||item.hidden||item.getAttribute('aria-hidden')==='true'||!item.getClientRects().length)return false;
   const s=window.getComputedStyle(item);
   if(s.display==='none'||s.visibility==='hidden')return false;
-  if(typeof window.vdCanAccessLabel==='function'&&!window.vdCanAccessLabel((item.querySelector('span')||item).textContent.trim()))return false;
+  // Fail closed until the authenticated dashboard ACL has finished loading.
+  if(typeof window.vdCanAccessLabel!=='function')return false;
+  if(!window.vdCanAccessLabel((item.querySelector('span')||item).textContent.trim()))return false;
   return true;
  };
  function targetFor(question){
