@@ -180,7 +180,7 @@ function createNaifExpert({APP,readConfiguredSheet,getNaifAdviceQuality,canPage,
   const named=allowed.filter(p=>sourceScore(p,q,tokens)>=12).sort((a,b)=>sourceScore(b,q,tokens)-sourceScore(a,q,tokens));
   // If a forbidden tab is explicitly requested, never silently substitute a different sheet.
   const disallowed=pages.filter(p=>!allowed.includes(p)&&sourceScore(p,q,tokens)>=17);
-  if(!named.length&&disallowed.length&&disallowed.some(x=>!['projects','workorders','tasks'].includes(x.key)))
+  if(!named.length&&disallowed.length)
    return {answer:'سؤالك يتعلق بتبويب غير متاح ضمن صلاحيات حسابك في كهرباء '+project+'. لا أعرض بياناته أو أستبدله بمصدر آخر.',sources:[],connected:false,project};
   const broad=isBroad(query);
   let selected;
