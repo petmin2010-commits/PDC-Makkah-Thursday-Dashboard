@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node server.js",
     "test:naif-index": "node --test naif-index-coverage.test.cjs",
-    "test:naif": "node --test naif-index-coverage.test.cjs naif-expert.test.cjs naif-stage.test.cjs"
+    "test:naif": "node --test naif-index-coverage.test.cjs naif-expert.test.cjs naif-stage.test.cjs naif-investigation.test.cjs"
   },
   "dependencies": {
     "express": "^5.1.0",
