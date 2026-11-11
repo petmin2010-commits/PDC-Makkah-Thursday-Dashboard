@@ -221,8 +221,11 @@ function naifIndicatorAnswer(question){
 }
 
 async function replyKnowledge(query){
-  // All authenticated text and WebRTC voice questions share one expert path.
-  // The UI reader is exact for currently rendered, filter-scoped data.
+  // Use the exact source adapter for authorized specialized reports/evaluations.
+  // Typed, Arabic voice and WebRTC calls share this same evidence-first path.
+  const special=await window.NaifSpecializedIndex?.answer?.(query,project);
+  if(special)return special;
+  // On-screen cards/charts reflect the current user's applied filters.
   const current=window.NaifExpertUI?.answer?.(query);
   if(current)return current;
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),33000);
