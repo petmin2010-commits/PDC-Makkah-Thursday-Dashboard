@@ -28,6 +28,7 @@
  };
  function targetFor(question){
   const q=N(question);
+  if(/فهرس|جميع التبويبات|كل التبويبات|مصادر البيانات|اسماء التبويبات|خارطه الداشبورد|خريطه الداشبورد/.test(q))return null;
   if(/كيف|شرح|اشرح|ما هو|ماهي وظائف/.test(q)&&!readWords.test(q))return null;
   const active=document.querySelector('#nav .nav-item.active[data-page]')?.dataset.page;
   const explicit=window.NaifDashboardCatalog?.find?.(question);
