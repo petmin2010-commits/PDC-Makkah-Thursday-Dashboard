@@ -17,13 +17,59 @@ const dialog=document.createElement('section');dialog.className='vd-naif';dialog
 dialog.innerHTML=`<div class="vd-naif-window"><div class="vd-naif-portrait">${engineer}<div><h2>المهندس نايف</h2><p>مساعد العمليات الذكي — مشروع ${project}</p><div class="vd-naif-status" role="status">جاهز للمساعدة</div></div></div><div class="vd-naif-content"><div class="vd-naif-header"><b>محادثة نايف</b><button type="button" class="vd-naif-close" aria-label="إغلاق">×</button></div><div class="vd-naif-messages" aria-live="polite"></div><div class="vd-naif-quick"><button data-query="أوامر العمل">أوامر العمل</button><button data-query="المشاريع">المشاريع</button><button data-query="التقارير">التقارير</button><button data-query="السلامة">السلامة</button><button data-query="كم الإفادات الضعيفة والشكلية؟">جودة الإفادات</button></div><form class="vd-naif-form"><input aria-label="سؤالك لنايف" placeholder="اسأل نايف عن المشروع أو افتح قسمًا..." required><button type="button" class="vd-naif-mic" aria-label="التحدث بالصوت" title="إملاء صوتي">🎤</button><button type="button" class="vd-naif-call" title="مكالمة صوتية داخل المنصة" aria-pressed="false">📞 مكالمة نايف</button><button type="button" class="vd-naif-conversation" title="وضع المحادثة الصوتية التلقائية" aria-pressed="false">🗣️ محادثة</button><button type="button" class="vd-naif-teach" title="اقترح معرفة جديدة لنايف">📖 علّم نايف</button><button type="button" class="vd-naif-review" title="مراجعة الدروس المعلقة - للمدير">✅ اعتماد الدروس</button><button type="submit">إرسال</button><button type="button" class="vd-naif-sound" title="تفعيل أو إيقاف الصوت" aria-label="الصوت">🔊</button></form><p class="vd-naif-note">نايف مرتبط بنتائج جودة الإفادات المتاحة لحسابك، ويقرأها عند السؤال. لا يُعدّل التصنيفات أو السجل التاريخي، ولا يجري مكالمات هاتفية.</p></div></div>`;
 document.body.append(dialog);const input=dialog.querySelector('input'),messages=dialog.querySelector('.vd-naif-messages'),status=dialog.querySelector('.vd-naif-status');let voice=false,recognition=null,previousFocus=null,conversationMode=false;
 const state=(s,label)=>{dialog.dataset.state=s;status.textContent=label};
+/* Browser-speech fallback: Arabic voice selection, chunking and accurate technical codes. */
+let speechGeneration=0;
+const stopSpeech=()=>{speechGeneration++;try{window.speechSynthesis?.cancel?.()}catch(e){}speechInProgress=false};
+const spokenArabic=text=>{
+ const digits=['صفر','واحد','اثنين','ثلاثة','أربعة','خمسة','ستة','سبعة','ثمانية','تسعة'];
+ return String(text??'').replace(/[٠-٩۰-۹]/g,c=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(c)>=0?'٠١٢٣٤٥٦٧٨٩'.indexOf(c):'۰۱۲۳۴۵۶۷۸۹'.indexOf(c)))
+  .replace(/\b(?:401|801|155|802|\d{7,15})\b/g,x=>x.split('').map(d=>digits[Number(d)]||d).join('، '))
+  .replace(/\bPDC\b/gi,'بي دي سي').replace(/\bUDS\b/gi,'يو دي إس').replace(/\bSPI\b/gi,'إس بي آي');
+};
+const chunksForVoice=(text,max=155)=>{
+ const chunks=[];let segment='';
+ for(const word of String(text).split(/\s+/).filter(Boolean)){
+  if(segment&&(segment.length+word.length+1>max)){chunks.push(segment);segment=word;}
+  else segment+=(segment?' ':'')+word;
+ }
+ if(segment)chunks.push(segment);return chunks;
+};
 const say=text=>{
- if(!voice||!window.speechSynthesis){if(callActive){awaitingVoiceAnswer=false;listen()}return}
- window.speechSynthesis.cancel();speechInProgress=true;stopRecognition();
- const u=new SpeechSynthesisUtterance(String(text));u.lang='ar-SA';u.rate=.92;
- u.onstart=()=>state('speaking','نايف يتحدث الآن');
- const finish=()=>{speechInProgress=false;awaitingVoiceAnswer=false;state('idle',callActive?'مكالمة نايف — يستمع':'جاهز للمساعدة');if(callActive)listen()};
- u.onend=finish;u.onerror=finish;window.speechSynthesis.speak(u)
+ if(window.NaifRealtimeVoice?.isActive?.()||window.NaifRealtimeVoice?.isConnecting?.())return;
+ if(!voice||!window.speechSynthesis||typeof window.SpeechSynthesisUtterance!=='function'){
+  if(callActive){awaitingVoiceAnswer=false;listen()}return;
+ }
+ stopSpeech();const id=speechGeneration;
+ const synth=window.speechSynthesis;
+ const voices=synth.getVoices?.()||[];
+ const male=/hamed|fahd|faris|shakir|shaker|omar|mohamed|mohammad|ahmed|tariq|naayf|nayef|male|حامد|فهد|فارس|شاكر|عمر|محمد|أحمد|طارق|نايف|رجالي/i;
+ const preferred=voices.filter(v=>/^ar(?:-|_|$)/i.test(v.lang||''));
+ const selected=preferred.find(v=>male.test(v.name||'')&&/^ar[-_]SA$/i.test(v.lang||''))||preferred.find(v=>male.test(v.name||''))||preferred.find(v=>/^ar[-_]SA$/i.test(v.lang||''))||preferred[0];
+ const parts=chunksForVoice(spokenArabic(text).slice(0,7500));
+ if(!parts.length){awaitingVoiceAnswer=false;if(callActive)listen();return}
+ speechInProgress=true;stopRecognition();let index=0;
+ const finish=()=>{
+  if(id!==speechGeneration)return;
+  speechInProgress=false;awaitingVoiceAnswer=false;
+  state('idle',callActive?'مكالمة نايف — يستمع':'جاهز للمساعدة');
+  if(callActive)listen();
+ };
+ const next=()=>{
+  if(id!==speechGeneration)return;
+  if(index>=parts.length)return finish();
+  const utterance=new window.SpeechSynthesisUtterance(parts[index++]);
+  utterance.lang=selected?.lang||'ar-SA';if(selected)utterance.voice=selected;
+  utterance.rate=.91;utterance.pitch=.93;
+  utterance.onstart=()=>{if(id===speechGeneration)state('speaking','نايف يتحدث معك بالعربية...')};
+  utterance.onend=()=>{if(id===speechGeneration)next()};
+  utterance.onerror=e=>{
+   if(id!==speechGeneration)return;
+   if(['interrupted','canceled'].includes(e?.error))return finish();
+   next();
+  };
+  try{synth.speak(utterance)}catch(e){finish()}
+ };
+ next();
 };
 const bubble=(text,isUser)=>{const item=document.createElement('div');item.className='vd-naif-bubble'+(isUser?' user':'');item.textContent=text;messages.append(item);messages.scrollTop=messages.scrollHeight};
 
@@ -200,7 +246,7 @@ else if(/كم|عدد|نسبة|حالة|تأخير|ملخص|بيانات|تقري
 else answer='أنا نايف، مساعدك في مشروع '+project+'. اطلب مني فتح أوامر العمل، المشاريع، التوصيلات، التصاريح، السلامة أو التقارير. لم يتم بعد ربط محرك الإجابة الذكي أو المكالمات بهذه الواجهة.';
 bubble(answer,false);state('idle','جاهز للمساعدة');say(answer)}
 function open(){previousFocus=document.activeElement;dialog.hidden=false;launch.classList.add('active');launch.setAttribute('aria-expanded','true');if(!messages.children.length)bubble('مرحبًا، أنا المهندس نايف، مساعد مشروع كهرباء '+project+'. كيف أساعدك اليوم؟',false);input.focus()}
-function close(){endCall();dialog.hidden=true;launch.classList.remove('active');launch.setAttribute('aria-expanded','false');if(recognition)try{recognition.stop()}catch(e){}window.speechSynthesis?.cancel();state('idle','جاهز للمساعدة');(previousFocus||launch).focus()}
+function close(){window.NaifRealtimeVoice?.stop?.('أُغلقت محادثة نايف.');endCall();dialog.hidden=true;launch.classList.remove('active');launch.setAttribute('aria-expanded','false');if(recognition)try{recognition.stop()}catch(e){}window.speechSynthesis?.cancel();state('idle','جاهز للمساعدة');(previousFocus||launch).focus()}
 
 /* Movable Naif companion: pointer-drag on desktop and touch, with persistent position. */
 const dock=document.createElement('aside');
@@ -230,10 +276,10 @@ dock.querySelector('.vd-naif-dock-hide').addEventListener('click',()=>setDockHid
 restore.addEventListener('click',()=>setDockHidden(false));
 setDockHidden(dock.hidden);
 
-launch.onclick=open;nav.addEventListener('click',e=>{if(e.target.closest('.nav-item')&& !e.target.closest('#vdNaifLauncher')&&!dialog.hidden)close()});dialog.querySelector('.vd-naif-close').onclick=close;dialog.addEventListener('click',e=>{if(e.target===dialog)close()});dialog.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+launch.onclick=open;nav.addEventListener('click',e=>{if(e.target.closest('.nav-item')&&!e.target.closest('#vdNaifLauncher')&&!dialog.hidden&&!window.NaifRealtimeVoice?.isActive?.()&&!window.NaifRealtimeVoice?.isConnecting?.())close()});dialog.querySelector('.vd-naif-close').onclick=close;dialog.addEventListener('click',e=>{if(e.target===dialog)close()});dialog.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
 dialog.querySelector('form').addEventListener('submit',e=>{e.preventDefault();const q=input.value;input.value='';reply(q)});
 dialog.querySelectorAll('[data-query]').forEach(b=>b.onclick=()=>reply(b.dataset.query));
-dialog.querySelector('.vd-naif-sound').onclick=e=>{voice=!voice;e.currentTarget.textContent=voice?'🔈':'🔊';e.currentTarget.title=voice?'إيقاف الصوت':'تفعيل الصوت';if(!voice){window.speechSynthesis?.cancel();speechInProgress=false;awaitingVoiceAnswer=false;if(callActive)listen()}};
+dialog.querySelector('.vd-naif-sound').onclick=e=>{voice=!voice;e.currentTarget.textContent=voice?'🔈':'🔊';e.currentTarget.title=voice?'إيقاف الصوت':'تفعيل الصوت';window.NaifRealtimeVoice?.setPlayback?.(voice);if(!voice){stopSpeech();awaitingVoiceAnswer=false;if(callActive)listen()}};
 const naifApi=async(method,args=[])=>{
  const response=await fetch('/api/rpc',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({method,args})});
  const data=await response.json().catch(()=>({}));
@@ -248,8 +294,8 @@ function renderCall(){
  callButton.textContent=callActive?'📵 إنهاء المكالمة':'📞 مكالمة نايف';
  callButton.setAttribute('aria-pressed',String(callActive));
  callButton.classList.toggle('is-active',callActive);
- conversationButton.textContent=callActive?'🛑 إيقاف المحادثة':'🗣️ محادثة';
- conversationButton.setAttribute('aria-pressed',String(callActive));
+ conversationButton.hidden=true;
+ 
  micButton.textContent=callActive?(micMuted?'🔇':'🎙️'):'🎤';
  micButton.title=callActive?(micMuted?'تشغيل الميكروفون':'كتم الميكروفون'):'إملاء صوتي';
  dialog.classList.toggle('vd-naif-in-call',callActive);
@@ -296,8 +342,41 @@ function beginCall(){
  renderCall();state('idle','جارٍ بدء مكالمة نايف');
  listen();
 }
-callButton.addEventListener('click',beginCall);
-conversationButton.addEventListener('click',beginCall);
+// Shared answer path for typed messages and live Arabic calls. It never
+// modifies source data and never bypasses the currently authorized dashboard.
+window.NaifVoiceBridge={
+ project,state,bubble,
+ stopClassic:()=>{endCall();stopSpeech()},
+ answer:async question=>{
+  const q=String(question||'').trim().slice(0,1200);
+  if(!q)return 'لم يصل سؤال واضح؛ كرره من فضلك.';
+  if(/^(افتح|انتقل|اذهب|روح|ودني|اعرض التبويب|افتح تبويب)/.test(q)){
+   const found=labels.find(([title])=>q.includes(title));
+   if(!found)return 'حدد القسم المطلوب من القائمة المصرح بها.';
+   let target=[...document.querySelectorAll('#nav .nav-item[data-page]')].find(el=>el.dataset.page===found[1]);
+   if(!target)target=[...document.querySelectorAll('#nav .nav-item[data-page]')].find(el=>el.textContent.includes(found[0]));
+   if(!target||target.hidden||getComputedStyle(target).display==='none')return 'هذا التبويب غير متاح في صلاحيات حسابك.';
+   target.click();
+   return 'تم فتح تبويب '+found[0]+' في لوحة مشروع كهرباء '+project+'.';
+  }
+  if(/^(عرف نفسك|من انت|مين انت|اسمك)/.test(q))return 'أنا المهندس نايف، مساعد مشروع كهرباء '+project+'، أجيب عن كروت الداشبورد وشيتات المشروع المتاحة لحسابك باللغة العربية.';
+  if(qualityIntent.test(q))return replyQuality(q);
+  return replyKnowledge(q);
+ },
+ transcript:t=>{if(!input.matches(':focus'))input.value='';state('thinking','فهم نايف سؤالك بالعربية.')}
+};
+conversationButton.hidden=true;conversationButton.setAttribute('aria-hidden','true');
+callButton.addEventListener('click',async()=>{
+ const live=window.NaifRealtimeVoice;
+ if(live?.isActive?.()||live?.isConnecting?.()){live.stop('تم إنهاء مكالمة نايف.');return}
+ if(callActive){endCall();return}
+ if(live?.start){
+  const handled=await live.start();
+  if(handled)return;
+  bubble('المكالمة المباشرة غير مهيأة أو غير مدعومة حاليًا؛ سأستخدم المحادثة العربية المتوافقة مع المتصفح.',false);
+ }
+ beginCall();
+});
 
 dialog.querySelector('.vd-naif-teach').onclick=async()=>{
  const question=window.prompt('ما السؤال أو المعلومة التي تريد تعليمها لنايف؟');
@@ -329,6 +408,7 @@ dialog.querySelector('.vd-naif-review').onclick=async()=>{
  }catch(e){bubble('مراجعة الدروس متاحة لمدير النظام فقط. '+e.message,false)}
 };
 micButton.onclick=()=>{
+ if(window.NaifRealtimeVoice?.isActive?.()){window.NaifRealtimeVoice.toggleMute();return}
  if(callActive){micMuted=!micMuted;if(micMuted){stopRecognition();state('idle','الميكروفون مكتوم')}else listen();renderCall();return}
  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
  if(!SR){bubble('التعرف على الصوت غير متاح في هذا المتصفح. يمكنك الكتابة.',false);return}
