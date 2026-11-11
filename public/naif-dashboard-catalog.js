@@ -45,7 +45,7 @@
  const byKey=new Map(entries.map(e=>[e.key,e]));
  function normalize(v){return String(v||'').normalize('NFKC').toLowerCase()
   .replace(/[ً-ٰٟـ]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه')
-  .replace(/[^p{L}p{N}]+/gu,' ').trim();}
+  .replace(/[^\p{L}\p{N}]+/gu,' ').trim();}
  function find(q,allowedKeys){const terms=normalize(q);const allow=allowedKeys?new Set(allowedKeys):null;
   return entries.map(e=>{
    const tokens=[e.label,...e.sections,...e.prompts,e.key].map(normalize);
