@@ -1,0 +1,33 @@
+name: Naif Dashboard Index Coverage
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/index.html'
+      - 'public/naif-*'
+      - 'app-config.js'
+      - 'naif-*'
+      - '.github/workflows/naif-index-coverage.yml'
+  pull_request:
+    paths:
+      - 'public/index.html'
+      - 'public/naif-*'
+      - 'app-config.js'
+      - 'naif-*'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Verify every dashboard tab is indexed
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Run Naif 100 percent metadata coverage checks
+        run: npm run test:naif-index
