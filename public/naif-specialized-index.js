@@ -30,6 +30,9 @@
   const q=N(question);
   if(/كيف|شرح|اشرح|ما هو|ماهي وظائف/.test(q)&&!readWords.test(q))return null;
   const active=document.querySelector('#nav .nav-item.active[data-page]')?.dataset.page;
+  const explicit=window.NaifDashboardCatalog?.find?.(question);
+  // A named different tab must not be answered from the current specialist page.
+  if(explicit&&explicit.key!==active&&!targets.some(t=>t.key===explicit.key&&t.re.test(q)))return null;
   return targets.find(x=>x.re.test(q))||
     (readWords.test(q)&&targets.find(x=>x.key===active))||null;
  }
