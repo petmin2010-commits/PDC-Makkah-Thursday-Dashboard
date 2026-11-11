@@ -30,4 +30,4 @@ jobs:
         with:
           node-version: '24'
       - name: Run Naif 100 percent metadata coverage checks
-        run: npm run test:naif-index
+        run: npm run test:naif
