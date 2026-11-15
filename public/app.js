@@ -433,9 +433,10 @@ function meetingDocumentsFirstHtml(rows,total,pct,fmt,esc){
   const connector=hasCycle
    ?'<svg class="bg-consultant-loop-svg" aria-hidden="true" focusable="false"><defs>'+
      '<marker id="pdcBgReturnArrow" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#ea580c"/></marker>'+
+     '<marker id="pdcBgReturnSoftArrow" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M1,1 L7,4.5 L1,8 Z" fill="#ea580c"/></marker>'+
      '</defs>'+
      '<path class="bg-return-first-path" marker-end="url(#pdcBgReturnArrow)"/>'+
-     '<path class="bg-return-second-path" marker-end="url(#pdcBgReturnArrow)"/></svg>'
+     '<path class="bg-return-second-path" marker-end="url(#pdcBgReturnSoftArrow)"/></svg>'
    :'';
   return '<div class="kpi-story-greatgrandchildren bg-level'+(hasCycle?' bg-consultant-cycle':'')+'">'+
    sortedStates.map(([label,group])=>{
@@ -479,8 +480,19 @@ function drawMeetingConsultantLoops(root){
   // PDC observations -> left-side return card -> consultant review.
   svg.querySelector('.bg-return-first-path').setAttribute('d',
    'M '+c.left+' '+c.cy+' H '+laneIncoming+' V '+(b.cy+10)+' H '+b.right);
+  // Return-to-consultant line leaves near the upper-right edge and turns smoothly
+  // toward the consultant; keep the incoming PDC line untouched.
+  const outgoingY=b.top+Math.min(18,Math.max(12,b.height*0.27));
+  const outgoingX=Math.min(a.left-15,Math.max(b.right+21,laneOutgoing-6));
+  const turn=Math.max(4,Math.min(9,(outgoingX-b.right)/3,Math.abs(outgoingY-a.cy)/3));
+  const dir=a.cy>=outgoingY?1:-1;
   svg.querySelector('.bg-return-second-path').setAttribute('d',
-   'M '+b.right+' '+(b.cy-10)+' H '+laneOutgoing+' V '+a.cy+' H '+a.left);
+   'M '+b.right+' '+outgoingY+
+   ' H '+(outgoingX-turn)+
+   ' Q '+outgoingX+' '+outgoingY+' '+outgoingX+' '+(outgoingY+dir*turn)+
+   ' V '+(a.cy-dir*turn)+
+   ' Q '+outgoingX+' '+a.cy+' '+(outgoingX+turn)+' '+a.cy+
+   ' H '+(a.left-2));
  });
 }
 
