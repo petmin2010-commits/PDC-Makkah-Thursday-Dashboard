@@ -465,18 +465,28 @@ function drawMeetingConsultantLoops(root){
   if(!base.width||!base.height)return;
   const box=el=>{
    const r=el.getBoundingClientRect();
-   return {left:r.left-base.left,right:r.right-base.left,cy:r.top-base.top+r.height/2};
+   return {left:r.left-base.left,right:r.right-base.left,top:r.top-base.top,
+    bottom:r.bottom-base.top,cx:r.left-base.left+r.width/2,
+    cy:r.top-base.top+r.height/2,height:r.height};
   };
-  const a=box(consultant),b=box(returned),c=box(pdc);
-  const right=Math.max(a.right,c.right)+16;
-  const left=Math.min(a.left,b.left,c.left)-19;
+  const a=box(consultant),c=box(pdc);
+  // Keep the return card outside the main vertical sequence, in the left branch.
+  const returnNode=returned.parentElement;
+  returnNode.style.top=Math.max(0,(a.cy+c.cy-returned.getBoundingClientRect().height)/2)+'px';
+  const b=box(returned);
+  const laneIncoming=(b.right+c.left)/2;
+  const laneOutgoing=c.left-13;
   svg.setAttribute('viewBox','0 0 '+base.width+' '+base.height);
-  svg.querySelector('.bg-forward-path').setAttribute('d','M '+a.right+' '+a.cy+' H '+right+' V '+c.cy+' H '+c.right);
-  svg.querySelector('.bg-return-first-path').setAttribute('d','M '+c.left+' '+c.cy+' H '+left+' V '+b.cy+' H '+b.left);
-  svg.querySelector('.bg-return-second-path').setAttribute('d','M '+b.left+' '+b.cy+' H '+(left-13)+' V '+a.cy+' H '+a.left);
+  // Main approval direction remains consultant -> PDC without passing through return.
+  svg.querySelector('.bg-forward-path').setAttribute('d',
+   'M '+a.cx+' '+a.bottom+' V '+(c.top-3));
+  // PDC observations -> left-side return card -> consultant review.
+  svg.querySelector('.bg-return-first-path').setAttribute('d',
+   'M '+c.left+' '+c.cy+' H '+laneIncoming+' V '+(b.cy+10)+' H '+b.right);
+  svg.querySelector('.bg-return-second-path').setAttribute('d',
+   'M '+b.right+' '+(b.cy-10)+' H '+laneOutgoing+' V '+a.cy+' H '+a.left);
  });
 }
-
 
 function renderWednesdayMeeting(){
  const rows=filteredWednesdayRows();
