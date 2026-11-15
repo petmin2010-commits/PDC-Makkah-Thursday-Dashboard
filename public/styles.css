@@ -3626,8 +3626,7 @@ body.vd-sidebar-collapsed .vd-sidebar-toggle{
  padding-right:29px!important;
 }
 .target-tree .docs-first-level .bg-consultant-cycle > .bg-state-node{z-index:2}
-.target-tree .docs-first-level .bg-consultant-cycle > .bg-consultant-return-node:before,
-.target-tree .docs-first-level .bg-consultant-cycle > .bg-pdc-review-node:before{display:none!important}
+.target-tree .docs-first-level .bg-consultant-cycle > .bg-consultant-return-node:before{display:none!important}
 .target-tree .docs-first-level .bg-consultant-return-card{
  background:#fff7ed!important;border:1px solid #fdba74!important;
  border-right:4px solid #ea580c!important;border-radius:12px!important;
@@ -3640,9 +3639,6 @@ body.vd-sidebar-collapsed .vd-sidebar-toggle{
 .target-tree .docs-first-level .bg-consultant-loop-svg{
  position:absolute;inset:0;display:block;width:100%;height:100%;
  overflow:visible;pointer-events:none;z-index:1;
-}
-.target-tree .docs-first-level .bg-consultant-loop-svg path.bg-forward-path{
- fill:none;stroke:#16a34a;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;
 }
 .target-tree .docs-first-level .bg-consultant-loop-svg path.bg-return-first-path,
 .target-tree .docs-first-level .bg-consultant-loop-svg path.bg-return-second-path{
@@ -3667,4 +3663,14 @@ body.vd-sidebar-collapsed .vd-sidebar-toggle{
 }
 .target-tree .docs-first-level .bg-consultant-cycle > .bg-consultant-return-node > .bg-consultant-return-card{
  width:100%!important;
+}
+
+/* PDC stage follows the standard vertical BG-card connection, not a green arrow. */
+.target-tree .docs-first-level .bg-consultant-cycle > .bg-pdc-review-node:before{
+ display:block!important;
+ top:-11px!important;
+ left:50%!important;
+ width:2px!important;
+ height:11px!important;
+ background:var(--story-color)!important;
 }
