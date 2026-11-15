@@ -406,34 +406,77 @@ function meetingDocumentsFirstHtml(rows,total,pct,fmt,esc){
    '<div class="bg-state-node anomaly-155-node">'+card('kpi-story-greatgrandchild anomaly-155-card',label,yesCount)+'</div></div>';
  };
  const bgHtml=items=>{
+  // BG is the source of truth. Unify the two Arabic spellings without duplicating orders.
+  const isConsultantReturn=v=>/^معاد[ةه]?\s+للاستشاري\s+بملاحظات$/.test(norm(v));
+  const isConsultantReview=v=>/قيد\s+مراجعة\s+الاستشاري/.test(norm(v));
+  const isPdcReview=v=>/قيد\s+مراجعة\s*(?:ال\s*)?pdc/i.test(norm(v));
   const groups=new Map();
   items.forEach(r=>{
-   const label=norm(r.docsSubStatus)||'غير محدد';
+   const raw=norm(r.docsSubStatus);
+   const label=isConsultantReturn(raw)?'معادة للاستشاري بملاحظات':(raw||'غير محدد');
    if(!groups.has(label))groups.set(label,[]);
    groups.get(label).push(r);
   });
-  if(!groups.size)return '';
-  // Display sequence matches approved Jeddah tree irrespective of item counts.
-  // Reordered for presentation only: row membership, values, and totals are unchanged.
+  // Always expose this possible return step, even when its current count is zero.
+  if(!groups.has('معادة للاستشاري بملاحظات'))groups.set('معادة للاستشاري بملاحظات',[]);
   const rank=label=>{
    const name=norm(label).toLowerCase();
    if(/معاد[ةه]?\s+للمقاول/.test(name))return 0;
-   if(/قيد\s+مراجعة\s+الاستشاري/.test(name))return 1;
-   if(/قيد\s+مراجعة\s*(?:ال\s*)?pdc/.test(name))return 2;
-   if(/^تم\s+الرفع\s*\(\s*uds\s*\)$/.test(name))return 4;
-   return 3; // All unexpected source states remain visible before the UDS node.
+   if(isConsultantReview(name))return 1;
+   if(isConsultantReturn(name))return 2;
+   if(isPdcReview(name))return 3;
+   if(/^تم\s+الرفع\s*\(\s*uds\s*\)$/.test(name))return 5;
+   return 4;
   };
   const sortedStates=Array.from(groups.entries()).sort((a,b)=>rank(a[0])-rank(b[0])||b[1].length-a[1].length);
-  return '<div class="kpi-story-greatgrandchildren bg-level">'+
-   sortedStates.map(([label,group])=>
-    '<div class="bg-state-node">'+card('kpi-story-greatgrandchild',label,group.length)+
-    (norm(label)==='تم الرفع (UDS)'?contractor155(group):'')+'</div>'
-   ).join('')+'</div>';
+  const hasCycle=sortedStates.some(([label])=>isConsultantReview(label))&&sortedStates.some(([label])=>isPdcReview(label));
+  const connector=hasCycle
+   ?'<svg class="bg-consultant-loop-svg" aria-hidden="true" focusable="false"><defs>'+
+     '<marker id="pdcBgForwardArrow" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#16a34a"/></marker>'+
+     '<marker id="pdcBgReturnArrow" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#ea580c"/></marker>'+
+     '</defs><path class="bg-forward-path" marker-end="url(#pdcBgForwardArrow)"/>'+
+     '<path class="bg-return-first-path" marker-end="url(#pdcBgReturnArrow)"/>'+
+     '<path class="bg-return-second-path" marker-end="url(#pdcBgReturnArrow)"/></svg>'
+   :'';
+  return '<div class="kpi-story-greatgrandchildren bg-level'+(hasCycle?' bg-consultant-cycle':'')+'">'+
+   sortedStates.map(([label,group])=>{
+    const returned=isConsultantReturn(label);
+    const cls=returned?' bg-consultant-return-node':isConsultantReview(label)?' bg-consultant-review-node':isPdcReview(label)?' bg-pdc-review-node':'';
+    return '<div class="bg-state-node'+cls+'">'+
+     card('kpi-story-greatgrandchild'+(returned?' bg-consultant-return-card':''),label,group.length)+
+     (norm(label)==='تم الرفع (UDS)'?contractor155(group):'')+'</div>';
+   }).join('')+connector+'</div>';
  };
  return '<div class="kpi-story-children bf-level docs-first-level">'+
   documentGroups.map(group=>'<div class="kpi-story-child-node '+group.css+'">'+
    card('kpi-story-child',group.label,group.rows.length)+(group.css==='bf-not-received'?anomaly155Html(group.rows):bgHtml(group.rows))+'</div>').join('')+'</div>';
 }
+
+
+function drawMeetingConsultantLoops(root){
+ if(!root)return;
+ root.querySelectorAll('.bg-consultant-cycle').forEach(level=>{
+  const svg=level.querySelector('.bg-consultant-loop-svg');
+  const consultant=level.querySelector('.bg-consultant-review-node > .kpi-story-greatgrandchild');
+  const returned=level.querySelector('.bg-consultant-return-node > .kpi-story-greatgrandchild');
+  const pdc=level.querySelector('.bg-pdc-review-node > .kpi-story-greatgrandchild');
+  if(!svg||!consultant||!returned||!pdc)return;
+  const base=level.getBoundingClientRect();
+  if(!base.width||!base.height)return;
+  const box=el=>{
+   const r=el.getBoundingClientRect();
+   return {left:r.left-base.left,right:r.right-base.left,cy:r.top-base.top+r.height/2};
+  };
+  const a=box(consultant),b=box(returned),c=box(pdc);
+  const right=Math.max(a.right,c.right)+16;
+  const left=Math.min(a.left,b.left,c.left)-19;
+  svg.setAttribute('viewBox','0 0 '+base.width+' '+base.height);
+  svg.querySelector('.bg-forward-path').setAttribute('d','M '+a.right+' '+a.cy+' H '+right+' V '+c.cy+' H '+c.right);
+  svg.querySelector('.bg-return-first-path').setAttribute('d','M '+c.left+' '+c.cy+' H '+left+' V '+b.cy+' H '+b.left);
+  svg.querySelector('.bg-return-second-path').setAttribute('d','M '+b.left+' '+b.cy+' H '+(left-13)+' V '+a.cy+' H '+a.left);
+ });
+}
+
 
 function renderWednesdayMeeting(){
  const rows=filteredWednesdayRows();
@@ -491,6 +534,13 @@ function renderWednesdayMeeting(){
     </section>
    </div>
   </div>`;
+ if(kroot){
+  requestAnimationFrame(()=>drawMeetingConsultantLoops(kroot));
+  if(!window.__pdcMeetingLoopsResizeBound){
+   window.addEventListener('resize',()=>drawMeetingConsultantLoops(document.getElementById('meetingKpis')));
+   window.__pdcMeetingLoopsResizeBound=true;
+  }
+ }
 
  // مؤشرات اجتماع الـ PDC المختصرة — بنفس كروت جدة.
  const allMeetingRows=Array.isArray(S.meetingRows)?S.meetingRows:[];
