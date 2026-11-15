@@ -3648,3 +3648,23 @@ body.vd-sidebar-collapsed .vd-sidebar-toggle{
 .target-tree .docs-first-level .bg-consultant-loop-svg path.bg-return-second-path{
  fill:none;stroke:#ea580c;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:5 3;
 }
+
+
+/* Consultant comments: show the optional feedback card beside, not in, the BG list. */
+.target-tree .docs-first-level .bg-consultant-cycle{
+ overflow:visible!important;
+ box-sizing:border-box!important;
+ padding-right:0!important;
+}
+.target-tree .docs-first-level .bg-consultant-cycle > .bg-consultant-return-node{
+ position:absolute!important;
+ grid-area:auto!important;
+ left:calc(-100% + 12px)!important;
+ right:auto!important;
+ top:0;
+ width:calc(100% - 65px)!important;
+ z-index:3!important;
+}
+.target-tree .docs-first-level .bg-consultant-cycle > .bg-consultant-return-node > .bg-consultant-return-card{
+ width:100%!important;
+}
