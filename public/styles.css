@@ -3617,3 +3617,29 @@ body.vd-sidebar-collapsed .vd-sidebar-toggle{
 .target-tree .docs-first-level .ak-uds-not-received-node .sequence-155-card span {
  line-height:1.5!important;white-space:normal!important;
 }
+
+/* PDC meeting: a distinct consultant-comments return card with a measured feedback loop. */
+.target-tree .docs-first-level .bg-consultant-cycle{overflow:visible!important}
+.target-tree .docs-first-level .bg-consultant-cycle > .bg-state-node{z-index:2}
+.target-tree .docs-first-level .bg-consultant-cycle > .bg-consultant-return-node:before,
+.target-tree .docs-first-level .bg-consultant-cycle > .bg-pdc-review-node:before{display:none!important}
+.target-tree .docs-first-level .bg-consultant-return-card{
+ background:#fff7ed!important;border:1px solid #fdba74!important;
+ border-right:4px solid #ea580c!important;border-radius:12px!important;
+ box-shadow:0 5px 15px rgba(234,88,12,.13)!important;
+ min-height:54px!important;
+}
+.target-tree .docs-first-level .bg-consultant-return-card span{color:#9a3412!important;font-weight:800!important;font-size:8px!important}
+.target-tree .docs-first-level .bg-consultant-return-card strong{color:#c2410c!important;font-size:18px!important}
+.target-tree .docs-first-level .bg-consultant-return-card small{color:#9a3412!important}
+.target-tree .docs-first-level .bg-consultant-loop-svg{
+ position:absolute;inset:0;display:block;width:100%;height:100%;
+ overflow:visible;pointer-events:none;z-index:1;
+}
+.target-tree .docs-first-level .bg-consultant-loop-svg path.bg-forward-path{
+ fill:none;stroke:#16a34a;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;
+}
+.target-tree .docs-first-level .bg-consultant-loop-svg path.bg-return-first-path,
+.target-tree .docs-first-level .bg-consultant-loop-svg path.bg-return-second-path{
+ fill:none;stroke:#ea580c;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:5 3;
+}
