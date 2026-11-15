@@ -432,9 +432,8 @@ function meetingDocumentsFirstHtml(rows,total,pct,fmt,esc){
   const hasCycle=sortedStates.some(([label])=>isConsultantReview(label))&&sortedStates.some(([label])=>isPdcReview(label));
   const connector=hasCycle
    ?'<svg class="bg-consultant-loop-svg" aria-hidden="true" focusable="false"><defs>'+
-     '<marker id="pdcBgForwardArrow" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#16a34a"/></marker>'+
      '<marker id="pdcBgReturnArrow" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#ea580c"/></marker>'+
-     '</defs><path class="bg-forward-path" marker-end="url(#pdcBgForwardArrow)"/>'+
+     '</defs>'+
      '<path class="bg-return-first-path" marker-end="url(#pdcBgReturnArrow)"/>'+
      '<path class="bg-return-second-path" marker-end="url(#pdcBgReturnArrow)"/></svg>'
    :'';
@@ -477,9 +476,6 @@ function drawMeetingConsultantLoops(root){
   const laneIncoming=(b.right+c.left)/2;
   const laneOutgoing=c.left-13;
   svg.setAttribute('viewBox','0 0 '+base.width+' '+base.height);
-  // Main approval direction remains consultant -> PDC without passing through return.
-  svg.querySelector('.bg-forward-path').setAttribute('d',
-   'M '+a.cx+' '+a.bottom+' V '+(c.top-3));
   // PDC observations -> left-side return card -> consultant review.
   svg.querySelector('.bg-return-first-path').setAttribute('d',
    'M '+c.left+' '+c.cy+' H '+laneIncoming+' V '+(b.cy+10)+' H '+b.right);
