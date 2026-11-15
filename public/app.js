@@ -432,10 +432,9 @@ function meetingDocumentsFirstHtml(rows,total,pct,fmt,esc){
   const hasCycle=sortedStates.some(([label])=>isConsultantReview(label))&&sortedStates.some(([label])=>isPdcReview(label));
   const connector=hasCycle
    ?'<svg class="bg-consultant-loop-svg" aria-hidden="true" focusable="false"><defs>'+
-     '<marker id="pdcBgReturnArrow" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#ea580c"/></marker>'+
      '<marker id="pdcBgReturnSoftArrow" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M1,1 L7,4.5 L1,8 Z" fill="#ea580c"/></marker>'+
      '</defs>'+
-     '<path class="bg-return-first-path" marker-end="url(#pdcBgReturnArrow)"/>'+
+     '<path class="bg-return-first-path" marker-end="url(#pdcBgReturnSoftArrow)"/>'+
      '<path class="bg-return-second-path" marker-end="url(#pdcBgReturnSoftArrow)"/></svg>'
    :'';
   return '<div class="kpi-story-greatgrandchildren bg-level'+(hasCycle?' bg-consultant-cycle':'')+'">'+
@@ -478,8 +477,17 @@ function drawMeetingConsultantLoops(root){
   const laneOutgoing=c.left-13;
   svg.setAttribute('viewBox','0 0 '+base.width+' '+base.height);
   // PDC observations -> left-side return card -> consultant review.
+  // Match the two return arrows: equal radius, solid line and arrowhead.
+  const incomingY=b.top+Math.min(b.height-12,Math.max(12,b.height*0.73));
+  const incomingDir=incomingY>=c.cy?1:-1;
+  const incomingTurn=Math.max(4,Math.min(9,(c.left-laneIncoming)/3,Math.abs(incomingY-c.cy)/3));
   svg.querySelector('.bg-return-first-path').setAttribute('d',
-   'M '+c.left+' '+c.cy+' H '+laneIncoming+' V '+(b.cy+10)+' H '+b.right);
+   'M '+c.left+' '+c.cy+
+   ' H '+(laneIncoming+incomingTurn)+
+   ' Q '+laneIncoming+' '+c.cy+' '+laneIncoming+' '+(c.cy+incomingDir*incomingTurn)+
+   ' V '+(incomingY-incomingDir*incomingTurn)+
+   ' Q '+laneIncoming+' '+incomingY+' '+(laneIncoming-incomingTurn)+' '+incomingY+
+   ' H '+(b.right+2));
   // Return-to-consultant line leaves near the upper-right edge and turns smoothly
   // toward the consultant; keep the incoming PDC line untouched.
   const outgoingY=b.top+Math.min(18,Math.max(12,b.height*0.27));
