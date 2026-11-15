@@ -79,7 +79,9 @@ function meetingDocumentsFirstHtml(rows,total,pct,fmt,esc){
 function meetingTreeHtml(rows){
  const total=rows.length,done=rows.filter(r=>norm(r.executionRaw)==='تم التنفيذ'),not=rows.filter(r=>norm(r.executionRaw)==='لم يتم التنفيذ');
  const stopped=rows.filter(r=>['موقوف/محول','متوقف/محول','موقوف','محول','متوقف'].includes(norm(r.executionRaw)));
- const docsFirstCompletedHtml=meetingDocumentsFirstHtml(done,total,pct,fmt,esc);
+ // Reuse the exact same BG status cards and consultant feedback loop as the PDC meeting tab.
+ const renderDocs=typeof window.meetingDocumentsFirstHtml==='function'?window.meetingDocumentsFirstHtml:meetingDocumentsFirstHtml;
+ const docsFirstCompletedHtml=renderDocs(done,total,pct,fmt,esc);
  const count=(arr,key)=>{const m={};arr.forEach(r=>{const x=String(r[key]||'غير محدد').trim()||'غير محدد';m[x]=(m[x]||0)+1});return Object.entries(m).sort((a,b)=>b[1]-a[1])};
  const bc=count(not,'nonExecutionStatus');
  const bcHtml=(bc.length?bc:[['غير محدد',0]]).map(([x,n])=>'<article class="kpi-story-card kpi-story-child"><span>'+esc(x)+'</span><strong>'+fmt(n)+'</strong><small>'+pct(n,total)+'</small></article>').join('');
@@ -87,7 +89,20 @@ function meetingTreeHtml(rows){
  return '<div class="kpi-story target-tree"><article class="kpi-story-card kpi-story-root"><span>إجمالي أوامر العمل</span><strong>'+fmt(total)+'</strong><small>100% من إجمالي الأوامر</small></article><div class="kpi-story-level1"><section class="kpi-story-node completed"><article class="kpi-story-card"><span>تم التنفيذ</span><strong>'+fmt(done.length)+'</strong><small>'+pct(done.length,total)+'</small></article>'+docsFirstCompletedHtml+'</section><section class="kpi-story-node incomplete"><article class="kpi-story-card"><span>لم يتم التنفيذ</span><strong>'+fmt(not.length)+'</strong><small>'+pct(not.length,total)+'</small></article><div class="kpi-story-children bc-level">'+bcHtml+'</div></section><section class="kpi-story-node stopped"><article class="kpi-story-card"><span>'+stoppedLabel+'</span><strong>'+fmt(stopped.length)+'</strong><small>'+pct(stopped.length,total)+'</small></article></section></div></div>';
 }
 function renderEmergencyCopy(rows){const x=el('closuresEmergencyTree');if(x&&typeof renderEmergencyStatusTree==='function'){x.innerHTML='';renderEmergencyStatusTree(Array.isArray(rows)?rows:[],x,false)}}
-function renderMeetingCopy(){const x=el('closuresMeetingTree');if(x)x.innerHTML=meetingTreeHtml(Array.isArray(S?.meetingRows)?S.meetingRows:[])}
+function renderMeetingCopy(){
+ const x=el('closuresMeetingTree');
+ if(!x)return;
+ x.innerHTML=meetingTreeHtml(Array.isArray(S?.meetingRows)?S.meetingRows:[]);
+ // The return card is positioned outside its BG column; redraw connectors after layout.
+ if(typeof window.drawMeetingConsultantLoops==='function'){
+  requestAnimationFrame(()=>{if(S?.current==='closures')window.drawMeetingConsultantLoops(x)});
+ }
+}
+window.addEventListener('resize',()=>{
+ if(S?.current!=='closures'||typeof window.drawMeetingConsultantLoops!=='function')return;
+ const x=el('closuresMeetingTree');
+ if(x)requestAnimationFrame(()=>window.drawMeetingConsultantLoops(x));
+});
 function loadEmergency(){const c=S?.pageCache?.emergency;if(c?.rows){renderEmergencyCopy(c.rows);return}if(emergencyLoading)return;emergencyLoading=true;google.script.run.withSuccessHandler(p=>{emergencyLoading=false;if(S?.pageCache)S.pageCache.emergency=p||{rows:[]};if(S.current==='closures')renderEmergencyCopy(p?.rows||[])}).withFailureHandler(()=>{emergencyLoading=false;const x=el('closuresEmergencyTree');if(x)x.innerHTML='<div class="empty">تعذر تحميل شجرة الطوارئ</div>'}).getPageData('emergency')}
 function loadMeeting(){if(S?.meeting){renderMeetingCopy();return}if(meetingLoading)return;meetingLoading=true;google.script.run.withSuccessHandler(p=>{meetingLoading=false;S.meeting=p||{rows:[]};S.meetingRows=Array.isArray(S.meeting.rows)?S.meeting.rows:[];if(S.current==='closures')renderMeetingCopy()}).withFailureHandler(()=>{meetingLoading=false;const x=el('closuresMeetingTree');if(x)x.innerHTML='<div class="empty">تعذر تحميل شجرة اجتماع الـ PDC</div>'}).getWednesdayMeetingData()}
 function ensure(){const s=el('closuresCopiedTreesSection'),a=el('closuresArchiveSection');if(!s)return;const on=S?.current==='closures';s.style.display=on?'block':'none';if(a){a.style.display=on?'block':'none';if(on){const f=el('closuresArchiveFrame');if(f&&!f.src)f.src=f.dataset.src||''}}if(!on)return;const m=el('closuresMeetingTree'),e=el('closuresEmergencyTree');if(m&&!m.innerHTML.trim())m.innerHTML='<div class="empty">جاري تحميل شجرة اجتماع الـ PDC...</div>';if(e&&!e.innerHTML.trim())e.innerHTML='<div class="empty">جاري تحميل شجرة الطوارئ...</div>';loadMeeting();loadEmergency()}
