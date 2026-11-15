@@ -3640,10 +3640,8 @@ body.vd-sidebar-collapsed .vd-sidebar-toggle{
  position:absolute;inset:0;display:block;width:100%;height:100%;
  overflow:visible;pointer-events:none;z-index:1;
 }
-.target-tree .docs-first-level .bg-consultant-loop-svg path.bg-return-first-path{
- fill:none;stroke:#ea580c;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:5 3;
-}
-/* A clean, thin solid return arrow from the consultant-comments card. */
+/* Both sides of the feedback loop share the same smooth, continuous arrow treatment. */
+.target-tree .docs-first-level .bg-consultant-loop-svg path.bg-return-first-path,
 .target-tree .docs-first-level .bg-consultant-loop-svg path.bg-return-second-path{
  fill:none;stroke:#ea580c;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;
 }
