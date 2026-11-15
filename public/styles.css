@@ -3619,7 +3619,12 @@ body.vd-sidebar-collapsed .vd-sidebar-toggle{
 }
 
 /* PDC meeting: a distinct consultant-comments return card with a measured feedback loop. */
-.target-tree .docs-first-level .bg-consultant-cycle{overflow:visible!important}
+/* Reserve a visible right-side lane for the green forward path; the orange loop uses the left-side lane. */
+.target-tree .docs-first-level .bg-consultant-cycle{
+ overflow:visible!important;
+ box-sizing:border-box!important;
+ padding-right:29px!important;
+}
 .target-tree .docs-first-level .bg-consultant-cycle > .bg-state-node{z-index:2}
 .target-tree .docs-first-level .bg-consultant-cycle > .bg-consultant-return-node:before,
 .target-tree .docs-first-level .bg-consultant-cycle > .bg-pdc-review-node:before{display:none!important}
