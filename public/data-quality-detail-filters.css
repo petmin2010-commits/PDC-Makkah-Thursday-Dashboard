@@ -1,0 +1,18 @@
+
+/* Search controls for Naif advice-quality and all quality-audit detail tables */
+.dq-detail-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end;margin:0 0 12px;padding:13px;border:1px solid color-mix(in srgb,var(--line) 75%,#0f9f8c 25%);border-radius:16px;background:color-mix(in srgb,var(--panel) 95%,#0f9f8c 5%);direction:rtl}
+.dq-detail-filter{display:flex;flex-direction:column;gap:5px;min-width:0;font-family:Cairo,sans-serif}
+.dq-detail-filter span{font-size:10px;color:var(--muted);font-weight:800}
+.dq-detail-filter input,.dq-detail-filter select{box-sizing:border-box;width:100%;max-width:100%;height:38px;padding:7px 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font:600 11px Cairo,Arial,sans-serif;direction:rtl}
+.dq-detail-filter input:focus,.dq-detail-filter select:focus{outline:2px solid rgba(15,159,140,.22);border-color:#0f9f8c}
+.dq-detail-filter-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;grid-column:1/-1;border-top:1px solid var(--line);padding-top:10px;flex-wrap:wrap}
+.dq-detail-filter-count{font-size:12px;font-weight:900;color:#0f766e}
+.dq-detail-filter-reset{cursor:pointer;border:1px solid #0f766e;border-radius:10px;background:var(--panel);color:#0f766e;font:800 11px Cairo,Arial,sans-serif;padding:9px 15px}
+.dq-detail-filter-reset:hover{background:rgba(15,118,110,.08)}
+.dq-detail-filter-empty{margin:0 0 10px;border-radius:10px;padding:16px;text-align:center;background:rgba(245,158,11,.06);color:#b45309;font-size:12px;font-weight:700}
+.dq-detail-filter-empty[hidden],.dq-table-wrap tbody tr.dq-row-filtered{display:none!important}
+body.vd-report-dark .dq-detail-filters{background:#102945;border-color:rgba(117,177,235,.2)}
+body.vd-report-dark .dq-detail-filter input,body.vd-report-dark .dq-detail-filter select,body.vd-report-dark .dq-detail-filter-reset{background:#0b203a;color:#edf8ff;border-color:rgba(117,177,235,.35)}
+body.vd-report-dark .dq-detail-filter-count{color:#5eead4}
+@media(max-width:600px){.dq-detail-filters{grid-template-columns:repeat(2,minmax(0,1fr));padding:10px}.dq-detail-filter-actions{align-items:stretch}}
+@media(max-width:400px){.dq-detail-filters{grid-template-columns:1fr}}
